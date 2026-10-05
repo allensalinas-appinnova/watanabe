@@ -1,0 +1,19 @@
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+firestore-debug.log
+config/firebase.dev.json
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Generated files
+*.g.dart
+
+# OS files
+.DS_Store

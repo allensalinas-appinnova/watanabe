@@ -1,0 +1,8 @@
+{
+  "@@locale": "es",
+  "appTitle": "ClearBudget",
+  "loginTitle": "Iniciar sesión",
+  "createAccount": "Crear cuenta",
+  "continueAsGuest": "Continuar como invitado",
+  "dashboardTitle": "Tu dinero, con claridad."
+}
