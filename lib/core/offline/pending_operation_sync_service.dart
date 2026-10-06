@@ -36,6 +36,11 @@ class PendingOperationSyncService {
     }
   });
 
+  Future<bool> hasConnection() async {
+    final results = await _connectivity.checkConnectivity();
+    return results.any((result) => result != ConnectivityResult.none);
+  }
+
   Future<void> enqueue({
     required String idempotencyKey,
     required String operationType,
@@ -49,6 +54,7 @@ class PendingOperationSyncService {
       .then((_) {});
 
   Future<void> drain(PendingOperationSender sender, {bool retryRejected = false}) async {
+    if (!await hasConnection()) return;
     final operations = retryRejected
         ? await _database.pendingOrRejected()
         : await _database.pending();
