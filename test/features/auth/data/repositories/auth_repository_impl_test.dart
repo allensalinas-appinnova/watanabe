@@ -109,6 +109,22 @@ void main() {
     ]);
   });
 
+  test('does not emit a stale cached UID before the Firebase session', () async {
+    const staleUser = AuthUserModel(
+      id: 'stale-user',
+      isAnonymous: true,
+    );
+    when(() => localDataSource.readCachedUser()).thenAnswer((_) async => staleUser);
+    when(() => localDataSource.cacheUser(user)).thenAnswer((_) async {});
+    when(() => remoteDataSource.observeSession()).thenAnswer((_) => Stream.value(user));
+
+    final sessions = await repository.observeSession().toList();
+
+    expect(sessions, hasLength(1));
+    expect(sessions.single?.id, user.id);
+    verifyNever(() => localDataSource.clearCachedUser());
+  });
+
   test('sendPasswordResetEmail delegates to Firebase and returns success', () async {
     when(
       () => remoteDataSource.sendPasswordResetEmail(email: 'person@example.test'),

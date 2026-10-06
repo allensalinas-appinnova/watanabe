@@ -56,17 +56,22 @@ void main() {
       'Cuenta UI',
     );
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
-    await tester.pumpAndSettle(const Duration(seconds: 3));
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.pump(const Duration(seconds: 1));
+      if (find.byKey(const ValueKey('home_add_income')).evaluate().isNotEmpty) break;
+    }
 
     expect(find.byKey(const ValueKey('home_add_income')), findsOneWidget);
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {
+    await FirebaseAuth.instance.signOut();
     final email = 'canonical-${DateTime.now().microsecondsSinceEpoch}@example.test';
     final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: email,
       password: 'ClearBudget-E2E-123',
     );
+    await credential.user!.getIdToken(true);
     final uid = credential.user!.uid;
     final firestore = FirebaseFirestore.instance;
     final user = firestore.collection('users').doc(uid);
@@ -86,7 +91,10 @@ void main() {
       locale: 'es',
       countryCode: 'CO',
     );
-    expect(bootstrap.isRight(), isTrue);
+    bootstrap.match(
+      (failure) => fail('Default category bootstrap failed: ${failure.message}'),
+      (_) {},
+    );
     final account = await repository.createAccount(
       uid,
       name: 'Cuenta principal',

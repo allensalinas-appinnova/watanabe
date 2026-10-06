@@ -19,9 +19,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<AuthUser?> observeSession() async* {
-    final cached = await _localDataSource.readCachedUser();
-    if (cached != null) yield cached.toEntity();
-
+    // Firebase Auth is the source of truth for the active UID. Yielding a cached
+    // user before authStateChanges() can briefly expose another user's UID after
+    // logout/login, causing owner-scoped Firestore writes to be rejected.
     await for (final user in _remoteDataSource.observeSession()) {
       if (user == null) {
         await _localDataSource.clearCachedUser();
