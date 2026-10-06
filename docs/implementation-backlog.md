@@ -4,34 +4,39 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T08:00:12-05:00"
-  iteration: "ITERATION-2"
-  last_commit: "ac35253ad60da46a108d6ca685ae8780b926fd97"
-  status: "Iteration 2 implementation is locally verified: Activity pagination, monthly summaries and durable offline restart flow are implemented; device E2E and staging remain blocked."
+  updated_at: "2026-10-06T08:20:15-05:00"
+  iteration: "ITERATION-3"
+  last_commit: "28c65b2ade9ee92707bac402247894084e4350e2"
+  status: "Iteration 3 local hardening is complete: environment guards, staging launch profiles, non-debug signing configuration and observability hooks are implemented; cloud staging and native signing evidence remain unavailable."
   verified:
     - "flutter analyze passes with no issues"
     - "Flutter unit/widget tests pass (33 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
-    - "Iteration 1 commit f1057a4 is the implementation base"
-    - "Existing Flutter, Functions and Firestore Emulator checks remain green"
-    - "Drift pending operation survives close/reopen and reaches confirmed once"
-    - "Firestore pagination test passes with 101 operations, cursor and filters"
-    - "Activity accumulates pages with deduplication and retry state"
-    - "Startup sync and reconnect sync share a single in-flight drain"
+    - "Iteration 2 commit ac35253 is the implementation base"
+    - "flutter analyze passes with no issues"
+    - "Flutter unit/widget tests pass (35 tests)"
+    - "Android debug APK builds successfully"
+    - "Firebase CLI 15.32.1 is available"
+    - "Staging prerequisite guards fail closed when configuration is absent"
+    - "Emulator mode is rejected outside dev and in release builds"
+    - "Crashlytics/Analytics hooks allow only non-financial event names"
   blocked:
+    - "Firebase staging project ID and app configuration values were not provided"
+    - "Android upload keystore/Play App Signing credentials are not configured"
+    - "iOS DEVELOPMENT_TEAM, certificates and provisioning profiles are not configured"
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
-    - "Staging Firebase credentials, signing and OAuth release inputs are not configured"
-  next_iteration: "ITERATION-3: configure Firebase staging, release security, observability and signed Android/iOS smoke builds."
+    - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
+  next_iteration: "Complete staging project wiring, signed Android/iOS smoke builds and cloud observability evidence."
 
 ## Iteration status snapshot
 
 | ID | Status | Evidence / remaining gap |
 | --- | --- | --- |
-| CB-02 | in_progress | Source, docs and emulator checks updated; CI and release ownership remain. |
-| CB-03 | proposed | Staging, signing, OAuth and cloud release qualification remain. |
+| CB-02 | in_progress | Environment/release documentation and observability hooks updated; CI and release ownership remain. |
+| CB-03 | in_progress | Fail-fast environment guards, staging profiles and non-debug Android signing checks exist; cloud IDs, keys, iOS team and signed smoke remain. |
 | CB-05 | in_progress | Canonical income/expense CRUD and integer money are implemented; device E2E and full reconciliation remain. |
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
@@ -40,8 +45,9 @@ project_status:
 | CB-10 | in_progress | Startup/reconnect sync, single-flight lock, four states and close/reopen test exist; device/network rejection E2E remains. |
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
-| CB-16 | in_progress | Emulator rules, filtered pagination index and recovery cleanup are covered; production review remains. |
-| CB-19 | in_progress | 33 Flutter tests plus pagination/rules coverage exist; Android/iOS UI E2E remains blocked by unavailable devices. |
+| CB-16 | in_progress | Emulator rules and bounded queries pass; staging rule review, App Check, recovery and cost verification remain. |
+| CB-19 | in_progress | 35 Flutter tests plus pagination/rules coverage exist; staging builds and Android/iOS UI E2E remain blocked. |
+| CB-18 | in_progress | Error hooks and an allowlisted event wrapper exist; staging delivery and consent/denominator validation remain. |
 
 # ClearBudget implementation and business backlog
 
