@@ -4,6 +4,11 @@ set -euo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_root"
 
+if ! command -v java >/dev/null 2>&1 && command -v brew >/dev/null 2>&1 && brew --prefix openjdk@21 >/dev/null 2>&1; then
+  export JAVA_HOME="$(brew --prefix openjdk@21)"
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
 if ! command -v java >/dev/null 2>&1; then
   echo "Java is required by the Firebase Auth and Firestore emulators." >&2
   echo "Install a supported JDK and make its java executable available on PATH." >&2

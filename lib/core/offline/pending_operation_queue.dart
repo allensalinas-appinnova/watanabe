@@ -54,11 +54,36 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
             ..orderBy([(row) => OrderingTerm.asc(row.createdAt)]))
           .get();
 
+  Stream<List<PendingOperation>> watchActive() =>
+      (select(pendingOperations)
+            ..where((row) => row.status.isIn(const ['pending', 'syncing', 'rejected']))
+            ..orderBy([(row) => OrderingTerm.asc(row.createdAt)]))
+          .watch();
+
+  Stream<List<PendingOperation>> watchRecent() =>
+      (select(pendingOperations)..orderBy([(row) => OrderingTerm.desc(row.updatedAt)])).watch();
+
+  Future<PendingOperation?> findByIdempotencyKey(String key) async {
+    return (select(
+      pendingOperations,
+    )..where((row) => row.idempotencyKey.equals(key))).getSingleOrNull();
+  }
+
+  Future<void> clearConfirmed(String key) async {
+    await (delete(pendingOperations)..where((row) => row.idempotencyKey.equals(key))).go();
+  }
+
   Future<void> markSyncing(int id) => (update(pendingOperations)..where((row) => row.id.equals(id)))
       .write(const PendingOperationsCompanion(status: Value('syncing')));
 
   Future<void> markConfirmed(int id) =>
-      (delete(pendingOperations)..where((row) => row.id.equals(id))).go();
+      (update(pendingOperations)..where((row) => row.id.equals(id))).write(
+        PendingOperationsCompanion(
+          status: const Value('confirmed'),
+          lastError: const Value(null),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
 
   Future<void> markRejected(int id, String error) =>
       (update(pendingOperations)..where((row) => row.id.equals(id))).write(

@@ -3,6 +3,40 @@ title: ClearBudget implementation and business backlog
 summary: Prioritized, dependency-aware work with acceptance criteria and effort ranges for a LATAM launch.
 ---
 
+project_status:
+  updated_at: "2026-10-06T07:40:03-05:00"
+  iteration: "ITERATION-1"
+  last_commit: "c117018cfd1593446be75e13176956eff7faa198"
+  status: "Canonical P0 vertical slice is implemented and locally verified; device E2E remains blocked by unavailable Android/iOS targets."
+  verified:
+    - "flutter analyze passes"
+    - "Flutter unit/widget tests pass"
+    - "Functions compile"
+    - "Firestore Emulator security tests pass"
+    - "Firebase Emulator Suite starts with Java 21 and category seeding"
+  blocked:
+    - "No Android device/emulator is visible to ADB"
+    - "No iOS Simulator runtime is available to simctl"
+    - "Staging Firebase credentials, signing and OAuth release inputs are not configured"
+  next_iteration: "ITERATION-2: durable offline synchronization and cursor-based operation pagination"
+
+## Iteration status snapshot
+
+| ID | Status | Evidence / remaining gap |
+| --- | --- | --- |
+| CB-02 | in_progress | Source, docs and emulator checks updated; CI and release ownership remain. |
+| CB-03 | proposed | Staging, signing, OAuth and cloud release qualification remain. |
+| CB-05 | in_progress | Canonical income/expense CRUD and integer money are implemented; device E2E and full reconciliation remain. |
+| CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
+| CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
+| CB-08 | in_progress | Localized onboarding/category bootstrap exists; device flow and complete category management remain. |
+| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; paginated production history remains. |
+| CB-10 | in_progress | Drift queue, retry UI and sync statuses exist; connectivity coordinator and durable end-to-end proof remain. |
+| CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
+| CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
+| CB-16 | in_progress | Emulator rules and bounded query checks pass; production review, recovery and cost verification remain. |
+| CB-19 | in_progress | Unit/widget/repository/rules coverage exists; Android/iOS UI E2E is blocked by unavailable devices. |
+
 # ClearBudget implementation and business backlog
 
 Baseline: 2026-10-04 local mobile project. All items are **Proposed / not started**

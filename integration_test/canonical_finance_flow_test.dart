@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:personal_finance/app.dart';
 import 'package:personal_finance/config/environment/app_environment.dart';
 import 'package:personal_finance/core/di/injection.dart';
 import 'package:personal_finance/core/firebase/firebase_bootstrap.dart';
@@ -36,6 +39,26 @@ void main() {
   tearDownAll(() async {
     await FirebaseAuth.instance.signOut();
     await GetIt.I.reset();
+  });
+
+  testWidgets('fresh user completes localized onboarding in the UI', (tester) async {
+    await FirebaseAuth.instance.signOut();
+    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    expect(find.byKey(const ValueKey('auth_guest_button')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('auth_guest_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 3));
+
+    expect(find.byKey(const ValueKey('onboarding_account_name')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('onboarding_account_name')),
+      'Cuenta UI',
+    );
+    await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
+    await tester.pumpAndSettle(const Duration(seconds: 3));
+
+    expect(find.byKey(const ValueKey('home_add_income')), findsOneWidget);
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {

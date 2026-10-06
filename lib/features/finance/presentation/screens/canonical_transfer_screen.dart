@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/money_parser.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
@@ -31,17 +33,18 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authSessionProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: Text('Inicia sesión')));
+    final l10n = AppLocalizations.of(context);
+    if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts =
         ref.watch(canonicalAccountsProvider(user.id)).valueOrNull ?? const <FinanceAccount>[];
     return Scaffold(
-      appBar: AppBar(title: const Text('Transferir dinero')),
+      appBar: AppBar(title: Text(l10n.transferMoney)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           DropdownButtonFormField<String>(
             initialValue: source,
-            decoration: const InputDecoration(labelText: 'Cuenta origen'),
+            decoration: InputDecoration(labelText: l10n.sourceAccount),
             items: accounts
                 .map(
                   (item) => DropdownMenuItem(
@@ -55,7 +58,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: destination,
-            decoration: const InputDecoration(labelText: 'Cuenta destino'),
+            decoration: InputDecoration(labelText: l10n.destinationAccount),
             items: accounts
                 .map(
                   (item) => DropdownMenuItem(
@@ -68,21 +71,21 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
           ),
           const SizedBox(height: 12),
           TextField(
+            key: const ValueKey('transfer_amount'),
             controller: amount,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Monto'),
+            decoration: InputDecoration(labelText: l10n.amount),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: note,
-            decoration: const InputDecoration(labelText: 'Nota opcional'),
+            decoration: InputDecoration(labelText: l10n.optionalNote),
           ),
           const SizedBox(height: 24),
           FilledButton(
+            key: const ValueKey('transfer_confirm'),
             onPressed: saving ? null : () => _save(user.id, accounts),
-            child: saving
-                ? const CircularProgressIndicator()
-                : const Text('Confirmar transferencia'),
+            child: saving ? const CircularProgressIndicator() : Text(l10n.confirmTransfer),
           ),
         ],
       ),
@@ -90,34 +93,36 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   }
 
   Future<void> _save(String userId, List<FinanceAccount> accounts) async {
-    final value = double.tryParse(amount.text.replaceAll(',', '.'));
     FinanceAccount? from;
     FinanceAccount? to;
     for (final account in accounts) {
       if (account.id == source) from = account;
       if (account.id == destination) to = account;
     }
-    if (value == null ||
-        value <= 0 ||
+    int? amountMinor;
+    try {
+      amountMinor = from == null ? null : MoneyParser.minorUnits(amount.text, from.currency);
+    } on FormatException {
+      amountMinor = null;
+    }
+    if (amountMinor == null ||
         from == null ||
         to == null ||
         source == destination ||
         from.currency != to.currency) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecciona cuentas distintas con la misma moneda y un monto válido.'),
-        ),
+        SnackBar(content: Text(AppLocalizations.of(context).invalidTransfer)),
       );
       return;
     }
     setState(() => saving = true);
     try {
-      await ref
+      final synced = await ref
           .read(canonicalActionsProvider)
           .createTransfer(
             userId,
             TransferDraft(
-              amountMinor: (value * 100).round(),
+              amountMinor: amountMinor,
               currency: from.currency,
               sourceAccountId: source!,
               destinationAccountId: destination!,
@@ -127,7 +132,13 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
               idempotencyKey: '${DateTime.now().microsecondsSinceEpoch}_transfer',
             ),
           );
-      if (mounted) context.pop();
+      if (mounted && synced) {
+        context.pop();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).offlineRejected)),
+        );
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));

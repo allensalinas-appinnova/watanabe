@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
@@ -30,7 +31,7 @@ Future<void> configureDependencies() async {
   }
   if (!getIt.isRegistered<PendingOperationSyncService>()) {
     getIt.registerLazySingleton<PendingOperationSyncService>(
-      () => PendingOperationSyncService(getIt()),
+      () => PendingOperationSyncService(getIt(), Connectivity()),
     );
   }
   if (!getIt.isRegistered<FirebaseAuth>()) {

@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'pending_operation_queue.dart';
+import 'sync_state.dart';
 
 typedef PendingOperationSender =
     Future<void> Function(
@@ -9,9 +13,28 @@ typedef PendingOperationSender =
     );
 
 class PendingOperationSyncService {
-  const PendingOperationSyncService(this._database);
+  const PendingOperationSyncService(this._database, this._connectivity);
 
   final PendingOperationDatabase _database;
+  final Connectivity _connectivity;
+
+  Stream<SyncStatusSnapshot> watchStatus() => _database.watchRecent().map((rows) {
+    int count(SyncState state) => rows.where((row) => row.status == state.name).length;
+    return SyncStatusSnapshot(
+      pending: count(SyncState.pending),
+      syncing: count(SyncState.syncing),
+      confirmed: count(SyncState.confirmed),
+      rejected: count(SyncState.rejected),
+    );
+  });
+
+  StreamSubscription<List<ConnectivityResult>> listenForReconnect(
+    PendingOperationSender sender,
+  ) => _connectivity.onConnectivityChanged.listen((results) {
+    if (results.any((result) => result != ConnectivityResult.none)) {
+      drain(sender);
+    }
+  });
 
   Future<void> enqueue({
     required String idempotencyKey,

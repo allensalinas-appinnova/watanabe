@@ -4,7 +4,11 @@ Aplicación móvil Flutter de finanzas personales. Se mantiene separada de la ve
 
 ## Estado
 
-Prototipo funcional con autenticación, dashboard, actividad, cuentas, registro de gastos con comprobantes y edición de límites presupuestarios. La arquitectura base usa Feature-First Clean Architecture. Aún existen brechas de integridad financiera, localización y publicación; consulta la auditoría antes de preparar un release.
+Beta funcional en construcción con el modelo financiero canónico: onboarding
+localizado, cuentas, ingresos, gastos, transferencias, presupuestos itemizados,
+seguimiento y cola offline durable. La validación de Emulator Suite está
+automatizada; la cualificación del APK/iOS en dispositivos y la configuración
+de staging siguen siendo gates de release.
 
 ## Documentación del proyecto
 
@@ -31,12 +35,18 @@ flutter test
 Emulator backed E2E test:
 
 ```bash
+export JAVA_HOME="$(brew --prefix openjdk@21)"
+export PATH="$JAVA_HOME/bin:$PATH"
 ./tool/run_emulator_e2e.sh
 ```
 
 Starts Firebase Auth, Firestore and Storage emulators. Requires a running Android
 emulator (default device ID `emulator-5554`), Node.js and Java 21+. To select another device, pass its Flutter device ID; set
 `FIREBASE_EMULATOR_HOST` if it cannot reach the host at `10.0.2.2`.
+
+For an iOS Simulator use `E2E_PLATFORM=ios ./tool/run_emulator_e2e.sh <simulator-id>`;
+the default emulator host is then `127.0.0.1`. The suite uses the reserved
+`demo-clearbudget` project and never targets a live Firebase project.
 
 ## Firebase flavors
 

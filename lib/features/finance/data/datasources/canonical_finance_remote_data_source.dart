@@ -4,7 +4,15 @@ import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
+import '../../domain/entities/operation_page.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+
+class RemoteOperationPage {
+  const RemoteOperationPage({required this.records, this.nextCursor});
+
+  final List<Map<String, dynamic>> records;
+  final OperationPageCursor? nextCursor;
+}
 
 abstract interface class CanonicalFinanceRemoteDataSource {
   Stream<Map<String, dynamic>?> watchUserProfile(String userId);
@@ -46,6 +54,12 @@ abstract interface class CanonicalFinanceRemoteDataSource {
   Future<void> archiveAccount(String userId, String accountId);
 
   Stream<List<Map<String, dynamic>>> watchOperations(String userId);
+
+  Future<RemoteOperationPage> fetchOperationsPage(
+    String userId, {
+    OperationPageCursor? cursor,
+    int pageSize = 100,
+  });
 
   Stream<List<Map<String, dynamic>>> watchLedgerEntries(String userId, String accountId);
 
@@ -168,7 +182,41 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   Stream<List<Map<String, dynamic>>> watchOperations(String userId) => _userCollection(
     userId,
     'operations',
-  ).orderBy('occurredAt', descending: true).snapshots().map(_records);
+  ).orderBy('occurredAt', descending: true).limit(100).snapshots().map(_records);
+
+  @override
+  Future<RemoteOperationPage> fetchOperationsPage(
+    String userId, {
+    OperationPageCursor? cursor,
+    int pageSize = 100,
+  }) async {
+    if (pageSize < 1 || pageSize > 100) {
+      throw ArgumentError.value(pageSize, 'pageSize', 'must be between 1 and 100');
+    }
+    Query<Map<String, dynamic>> query = _userCollection(
+      userId,
+      'operations',
+    ).orderBy('occurredAt', descending: true).orderBy(FieldPath.documentId).limit(pageSize);
+    if (cursor != null) {
+      query = query.startAfter([
+        Timestamp.fromDate(cursor.occurredAt),
+        cursor.operationId,
+      ]);
+    }
+    final snapshot = await query.get();
+    final records = _records(snapshot);
+    final last = snapshot.docs.isEmpty ? null : snapshot.docs.last;
+    final lastOccurredAt = last?.data()['occurredAt'];
+    return RemoteOperationPage(
+      records: records,
+      nextCursor: last != null && lastOccurredAt is Timestamp && records.length == pageSize
+          ? OperationPageCursor(
+              occurredAt: lastOccurredAt.toDate(),
+              operationId: last.id,
+            )
+          : null,
+    );
+  }
 
   @override
   Stream<List<Map<String, dynamic>>> watchLedgerEntries(String userId, String accountId) =>

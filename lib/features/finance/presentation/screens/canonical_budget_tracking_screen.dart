@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/finance_category.dart';
@@ -15,7 +16,8 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authSessionProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: Text('Inicia sesión')));
+    final l10n = AppLocalizations.of(context);
+    if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final month = DateFormat('yyyy-MM').format(DateTime.now());
     final budgets =
         ref.watch(canonicalBudgetsProvider((userId: user.id, monthKey: month))).valueOrNull ??
@@ -25,44 +27,112 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
     const calculator = CalculateBudgetTracking();
+    final tracking = budgets.map((budget) => calculator(budget, operations)).toList();
+    final plannedTotal = tracking.fold<int>(0, (sum, item) => sum + item.plannedMinor);
+    final actualTotal = tracking.fold<int>(0, (sum, item) => sum + item.actualMinor);
+    final remainingTotal = plannedTotal - actualTotal;
+    final usedPercent = plannedTotal == 0 ? 0 : ((actualTotal * 100) ~/ plannedTotal).clamp(0, 999);
+    final budgetCategoryIds = budgets.map((budget) => budget.categoryId).toSet();
+    final hasUnbudgeted = operations.any(
+      (operation) =>
+          operation.status == OperationStatus.confirmed &&
+          operation.monthKey == month &&
+          operation.type != OperationType.transfer &&
+          !budgetCategoryIds.contains(operation.categoryId),
+    );
     return Scaffold(
-      appBar: AppBar(title: Text('Seguimiento · $month')),
+      appBar: AppBar(
+        title: Text(l10n.budgetTracking(month)),
+        actions: [TextButton(onPressed: () {}, child: Text(l10n.changeMonth))],
+      ),
       body: budgets.isEmpty
-          ? const Center(child: Text('No hay presupuestos para este mes.'))
+          ? Center(child: Text(l10n.noBudgetsThisMonth))
           : ListView(
               padding: const EdgeInsets.all(16),
-              children: budgets.map((budget) {
-                final tracking = calculator(budget, operations);
-                String name = budget.categoryId;
-                for (final category in categories) {
-                  if (category.id == budget.categoryId) name = category.customName ?? category.id;
-                }
-                final ratio = tracking.plannedMinor <= 0
-                    ? 0.0
-                    : (tracking.actualMinor / tracking.plannedMinor).clamp(0.0, 1.0);
-                return Card(
+              children: [
+                Card(
+                  color: const Color(0xFF102A43),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(value: ratio),
+                        Text(l10n.plannedSummary, style: const TextStyle(color: Color(0xFFA6C7E5))),
                         const SizedBox(height: 8),
                         Text(
-                          'Planeado ${_format(budget.plannedAmountMinor, budget.currency)} · Real ${_format(tracking.actualMinor, budget.currency)}',
+                          l10n.plannedTotal(_format(plannedTotal, budgets.first.currency)),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: plannedTotal == 0 ? 0 : (actualTotal / plannedTotal).clamp(0, 1),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          tracking.isExceeded
-                              ? 'Excedido ${_format(-tracking.remainingMinor, budget.currency)}'
-                              : 'Restante ${_format(tracking.remainingMinor, budget.currency)}',
+                          l10n.usedSummary(
+                            budgets.first.currency,
+                            usedPercent,
+                            _format(remainingTotal.abs(), budgets.first.currency),
+                          ),
+                          style: const TextStyle(color: Color(0xFFB8DED1)),
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+                const SizedBox(height: 20),
+                Text(l10n.byCategory, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                ...budgets.map((budget) {
+                  final tracking = calculator(budget, operations);
+                  String name = budget.categoryId;
+                  for (final category in categories) {
+                    if (category.id == budget.categoryId) name = category.customName ?? category.id;
+                  }
+                  final ratio = tracking.plannedMinor <= 0
+                      ? 0.0
+                      : (tracking.actualMinor / tracking.plannedMinor).clamp(0.0, 1.0);
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 8),
+                          LinearProgressIndicator(value: ratio),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${l10n.planned(_format(budget.plannedAmountMinor, budget.currency))} · ${l10n.actual(_format(tracking.actualMinor, budget.currency))}',
+                          ),
+                          Text(
+                            tracking.isExceeded
+                                ? l10n.exceeded(_format(-tracking.remainingMinor, budget.currency))
+                                : l10n.remaining(_format(tracking.remainingMinor, budget.currency)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                if (hasUnbudgeted)
+                  Card(
+                    color: const Color(0xFFFFF8E8),
+                    child: ListTile(
+                      title: Text(l10n.unbudgetedMovements),
+                      subtitle: Text(l10n.reviewCategories),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                FilledButton.tonal(
+                  onPressed: () {},
+                  child: Text(l10n.viewBudgetDetails),
+                ),
+              ],
             ),
     );
   }

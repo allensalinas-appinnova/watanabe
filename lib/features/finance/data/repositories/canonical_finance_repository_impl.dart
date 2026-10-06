@@ -9,6 +9,7 @@ import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/ledger_entry.dart';
 import '../../domain/entities/monthly_summary.dart';
+import '../../domain/entities/operation_page.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../datasources/canonical_finance_remote_data_source.dart';
@@ -148,6 +149,29 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   @override
   Stream<List<FinancialOperation>> watchOperations(String userId) =>
       _remoteDataSource.watchOperations(userId).map((records) => records.map(_operation).toList());
+
+  @override
+  Future<Either<Failure, OperationPage>> fetchOperationsPage(
+    String userId, {
+    OperationPageCursor? cursor,
+    int pageSize = 100,
+  }) async {
+    try {
+      final page = await _remoteDataSource.fetchOperationsPage(
+        userId,
+        cursor: cursor,
+        pageSize: pageSize,
+      );
+      return Right(
+        OperationPage(
+          items: page.records.map(_operation).toList(growable: false),
+          nextCursor: page.nextCursor,
+        ),
+      );
+    } catch (error) {
+      return Left(UnknownFailure(error.toString()));
+    }
+  }
 
   @override
   Stream<List<LedgerEntry>> watchLedgerEntries(String userId, String accountId) => _remoteDataSource

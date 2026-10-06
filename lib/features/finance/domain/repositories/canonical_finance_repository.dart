@@ -8,6 +8,7 @@ import '../entities/finance_category.dart';
 import '../entities/financial_operation.dart';
 import '../entities/ledger_entry.dart';
 import '../entities/monthly_summary.dart';
+import '../entities/operation_page.dart';
 import '../entities/user_profile.dart';
 
 class FinancialOperationDraft {
@@ -111,6 +112,12 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> archiveAccount(String userId, String accountId);
 
   Stream<List<FinancialOperation>> watchOperations(String userId);
+
+  Future<Either<Failure, OperationPage>> fetchOperationsPage(
+    String userId, {
+    OperationPageCursor? cursor,
+    int pageSize = 100,
+  });
 
   Stream<List<LedgerEntry>> watchLedgerEntries(String userId, String accountId);
 

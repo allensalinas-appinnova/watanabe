@@ -47,6 +47,22 @@ The Firestore/Auth emulators require a Java runtime on the PATH. Unit and
 static-analysis tests remain independent of Java; emulator E2E cannot run until
 the local Java runtime is installed.
 
+On macOS with Homebrew JDK 21, configure the shell before running the suite:
+
+```bash
+export JAVA_HOME="$(brew --prefix openjdk@21)"
+export PATH="$JAVA_HOME/bin:$PATH"
+./tool/run_emulator_e2e.sh
+./tool/run_rules_tests.sh
+```
+
+The canonical integration test contains both a fresh-user UI onboarding check
+and repository-level invariants for income, expense, transfer, ledger entries,
+idempotency and itemized budgets. Android uses `10.0.2.2`; iOS Simulator uses
+`127.0.0.1`. If `adb install` hangs, restart the selected emulator and verify
+that no previous `firebase emulators:exec` process still owns ports 59180,
+59191 or 59199.
+
 ## Current automated coverage
 
 - `test/core/utils/currency_formatter_test.dart`: COP number formatting.
@@ -58,9 +74,12 @@ the local Java runtime is installed.
   atomic budget-limit update delegation and failure mapping.
 - `test/features/finance/data/datasources/receipt_image_picker_test.dart`:
   image selection, supported content types and cancellation.
-- `integration_test/canonical_finance_flow_test.dart`: emulator connectivity
-  preflight, canonical account creation, localized user profile, income, expense,
-  transfer with two ledger entries, idempotency key and itemized budget persistence.
+- `integration_test/canonical_finance_flow_test.dart`: fresh-user UI onboarding,
+  emulator connectivity preflight, canonical account creation, localized user
+  profile, income, expense, transfer with two ledger entries, idempotency key and
+  itemized budget persistence.
+- `functions/test/firestore_rules_test.mjs`: unauthenticated access, user
+  isolation, catalog reads, calculated-field protection and invalid operations.
 
 Google OAuth is wired but requires per-platform Firebase/OAuth configuration
 and is not exercised against the Auth Emulator. Password reset, budget-limit

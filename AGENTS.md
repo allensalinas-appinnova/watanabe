@@ -104,7 +104,7 @@ decisions are unresolved.
   success states as applicable.
 - Keep user-facing strings in Flutter localization resources. Do not add new
   hardcoded strings to feature widgets.
-- Supported languages are Spanish (`es`) and English (`en`). See
+- Supported languages are Spanish (`es`), Brazilian Portuguese (`pt`) and English (`en`). See
   `docs/localization.md` and use `flutter gen-l10n` after changing ARB files.
 - Format dates, currencies and percentages with the active locale.
 

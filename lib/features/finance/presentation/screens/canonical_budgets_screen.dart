@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/money_parser.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
@@ -14,7 +16,8 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authSessionProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: Text('Inicia sesión')));
+    final l10n = AppLocalizations.of(context);
+    if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final month = DateFormat('yyyy-MM').format(DateTime.now());
     final budgets = ref.watch(canonicalBudgetsProvider((userId: user.id, monthKey: month)));
     final categories =
@@ -29,7 +32,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: () => _showCreate(context, ref, user.id, categories, month),
                   icon: const Icon(Icons.add),
-                  label: const Text('Crear presupuesto'),
+                  label: Text(l10n.createBudget),
                 ),
               )
             : ListView(
@@ -61,7 +64,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreate(context, ref, user.id, categories, month),
         icon: const Icon(Icons.add),
-        label: const Text('Presupuesto'),
+        label: Text(l10n.budget),
       ),
     );
   }
@@ -73,6 +76,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
     List<FinanceCategory> categories,
     String month,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final description = TextEditingController();
     final amount = TextEditingController();
     String? categoryId;
@@ -81,13 +85,13 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('Nuevo presupuesto'),
+            title: Text(l10n.newBudget),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
                   initialValue: categoryId,
-                  decoration: const InputDecoration(labelText: 'Categoría'),
+                  decoration: InputDecoration(labelText: l10n.budgetCategory),
                   items: categories
                       .where((item) => item.type.name == 'expense' && !item.isArchived)
                       .map<DropdownMenuItem<String>>(
@@ -101,27 +105,31 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                 ),
                 TextField(
                   controller: description,
-                  decoration: const InputDecoration(labelText: 'Item'),
+                  decoration: InputDecoration(labelText: l10n.budgetItem),
                 ),
                 TextField(
                   controller: amount,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Monto'),
+                  decoration: InputDecoration(labelText: l10n.amount),
                 ),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () async {
-                  final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
+                  int? amountMinor;
+                  try {
+                    amountMinor = MoneyParser.minorUnits(amount.text, 'COP');
+                  } on FormatException {
+                    amountMinor = null;
+                  }
                   if (categoryId == null ||
                       description.text.trim().isEmpty ||
-                      parsed == null ||
-                      parsed <= 0) {
+                      amountMinor == null) {
                     return;
                   }
                   await ref
@@ -135,14 +143,14 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                         items: [
                           CanonicalBudgetItemDraft(
                             description: description.text,
-                            amountMinor: (parsed * 100).round(),
+                            amountMinor: amountMinor,
                             dayOfMonth: DateTime.now().day,
                           ),
                         ],
                       );
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                 },
-                child: const Text('Guardar'),
+                child: Text(l10n.save),
               ),
             ],
           ),

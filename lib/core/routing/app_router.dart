@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -12,8 +17,40 @@ import '../../features/finance/presentation/screens/canonical_onboarding_screen.
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
 
-final GoRouter appRouter = GoRouter(
+class AuthRefreshListenable extends ChangeNotifier {
+  AuthRefreshListenable(Stream<User?> stream) {
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<User?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+GoRouter? _router;
+
+GoRouter get appRouter => _router ??= _buildAppRouter();
+
+GoRouter _buildAppRouter() => GoRouter(
   initialLocation: '/login',
+  refreshListenable: AuthRefreshListenable(FirebaseAuth.instance.authStateChanges()),
+  redirect: (context, state) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final authenticated = user != null;
+    final isLogin = state.matchedLocation == '/login';
+    if (!authenticated && !isLogin) return '/login';
+    if (user != null && (isLogin || state.matchedLocation == '/home')) {
+      final profile = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final onboardingComplete = profile.data()?['onboardingStatus'] == 'complete';
+      if (!onboardingComplete && state.matchedLocation != '/onboarding') return '/onboarding';
+      if (onboardingComplete && isLogin) return '/home';
+    }
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/login',

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:intl/intl.dart';
+
+import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
@@ -13,14 +17,17 @@ class CanonicalHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(pendingOperationAutoSyncProvider);
     final session = ref.watch(authSessionProvider);
     return session.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(body: Center(child: Text(error.toString()))),
       data: (user) {
-        if (user == null) return const Scaffold(body: Center(child: Text('Sesión expirada')));
+        final l10n = AppLocalizations.of(context);
+        if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
         final accounts = ref.watch(canonicalAccountsProvider(user.id));
         final operations = ref.watch(canonicalOperationsProvider(user.id));
+        final pending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
         return Scaffold(
           appBar: AppBar(
             title: const Text('ClearBudget'),
@@ -41,6 +48,19 @@ class CanonicalHomeScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                if (pending.isNotEmpty)
+                  Card(
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.sync_problem),
+                      title: Text(l10n.offlinePending),
+                      subtitle: Text('${pending.length}'),
+                      trailing: TextButton(
+                        onPressed: () => ref.read(canonicalActionsProvider).syncPending(user.id),
+                        child: Text(l10n.retry),
+                      ),
+                    ),
+                  ),
                 accounts.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (error, _) => _ErrorCard(message: error.toString()),
@@ -51,7 +71,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _ActionButton(
-                        label: 'Ingreso',
+                        key: const ValueKey('home_add_income'),
+                        label: l10n.income,
                         icon: Icons.add,
                         onTap: () => context.push('/operations/new?type=income'),
                       ),
@@ -59,7 +80,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _ActionButton(
-                        label: 'Gasto',
+                        key: const ValueKey('home_add_expense'),
+                        label: l10n.expense,
                         icon: Icons.remove,
                         onTap: () => context.push('/operations/new?type=expense'),
                       ),
@@ -67,7 +89,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _ActionButton(
-                        label: 'Transferir',
+                        key: const ValueKey('home_transfer'),
+                        label: l10n.transfer,
                         icon: Icons.swap_horiz,
                         onTap: () => context.push('/transfers/new'),
                       ),
@@ -75,19 +98,19 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Actividad reciente',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.recentActivity,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 operations.when(
                   loading: () => const CircularProgressIndicator(),
                   error: (error, _) => _ErrorCard(message: error.toString()),
                   data: (items) => items.isEmpty
-                      ? const Card(
+                      ? Card(
                           child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text('Aún no tienes movimientos.'),
+                            padding: const EdgeInsets.all(20),
+                            child: Text(l10n.noTransactions),
                           ),
                         )
                       : Column(
@@ -107,26 +130,26 @@ class CanonicalHomeScreen extends ConsumerWidget {
               if (index == 2) context.go('/budgets');
               if (index == 3) context.go('/accounts');
             },
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Inicio',
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home),
+                label: l10n.home,
               ),
               NavigationDestination(
-                icon: Icon(Icons.list_alt_outlined),
-                selectedIcon: Icon(Icons.list_alt),
-                label: 'Actividad',
+                icon: const Icon(Icons.list_alt_outlined),
+                selectedIcon: const Icon(Icons.list_alt),
+                label: l10n.activity,
               ),
               NavigationDestination(
-                icon: Icon(Icons.pie_chart_outline),
-                selectedIcon: Icon(Icons.pie_chart),
-                label: 'Presupuesto',
+                icon: const Icon(Icons.pie_chart_outline),
+                selectedIcon: const Icon(Icons.pie_chart),
+                label: l10n.budget,
               ),
               NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet),
-                label: 'Cuentas',
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: const Icon(Icons.account_balance_wallet),
+                label: l10n.accounts,
               ),
             ],
           ),
@@ -200,7 +223,7 @@ class _OperationTile extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.label, required this.icon, required this.onTap});
+  const _ActionButton({required this.label, required this.icon, required this.onTap, super.key});
   final String label;
   final IconData icon;
   final VoidCallback onTap;

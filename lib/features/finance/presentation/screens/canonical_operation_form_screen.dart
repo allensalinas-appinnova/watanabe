@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/money_parser.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
@@ -35,7 +37,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authSessionProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: Text('Inicia sesión')));
+    final l10n = AppLocalizations.of(context);
+    if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts = ref.watch(canonicalAccountsProvider(user.id));
     final categories = ref.watch(canonicalCategoriesProvider(user.id));
     final filteredCategories =
@@ -45,22 +48,22 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         const <FinanceCategory>[];
     return Scaffold(
       appBar: AppBar(
-        title: Text(_type == OperationType.income ? 'Agregar ingreso' : 'Agregar gasto'),
+        title: Text(_type == OperationType.income ? l10n.addIncome : l10n.addExpense),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           SegmentedButton<OperationType>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: OperationType.expense,
-                label: Text('Gasto'),
-                icon: Icon(Icons.remove),
+                label: Text(l10n.expense),
+                icon: const Icon(Icons.remove),
               ),
               ButtonSegment(
                 value: OperationType.income,
-                label: Text('Ingreso'),
-                icon: Icon(Icons.add),
+                label: Text(l10n.income),
+                icon: const Icon(Icons.add),
               ),
             ],
             selected: {_type},
@@ -71,9 +74,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           ),
           const SizedBox(height: 20),
           TextField(
+            key: const ValueKey('operation_amount'),
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Monto', prefixText: r'$ '),
+            decoration: InputDecoration(labelText: l10n.amount, prefixText: r'$ '),
           ),
           const SizedBox(height: 12),
           accounts.when(
@@ -81,7 +85,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             error: (error, _) => Text(error.toString()),
             data: (items) => DropdownButtonFormField<String>(
               initialValue: _accountId,
-              decoration: const InputDecoration(labelText: 'Cuenta'),
+              decoration: InputDecoration(labelText: l10n.account),
               items: items
                   .map(
                     (account) => DropdownMenuItem(
@@ -96,7 +100,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _categoryId,
-            decoration: const InputDecoration(labelText: 'Categoría'),
+            decoration: InputDecoration(labelText: l10n.category),
             items: filteredCategories
                 .map(
                   (category) => DropdownMenuItem(
@@ -110,12 +114,13 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           const SizedBox(height: 12),
           TextField(
             controller: _description,
-            decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
+            decoration: InputDecoration(labelText: l10n.descriptionOptional),
           ),
           const SizedBox(height: 24),
           FilledButton(
+            key: const ValueKey('operation_save'),
             onPressed: _saving ? null : () => _save(user.id, accounts.valueOrNull ?? const []),
-            child: _saving ? const CircularProgressIndicator() : const Text('Guardar'),
+            child: _saving ? const CircularProgressIndicator() : Text(l10n.save),
           ),
         ],
       ),
@@ -123,21 +128,26 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   }
 
   Future<void> _save(String userId, List<FinanceAccount> accounts) async {
-    final parsed = double.tryParse(_amount.text.replaceAll(',', '.'));
     FinanceAccount? account;
     for (final item in accounts) {
       if (item.id == _accountId) account = item;
     }
-    if (parsed == null || parsed <= 0 || account == null || _categoryId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Completa monto, cuenta y categoría.')));
+    int? amountMinor;
+    try {
+      amountMinor = account == null ? null : MoneyParser.minorUnits(_amount.text, account.currency);
+    } on FormatException {
+      amountMinor = null;
+    }
+    if (amountMinor == null || account == null || _categoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).completeRequiredFields)),
+      );
       return;
     }
     setState(() => _saving = true);
     final draft = FinancialOperationDraft(
       type: _type,
-      amountMinor: (parsed * 100).round(),
+      amountMinor: amountMinor,
       currency: account.currency,
       accountId: account.id,
       categoryId: _categoryId,
@@ -147,8 +157,14 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       idempotencyKey: '${DateTime.now().microsecondsSinceEpoch}_$_type',
     );
     try {
-      await ref.read(canonicalActionsProvider).createOperation(userId, draft);
-      if (mounted) context.pop();
+      final synced = await ref.read(canonicalActionsProvider).createOperation(userId, draft);
+      if (mounted && synced) {
+        context.pop();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).offlineRejected)),
+        );
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
