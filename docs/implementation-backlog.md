@@ -4,24 +4,25 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T08:24:00-05:00"
+  updated_at: "2026-10-06T08:21:44-05:00"
   iteration: "ITERATION-4"
-  last_commit: "eac40f4"
-  status: "Iteration 4 is in progress: platform-specific staging config and release preflight are being prepared; Firebase staging credentials, signing assets and device evidence remain unavailable."
+  last_commit: "e744ec5276fa7d87841f076f3e1254f6e0d7b624"
+  status: "Iteration 4 local preparation is complete: platform-specific staging profiles and release preflight are committed; Firebase staging credentials, signing assets and device evidence remain unavailable."
   verified:
     - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (33 tests)"
+    - "Flutter unit/widget tests pass (35 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
     - "Iteration 3 commit eac40f4 is the documentation baseline"
-    - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (35 tests)"
     - "Android debug APK builds successfully"
     - "Firebase CLI 15.32.1 is available"
     - "Staging prerequisite guards fail closed when configuration is absent"
     - "Emulator mode is rejected outside dev and in release builds"
     - "Crashlytics/Analytics hooks allow only non-financial event names"
+    - "Staging launch profiles use platform-specific Dart-define files"
+    - "Release preflight fails closed when staging config or signing assets are absent"
+    - "Firestore Emulator pagination test passes with 101 operations"
   blocked:
     - "Firebase staging project ID and app configuration values were not provided"
     - "Android upload keystore/Play App Signing credentials are not configured"
@@ -29,14 +30,15 @@ project_status:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
-  next_iteration: "Complete Firebase staging wiring, signed Android/iOS smoke builds and cloud observability evidence once external credentials are available."
+    - "Firebase CLI credentials require reauthentication for project discovery"
+  next_iteration: "Reauthenticate Firebase CLI, provide the staging project/app IDs and signing assets, then run signed Android/iOS staging smoke tests."
 
 ## Iteration status snapshot
 
 | ID | Status | Evidence / remaining gap |
 | --- | --- | --- |
 | CB-02 | in_progress | Environment/release documentation and observability hooks updated; CI and release ownership remain. |
-| CB-03 | in_progress | Fail-fast environment guards, staging profiles and non-debug Android signing checks exist; cloud IDs, keys, iOS team and signed smoke remain. |
+| CB-03 | in_progress | Fail-fast guards, platform-specific staging profiles and non-debug Android signing checks exist in e744ec5; cloud IDs, keys, iOS team and signed smoke remain. |
 | CB-05 | in_progress | Canonical income/expense CRUD and integer money are implemented; device E2E and full reconciliation remain. |
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
