@@ -10,6 +10,15 @@
       ]
     },
     {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "monthKey", "order": "ASCENDING"},
+        {"fieldPath": "currency", "order": "ASCENDING"},
+        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+      ]
+    },
+    {
       "collectionGroup": "ledgerEntries",
       "queryScope": "COLLECTION",
       "fields": [

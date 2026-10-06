@@ -16,6 +16,10 @@ import '../../domain/entities/operation_page.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 
+final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
+  (ref) => getIt<CanonicalFinanceRepository>(),
+);
+
 final canonicalUserProfileProvider = StreamProvider.family<UserProfile?, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
 );
@@ -38,14 +42,117 @@ final canonicalOperationsPageProvider =
       ({
         String userId,
         OperationPageCursor? cursor,
+        String? monthKey,
+        String? currency,
       })
     >((ref, input) async {
       final result = await getIt<CanonicalFinanceRepository>().fetchOperationsPage(
         input.userId,
         cursor: input.cursor,
+        monthKey: input.monthKey,
+        currency: input.currency,
       );
       return result.match((failure) => throw Exception(failure.message), (page) => page);
     });
+
+final operationsPagerProvider =
+    AsyncNotifierProvider.family<OperationsPagerNotifier, OperationPagerState, String>(
+      OperationsPagerNotifier.new,
+    );
+
+class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
+  OperationsPagerNotifier(this.userId);
+
+  final String userId;
+
+  @override
+  Future<OperationPagerState> build() => _loadInitial();
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_loadInitial);
+  }
+
+  Future<void> loadMore() async {
+    final current = state.asData?.value;
+    if (current == null || !current.hasMore || current.isLoadingMore) return;
+    state = AsyncData(current.copyWith(isLoadingMore: true, errorMessage: null));
+    final result = await ref
+        .read(canonicalFinanceRepositoryProvider)
+        .fetchOperationsPage(
+          userId,
+          cursor: current.nextCursor,
+          monthKey: current.monthKey,
+          currency: current.currency,
+        );
+    result.match(
+      (failure) => state = AsyncData(
+        current.copyWith(isLoadingMore: false, errorMessage: failure.message),
+      ),
+      (page) {
+        final knownIds = current.items.map((item) => item.id).toSet();
+        final additions = <FinancialOperation>[];
+        for (final item in page.items) {
+          if (knownIds.add(item.id)) additions.add(item);
+        }
+        state = AsyncData(
+          current.copyWith(
+            items: [...current.items, ...additions],
+            nextCursor: page.nextCursor,
+            isLoadingMore: false,
+            errorMessage: null,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<OperationPagerState> _loadInitial() async {
+    final result = await ref.read(canonicalFinanceRepositoryProvider).fetchOperationsPage(userId);
+    return result.match(
+      (failure) => throw Exception(failure.message),
+      (page) => OperationPagerState(items: page.items, nextCursor: page.nextCursor),
+    );
+  }
+}
+
+class OperationPagerState {
+  const OperationPagerState({
+    required this.items,
+    this.nextCursor,
+    this.isLoadingMore = false,
+    this.errorMessage,
+    this.monthKey,
+    this.currency,
+  });
+
+  final List<FinancialOperation> items;
+  final OperationPageCursor? nextCursor;
+  final bool isLoadingMore;
+  final String? errorMessage;
+  final String? monthKey;
+  final String? currency;
+
+  bool get hasMore => nextCursor != null;
+
+  OperationPagerState copyWith({
+    List<FinancialOperation>? items,
+    OperationPageCursor? nextCursor,
+    bool clearCursor = false,
+    bool? isLoadingMore,
+    String? errorMessage,
+    bool clearError = false,
+    String? monthKey,
+    String? currency,
+  }) => OperationPagerState(
+    items: items ?? this.items,
+    nextCursor: clearCursor ? null : nextCursor ?? this.nextCursor,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    monthKey: monthKey ?? this.monthKey,
+    currency: currency ?? this.currency,
+  );
+}
 
 final canonicalBudgetsProvider =
     StreamProvider.family<List<Budget>, ({String userId, String monthKey})>(
@@ -80,6 +187,7 @@ final pendingOperationAutoSyncProvider = Provider.autoDispose<void>((ref) {
   final actions = ref.read(canonicalActionsProvider);
   final subscription = actions.startAutoSync(user.id);
   ref.onDispose(subscription.cancel);
+  unawaited(actions.syncPending(user.id));
 });
 
 class BootstrapCategories {

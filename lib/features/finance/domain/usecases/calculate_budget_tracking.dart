@@ -1,6 +1,7 @@
 import '../entities/budget.dart';
 import '../entities/budget_flow_type.dart';
 import '../entities/financial_operation.dart';
+import '../entities/monthly_summary.dart';
 
 class BudgetTracking {
   const BudgetTracking({required this.plannedMinor, required this.actualMinor})
@@ -17,7 +18,20 @@ class BudgetTracking {
 class CalculateBudgetTracking {
   const CalculateBudgetTracking();
 
-  BudgetTracking call(Budget budget, Iterable<FinancialOperation> operations) {
+  BudgetTracking call(
+    Budget budget,
+    Iterable<FinancialOperation> operations, {
+    MonthlySummary? summary,
+  }) {
+    if (summary != null &&
+        summary.monthKey == budget.monthKey &&
+        summary.currency == budget.currency) {
+      final signedCategoryTotal = summary.byCategory[budget.categoryId] ?? 0;
+      final actual = budget.flowType == BudgetFlowType.expense
+          ? signedCategoryTotal.abs()
+          : signedCategoryTotal.clamp(0, 1 << 62);
+      return BudgetTracking(plannedMinor: budget.plannedAmountMinor, actualMinor: actual);
+    }
     final actual = operations
         .where(
           (operation) =>

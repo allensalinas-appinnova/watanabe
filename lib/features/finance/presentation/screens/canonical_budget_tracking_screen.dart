@@ -22,12 +22,23 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
     final budgets =
         ref.watch(canonicalBudgetsProvider((userId: user.id, monthKey: month))).valueOrNull ??
         const <Budget>[];
+    final summary = budgets.isEmpty
+        ? null
+        : ref
+              .watch(
+                canonicalMonthlySummaryProvider(
+                  (userId: user.id, monthKey: month, currency: budgets.first.currency),
+                ),
+              )
+              .valueOrNull;
     final operations =
         ref.watch(canonicalOperationsProvider(user.id)).valueOrNull ?? const <FinancialOperation>[];
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
     const calculator = CalculateBudgetTracking();
-    final tracking = budgets.map((budget) => calculator(budget, operations)).toList();
+    final tracking = budgets
+        .map((budget) => calculator(budget, operations, summary: summary))
+        .toList();
     final plannedTotal = tracking.fold<int>(0, (sum, item) => sum + item.plannedMinor);
     final actualTotal = tracking.fold<int>(0, (sum, item) => sum + item.actualMinor);
     final remainingTotal = plannedTotal - actualTotal;
@@ -40,6 +51,11 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
           operation.type != OperationType.transfer &&
           !budgetCategoryIds.contains(operation.categoryId),
     );
+    final summaryHasUnbudgeted =
+        summary?.byCategory.keys.any(
+          (categoryId) => !budgetCategoryIds.contains(categoryId),
+        ) ??
+        false;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.budgetTracking(month)),
@@ -88,7 +104,7 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
                 Text(l10n.byCategory, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 ...budgets.map((budget) {
-                  final tracking = calculator(budget, operations);
+                  final tracking = calculator(budget, operations, summary: summary);
                   String name = budget.categoryId;
                   for (final category in categories) {
                     if (category.id == budget.categoryId) name = category.customName ?? category.id;
@@ -119,7 +135,7 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
                     ),
                   );
                 }),
-                if (hasUnbudgeted)
+                if (hasUnbudgeted || summaryHasUnbudgeted)
                   Card(
                     color: const Color(0xFFFFF8E8),
                     child: ListTile(

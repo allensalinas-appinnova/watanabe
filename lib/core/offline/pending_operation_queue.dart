@@ -103,6 +103,16 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );
+
+  Future<int> deleteExpiredHistory({Duration retention = const Duration(days: 30)}) {
+    final cutoff = DateTime.now().toUtc().subtract(retention);
+    return (delete(pendingOperations)..where(
+          (row) =>
+              row.status.isIn(const ['confirmed', 'rejected']) &
+              row.updatedAt.isSmallerThanValue(cutoff),
+        ))
+        .go();
+  }
 }
 
 Future<PendingOperationDatabase> openPendingOperationDatabase() async {

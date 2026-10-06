@@ -54,6 +54,9 @@ export JAVA_HOME="$(brew --prefix openjdk@21)"
 export PATH="$JAVA_HOME/bin:$PATH"
 ./tool/run_emulator_e2e.sh
 ./tool/run_rules_tests.sh
+
+# Verifies the 100-record cursor and filtered month/currency query
+./tool/run_pagination_test.sh
 ```
 
 The canonical integration test contains both a fresh-user UI onboarding check

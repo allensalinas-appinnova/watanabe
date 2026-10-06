@@ -4,26 +4,23 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T07:45:01-05:00"
-  iteration: "ITERATION-1"
-  last_commit: "e93d3942e5c53c559bbdb62815c20a5b767186a6"
-  status: "Iteration 1 code slice and emulator runners are locally verified; offline writes remain pending without connectivity and device E2E is blocked by unavailable Android/iOS targets."
+  updated_at: "2026-10-06T07:48:00-05:00"
+  iteration: "ITERATION-2"
+  last_commit: "f1057a4"
+  status: "Iteration 2 in progress: cursor API and offline queue exist, while Activity accumulation, startup sync and durable restart verification remain to be implemented."
   verified:
     - "flutter analyze passes"
     - "Flutter unit/widget tests pass (30 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
-    - "Operation pages use a Firestore cursor with a maximum page size of 100"
-    - "Offline queue exposes pending, syncing, confirmed and rejected states"
-    - "Automatic retry listener is connected to connectivity_plus"
-    - "Offline drain exits without rejecting queued work when connectivity is unavailable"
-    - "Firestore Emulator security tests pass after macOS Java runtime fallback"
+    - "Iteration 1 commit f1057a4 is the implementation base"
+    - "Existing Flutter, Functions and Firestore Emulator checks remain green"
   blocked:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "Staging Firebase credentials, signing and OAuth release inputs are not configured"
-  next_iteration: "ITERATION-2: prove offline close/reopen/retry behavior and integrate paginated history into Activity"
+  next_iteration: "Complete Activity pagination, startup synchronization and restart/retry verification; then prepare Iteration 3 staging security."
 
 ## Iteration status snapshot
 
@@ -35,12 +32,12 @@ project_status:
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
 | CB-08 | in_progress | Localized onboarding/category bootstrap exists; device flow and complete category management remain. |
-| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; Activity still needs paginated accumulation. |
-| CB-10 | in_progress | Drift queue, retry UI, four sync states and reconnection listener exist; close/reopen proof and rejection E2E remain. |
+| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; monthly aggregate consumption and Activity paging remain. |
+| CB-10 | in_progress | Drift queue, retry UI, four sync states and reconnection listener exist; startup sync, lock and close/reopen proof remain. |
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
-| CB-16 | in_progress | Emulator rules and bounded query checks pass; production review, recovery and cost verification remain. |
-| CB-19 | in_progress | 30 Flutter tests plus rules coverage exist; Android/iOS UI E2E is blocked by unavailable devices. |
+| CB-16 | in_progress | Emulator rules and bounded query checks pass; pagination index/recovery and production review remain. |
+| CB-19 | in_progress | 30 Flutter tests plus rules coverage exist; pager/offline tests and Android/iOS UI E2E remain. |
 
 # ClearBudget implementation and business backlog
 

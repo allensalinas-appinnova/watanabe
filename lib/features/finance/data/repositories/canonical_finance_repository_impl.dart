@@ -154,12 +154,16 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   Future<Either<Failure, OperationPage>> fetchOperationsPage(
     String userId, {
     OperationPageCursor? cursor,
+    String? monthKey,
+    String? currency,
     int pageSize = 100,
   }) async {
     try {
       final page = await _remoteDataSource.fetchOperationsPage(
         userId,
         cursor: cursor,
+        monthKey: monthKey,
+        currency: currency,
         pageSize: pageSize,
       );
       return Right(

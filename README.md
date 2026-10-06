@@ -45,6 +45,12 @@ emulator (default device ID `emulator-5554`), Node.js and Java 21+. To select an
 `FIREBASE_EMULATOR_HOST` if it cannot reach the host at `10.0.2.2`.
 
 For an iOS Simulator use `E2E_PLATFORM=ios ./tool/run_emulator_e2e.sh <simulator-id>`;
+
+Firestore pagination verification with 101 synthetic operations:
+
+```bash
+./tool/run_pagination_test.sh
+```
 the default emulator host is then `127.0.0.1`. The suite uses the reserved
 `demo-clearbudget` project and never targets a live Firebase project.
 

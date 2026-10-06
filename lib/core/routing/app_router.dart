@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
 import '../../features/finance/presentation/screens/canonical_accounts_screen.dart';
+import '../../features/finance/presentation/screens/canonical_activity_screen.dart';
 import '../../features/finance/presentation/screens/canonical_budget_detail_screen.dart';
 import '../../features/finance/presentation/screens/canonical_budget_tracking_screen.dart';
 import '../../features/finance/presentation/screens/canonical_budgets_screen.dart';
@@ -65,7 +66,7 @@ GoRouter _buildAppRouter() => GoRouter(
     GoRoute(
       path: '/activity',
       name: 'activity',
-      builder: (context, state) => const CanonicalHomeScreen(),
+      builder: (context, state) => const CanonicalActivityScreen(),
     ),
     GoRoute(
       path: '/budgets',

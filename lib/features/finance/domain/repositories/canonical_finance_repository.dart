@@ -116,6 +116,8 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, OperationPage>> fetchOperationsPage(
     String userId, {
     OperationPageCursor? cursor,
+    String? monthKey,
+    String? currency,
     int pageSize = 100,
   });
 

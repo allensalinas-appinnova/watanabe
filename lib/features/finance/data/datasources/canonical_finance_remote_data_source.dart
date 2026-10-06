@@ -58,6 +58,8 @@ abstract interface class CanonicalFinanceRemoteDataSource {
   Future<RemoteOperationPage> fetchOperationsPage(
     String userId, {
     OperationPageCursor? cursor,
+    String? monthKey,
+    String? currency,
     int pageSize = 100,
   });
 
@@ -188,15 +190,20 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   Future<RemoteOperationPage> fetchOperationsPage(
     String userId, {
     OperationPageCursor? cursor,
+    String? monthKey,
+    String? currency,
     int pageSize = 100,
   }) async {
     if (pageSize < 1 || pageSize > 100) {
       throw ArgumentError.value(pageSize, 'pageSize', 'must be between 1 and 100');
     }
-    Query<Map<String, dynamic>> query = _userCollection(
-      userId,
-      'operations',
-    ).orderBy('occurredAt', descending: true).orderBy(FieldPath.documentId).limit(pageSize);
+    Query<Map<String, dynamic>> query = _userCollection(userId, 'operations');
+    if (monthKey != null) query = query.where('monthKey', isEqualTo: monthKey);
+    if (currency != null) query = query.where('currency', isEqualTo: currency);
+    query = query
+        .orderBy('occurredAt', descending: true)
+        .orderBy(FieldPath.documentId)
+        .limit(pageSize);
     if (cursor != null) {
       query = query.startAfter([
         Timestamp.fromDate(cursor.occurredAt),

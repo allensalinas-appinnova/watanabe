@@ -13,10 +13,11 @@ typedef PendingOperationSender =
     );
 
 class PendingOperationSyncService {
-  const PendingOperationSyncService(this._database, this._connectivity);
+  PendingOperationSyncService(this._database, this._connectivity);
 
   final PendingOperationDatabase _database;
   final Connectivity _connectivity;
+  Future<void>? _drainInFlight;
 
   Stream<SyncStatusSnapshot> watchStatus() => _database.watchRecent().map((rows) {
     int count(SyncState state) => rows.where((row) => row.status == state.name).length;
@@ -53,7 +54,15 @@ class PendingOperationSyncService {
       )
       .then((_) {});
 
-  Future<void> drain(PendingOperationSender sender, {bool retryRejected = false}) async {
+  Future<void> drain(PendingOperationSender sender, {bool retryRejected = false}) {
+    final inFlight = _drainInFlight;
+    if (inFlight != null) return inFlight;
+    final operation = _drain(sender, retryRejected: retryRejected);
+    _drainInFlight = operation.whenComplete(() => _drainInFlight = null);
+    return _drainInFlight!;
+  }
+
+  Future<void> _drain(PendingOperationSender sender, {bool retryRejected = false}) async {
     if (!await hasConnection()) return;
     final operations = retryRejected
         ? await _database.pendingOrRejected()
@@ -71,5 +80,6 @@ class PendingOperationSyncService {
         await _database.markRejected(operation.id, error.toString());
       }
     }
+    await _database.deleteExpiredHistory();
   }
 }

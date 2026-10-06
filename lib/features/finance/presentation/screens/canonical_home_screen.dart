@@ -10,6 +10,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/financial_operation.dart';
+import '../../domain/entities/monthly_summary.dart';
 import '../providers/canonical_finance_providers.dart';
 
 class CanonicalHomeScreen extends ConsumerWidget {
@@ -27,6 +28,15 @@ class CanonicalHomeScreen extends ConsumerWidget {
         if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
         final accounts = ref.watch(canonicalAccountsProvider(user.id));
         final operations = ref.watch(canonicalOperationsProvider(user.id));
+        final primaryCurrency = accounts.valueOrNull?.isNotEmpty == true
+            ? accounts.valueOrNull!.first.currency
+            : 'COP';
+        final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+        final summary = ref.watch(
+          canonicalMonthlySummaryProvider(
+            (userId: user.id, monthKey: monthKey, currency: primaryCurrency),
+          ),
+        );
         final pending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
         return Scaffold(
           appBar: AppBar(
@@ -65,6 +75,12 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   loading: () => const LinearProgressIndicator(),
                   error: (error, _) => _ErrorCard(message: error.toString()),
                   data: (items) => _BalanceCard(accounts: items),
+                ),
+                summary.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (value) =>
+                      value == null ? const SizedBox.shrink() : _MonthlySummaryCard(summary: value),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -189,6 +205,49 @@ class _BalanceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MonthlySummaryCard extends StatelessWidget {
+  const _MonthlySummaryCard({required this.summary});
+
+  final MonthlySummary summary;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _SummaryValue(
+            label: AppLocalizations.of(context).income,
+            value: _money(summary.incomeMinor, summary.currency),
+          ),
+          _SummaryValue(
+            label: AppLocalizations.of(context).expense,
+            value: _money(summary.expenseMinor, summary.currency),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SummaryValue extends StatelessWidget {
+  const _SummaryValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelMedium),
+      const SizedBox(height: 4),
+      Text(value, style: Theme.of(context).textTheme.titleLarge),
+    ],
+  );
 }
 
 class _OperationTile extends StatelessWidget {
