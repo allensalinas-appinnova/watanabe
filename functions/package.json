@@ -1,0 +1,21 @@
+{
+  "name": "clearbudget-functions",
+  "private": true,
+  "engines": {"node": "20"},
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint --ext .ts src",
+    "seed:catalog": "npm run build && node lib/seed_category_catalog.js",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "npm run build && firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

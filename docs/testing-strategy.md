@@ -43,6 +43,10 @@ a physical device's reachable development-machine address.
 The suite is isolated per invocation and its emulator data is discarded when
 the `emulators:exec` process exits.
 
+The Firestore/Auth emulators require a Java runtime on the PATH. Unit and
+static-analysis tests remain independent of Java; emulator E2E cannot run until
+the local Java runtime is installed.
+
 ## Current automated coverage
 
 - `test/core/utils/currency_formatter_test.dart`: COP number formatting.
@@ -54,23 +58,18 @@ the `emulators:exec` process exits.
   atomic budget-limit update delegation and failure mapping.
 - `test/features/finance/data/datasources/receipt_image_picker_test.dart`:
   image selection, supported content types and cancellation.
-- `integration_test/auth_flow_test.dart`: emulator connectivity preflight,
-  account creation through the UI,
-  email sign-in, owner-only Firestore access, navigation across
-  Dashboard/Activity/Budgets/Accounts, account filtering, budget-limit editing,
-  expense entry with receipt upload and owner-only Storage access, atomic
-  account-balance and budget-total updates, password reset, anonymous sign-in
-  and sign-out, plus account rename/delete with transaction and receipt cleanup.
+- `integration_test/canonical_finance_flow_test.dart`: emulator connectivity
+  preflight, canonical account creation, localized user profile, income, expense,
+  transfer with two ledger entries, idempotency key and itemized budget persistence.
 
 Google OAuth is wired but requires per-platform Firebase/OAuth configuration
 and is not exercised against the Auth Emulator. Password reset, budget-limit
 editing, account management and receipt attachment are exercised by the
 Auth/Firestore/Storage Emulator E2E.
 
-The Figma-backed first mobile vertical slice includes Dashboard, Activity,
-Budget planner, Accounts and Add expense. Transfers, income entry, category
-management, editable budgets, budget tracking, reports and imports remain
-outside this slice. Each feature delivery must include domain/use-case tests,
+The canonical vertical slice includes onboarding/category bootstrap, Dashboard,
+Activity, Accounts, income, expense, transfer, itemized budgets and budget
+tracking. Each feature delivery must include domain/use-case tests,
 repository tests, widget tests for its key states and emulator-backed
 integration tests for Firebase persistence and access rules where applicable.
 

@@ -1,17 +1,182 @@
 rules_version = '2';
 
+// Prototype production rules for the canonical mobile model. Review before
+// deploying to a live Firebase project.
+// Collections: categoryCatalog, users/{uid}/accounts, categories, operations,
+// operations/{operationId}/entries, ledgerEntries, budgets/items and
+// monthlySummaries.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+    function authenticated() { return request.auth != null; }
+    function owner(uid) { return authenticated() && request.auth.uid == uid; }
+    function validCurrency(value) {
+      return value is string && value.matches('^[A-Z]{3}$');
+    }
+    function validMonthKey(value) {
+      return value is string && value.matches('^\\d{4}-(0[1-9]|1[0-2])$');
+    }
+    function validIdempotencyKey(value) {
+      return value is string && value.matches('^[A-Za-z0-9_-]{8,128}$');
+    }
+    function validMoney(value) { return value is int && value > 0; }
+    function required(data, fields) { return data.keys().hasAll(fields); }
+    function accountExists(uid, accountId, currency) {
+      return accountId is string &&
+        exists(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)) &&
+        get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.currency == currency;
+    }
+    function categoryExists(uid, categoryId, type) {
+      return categoryId is string &&
+        exists(/databases/$(database)/documents/users/$(uid)/categories/$(categoryId)) &&
+        get(/databases/$(database)/documents/users/$(uid)/categories/$(categoryId)).data.type == type;
+    }
+    function validOperation(data) {
+      return required(data, ['type', 'amountMinor', 'currency', 'monthKey', 'occurredAt', 'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'type', 'amountMinor', 'currency', 'categoryId', 'accountId',
+          'sourceAccountId', 'destinationAccountId', 'monthKey', 'occurredAt',
+          'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt'
+        ]) &&
+        data.type in ['income', 'expense', 'transfer'] &&
+        validMoney(data.amountMinor) && validCurrency(data.currency) &&
+        validMonthKey(data.monthKey) && data.occurredAt is timestamp &&
+        data.description is string && data.description.size() <= 500 &&
+        data.status == 'confirmed' && validIdempotencyKey(data.idempotencyKey);
+    }
+    function validBudget(data) {
+      return required(data, ['categoryId', 'flowType', 'monthKey', 'currency', 'plannedAmountMinor', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'categoryId', 'flowType', 'monthKey', 'currency',
+          'plannedAmountMinor', 'status', 'createdAt', 'updatedAt'
+        ]) && data.categoryId is string && data.categoryId.size() > 0 &&
+        data.flowType in ['income', 'expense'] && validMonthKey(data.monthKey) &&
+        validCurrency(data.currency) && data.plannedAmountMinor is int &&
+        data.plannedAmountMinor >= 0 && data.status in ['active', 'archived'];
+    }
+    function validBudgetItem(data) {
+      return data.keys().hasOnly([
+          'description', 'amountMinor', 'dayOfMonth', 'createdAt', 'updatedAt'
+        ]) && data.description is string && data.description.size() > 0 &&
+        data.description.size() <= 200 && validMoney(data.amountMinor) &&
+        data.dayOfMonth is int && data.dayOfMonth >= 1 && data.dayOfMonth <= 31;
     }
 
-    match /users/{userId} {
-      allow read, create, update, delete: if isOwner(userId);
+    match /categoryCatalog/{categoryId} {
+      allow read: if authenticated();
+      allow write: if false;
+    }
 
-      match /{document=**} {
-        allow read, create, update, delete: if isOwner(userId);
+    match /users/{uid} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+        'locale', 'countryCode', 'timeZone', 'defaultCurrency',
+        'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt'
+      ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']);
+      allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'locale', 'countryCode', 'timeZone', 'defaultCurrency',
+        'onboardingStatus', 'categoryCatalogVersion', 'updatedAt'
+      ]);
+      allow delete: if false;
+
+      match /accounts/{accountId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+          'name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor',
+          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt'
+        ]) && required(request.resource.data, ['name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor', 'includeInDashboard', 'status', 'createdAt', 'updatedAt']) &&
+          request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+          validCurrency(request.resource.data.currency) &&
+          request.resource.data.openingBalanceMinor is int &&
+          request.resource.data.currentBalanceMinor is int &&
+          request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
+          request.resource.data.status in ['active', 'archived'];
+        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'includeInDashboard', 'status', 'updatedAt', 'archivedAt'
+        ]);
+        allow delete: if false;
       }
+
+      match /categories/{categoryId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+          'catalogId', 'type', 'name', 'icon', 'colorValue', 'sortOrder',
+          'isSystem', 'isArchived', 'createdAt', 'updatedAt'
+        ]) && required(request.resource.data, ['type', 'name', 'icon', 'sortOrder', 'isSystem', 'isArchived', 'createdAt', 'updatedAt']) && request.resource.data.type in ['income', 'expense'] &&
+          request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+          (!request.resource.data.isSystem ||
+            exists(/databases/$(database)/documents/categoryCatalog/$(request.resource.data.catalogId)));
+        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'icon', 'colorValue', 'sortOrder', 'isArchived', 'updatedAt'
+        ]);
+        allow delete: if false;
+      }
+
+      match /operations/{operationId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && request.resource.id == request.resource.data.idempotencyKey &&
+          validOperation(request.resource.data) &&
+          (request.resource.data.type == 'transfer'
+            ? accountExists(uid, request.resource.data.sourceAccountId, request.resource.data.currency) &&
+              accountExists(uid, request.resource.data.destinationAccountId, request.resource.data.currency) &&
+              request.resource.data.sourceAccountId != request.resource.data.destinationAccountId
+            : accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
+              categoryExists(uid, request.resource.data.categoryId, request.resource.data.type));
+        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'updatedAt'
+        ]) && request.resource.data.status in ['confirmed', 'rejected'];
+        allow delete: if false;
+
+        match /entries/{entryId} {
+          allow read: if owner(uid);
+          allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt'
+          ]) && request.resource.data.operationId == operationId &&
+            getAfter(/databases/$(database)/documents/users/$(uid)/operations/$(operationId)).data.status == 'confirmed' &&
+            request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
+            validCurrency(request.resource.data.currency) && request.resource.data.occurredAt is timestamp &&
+            accountExists(uid, request.resource.data.accountId, request.resource.data.currency);
+          allow update, delete: if false;
+        }
+      }
+
+      match /ledgerEntries/{entryId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) &&
+          request.resource.data.keys().hasOnly([
+            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt'
+          ]) && request.resource.data.operationId is string &&
+          request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
+          validCurrency(request.resource.data.currency) && request.resource.data.occurredAt is timestamp &&
+          accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
+          getAfter(/databases/$(database)/documents/users/$(uid)/operations/$(request.resource.data.operationId)).data.status == 'confirmed';
+        allow update, delete: if false;
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && validBudget(request.resource.data) &&
+          categoryExists(uid, request.resource.data.categoryId, request.resource.data.flowType);
+        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'plannedAmountMinor', 'status', 'updatedAt'
+        ]) && validBudget(request.resource.data);
+        allow delete: if false;
+        match /items/{itemId} {
+          allow read: if owner(uid);
+          allow create: if owner(uid) && validBudgetItem(request.resource.data) &&
+            get(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
+          allow update: if owner(uid) && validBudgetItem(request.resource.data) &&
+            get(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
+          allow delete: if owner(uid);
+        }
+      }
+
+      match /monthlySummaries/{summaryId} {
+        allow read: if owner(uid);
+        allow write: if false;
+      }
+
+      match /{document=**} { allow read, write: if false; }
     }
   }
 }

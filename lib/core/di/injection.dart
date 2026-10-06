@@ -9,10 +9,12 @@ import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/finance/data/datasources/finance_remote_data_source.dart';
+import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
-import '../../features/finance/data/repositories/finance_repository_impl.dart';
-import '../../features/finance/domain/repositories/finance_repository.dart';
+import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
+import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
+import '../offline/pending_operation_queue.dart';
+import '../offline/pending_operation_sync_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -22,6 +24,14 @@ Future<void> configureDependencies() async {
 
   if (!getIt.isRegistered<SharedPreferences>()) {
     getIt.registerSingleton<SharedPreferences>(preferences);
+  }
+  if (!getIt.isRegistered<PendingOperationDatabase>()) {
+    getIt.registerSingleton<PendingOperationDatabase>(await openPendingOperationDatabase());
+  }
+  if (!getIt.isRegistered<PendingOperationSyncService>()) {
+    getIt.registerLazySingleton<PendingOperationSyncService>(
+      () => PendingOperationSyncService(getIt()),
+    );
   }
   if (!getIt.isRegistered<FirebaseAuth>()) {
     getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
@@ -52,22 +62,19 @@ Future<void> configureDependencies() async {
       ),
     );
   }
-  if (!getIt.isRegistered<FinanceRemoteDataSource>()) {
-    getIt.registerLazySingleton<FinanceRemoteDataSource>(
-      () => FirestoreFinanceRemoteDataSource(
-        firestore: getIt(),
-        storage: getIt(),
-      ),
+  if (!getIt.isRegistered<CanonicalFinanceRemoteDataSource>()) {
+    getIt.registerLazySingleton<CanonicalFinanceRemoteDataSource>(
+      () => FirestoreCanonicalFinanceRemoteDataSource(firestore: getIt()),
+    );
+  }
+  if (!getIt.isRegistered<CanonicalFinanceRepository>()) {
+    getIt.registerLazySingleton<CanonicalFinanceRepository>(
+      () => CanonicalFinanceRepositoryImpl(remoteDataSource: getIt()),
     );
   }
   if (!getIt.isRegistered<ReceiptImagePicker>()) {
     getIt.registerLazySingleton<ReceiptImagePicker>(
       NativeReceiptImagePicker.new,
-    );
-  }
-  if (!getIt.isRegistered<FinanceRepository>()) {
-    getIt.registerLazySingleton<FinanceRepository>(
-      () => FinanceRepositoryImpl(remoteDataSource: getIt()),
     );
   }
 }

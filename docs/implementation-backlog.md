@@ -24,6 +24,17 @@ not claims that the team currently has those people.
 
 ## P0 — correct product and release foundation
 
+## Current implementation notes
+
+The canonical mobile vertical slice is now wired into Flutter presentation:
+integer money, localized category bootstrap, canonical accounts, income,
+expense, transfers with ledger entries, itemized budgets, budget tracking and
+high-value routes are available. The retired web schema is not read or migrated.
+This is not a completion claim for all P0 release gates: emulator execution is
+still environment-dependent on a supported Java runtime, and pagination,
+production rule review, staging qualification and full offline UI synchronization
+remain release work.
+
 | ID | Deliverable and owner | Days | Depends on |
 | --- | --- | --- | --- |
 | CB-01 | Customer/problem validation; Founder/Product | 5–8 | None |

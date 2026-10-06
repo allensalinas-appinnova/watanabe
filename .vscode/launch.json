@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ClearBudget · Firebase real (iOS)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=dev",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.dev.json"
+      ]
+    },
+    {
+      "name": "ClearBudget · Firebase real (Android)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=dev",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.dev.android.json"
+      ]
+    }
+  ]
+}

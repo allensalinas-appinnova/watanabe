@@ -1,4 +1,38 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "monthKey", "order": "ASCENDING"},
+        {"fieldPath": "type", "order": "ASCENDING"},
+        {"fieldPath": "categoryId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "ledgerEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "accountId", "order": "ASCENDING"},
+        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "categories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "isArchived", "order": "ASCENDING"},
+        {"fieldPath": "sortOrder", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "monthlySummaries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "monthKey", "order": "ASCENDING"},
+        {"fieldPath": "currency", "order": "ASCENDING"}
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

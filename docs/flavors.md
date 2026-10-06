@@ -52,6 +52,25 @@ configura firma de desarrollo en Xcode; lista su ID con `flutter devices` y
 pásalo al script. Si Flutter no está en `PATH`, configura `FLUTTER_BIN`.
 El script valida el ID del proyecto y siempre desactiva los emuladores.
 
+## Ejecutar en Android contra el Firebase existente
+
+La app Android quedó registrada en el proyecto con el package name
+`co.appinnova.personal_finance`. Sus Dart defines locales se guardan en
+`config/firebase.dev.android.json`, excluido de Git y separado de las opciones
+iOS porque el `appId` de Firebase es específico por plataforma.
+
+En VS Code, selecciona el dispositivo Android en la barra de estado, elige
+**ClearBudget · Firebase real (Android)** en Run and Debug y presiona F5. El
+perfil pasa `USE_FIREBASE_EMULATORS=false`; por tanto, opera contra el proyecto
+Firebase real. En un teléfono físico habilita USB debugging, conecta y acepta
+el diálogo de autorización. En un emulador Android, inicia primero el AVD.
+
+La inicialización usa Dart defines, por lo que no necesita `google-services.json`
+ni el Gradle plugin Google Services para proporcionar `FirebaseOptions`. Para
+Google Sign-In en Android, registra SHA-1/SHA-256 del certificado debug y
+verifica que el proveedor Google esté habilitado en Firebase Authentication;
+esto no es requisito para abrir la app o usar otro proveedor ya habilitado.
+
 Google Sign-In requiere que Google esté habilitado como proveedor de Firebase
 Authentication y que el OAuth client esté asociado al bundle ID. El URL scheme
 reverso del client iOS ya está en `ios/Runner/Info.plist`. Los proveedores

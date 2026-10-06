@@ -6,6 +6,9 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
     "auth": {
       "port": 59199
@@ -15,6 +18,9 @@
     },
     "storage": {
       "port": 59191
+    },
+    "functions": {
+      "port": 59192
     },
     "ui": {
       "enabled": true,

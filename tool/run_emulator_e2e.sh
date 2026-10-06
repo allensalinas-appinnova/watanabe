@@ -17,11 +17,11 @@ device_arg="$(printf '%q' "$device")"
 case "$target_platform" in
   android)
     emulator_host="${FIREBASE_EMULATOR_HOST:-10.0.2.2}"
-    app_test_command="flutter test integration_test/auth_flow_test.dart -d $device_arg"
+    app_test_command="flutter test integration_test/canonical_finance_flow_test.dart -d $device_arg"
     ;;
   ios)
     emulator_host="${FIREBASE_EMULATOR_HOST:-127.0.0.1}"
-    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=integration_test/auth_flow_test.dart -d $device_arg"
+    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=integration_test/canonical_finance_flow_test.dart -d $device_arg"
     ;;
   *)
     echo "E2E_PLATFORM must be either android or ios (received: $target_platform)." >&2
@@ -31,8 +31,10 @@ esac
 
 host_arg="$(printf '%q' "$emulator_host")"
 
+seed_command="npm --prefix functions run seed:catalog"
+
 npx -y firebase-tools@latest emulators:exec \
   --project demo-clearbudget \
-  --only auth,firestore,storage \
+  --only auth,firestore,storage,functions \
   --config firebase.json \
-  "$app_test_command --dart-define=USE_FIREBASE_EMULATORS=true --dart-define=FIREBASE_EMULATOR_HOST=$host_arg"
+  "$seed_command && $app_test_command --dart-define=USE_FIREBASE_EMULATORS=true --dart-define=FIREBASE_EMULATOR_HOST=$host_arg"

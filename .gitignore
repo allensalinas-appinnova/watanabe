@@ -6,11 +6,18 @@
 build/
 firestore-debug.log
 config/firebase.dev.json
+config/firebase.dev.*.json
 
 # IDEs
 .idea/
 *.iml
 .vscode/
+!.vscode/
+!.vscode/launch.json
+
+# Firebase Functions
+functions/node_modules/
+functions/lib/
 
 # Generated files
 *.g.dart

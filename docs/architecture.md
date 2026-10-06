@@ -32,19 +32,19 @@ Presentation depends on use cases and domain entities. Data implements domain re
 - a login screen and anonymous sign-in flow;
 - a Home dashboard with live Firestore aggregates and recent activity.
 
-`features/finance` contains:
+`features/finance` contains the canonical mobile model documented in
+[canonical-data-model.md](canonical-data-model.md): integer money, localized
+category snapshots, accounts, operations plus ledger entries, itemized budgets
+and derived monthly summaries. Presentation uses the canonical repository for
+onboarding, categories, accounts, income, expense, transfer, budget and tracker
+flows. Receipt support remains available as a separate attachment capability.
 
-- domain entities for accounts, cashflow entries and category budgets;
-- a repository contract and Firestore data source scoped to
-  `users/{authenticatedUid}`;
-- Firebase Storage receipt uploads scoped to the authenticated user's path;
-- Riverpod stream providers for accounts, transactions and budgets;
-- an atomic expense write for cashflow, account balance and matching budget,
-  with uploaded receipts cleaned up if the Firestore transaction fails;
-- the Figma-backed Activity, Budget planner, Accounts and Add expense screens.
+The app also includes a Drift-backed pending-operation queue for offline
+commands and a Firebase Functions worker for balance and monthly-summary
+projections.
 
 ## Planned feature modules
 
-Transfers, income entry, category management, full budget-item planning, budget
-tracking, reports, imports and profile preferences should follow the same
-boundary rules.
+Reports and imports should follow the same boundary rules when added. Budget
+tracking derives actual values from confirmed operations by category, month,
+flow type and currency; stored budget amounts describe the plan only.
