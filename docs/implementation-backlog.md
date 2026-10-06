@@ -4,15 +4,15 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T09:46:53-05:00"
-  iteration: "ITERATION-4A"
-  last_commit: "4abfc3cfce5fde8ebc10a26cdf1fc4b4481e5427"
-  status: "Iteration 4A local hardening is complete: Android APK builds and automated checks pass; Android UI E2E reaches the emulator but Firestore rejects authenticated client writes, so device acceptance and staging remain blocked."
+  updated_at: "2026-10-06T11:22:50-05:00"
+  iteration: "ITERATION-4B"
+  last_commit: "e718acc9a18a9c4750f8bdb0e68feccd5e63945d"
+  status: "Iteration 4B local Android slice is verified: Auth-to-Firestore diagnosis, localized onboarding, income/expense/transfer flow and itemized budget E2E pass against Emulator Suite; staging, signing and iOS remain blocked by external inputs."
   verified:
     - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (36 tests)"
+    - "Flutter unit/widget tests pass (38 tests)"
     - "Functions compile"
-    - "Firestore Emulator security tests pass (4 tests)"
+    - "Firestore Emulator security tests pass (5 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
     - "Iteration 3 commit eac40f4 is the documentation baseline"
     - "Android debug APK builds successfully"
@@ -26,16 +26,19 @@ project_status:
     - "Android debug APK installs on emulator-5554"
     - "E2E runner starts Auth, Firestore, Storage and Functions emulators"
     - "Firebase Auth UID source-of-truth regression test passes"
+    - "Android Auth-to-Firestore diagnostic passes with emulator-issued token and strict rules"
+    - "Android UI E2E passes onboarding and canonical income/expense/transfer/budget scenarios"
+    - "Itemized budget parent and items pass atomic creation rules test"
+    - "Flutter test suite passes with 38 tests"
   blocked:
     - "Firebase staging project ID and app configuration values were not provided"
     - "Android upload keystore/Play App Signing credentials are not configured"
     - "iOS DEVELOPMENT_TEAM, certificates and provisioning profiles are not configured"
-    - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
-    - "Android client E2E receives Firestore permission-denied during category bootstrap despite matching Auth UID; requires emulator token/rules transport diagnosis"
-  next_iteration: "Diagnose Android Emulator Auth-to-Firestore authorization, rerun the complete E2E, then reauthenticate Firebase CLI and configure staging."
+    - "Firebase CLI reauthentication is pending before project discovery"
+  next_iteration: "Complete Firebase CLI reauthentication, select or provision a separate staging project, validate SDK configs, then configure signed Android and iOS release inputs."
 
 ## Iteration status snapshot
 
@@ -46,13 +49,13 @@ project_status:
 | CB-05 | in_progress | Canonical income/expense CRUD and integer money are implemented; device E2E and full reconciliation remain. |
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
-| CB-08 | in_progress | Localized onboarding/category bootstrap exists; device flow and complete category management remain. |
+| CB-08 | in_progress | Localized onboarding/category bootstrap passes Android Emulator E2E; complete category management remains. |
 | CB-09 | in_progress | Dashboard/tracker consume monthly summaries and Activity is paginated; device validation and stale-summary UX remain. |
 | CB-10 | in_progress | Startup/reconnect sync, single-flight lock, four states and close/reopen test exist; device/network rejection E2E remains. |
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
 | CB-16 | in_progress | Emulator rules and bounded queries pass; staging rule review, App Check, recovery and cost verification remain. |
-| CB-19 | in_progress | 36 Flutter tests plus pagination/rules coverage exist; Android APK installs but UI E2E is blocked by Firestore permission-denied during bootstrap, while staging/iOS remain unavailable. |
+| CB-19 | in_progress | 38 Flutter tests, pagination/rules coverage and Android Emulator P0 E2E pass; staging and iOS qualification remain unavailable. |
 | CB-18 | in_progress | Error hooks and an allowlisted event wrapper exist; staging delivery and consent/denominator validation remain. |
 
 # ClearBudget implementation and business backlog
