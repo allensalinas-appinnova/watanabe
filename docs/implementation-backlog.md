@@ -4,21 +4,24 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T07:40:03-05:00"
+  updated_at: "2026-10-06T07:43:01-05:00"
   iteration: "ITERATION-1"
-  last_commit: "c117018cfd1593446be75e13176956eff7faa198"
-  status: "Canonical P0 vertical slice is implemented and locally verified; device E2E remains blocked by unavailable Android/iOS targets."
+  last_commit: "50152171a89782166bc192964a9a9b948f4172ba"
+  status: "Iteration 1 code slice is complete and locally verified; device E2E remains blocked by unavailable Android/iOS targets."
   verified:
     - "flutter analyze passes"
-    - "Flutter unit/widget tests pass"
+    - "Flutter unit/widget tests pass (30 tests)"
     - "Functions compile"
-    - "Firestore Emulator security tests pass"
+    - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
+    - "Operation pages use a Firestore cursor with a maximum page size of 100"
+    - "Offline queue exposes pending, syncing, confirmed and rejected states"
+    - "Automatic retry listener is connected to connectivity_plus"
   blocked:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "Staging Firebase credentials, signing and OAuth release inputs are not configured"
-  next_iteration: "ITERATION-2: durable offline synchronization and cursor-based operation pagination"
+  next_iteration: "ITERATION-2: prove offline close/reopen/retry behavior and integrate paginated history into Activity"
 
 ## Iteration status snapshot
 
@@ -30,12 +33,12 @@ project_status:
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
 | CB-08 | in_progress | Localized onboarding/category bootstrap exists; device flow and complete category management remain. |
-| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; paginated production history remains. |
-| CB-10 | in_progress | Drift queue, retry UI and sync statuses exist; connectivity coordinator and durable end-to-end proof remain. |
+| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; Activity still needs paginated accumulation. |
+| CB-10 | in_progress | Drift queue, retry UI, four sync states and reconnection listener exist; close/reopen proof and rejection E2E remain. |
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
 | CB-16 | in_progress | Emulator rules and bounded query checks pass; production review, recovery and cost verification remain. |
-| CB-19 | in_progress | Unit/widget/repository/rules coverage exists; Android/iOS UI E2E is blocked by unavailable devices. |
+| CB-19 | in_progress | 30 Flutter tests plus rules coverage exist; Android/iOS UI E2E is blocked by unavailable devices. |
 
 # ClearBudget implementation and business backlog
 
