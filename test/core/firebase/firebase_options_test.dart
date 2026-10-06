@@ -37,4 +37,22 @@ void main() {
       expect(options.apiKey, matches(RegExp(r'^A.{38}$')));
     });
   });
+
+  test('requires real Firebase values when emulator mode is disabled', () {
+    expect(
+      () => AppFirebaseOptions.forEnvironment(AppEnvironment.dev),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('does not permit emulator mode outside development', () {
+    expect(
+      () => AppEnvironment.staging.validate(useEmulators: true, isRelease: false),
+      throwsA(isA<StateError>()),
+    );
+    expect(
+      () => AppEnvironment.dev.validate(useEmulators: true, isRelease: true),
+      throwsA(isA<StateError>()),
+    );
+  });
 }

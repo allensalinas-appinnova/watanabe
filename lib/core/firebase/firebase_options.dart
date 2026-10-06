@@ -75,14 +75,30 @@ abstract final class AppFirebaseOptions {
     required String authDomain,
     required String iosBundleId,
     required String measurementId,
-  }) => FirebaseOptions(
-    apiKey: apiKey,
-    appId: appId,
-    messagingSenderId: messagingSenderId,
-    projectId: projectId,
-    storageBucket: storageBucket,
-    authDomain: authDomain,
-    iosBundleId: iosBundleId,
-    measurementId: measurementId,
-  );
+  }) {
+    final requiredValues = <String, String>{
+      'apiKey': apiKey,
+      'appId': appId,
+      'messagingSenderId': messagingSenderId,
+      'projectId': projectId,
+      'storageBucket': storageBucket,
+    };
+    final missing = requiredValues.entries
+        .where((entry) => entry.value.trim().isEmpty)
+        .map((entry) => entry.key)
+        .toList();
+    if (missing.isNotEmpty) {
+      throw StateError('Missing Firebase configuration: ${missing.join(', ')}');
+    }
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+      authDomain: authDomain.isEmpty ? null : authDomain,
+      iosBundleId: iosBundleId.isEmpty ? null : iosBundleId,
+      measurementId: measurementId.isEmpty ? null : measurementId,
+    );
+  }
 }

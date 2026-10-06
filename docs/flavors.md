@@ -27,6 +27,21 @@ Use the `FIREBASE_STAGING_*` or `FIREBASE_PROD_*` define family when selecting
 those respective environments. The application options are selected from
 `APP_ENV` in `lib/core/firebase/firebase_options.dart`.
 
+Invalid `APP_ENV` values now fail fast. Emulator mode is accepted only with
+`APP_ENV=dev` and is rejected in release builds. Staging and production require
+all required Firebase values; empty options are not accepted.
+
+Copy `config/firebase.staging.example.json` to the ignored
+`config/firebase.staging.json`, fill it using the Firebase CLI output, and run:
+
+```bash
+./tool/verify_release_config.sh staging android
+./tool/verify_release_config.sh staging ios
+```
+
+The checks intentionally fail until the staging project, Android upload key and
+iOS development team are configured. They do not deploy or mutate Firebase.
+
 ## Ejecutar en iOS contra el Firebase existente
 
 El proyecto de desarrollo enlazado actualmente es `studio-2659953950-840b8`
@@ -129,6 +144,10 @@ terminar. Para cambiar el host, define `FIREBASE_EMULATOR_HOST`.
 - Separar Analytics, Crashlytics y Storage por proyecto Firebase.
 - Verificar reglas Firestore y Storage con emuladores antes de promover a `staging`.
 - Proteger los builds release con revisión de flavor y firma del pipeline.
+- Android release no usa la firma debug; configure `android/key.properties` from
+  `android/key.properties.example` and use Play App Signing for the upload key.
+- iOS release requires a real `DEVELOPMENT_TEAM`, signing certificate and
+  provisioning profile supplied by Xcode/CI.
 
 ## Próximo paso de plataforma
 

@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../config/environment/app_environment.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -14,6 +15,7 @@ import '../../features/finance/data/datasources/canonical_finance_remote_data_so
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
 import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
+import '../firebase/firebase_observability.dart';
 import '../offline/pending_operation_queue.dart';
 import '../offline/pending_operation_sync_service.dart';
 
@@ -25,6 +27,11 @@ Future<void> configureDependencies() async {
 
   if (!getIt.isRegistered<SharedPreferences>()) {
     getIt.registerSingleton<SharedPreferences>(preferences);
+  }
+  if (!getIt.isRegistered<FirebaseObservability>()) {
+    getIt.registerLazySingleton<FirebaseObservability>(
+      () => FirebaseObservability(AppEnvironment.fromDartDefine()),
+    );
   }
   if (!getIt.isRegistered<PendingOperationDatabase>()) {
     getIt.registerSingleton<PendingOperationDatabase>(await openPendingOperationDatabase());

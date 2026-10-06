@@ -20,6 +20,26 @@
         "--dart-define=USE_FIREBASE_EMULATORS=false",
         "--dart-define-from-file=config/firebase.dev.android.json"
       ]
+    },
+    {
+      "name": "ClearBudget · Firebase staging (iOS)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=staging",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.staging.json"
+      ]
+    },
+    {
+      "name": "ClearBudget · Firebase staging (Android)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=staging",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.staging.json"
+      ]
     }
   ]
 }

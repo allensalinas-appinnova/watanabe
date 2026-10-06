@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/firebase/firebase_observability.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/offline/pending_operation_sync_service.dart';
 import '../../../../core/offline/sync_state.dart';
@@ -170,7 +171,10 @@ final canonicalMonthlySummaryProvider =
     );
 
 final bootstrapCategoriesProvider = Provider<BootstrapCategories>(
-  (ref) => BootstrapCategories(getIt<CanonicalFinanceRepository>()),
+  (ref) => BootstrapCategories(
+    getIt<CanonicalFinanceRepository>(),
+    getIt<FirebaseObservability>(),
+  ),
 );
 
 final pendingOperationsProvider = StreamProvider<List<PendingOperation>>((ref) {
@@ -191,9 +195,10 @@ final pendingOperationAutoSyncProvider = Provider.autoDispose<void>((ref) {
 });
 
 class BootstrapCategories {
-  const BootstrapCategories(this._repository);
+  const BootstrapCategories(this._repository, this._observability);
 
   final CanonicalFinanceRepository _repository;
+  final FirebaseObservability _observability;
 
   Future<void> call(
     String userId, {
@@ -209,7 +214,9 @@ class BootstrapCategories {
       timeZone: timeZone,
       defaultCurrency: defaultCurrency,
     );
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    result.match((failure) => throw Exception(failure.message), (_) {
+      unawaited(_observability.logEvent('onboarding_completed'));
+    });
   }
 }
 
@@ -218,15 +225,22 @@ final canonicalActionsProvider = Provider<CanonicalFinanceActions>(
     getIt<CanonicalFinanceRepository>(),
     getIt<PendingOperationSyncService>(),
     getIt<PendingOperationDatabase>(),
+    getIt<FirebaseObservability>(),
   ),
 );
 
 class CanonicalFinanceActions {
-  const CanonicalFinanceActions(this._repository, this._sync, this._database);
+  const CanonicalFinanceActions(
+    this._repository,
+    this._sync,
+    this._database,
+    this._observability,
+  );
 
   final CanonicalFinanceRepository _repository;
   final PendingOperationSyncService _sync;
   final PendingOperationDatabase _database;
+  final FirebaseObservability _observability;
 
   Future<void> createAccount(
     String userId, {
@@ -242,7 +256,9 @@ class CanonicalFinanceActions {
       currency: currency,
       openingBalanceMinor: openingBalanceMinor,
     );
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    result.match((failure) => throw Exception(failure.message), (_) {
+      unawaited(_observability.logEvent('account_created'));
+    });
   }
 
   Future<bool> createOperation(
@@ -255,7 +271,10 @@ class CanonicalFinanceActions {
       payload: _operationPayload(draft),
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
-    return (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
+    final confirmed =
+        (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
+    if (confirmed) await _observability.logEvent('${draft.type.name}_created');
+    return confirmed;
   }
 
   Future<bool> createTransfer(String userId, TransferDraft draft) async {
@@ -265,7 +284,10 @@ class CanonicalFinanceActions {
       payload: _transferPayload(draft),
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
-    return (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
+    final confirmed =
+        (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
+    if (confirmed) await _observability.logEvent('transfer_created');
+    return confirmed;
   }
 
   Future<void> createBudget(
@@ -284,7 +306,9 @@ class CanonicalFinanceActions {
       currency: currency,
       items: items,
     );
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    result.match((failure) => throw Exception(failure.message), (_) {
+      unawaited(_observability.logEvent('budget_created'));
+    });
   }
 
   Future<void> addBudgetItem(

@@ -57,3 +57,10 @@ the default emulator host is then `127.0.0.1`. The suite uses the reserved
 ## Firebase flavors
 
 Los valores de Firebase se inyectan por `--dart-define` y el entorno se selecciona con `APP_ENV=dev|staging|prod`. Consulta [docs/flavors.md](docs/flavors.md) para ejecutar iOS contra el proyecto Firebase existente o E2E con Emulator Suite. El script `tool/run_ios_firebase.sh` valida el proyecto enlazado antes de usar servicios reales; `tool/run_emulator_e2e.sh` está aislado en `demo-clearbudget`.
+
+Para validar prerequisitos de una build staging sin desplegar:
+
+```bash
+./tool/verify_release_config.sh staging android
+./tool/verify_release_config.sh staging ios
+```

@@ -1,0 +1,5 @@
+# Copy to android/key.properties locally. Never commit the real file.
+storeFile=/absolute/path/to/clearbudget-upload-keystore.jks
+storePassword=REPLACE_ME
+keyAlias=clearbudget-upload
+keyPassword=REPLACE_ME

@@ -4,9 +4,13 @@
 .packages
 .pub/
 build/
+android/key.properties
+android/*.jks
 firestore-debug.log
 config/firebase.dev.json
 config/firebase.dev.*.json
+config/firebase.staging.json
+config/firebase.prod.json
 
 # IDEs
 .idea/
