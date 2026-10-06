@@ -4,13 +4,13 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T08:21:44-05:00"
-  iteration: "ITERATION-4"
-  last_commit: "e744ec5276fa7d87841f076f3e1254f6e0d7b624"
-  status: "Iteration 4 local preparation is complete: platform-specific staging profiles and release preflight are committed; Firebase staging credentials, signing assets and device evidence remain unavailable."
+  updated_at: "2026-10-06T09:46:53-05:00"
+  iteration: "ITERATION-4A"
+  last_commit: "4abfc3cfce5fde8ebc10a26cdf1fc4b4481e5427"
+  status: "Iteration 4A local hardening is complete: Android APK builds and automated checks pass; Android UI E2E reaches the emulator but Firestore rejects authenticated client writes, so device acceptance and staging remain blocked."
   verified:
     - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (35 tests)"
+    - "Flutter unit/widget tests pass (36 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
@@ -23,6 +23,9 @@ project_status:
     - "Staging launch profiles use platform-specific Dart-define files"
     - "Release preflight fails closed when staging config or signing assets are absent"
     - "Firestore Emulator pagination test passes with 101 operations"
+    - "Android debug APK installs on emulator-5554"
+    - "E2E runner starts Auth, Firestore, Storage and Functions emulators"
+    - "Firebase Auth UID source-of-truth regression test passes"
   blocked:
     - "Firebase staging project ID and app configuration values were not provided"
     - "Android upload keystore/Play App Signing credentials are not configured"
@@ -31,7 +34,8 @@ project_status:
     - "No iOS Simulator runtime is available to simctl"
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
-  next_iteration: "Reauthenticate Firebase CLI, provide the staging project/app IDs and signing assets, then run signed Android/iOS staging smoke tests."
+    - "Android client E2E receives Firestore permission-denied during category bootstrap despite matching Auth UID; requires emulator token/rules transport diagnosis"
+  next_iteration: "Diagnose Android Emulator Auth-to-Firestore authorization, rerun the complete E2E, then reauthenticate Firebase CLI and configure staging."
 
 ## Iteration status snapshot
 
@@ -48,7 +52,7 @@ project_status:
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
 | CB-16 | in_progress | Emulator rules and bounded queries pass; staging rule review, App Check, recovery and cost verification remain. |
-| CB-19 | in_progress | 35 Flutter tests plus pagination/rules coverage exist; staging builds and Android/iOS UI E2E remain blocked. |
+| CB-19 | in_progress | 36 Flutter tests plus pagination/rules coverage exist; Android APK installs but UI E2E is blocked by Firestore permission-denied during bootstrap, while staging/iOS remain unavailable. |
 | CB-18 | in_progress | Error hooks and an allowlisted event wrapper exist; staging delivery and consent/denominator validation remain. |
 
 # ClearBudget implementation and business backlog
