@@ -28,7 +28,7 @@
       "toolArgs": [
         "--dart-define=APP_ENV=staging",
         "--dart-define=USE_FIREBASE_EMULATORS=false",
-        "--dart-define-from-file=config/firebase.staging.json"
+        "--dart-define-from-file=config/firebase.staging.ios.json"
       ]
     },
     {
@@ -38,7 +38,7 @@
       "toolArgs": [
         "--dart-define=APP_ENV=staging",
         "--dart-define=USE_FIREBASE_EMULATORS=false",
-        "--dart-define-from-file=config/firebase.staging.json"
+        "--dart-define-from-file=config/firebase.staging.android.json"
       ]
     }
   ]

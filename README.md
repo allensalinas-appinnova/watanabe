@@ -64,3 +64,8 @@ Para validar prerequisitos de una build staging sin desplegar:
 ./tool/verify_release_config.sh staging android
 ./tool/verify_release_config.sh staging ios
 ```
+
+Staging uses separate ignored Dart-define files because Firebase app IDs differ
+by platform: `config/firebase.staging.android.json` and
+`config/firebase.staging.ios.json`. Start from the matching `.example.json`
+files and populate them only after authenticating the Firebase CLI.

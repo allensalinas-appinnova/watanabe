@@ -4,17 +4,17 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T08:20:15-05:00"
-  iteration: "ITERATION-3"
-  last_commit: "28c65b2ade9ee92707bac402247894084e4350e2"
-  status: "Iteration 3 local hardening is complete: environment guards, staging launch profiles, non-debug signing configuration and observability hooks are implemented; cloud staging and native signing evidence remain unavailable."
+  updated_at: "2026-10-06T08:24:00-05:00"
+  iteration: "ITERATION-4"
+  last_commit: "eac40f4"
+  status: "Iteration 4 is in progress: platform-specific staging config and release preflight are being prepared; Firebase staging credentials, signing assets and device evidence remain unavailable."
   verified:
     - "flutter analyze passes with no issues"
     - "Flutter unit/widget tests pass (33 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
-    - "Iteration 2 commit ac35253 is the implementation base"
+    - "Iteration 3 commit eac40f4 is the documentation baseline"
     - "flutter analyze passes with no issues"
     - "Flutter unit/widget tests pass (35 tests)"
     - "Android debug APK builds successfully"
@@ -29,7 +29,7 @@ project_status:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
-  next_iteration: "Complete staging project wiring, signed Android/iOS smoke builds and cloud observability evidence."
+  next_iteration: "Complete Firebase staging wiring, signed Android/iOS smoke builds and cloud observability evidence once external credentials are available."
 
 ## Iteration status snapshot
 

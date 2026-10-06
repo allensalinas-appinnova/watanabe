@@ -15,9 +15,15 @@ case "$platform" in
   *) echo "Platform must be android or ios." >&2; exit 1 ;;
 esac
 
-config_file="$project_root/config/firebase.$environment.json"
+platform_config_file="$project_root/config/firebase.$environment.$platform.json"
+generic_config_file="$project_root/config/firebase.$environment.json"
+if [[ -f "$platform_config_file" ]]; then
+  config_file="$platform_config_file"
+else
+  config_file="$generic_config_file"
+fi
 if [[ ! -f "$config_file" ]]; then
-  echo "Missing $config_file. Copy the example and fill the Firebase app values." >&2
+  echo "Missing $platform_config_file. Copy the platform example and fill the Firebase app values." >&2
   exit 1
 fi
 if rg -q 'REPLACE_WITH|YOUR_|example' "$config_file"; then

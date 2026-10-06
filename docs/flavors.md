@@ -31,16 +31,30 @@ Invalid `APP_ENV` values now fail fast. Emulator mode is accepted only with
 `APP_ENV=dev` and is rejected in release builds. Staging and production require
 all required Firebase values; empty options are not accepted.
 
-Copy `config/firebase.staging.example.json` to the ignored
-`config/firebase.staging.json`, fill it using the Firebase CLI output, and run:
+Firebase app IDs are platform-specific. Copy the corresponding example to the
+ignored platform file, fill it using the Firebase CLI output, and run:
 
 ```bash
+cp config/firebase.staging.android.example.json config/firebase.staging.android.json
+cp config/firebase.staging.ios.example.json config/firebase.staging.ios.json
 ./tool/verify_release_config.sh staging android
 ./tool/verify_release_config.sh staging ios
 ```
 
-The checks intentionally fail until the staging project, Android upload key and
-iOS development team are configured. They do not deploy or mutate Firebase.
+Retrieve the native SDK values from the authenticated Firebase CLI with the
+staging project and the registered app IDs:
+
+```bash
+npx -y firebase-tools@latest login --reauth
+npx -y firebase-tools@latest apps:list --project <STAGING_PROJECT_ID>
+npx -y firebase-tools@latest apps:sdkconfig ANDROID <ANDROID_APP_ID> --project <STAGING_PROJECT_ID>
+npx -y firebase-tools@latest apps:sdkconfig IOS <IOS_APP_ID> --project <STAGING_PROJECT_ID>
+```
+
+Map the returned values to the `FIREBASE_STAGING_*` keys; do not commit these
+files. The checks intentionally fail until the staging project, Android upload
+key and iOS development team are configured. They do not deploy or mutate
+Firebase.
 
 ## Ejecutar en iOS contra el Firebase existente
 
