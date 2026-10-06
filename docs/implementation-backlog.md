@@ -4,23 +4,27 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T07:48:00-05:00"
+  updated_at: "2026-10-06T08:00:12-05:00"
   iteration: "ITERATION-2"
-  last_commit: "f1057a4"
-  status: "Iteration 2 in progress: cursor API and offline queue exist, while Activity accumulation, startup sync and durable restart verification remain to be implemented."
+  last_commit: "ac35253ad60da46a108d6ca685ae8780b926fd97"
+  status: "Iteration 2 implementation is locally verified: Activity pagination, monthly summaries and durable offline restart flow are implemented; device E2E and staging remain blocked."
   verified:
-    - "flutter analyze passes"
-    - "Flutter unit/widget tests pass (30 tests)"
+    - "flutter analyze passes with no issues"
+    - "Flutter unit/widget tests pass (33 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (4 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
     - "Iteration 1 commit f1057a4 is the implementation base"
     - "Existing Flutter, Functions and Firestore Emulator checks remain green"
+    - "Drift pending operation survives close/reopen and reaches confirmed once"
+    - "Firestore pagination test passes with 101 operations, cursor and filters"
+    - "Activity accumulates pages with deduplication and retry state"
+    - "Startup sync and reconnect sync share a single in-flight drain"
   blocked:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
     - "Staging Firebase credentials, signing and OAuth release inputs are not configured"
-  next_iteration: "Complete Activity pagination, startup synchronization and restart/retry verification; then prepare Iteration 3 staging security."
+  next_iteration: "ITERATION-3: configure Firebase staging, release security, observability and signed Android/iOS smoke builds."
 
 ## Iteration status snapshot
 
@@ -32,12 +36,12 @@ project_status:
 | CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
 | CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
 | CB-08 | in_progress | Localized onboarding/category bootstrap exists; device flow and complete category management remain. |
-| CB-09 | in_progress | Dashboard/tracker use canonical derived data and honest empty states; monthly aggregate consumption and Activity paging remain. |
-| CB-10 | in_progress | Drift queue, retry UI, four sync states and reconnection listener exist; startup sync, lock and close/reopen proof remain. |
+| CB-09 | in_progress | Dashboard/tracker consume monthly summaries and Activity is paginated; device validation and stale-summary UX remain. |
+| CB-10 | in_progress | Startup/reconnect sync, single-flight lock, four states and close/reopen test exist; device/network rejection E2E remains. |
 | CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
 | CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
-| CB-16 | in_progress | Emulator rules and bounded query checks pass; pagination index/recovery and production review remain. |
-| CB-19 | in_progress | 30 Flutter tests plus rules coverage exist; pager/offline tests and Android/iOS UI E2E remain. |
+| CB-16 | in_progress | Emulator rules, filtered pagination index and recovery cleanup are covered; production review remains. |
+| CB-19 | in_progress | 33 Flutter tests plus pagination/rules coverage exist; Android/iOS UI E2E remains blocked by unavailable devices. |
 
 # ClearBudget implementation and business backlog
 
@@ -66,10 +70,10 @@ The canonical mobile vertical slice is now wired into Flutter presentation:
 integer money, localized category bootstrap, canonical accounts, income,
 expense, transfers with ledger entries, itemized budgets, budget tracking and
 high-value routes are available. The retired web schema is not read or migrated.
-This is not a completion claim for all P0 release gates: emulator execution is
-still environment-dependent on a supported Java runtime, and pagination,
-production rule review, staging qualification and full offline UI synchronization
-remain release work.
+This is not a completion claim for all P0 release gates: production rule review,
+staging qualification, device E2E and full offline UI/network qualification remain
+release work. The current Activity path is cursor-paginated and dashboard/tracker
+totals use derived monthly summaries when available.
 
 | ID | Deliverable and owner | Days | Depends on |
 | --- | --- | --- | --- |
