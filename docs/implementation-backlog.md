@@ -4,10 +4,10 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 ---
 
 project_status:
-  updated_at: "2026-10-06T07:44:12-05:00"
+  updated_at: "2026-10-06T07:45:01-05:00"
   iteration: "ITERATION-1"
-  last_commit: "bc58e689f8cede5dbcf6555e32d53fc216e92116"
-  status: "Iteration 1 code slice is complete and locally verified; offline writes remain pending without connectivity and device E2E is blocked by unavailable Android/iOS targets."
+  last_commit: "e93d3942e5c53c559bbdb62815c20a5b767186a6"
+  status: "Iteration 1 code slice and emulator runners are locally verified; offline writes remain pending without connectivity and device E2E is blocked by unavailable Android/iOS targets."
   verified:
     - "flutter analyze passes"
     - "Flutter unit/widget tests pass (30 tests)"
@@ -18,6 +18,7 @@ project_status:
     - "Offline queue exposes pending, syncing, confirmed and rejected states"
     - "Automatic retry listener is connected to connectivity_plus"
     - "Offline drain exits without rejecting queued work when connectivity is unavailable"
+    - "Firestore Emulator security tests pass after macOS Java runtime fallback"
   blocked:
     - "No Android device/emulator is visible to ADB"
     - "No iOS Simulator runtime is available to simctl"
