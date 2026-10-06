@@ -87,7 +87,8 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
   }
 
   Future<void> _complete() async {
-    final user = ref.read(authSessionProvider).valueOrNull;
+    final user =
+        ref.read(authSessionProvider).valueOrNull ?? ref.read(authRepositoryProvider).currentUser;
     if (user == null || account.text.trim().isEmpty) return;
     setState(() => saving = true);
     try {

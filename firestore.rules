@@ -164,9 +164,9 @@ service cloud.firestore {
         match /items/{itemId} {
           allow read: if owner(uid);
           allow create: if owner(uid) && validBudgetItem(request.resource.data) &&
-            get(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
+            getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
           allow update: if owner(uid) && validBudgetItem(request.resource.data) &&
-            get(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
+            getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
           allow delete: if owner(uid);
         }
       }

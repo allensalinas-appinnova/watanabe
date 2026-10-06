@@ -6,6 +6,8 @@ import '../models/auth_user_model.dart';
 import 'google_sign_in_data_source.dart';
 
 abstract interface class AuthRemoteDataSource {
+  AuthUserModel? get currentUser;
+
   Stream<AuthUserModel?> observeSession();
 
   Future<AuthUserModel> signIn({
@@ -36,6 +38,9 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
 
   final FirebaseAuth _firebaseAuth;
   final GoogleSignInDataSource _googleSignInDataSource;
+
+  @override
+  AuthUserModel? get currentUser => _mapUser(_firebaseAuth.currentUser);
 
   @override
   Stream<AuthUserModel?> observeSession() {

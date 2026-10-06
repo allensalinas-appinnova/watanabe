@@ -32,6 +32,12 @@ void main() {
     );
   });
 
+  test('exposes the current Firebase session without using cached state', () {
+    when(() => remoteDataSource.currentUser).thenReturn(user);
+
+    expect(repository.currentUser?.id, user.id);
+  });
+
   group('signIn', () {
     test('maps the remote model to a domain entity and caches it', () async {
       when(

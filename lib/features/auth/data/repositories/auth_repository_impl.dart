@@ -18,6 +18,9 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _localDataSource;
 
   @override
+  AuthUser? get currentUser => _remoteDataSource.currentUser?.toEntity();
+
+  @override
   Stream<AuthUser?> observeSession() async* {
     // Firebase Auth is the source of truth for the active UID. Yielding a cached
     // user before authStateChanges() can briefly expose another user's UID after

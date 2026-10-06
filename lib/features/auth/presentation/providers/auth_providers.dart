@@ -9,6 +9,8 @@ import '../../domain/usecases/sign_in.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 import '../../domain/usecases/sign_out.dart';
 
+final authRepositoryProvider = Provider<AuthRepository>((ref) => getIt<AuthRepository>());
+
 final authSessionProvider = StreamProvider<AuthUser?>((ref) {
   return getIt<AuthRepository>().observeSession();
 });

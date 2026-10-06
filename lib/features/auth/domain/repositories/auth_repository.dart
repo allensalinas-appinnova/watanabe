@@ -6,6 +6,8 @@ import '../../../../core/error/failure.dart';
 import '../entities/auth_user.dart';
 
 abstract interface class AuthRepository {
+  AuthUser? get currentUser;
+
   Stream<AuthUser?> observeSession();
 
   Future<Either<Failure, AuthUser>> signIn({

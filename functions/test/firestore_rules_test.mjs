@@ -82,3 +82,28 @@ test('invalid operation amounts and cross-account transfers are rejected', async
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   }));
 });
+
+test('itemized budgets can create the parent and items atomically', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const user = alice.collection('users').doc('alice');
+  const budget = user.collection('budgets').doc('2026-10_expense_food_COP');
+  const category = user.collection('categories').doc('food');
+  await assertSucceeds(user.set(userProfile()));
+  await assertSucceeds(category.set({
+    type: 'expense', name: 'Comida', icon: 'restaurant', sortOrder: 1,
+    isSystem: false, isArchived: false,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+
+  const batch = alice.batch();
+  batch.set(budget, {
+    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
+    plannedAmountMinor: 100000, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  batch.set(budget.collection('items').doc('item-1'), {
+    description: 'Comidas', amountMinor: 100000, dayOfMonth: 15,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  await assertSucceeds(batch.commit());
+});

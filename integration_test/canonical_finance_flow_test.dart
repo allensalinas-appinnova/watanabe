@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,6 +60,17 @@ void main() {
     for (var attempt = 0; attempt < 10; attempt++) {
       await tester.pump(const Duration(seconds: 1));
       if (find.byKey(const ValueKey('home_add_income')).evaluate().isNotEmpty) break;
+    }
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid != null) {
+      final diagnosticUser = FirebaseFirestore.instance.collection('users').doc(currentUid);
+      final profile = await diagnosticUser.get();
+      final accounts = await diagnosticUser.collection('accounts').get();
+      final categories = await diagnosticUser.collection('categories').get();
+      debugPrint(
+        'ONBOARDING_DIAGNOSTIC profile=${profile.data()?['onboardingStatus']} '
+        'accounts=${accounts.docs.length} categories=${categories.docs.length}',
+      );
     }
 
     expect(find.byKey(const ValueKey('home_add_income')), findsOneWidget);
@@ -151,7 +163,7 @@ void main() {
         idempotencyKey: 'transfer-${date.millisecondsSinceEpoch}',
       ),
     );
-    await repository.createBudgetWithItems(
+    final budgetResult = await repository.createBudgetWithItems(
       uid,
       categoryId: 'food',
       flowType: 'expense',
@@ -161,10 +173,19 @@ void main() {
         CanonicalBudgetItemDraft(description: 'Comidas', amountMinor: 100000, dayOfMonth: 15),
       ],
     );
+    budgetResult.match(
+      (failure) => fail('Budget creation failed: ${failure.message}'),
+      (_) {},
+    );
 
     final operations = await user.collection('operations').get();
     final entries = await user.collection('ledgerEntries').get();
-    final budget = await user.collection('budgets').doc('2026-10_expense_food_COP').get();
+    var budget = await user.collection('budgets').doc('2026-10_expense_food_COP').get();
+    for (var attempt = 0; attempt < 9 && !budget.exists; attempt++) {
+      if (budget.exists) break;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      budget = await user.collection('budgets').doc('2026-10_expense_food_COP').get();
+    }
     expect(operations.docs, hasLength(3));
     expect(entries.docs, hasLength(4));
     expect(budget.data()?['plannedAmountMinor'], 100000);

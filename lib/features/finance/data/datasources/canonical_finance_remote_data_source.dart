@@ -139,13 +139,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         .get();
     final existing = await _userCollection(userId, 'categories').get();
     final existingIds = existing.docs.map((doc) => doc.id).toSet();
-    final batch = _firestore.batch();
+    final categoryBatch = _firestore.batch();
     for (final document in catalog.docs) {
       if (existingIds.contains(document.id)) continue;
       final data = document.data();
       final labels = Map<String, dynamic>.from(data['labels'] as Map? ?? const {});
       final localizedName = labels[locale.split('-').first] as String? ?? labels['en'] as String?;
-      batch.set(_userCollection(userId, 'categories').doc(document.id), {
+      categoryBatch.set(_userCollection(userId, 'categories').doc(document.id), {
         'catalogId': document.id,
         'type': data['type'],
         'name': localizedName ?? data['translationKey'],
@@ -157,21 +157,28 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         'updatedAt': FieldValue.serverTimestamp(),
       });
     }
-    batch.set(
-      _userDocument(userId),
-      {
-        'locale': locale,
-        'countryCode': countryCode,
-        'timeZone': timeZone,
-        'defaultCurrency': defaultCurrency,
-        'onboardingStatus': 'complete',
-        'categoryCatalogVersion': 1,
+    if (catalog.docs.any((document) => !existingIds.contains(document.id))) {
+      await categoryBatch.commit();
+    }
+
+    final profile = _userDocument(userId);
+    final profileData = {
+      'locale': locale,
+      'countryCode': countryCode,
+      'timeZone': timeZone,
+      'defaultCurrency': defaultCurrency,
+      'onboardingStatus': 'complete',
+      'categoryCatalogVersion': 1,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if ((await profile.get()).exists) {
+      await profile.update(profileData);
+    } else {
+      await profile.set({
+        ...profileData,
         'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
-    await batch.commit();
+      });
+    }
   }
 
   @override
