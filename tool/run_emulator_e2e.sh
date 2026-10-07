@@ -17,16 +17,24 @@ fi
 
 device="${1:-${E2E_DEVICE:-emulator-5554}}"
 target_platform="${E2E_PLATFORM:-android}"
+test_file="${E2E_TEST_FILE:-integration_test/canonical_finance_flow_test.dart}"
 device_arg="$(printf '%q' "$device")"
+
+if [[ ! -f "$test_file" ]]; then
+  echo "E2E_TEST_FILE does not exist: $test_file" >&2
+  exit 1
+fi
+
+test_file_arg="$(printf '%q' "$test_file")"
 
 case "$target_platform" in
   android)
     emulator_host="${FIREBASE_EMULATOR_HOST:-10.0.2.2}"
-    app_test_command="flutter test integration_test/canonical_finance_flow_test.dart -d $device_arg"
+    app_test_command="flutter test $test_file_arg -d $device_arg"
     ;;
   ios)
     emulator_host="${FIREBASE_EMULATOR_HOST:-127.0.0.1}"
-    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=integration_test/canonical_finance_flow_test.dart -d $device_arg"
+    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=$test_file_arg -d $device_arg"
     ;;
   *)
     echo "E2E_PLATFORM must be either android or ios (received: $target_platform)." >&2

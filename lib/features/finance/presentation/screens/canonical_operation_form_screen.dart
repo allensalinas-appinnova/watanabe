@@ -84,6 +84,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             loading: () => const LinearProgressIndicator(),
             error: (error, _) => Text(error.toString()),
             data: (items) => DropdownButtonFormField<String>(
+              key: const ValueKey('operation_account_selector'),
               initialValue: _accountId,
               decoration: InputDecoration(labelText: l10n.account),
               items: items
@@ -99,6 +100,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            key: const ValueKey('operation_category_selector'),
             initialValue: _categoryId,
             decoration: InputDecoration(labelText: l10n.category),
             items: filteredCategories
@@ -113,6 +115,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           ),
           const SizedBox(height: 12),
           TextField(
+            key: const ValueKey('operation_description'),
             controller: _description,
             decoration: InputDecoration(labelText: l10n.descriptionOptional),
           ),
@@ -154,7 +157,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       occurredAt: DateTime.now().toUtc(),
       monthKey: _currentMonthKey(),
       description: _description.text,
-      idempotencyKey: '${DateTime.now().microsecondsSinceEpoch}_$_type',
+      idempotencyKey: '${DateTime.now().microsecondsSinceEpoch}_${_type.name}',
     );
     try {
       final synced = await ref.read(canonicalActionsProvider).createOperation(userId, draft);

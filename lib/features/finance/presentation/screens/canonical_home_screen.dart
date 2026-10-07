@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -148,21 +149,25 @@ class CanonicalHomeScreen extends ConsumerWidget {
             },
             destinations: [
               NavigationDestination(
+                key: const ValueKey('home_home_nav'),
                 icon: const Icon(Icons.home_outlined),
                 selectedIcon: const Icon(Icons.home),
                 label: l10n.home,
               ),
               NavigationDestination(
+                key: const ValueKey('home_activity_nav'),
                 icon: const Icon(Icons.list_alt_outlined),
                 selectedIcon: const Icon(Icons.list_alt),
                 label: l10n.activity,
               ),
               NavigationDestination(
+                key: const ValueKey('home_budget_nav'),
                 icon: const Icon(Icons.pie_chart_outline),
                 selectedIcon: const Icon(Icons.pie_chart),
                 label: l10n.budget,
               ),
               NavigationDestination(
+                key: const ValueKey('home_accounts_nav'),
                 icon: const Icon(Icons.account_balance_wallet_outlined),
                 selectedIcon: const Icon(Icons.account_balance_wallet),
                 label: l10n.accounts,
@@ -300,5 +305,4 @@ class _ErrorCard extends StatelessWidget {
   );
 }
 
-String _money(int minor, String currency) =>
-    NumberFormat.currency(name: currency, decimalDigits: 2).format(minor / 100);
+String _money(int minor, String currency) => CurrencyFormatter.formatMinor(minor, currency);
