@@ -3,14 +3,16 @@ title: ClearBudget implementation and business backlog
 summary: Prioritized, dependency-aware work with acceptance criteria and effort ranges for a LATAM launch.
 ---
 
+UX contract: [docs/ux-implementation-contract.md](ux-implementation-contract.md)
+
 project_status:
-  updated_at: "2026-10-06T11:22:50-05:00"
-  iteration: "ITERATION-4B"
-  last_commit: "e718acc9a18a9c4750f8bdb0e68feccd5e63945d"
-  status: "Iteration 4B local Android slice is verified: Auth-to-Firestore diagnosis, localized onboarding, income/expense/transfer flow and itemized budget E2E pass against Emulator Suite; staging, signing and iOS remain blocked by external inputs."
+  updated_at: "2026-10-07T16:20:16-05:00"
+  iteration: "ITERATION-5-UX-CONTRACT"
+  last_commit: "fc96aed5a33abe27840e14ad535458b0acedbf24"
+  status: "Baseline de la beta publicado en origin/main; el flujo E2E de registro, ingreso, gasto y saldo está automatizado. El contrato UX/UI P0 quedó definido en documentación y en una página separada de Figma, listo para mapearlo a Flutter."
   verified:
     - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (38 tests)"
+    - "Flutter unit/widget tests pass (39 tests)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (5 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
@@ -29,7 +31,11 @@ project_status:
     - "Android Auth-to-Firestore diagnostic passes with emulator-issued token and strict rules"
     - "Android UI E2E passes onboarding and canonical income/expense/transfer/budget scenarios"
     - "Itemized budget parent and items pass atomic creation rules test"
-    - "Flutter test suite passes with 38 tests"
+    - "Flutter test suite passes with 39 tests"
+    - "Commit fc96aed publica el E2E de registro, ingreso, gasto y verificación de saldo en origin/main"
+    - "git diff --check, flutter analyze y flutter test fueron ejecutados antes de publicar el baseline"
+    - "Figma page 06 UX Contract contiene componentes P0, estados globales, onboarding, presupuesto, tracking, transferencia y variantes corregidas de Add Expense/Add Income"
+    - "La matriz visual de estados fue revisada con screenshot y todos sus estados quedaron visibles"
   blocked:
     - "Firebase staging project ID and app configuration values were not provided"
     - "Android upload keystore/Play App Signing credentials are not configured"
@@ -38,7 +44,7 @@ project_status:
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
     - "Firebase CLI reauthentication is pending before project discovery"
-  next_iteration: "Complete Firebase CLI reauthentication, select or provision a separate staging project, validate SDK configs, then configure signed Android and iOS release inputs."
+  next_iteration: "Mapear 06 UX Contract a StatefulShellRoute, componentes Flutter localizados y widget tests por estado; luego repetir E2E Android."
 
 ## Iteration status snapshot
 
