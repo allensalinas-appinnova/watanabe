@@ -6,13 +6,22 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 UX contract: [docs/ux-implementation-contract.md](ux-implementation-contract.md)
 
 project_status:
-  updated_at: "2026-10-07T16:20:16-05:00"
-  iteration: "ITERATION-5-UX-CONTRACT"
-  last_commit: "fc96aed5a33abe27840e14ad535458b0acedbf24"
-  status: "Baseline de la beta publicado en origin/main; el flujo E2E de registro, ingreso, gasto y saldo está automatizado. El contrato UX/UI P0 quedó definido en documentación y en una página separada de Figma, listo para mapearlo a Flutter."
+  updated_at: "2026-10-07T16:59:09-05:00"
+  iteration: "ITERATION-6-UX-P0"
+  last_commit: "9e43e5e"
+  status: "Navegación P0 persistente, gestión de cuentas/categorías y presupuestos itemizados ampliadas; sincronización distingue pendiente/rechazada y conserva los comandos. Frames P0 de Figma creados. Verificación local Android/Emulator aprobada; quedan iOS, staging y validación UX completa."
   verified:
+    - "ITERATION-6: flutter analyze sin issues y flutter test con 47 pruebas aprobadas"
+    - "ITERATION-6: Android E2E completo del runner pasó en emulator-5554, Android 17/API 37, usando solo demo-clearbudget Emulator Suite"
+    - "ITERATION-6: prueba E2E cubrió onboarding de UI y flujo canónico de ingreso, gasto, transferencia y presupuesto itemizado; Functions processOperation ejecutó en Emulator"
+    - "ITERATION-6: cinco escenarios de Firestore Rules pasaron con Emulator Suite"
+    - "ITERATION-6: Functions TypeScript build y seed de 16 categorías completados desde el runner E2E"
+    - "ITERATION-6: pruebas de sync temporal pendiente, rechazo seguro, reintento/idempotencia y modo offline unitario aprobadas"
+    - "ITERATION-6: prueba de navegación confirma que las cuatro ramas mantienen estado y que el selector global expone ingreso, gasto y transferencia"
+    - "ITERATION-6: Figma 07 P0 Screens contiene 12 frames funcionales y 4 variantes QA: compacto 360 px, portugués largo, estados de sync y presupuesto excedido"
+    - "Commit funcional de ITERATION-6: 9e43e5e"
     - "flutter analyze passes with no issues"
-    - "Flutter unit/widget tests pass (39 tests)"
+    - "Historical Flutter test suite had 39 tests before ITERATION-6 (current suite: 47)"
     - "Functions compile"
     - "Firestore Emulator security tests pass (5 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
@@ -29,14 +38,19 @@ project_status:
     - "E2E runner starts Auth, Firestore, Storage and Functions emulators"
     - "Firebase Auth UID source-of-truth regression test passes"
     - "Android Auth-to-Firestore diagnostic passes with emulator-issued token and strict rules"
-    - "Android UI E2E passes onboarding and canonical income/expense/transfer/budget scenarios"
+    - "Android E2E covers onboarding in UI and income/expense/transfer/itemized budget through the canonical repository; full screen-by-screen UI E2E remains open"
     - "Itemized budget parent and items pass atomic creation rules test"
-    - "Flutter test suite passes with 39 tests"
+    - "Flutter test suite passed with 47 tests after ITERATION-6"
     - "Commit fc96aed publica el E2E de registro, ingreso, gasto y verificación de saldo en origin/main"
     - "git diff --check, flutter analyze y flutter test fueron ejecutados antes de publicar el baseline"
     - "Figma page 06 UX Contract contiene componentes P0, estados globales, onboarding, presupuesto, tracking, transferencia y variantes corregidas de Add Expense/Add Income"
     - "La matriz visual de estados fue revisada con screenshot y todos sus estados quedaron visibles"
   blocked:
+    - "iOS Simulator/runtime no disponible en esta máquina; la cualificación visual y E2E iOS sigue pendiente"
+    - "Firebase staging, OAuth productivo, firma Android/iOS, Crashlytics/Analytics staging y archivos SDK oficiales no configurados"
+    - "El E2E Android valida onboarding visual y resto del flujo a nivel de repositorio; falta el recorrido UI de todas las pantallas P0"
+    - "La cola offline está cubierta con pruebas unitarias y la UI conserva el comando, pero falta el E2E de perder/redobrar conectividad, cerrar/reabrir y reintentar desde otro dispositivo"
+    - "Figma incluye muestras de accesibilidad/localización; faltan revisión con usuarios, textos ampliados reales y auditoría completa de contraste/semántica en Flutter"
     - "Firebase staging project ID and app configuration values were not provided"
     - "Android upload keystore/Play App Signing credentials are not configured"
     - "iOS DEVELOPMENT_TEAM, certificates and provisioning profiles are not configured"
@@ -44,7 +58,7 @@ project_status:
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
     - "Firebase CLI reauthentication is pending before project discovery"
-  next_iteration: "Mapear 06 UX Contract a StatefulShellRoute, componentes Flutter localizados y widget tests por estado; luego repetir E2E Android."
+  next_iteration: "Completar E2E UI por pantallas P0 y offline real; cerrar brechas de localización/accesibilidad y revisar los frames con usuarios. Después, provisionar staging y firmar builds cuando se entreguen credenciales."
 
 ## Iteration status snapshot
 
@@ -52,17 +66,17 @@ project_status:
 | --- | --- | --- |
 | CB-02 | in_progress | Environment/release documentation and observability hooks updated; CI and release ownership remain. |
 | CB-03 | in_progress | Fail-fast guards, platform-specific staging profiles and non-debug Android signing checks exist in e744ec5; cloud IDs, keys, iOS team and signed smoke remain. |
-| CB-05 | in_progress | Canonical income/expense CRUD and integer money are implemented; device E2E and full reconciliation remain. |
-| CB-06 | in_progress | Same-currency transfer ledger path and rule coverage exist; device/concurrency qualification remains. |
-| CB-07 | in_progress | Itemized budgets and tracker are implemented; full boundary/copy/archive matrix remains. |
-| CB-08 | in_progress | Localized onboarding/category bootstrap passes Android Emulator E2E; complete category management remains. |
-| CB-09 | in_progress | Dashboard/tracker consume monthly summaries and Activity is paginated; device validation and stale-summary UX remain. |
-| CB-10 | in_progress | Startup/reconnect sync, single-flight lock, four states and close/reopen test exist; device/network rejection E2E remains. |
-| CB-11 | in_progress | es/pt/en delegates and core P0 strings exist; full hardcoded-text and accessibility audit remains. |
-| CB-12 | in_progress | Minor-unit parser and base currency are present; full regional/time-zone matrix remains. |
-| CB-16 | in_progress | Emulator rules and bounded queries pass; staging rule review, App Check, recovery and cost verification remain. |
-| CB-19 | in_progress | 38 Flutter tests, pagination/rules coverage and Android Emulator P0 E2E pass; staging and iOS qualification remain unavailable. |
-| CB-18 | in_progress | Error hooks and an allowlisted event wrapper exist; staging delivery and consent/denominator validation remain. |
+| CB-05 | in_progress | Edit/delete UI route and safe errors added; Android E2E covers repository transactions, not the full form journey or reconciliation. |
+| CB-06 | in_progress | Transfer UI remains separate from income/expense and E2E repository path passes; offline/rejection and multi-device qualification remain. |
+| CB-07 | in_progress | Create budgets with multiple items for expense/income, month selector and tracker summary; edit/archive and full budget boundary matrix remain. |
+| CB-08 | in_progress | Onboarding now captures locale, country, currency and a supported IANA time zone; category creation/archive UI added; user validation and localization audit remain. |
+| CB-09 | in_progress | Persistent tabs, dashboard summary and 10-item recent list; Activity stays paginated. Full stale/offline UX and user validation remain. |
+| CB-10 | in_progress | Typed confirmed/pending/rejected outcomes, retryable network mapping, durable payload and safe codes covered by tests; real connectivity/reopen E2E remains. |
+| CB-11 | in_progress | Added translated shell, category/account, budget, sync, error and editing labels in es/pt/en; text-scale, semantic and full hardcoded-string audit remain. |
+| CB-12 | in_progress | Minor-unit formatting applied in account/budget views and onboarding time-zone selection added for CO/MX/BR; full country/currency matrix remains. |
+| CB-16 | in_progress | Five Firestore Rules Emulator scenarios pass; staging rule review, App Check, recovery and cost verification remain. |
+| CB-19 | in_progress | 47 Flutter tests, five rules tests and Android 17 Emulator E2E pass; full UI offline journey, iOS and staging remain unavailable. |
+| CB-18 | in_progress | Crashlytics records only typed technical codes; Analytics remains allowlisted and parameterless; staging delivery and consent validation remain. |
 
 # ClearBudget implementation and business backlog
 
