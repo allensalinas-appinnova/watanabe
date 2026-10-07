@@ -18,6 +18,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
   String locale = 'es';
   String country = 'CO';
   String currency = 'COP';
+  String timeZone = 'America/Bogota';
   bool saving = false;
   @override
   void dispose() {
@@ -58,7 +59,19 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
               DropdownMenuItem(value: 'MX', child: Text('México')),
               DropdownMenuItem(value: 'BR', child: Text('Brasil')),
             ],
-            onChanged: (value) => setState(() => country = value ?? 'CO'),
+            onChanged: (value) => setState(() {
+              country = value ?? 'CO';
+              timeZone = switch (country) {
+                'MX' => 'America/Mexico_City',
+                'BR' => 'America/Sao_Paulo',
+                _ => 'America/Bogota',
+              };
+              currency = switch (country) {
+                'MX' => 'MXN',
+                'BR' => 'BRL',
+                _ => 'COP',
+              };
+            }),
           ),
           DropdownButtonFormField<String>(
             initialValue: currency,
@@ -69,6 +82,22 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
               DropdownMenuItem(value: 'BRL', child: Text('BRL')),
             ],
             onChanged: (value) => setState(() => currency = value ?? 'COP'),
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: timeZone,
+            decoration: InputDecoration(labelText: l10n.timeZone),
+            items: [
+              DropdownMenuItem(value: 'America/Bogota', child: Text(l10n.timeZoneBogota)),
+              DropdownMenuItem(
+                value: 'America/Mexico_City',
+                child: Text(l10n.timeZoneMexicoCity),
+              ),
+              DropdownMenuItem(
+                value: 'America/Sao_Paulo',
+                child: Text(l10n.timeZoneSaoPaulo),
+              ),
+            ],
+            onChanged: (value) => setState(() => timeZone = value ?? 'America/Bogota'),
           ),
           TextField(
             key: const ValueKey('onboarding_account_name'),
@@ -96,7 +125,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
         user.id,
         locale: locale,
         countryCode: country,
-        timeZone: 'America/Bogota',
+        timeZone: timeZone,
         defaultCurrency: currency,
       );
       await ref
@@ -109,9 +138,11 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
             openingBalanceMinor: 0,
           );
       if (mounted) context.go('/home');
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).genericError)),
+        );
       }
     } finally {
       if (mounted) setState(() => saving = false);

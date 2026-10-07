@@ -17,6 +17,7 @@ import '../../features/finance/presentation/screens/canonical_home_screen.dart';
 import '../../features/finance/presentation/screens/canonical_onboarding_screen.dart';
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
+import 'app_shell.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(Stream<User?> stream) {
@@ -44,11 +45,15 @@ GoRouter _buildAppRouter() => GoRouter(
     final authenticated = user != null;
     final isLogin = state.matchedLocation == '/login';
     if (!authenticated && !isLogin) return '/login';
-    if (user != null && (isLogin || state.matchedLocation == '/home')) {
+    final isOnboarding = state.matchedLocation == '/onboarding';
+    if (user != null && !isLogin) {
       final profile = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final onboardingComplete = profile.data()?['onboardingStatus'] == 'complete';
-      if (!onboardingComplete && state.matchedLocation != '/onboarding') return '/onboarding';
-      if (onboardingComplete && isLogin) return '/home';
+      if (!onboardingComplete && !isOnboarding) return '/onboarding';
+      if (onboardingComplete && isOnboarding) return '/home';
+    } else if (user != null && isLogin) {
+      final profile = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (profile.data()?['onboardingStatus'] == 'complete') return '/home';
     }
     return null;
   },
@@ -58,20 +63,46 @@ GoRouter _buildAppRouter() => GoRouter(
       name: 'login',
       builder: (context, state) => const LoginScreen(),
     ),
-    GoRoute(
-      path: '/home',
-      name: 'home',
-      builder: (context, state) => const CanonicalHomeScreen(),
-    ),
-    GoRoute(
-      path: '/activity',
-      name: 'activity',
-      builder: (context, state) => const CanonicalActivityScreen(),
-    ),
-    GoRoute(
-      path: '/budgets',
-      name: 'budgets',
-      builder: (context, state) => const CanonicalBudgetsScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/home',
+              name: 'home',
+              builder: (context, state) => const CanonicalHomeScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/activity',
+              name: 'activity',
+              builder: (context, state) => const CanonicalActivityScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/budgets',
+              name: 'budgets',
+              builder: (context, state) => const CanonicalBudgetsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/accounts',
+              name: 'accounts',
+              builder: (context, state) => const CanonicalAccountsScreen(),
+            ),
+          ],
+        ),
+      ],
     ),
     GoRoute(
       path: '/budgets/:id',
@@ -79,11 +110,6 @@ GoRouter _buildAppRouter() => GoRouter(
       builder: (context, state) => CanonicalBudgetDetailScreen(
         budgetId: state.pathParameters['id']!,
       ),
-    ),
-    GoRoute(
-      path: '/accounts',
-      name: 'accounts',
-      builder: (context, state) => const CanonicalAccountsScreen(),
     ),
     GoRoute(
       path: '/expense/new',
@@ -116,6 +142,15 @@ GoRouter _buildAppRouter() => GoRouter(
         initialType: state.uri.queryParameters['type'] == 'income'
             ? OperationType.income
             : OperationType.expense,
+      ),
+    ),
+    GoRoute(
+      path: '/operations/:id/edit',
+      name: 'edit-operation',
+      builder: (context, state) => CanonicalOperationFormScreen(
+        initialOperation: state.extra is FinancialOperation
+            ? state.extra! as FinancialOperation
+            : null,
       ),
     ),
     GoRoute(

@@ -190,6 +190,168 @@ abstract class AppLocalizations {
   /// **'Cuentas'**
   String get accounts;
 
+  /// No description provided for @addMovement.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar movimiento'**
+  String get addMovement;
+
+  /// No description provided for @genericError.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocurrió un problema. Inténtalo de nuevo.'**
+  String get genericError;
+
+  /// No description provided for @createFirstAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea tu primera cuenta para empezar.'**
+  String get createFirstAccount;
+
+  /// No description provided for @plannedAmountLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Total planeado'**
+  String get plannedAmountLabel;
+
+  /// No description provided for @timeZone.
+  ///
+  /// In es, this message translates to:
+  /// **'Región horaria'**
+  String get timeZone;
+
+  /// No description provided for @timeZoneBogota.
+  ///
+  /// In es, this message translates to:
+  /// **'Bogotá (UTC−5)'**
+  String get timeZoneBogota;
+
+  /// No description provided for @timeZoneMexicoCity.
+  ///
+  /// In es, this message translates to:
+  /// **'Ciudad de México (UTC−6)'**
+  String get timeZoneMexicoCity;
+
+  /// No description provided for @timeZoneSaoPaulo.
+  ///
+  /// In es, this message translates to:
+  /// **'São Paulo (UTC−3)'**
+  String get timeZoneSaoPaulo;
+
+  /// No description provided for @createCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear categoría'**
+  String get createCategory;
+
+  /// No description provided for @newCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva categoría'**
+  String get newCategory;
+
+  /// No description provided for @archive.
+  ///
+  /// In es, this message translates to:
+  /// **'Archivar'**
+  String get archive;
+
+  /// No description provided for @confirmArchiveCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'La categoría se archivará y se conservará en tus movimientos anteriores.'**
+  String get confirmArchiveCategory;
+
+  /// No description provided for @expenseCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastos'**
+  String get expenseCategories;
+
+  /// No description provided for @incomeCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresos'**
+  String get incomeCategories;
+
+  /// No description provided for @systemCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Predeterminada'**
+  String get systemCategory;
+
+  /// No description provided for @customCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Personalizada'**
+  String get customCategory;
+
+  /// No description provided for @noCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes categorías para este tipo.'**
+  String get noCategories;
+
+  /// No description provided for @categoryType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de categoría'**
+  String get categoryType;
+
+  /// No description provided for @newAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva cuenta'**
+  String get newAccount;
+
+  /// No description provided for @accountName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de la cuenta'**
+  String get accountName;
+
+  /// No description provided for @initialBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo inicial'**
+  String get initialBalance;
+
+  /// No description provided for @editAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar cuenta'**
+  String get editAccount;
+
+  /// No description provided for @confirmArchiveAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'La cuenta se archivará. Tu historial y saldo se conservarán.'**
+  String get confirmArchiveAccount;
+
+  /// No description provided for @deleteOperation.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar movimiento'**
+  String get deleteOperation;
+
+  /// No description provided for @confirmDeleteOperation.
+  ///
+  /// In es, this message translates to:
+  /// **'Este movimiento se eliminará de tu actividad y se recalculará el saldo.'**
+  String get confirmDeleteOperation;
+
+  /// No description provided for @editOperation.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar movimiento'**
+  String get editOperation;
+
+  /// No description provided for @savedPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardamos el movimiento en este dispositivo. Se sincronizará cuando vuelva la conexión.'**
+  String get savedPending;
+
   /// No description provided for @categories.
   ///
   /// In es, this message translates to:

@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/error/firebase_failure_mapper.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/budget_item.dart';
@@ -44,7 +45,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       );
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -73,7 +74,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         ),
       );
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -83,7 +84,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.updateCategory(userId, category);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -93,7 +94,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.archiveCategory(userId, categoryId);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -122,7 +123,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         ),
       );
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -132,7 +133,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.updateAccount(userId, account);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -142,7 +143,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.archiveAccount(userId, accountId);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -173,7 +174,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         ),
       );
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -191,7 +192,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       final record = await _remoteDataSource.createOperation(userId, draft);
       return Right(_operation(record));
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -204,7 +205,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       final record = await _remoteDataSource.createTransfer(userId, draft);
       return Right(_operation(record));
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -217,7 +218,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.updateOperation(userId, operation);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -227,7 +228,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.deleteOperation(userId, operationId);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -256,7 +257,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       );
       return Right(_budget(record));
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -276,7 +277,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     try {
       return Right(_budgetItem(await _remoteDataSource.addBudgetItem(userId, budgetId, item)));
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -290,7 +291,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.updateBudgetItem(userId, budgetId, item);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -304,7 +305,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.deleteBudgetItem(userId, budgetId, itemId);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 
@@ -314,7 +315,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.archiveBudget(userId, budgetId);
       return const Right(unit);
     } catch (error) {
-      return Left(UnknownFailure(error.toString()));
+      return Left(FirebaseFailureMapper.fromException(error));
     }
   }
 

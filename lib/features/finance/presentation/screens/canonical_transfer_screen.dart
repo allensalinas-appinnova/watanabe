@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/offline/sync_state.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -21,6 +22,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   final note = TextEditingController();
   String? source;
   String? destination;
+  String? _idempotencyKey;
   bool saving = false;
 
   @override
@@ -117,7 +119,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
     }
     setState(() => saving = true);
     try {
-      final synced = await ref
+      final status = await ref
           .read(canonicalActionsProvider)
           .createTransfer(
             userId,
@@ -129,19 +131,28 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
               occurredAt: DateTime.now().toUtc(),
               monthKey: _currentMonthKey(),
               description: note.text,
-              idempotencyKey: '${DateTime.now().microsecondsSinceEpoch}_transfer',
+              idempotencyKey: _idempotencyKey ??=
+                  '${DateTime.now().microsecondsSinceEpoch}_transfer',
             ),
           );
-      if (mounted && synced) {
+      if (mounted && status == SyncState.confirmed) {
         context.pop();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).offlineRejected)),
+          SnackBar(
+            content: Text(
+              status == SyncState.rejected
+                  ? AppLocalizations.of(context).offlineRejected
+                  : AppLocalizations.of(context).savedPending,
+            ),
+          ),
         );
       }
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).genericError)),
+        );
       }
     } finally {
       if (mounted) setState(() => saving = false);

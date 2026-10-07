@@ -59,7 +59,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     for (var attempt = 0; attempt < 10; attempt++) {
       await tester.pump(const Duration(seconds: 1));
-      if (find.byKey(const ValueKey('home_add_income')).evaluate().isNotEmpty) break;
+      if (find.byKey(const ValueKey('global_add_operation')).evaluate().isNotEmpty) break;
     }
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid != null) {
@@ -73,7 +73,10 @@ void main() {
       );
     }
 
-    expect(find.byKey(const ValueKey('home_add_income')), findsOneWidget);
+    expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('global_add_operation')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('add_income_action')), findsOneWidget);
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {

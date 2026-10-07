@@ -57,6 +57,91 @@ class AppLocalizationsEs extends AppLocalizations {
   String get accounts => 'Cuentas';
 
   @override
+  String get addMovement => 'Agregar movimiento';
+
+  @override
+  String get genericError => 'Ocurrió un problema. Inténtalo de nuevo.';
+
+  @override
+  String get createFirstAccount => 'Crea tu primera cuenta para empezar.';
+
+  @override
+  String get plannedAmountLabel => 'Total planeado';
+
+  @override
+  String get timeZone => 'Región horaria';
+
+  @override
+  String get timeZoneBogota => 'Bogotá (UTC−5)';
+
+  @override
+  String get timeZoneMexicoCity => 'Ciudad de México (UTC−6)';
+
+  @override
+  String get timeZoneSaoPaulo => 'São Paulo (UTC−3)';
+
+  @override
+  String get createCategory => 'Crear categoría';
+
+  @override
+  String get newCategory => 'Nueva categoría';
+
+  @override
+  String get archive => 'Archivar';
+
+  @override
+  String get confirmArchiveCategory =>
+      'La categoría se archivará y se conservará en tus movimientos anteriores.';
+
+  @override
+  String get expenseCategories => 'Gastos';
+
+  @override
+  String get incomeCategories => 'Ingresos';
+
+  @override
+  String get systemCategory => 'Predeterminada';
+
+  @override
+  String get customCategory => 'Personalizada';
+
+  @override
+  String get noCategories => 'Aún no tienes categorías para este tipo.';
+
+  @override
+  String get categoryType => 'Tipo de categoría';
+
+  @override
+  String get newAccount => 'Nueva cuenta';
+
+  @override
+  String get accountName => 'Nombre de la cuenta';
+
+  @override
+  String get initialBalance => 'Saldo inicial';
+
+  @override
+  String get editAccount => 'Editar cuenta';
+
+  @override
+  String get confirmArchiveAccount =>
+      'La cuenta se archivará. Tu historial y saldo se conservarán.';
+
+  @override
+  String get deleteOperation => 'Eliminar movimiento';
+
+  @override
+  String get confirmDeleteOperation =>
+      'Este movimiento se eliminará de tu actividad y se recalculará el saldo.';
+
+  @override
+  String get editOperation => 'Editar movimiento';
+
+  @override
+  String get savedPending =>
+      'Guardamos el movimiento en este dispositivo. Se sincronizará cuando vuelva la conexión.';
+
+  @override
   String get categories => 'Categorías';
 
   @override

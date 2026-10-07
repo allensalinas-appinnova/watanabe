@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import 'finance_design_assets.dart';
 
 class FinanceHeader extends StatelessWidget {
@@ -227,7 +228,7 @@ class FinanceErrorView extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
-      child: Text(error.toString(), textAlign: TextAlign.center),
+      child: Text(AppLocalizations.of(context).genericError, textAlign: TextAlign.center),
     ),
   );
 }

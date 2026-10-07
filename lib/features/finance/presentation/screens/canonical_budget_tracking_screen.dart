@@ -11,46 +11,46 @@ import '../../domain/entities/financial_operation.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
 
-class CanonicalBudgetTrackingScreen extends ConsumerWidget {
+class CanonicalBudgetTrackingScreen extends ConsumerStatefulWidget {
   const CanonicalBudgetTrackingScreen({super.key});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CanonicalBudgetTrackingScreen> createState() =>
+      _CanonicalBudgetTrackingScreenState();
+}
+
+class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetTrackingScreen> {
+  DateTime _selectedMonth = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final user = ref.watch(authSessionProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
-    final month = DateFormat('yyyy-MM').format(DateTime.now());
+    final month = DateFormat('yyyy-MM').format(_selectedMonth);
     final budgets =
         ref.watch(canonicalBudgetsProvider((userId: user.id, monthKey: month))).valueOrNull ??
         const <Budget>[];
-    final summary = budgets.isEmpty
+    final summaryState = budgets.isEmpty
         ? null
-        : ref
-              .watch(
-                canonicalMonthlySummaryProvider(
-                  (userId: user.id, monthKey: month, currency: budgets.first.currency),
-                ),
-              )
-              .valueOrNull;
-    final operations =
-        ref.watch(canonicalOperationsProvider(user.id)).valueOrNull ?? const <FinancialOperation>[];
+        : ref.watch(
+            canonicalMonthlySummaryProvider(
+              (userId: user.id, monthKey: month, currency: budgets.first.currency),
+            ),
+          );
+    final summary = summaryState?.valueOrNull;
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
     const calculator = CalculateBudgetTracking();
     final tracking = budgets
-        .map((budget) => calculator(budget, operations, summary: summary))
+        .map((budget) => calculator(budget, const <FinancialOperation>[], summary: summary))
         .toList();
     final plannedTotal = tracking.fold<int>(0, (sum, item) => sum + item.plannedMinor);
     final actualTotal = tracking.fold<int>(0, (sum, item) => sum + item.actualMinor);
     final remainingTotal = plannedTotal - actualTotal;
     final usedPercent = plannedTotal == 0 ? 0 : ((actualTotal * 100) ~/ plannedTotal).clamp(0, 999);
     final budgetCategoryIds = budgets.map((budget) => budget.categoryId).toSet();
-    final hasUnbudgeted = operations.any(
-      (operation) =>
-          operation.status == OperationStatus.confirmed &&
-          operation.monthKey == month &&
-          operation.type != OperationType.transfer &&
-          !budgetCategoryIds.contains(operation.categoryId),
-    );
     final summaryHasUnbudgeted =
         summary?.byCategory.keys.any(
           (categoryId) => !budgetCategoryIds.contains(categoryId),
@@ -59,9 +59,34 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.budgetTracking(month)),
-        actions: [TextButton(onPressed: () {}, child: Text(l10n.changeMonth))],
+        actions: [
+          IconButton(
+            tooltip: l10n.changeMonth,
+            icon: const Icon(Icons.calendar_month),
+            onPressed: _chooseMonth,
+          ),
+        ],
       ),
-      body: budgets.isEmpty
+      body: summaryState?.isLoading == true
+          ? const Center(child: CircularProgressIndicator())
+          : summaryState?.hasError == true
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.genericError),
+                  TextButton(
+                    onPressed: () => ref.invalidate(
+                      canonicalMonthlySummaryProvider(
+                        (userId: user.id, monthKey: month, currency: budgets.first.currency),
+                      ),
+                    ),
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
+            )
+          : budgets.isEmpty
           ? Center(child: Text(l10n.noBudgetsThisMonth))
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -104,7 +129,11 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
                 Text(l10n.byCategory, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 ...budgets.map((budget) {
-                  final tracking = calculator(budget, operations, summary: summary);
+                  final tracking = calculator(
+                    budget,
+                    const <FinancialOperation>[],
+                    summary: summary,
+                  );
                   String name = budget.categoryId;
                   for (final category in categories) {
                     if (category.id == budget.categoryId) name = category.customName ?? category.id;
@@ -135,7 +164,7 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
                     ),
                   );
                 }),
-                if (hasUnbudgeted || summaryHasUnbudgeted)
+                if (summaryHasUnbudgeted)
                   Card(
                     color: const Color(0xFFFFF8E8),
                     child: ListTile(
@@ -151,6 +180,19 @@ class CanonicalBudgetTrackingScreen extends ConsumerWidget {
               ],
             ),
     );
+  }
+
+  Future<void> _chooseMonth() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDatePickerMode: DatePickerMode.year,
+    );
+    if (selected != null && mounted) {
+      setState(() => _selectedMonth = DateTime(selected.year, selected.month));
+    }
   }
 }
 

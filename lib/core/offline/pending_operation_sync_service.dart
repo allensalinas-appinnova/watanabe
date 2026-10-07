@@ -7,16 +7,34 @@ import 'pending_operation_queue.dart';
 import 'sync_state.dart';
 
 typedef PendingOperationSender =
-    Future<void> Function(
+    Future<SyncAttemptResult> Function(
       String operationType,
       Map<String, dynamic> payload,
     );
+typedef ConnectivityProbe = Future<bool> Function();
+
+class SyncAttemptResult {
+  const SyncAttemptResult._(this.succeeded, this.retryable, this.issueCode);
+
+  const SyncAttemptResult.success() : this._(true, false, null);
+  const SyncAttemptResult.retryable(SyncIssueCode code) : this._(false, true, code);
+  const SyncAttemptResult.rejected(SyncIssueCode code) : this._(false, false, code);
+
+  final bool succeeded;
+  final bool retryable;
+  final SyncIssueCode? issueCode;
+}
 
 class PendingOperationSyncService {
-  PendingOperationSyncService(this._database, this._connectivity);
+  PendingOperationSyncService(
+    this._database,
+    this._connectivity, {
+    ConnectivityProbe? connectivityProbe,
+  }) : _connectivityProbe = connectivityProbe;
 
   final PendingOperationDatabase _database;
   final Connectivity _connectivity;
+  final ConnectivityProbe? _connectivityProbe;
   Future<void>? _drainInFlight;
 
   Stream<SyncStatusSnapshot> watchStatus() => _database.watchRecent().map((rows) {
@@ -38,6 +56,8 @@ class PendingOperationSyncService {
   });
 
   Future<bool> hasConnection() async {
+    final probe = _connectivityProbe;
+    if (probe != null) return probe();
     final results = await _connectivity.checkConnectivity();
     return results.any((result) => result != ConnectivityResult.none);
   }
@@ -71,13 +91,20 @@ class PendingOperationSyncService {
       if (operation.status == 'rejected') await _database.retry(operation.id);
       await _database.markSyncing(operation.id);
       try {
-        await sender(
+        final result = await sender(
           operation.operationType,
           jsonDecode(operation.payload) as Map<String, dynamic>,
         );
-        await _database.markConfirmed(operation.id);
-      } catch (error) {
-        await _database.markRejected(operation.id, error.toString());
+        if (result.succeeded) {
+          await _database.markConfirmed(operation.id);
+        } else if (result.retryable) {
+          await _database.markPending(operation.id, result.issueCode!);
+          break;
+        } else {
+          await _database.markRejected(operation.id, result.issueCode!);
+        }
+      } catch (_) {
+        await _database.markRejected(operation.id, SyncIssueCode.unexpected);
       }
     }
     await _database.deleteExpiredHistory();

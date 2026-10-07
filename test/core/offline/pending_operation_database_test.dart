@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_finance/core/offline/pending_operation_queue.dart';
+import 'package:personal_finance/core/offline/sync_state.dart';
 
 void main() {
   test('pending operation survives database reopen and reaches confirmed once', () async {
@@ -34,10 +35,15 @@ void main() {
     );
     final rejected = await reopened.findByIdempotencyKey('offline-operation-2');
     await reopened.markSyncing(rejected!.id);
-    await reopened.markRejected(rejected.id, 'permission-denied');
+    await reopened.markRejected(rejected.id, SyncIssueCode.permissionDenied);
     expect((await reopened.findByIdempotencyKey('offline-operation-2'))?.status, 'rejected');
     await reopened.retry(rejected.id);
     expect((await reopened.findByIdempotencyKey('offline-operation-2'))?.status, 'pending');
+    await reopened.markPending(rejected.id, SyncIssueCode.networkUnavailable);
+    final retryable = await reopened.findByIdempotencyKey('offline-operation-2');
+    expect(retryable?.status, 'pending');
+    expect(retryable?.lastError, 'networkUnavailable');
+    expect(retryable?.retryCount, 1);
     await reopened.close();
     await directory.delete(recursive: true);
   });

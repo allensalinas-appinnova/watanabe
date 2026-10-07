@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
@@ -13,14 +14,15 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
   final String budgetId;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final user = ref.watch(authSessionProvider).valueOrNull;
-    if (user == null) return const Scaffold(body: Center(child: Text('Inicia sesión')));
+    if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final items = ref.watch(canonicalFinanceRepositoryItemsProvider((user.id, budgetId)));
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle del presupuesto')),
       body: items.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (_, _) => Center(child: Text(l10n.genericError)),
         data: (values) => values.isEmpty
             ? const Center(child: Text('Este presupuesto no tiene items.'))
             : ListView(

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'failure.dart';
@@ -5,10 +7,27 @@ import 'failure.dart';
 abstract final class FirebaseFailureMapper {
   static Failure fromException(Object error) {
     if (error is FirebaseAuthException) {
+      if (error.code == 'network-request-failed') {
+        return const NetworkFailure('No hay conexión. El movimiento queda pendiente.');
+      }
       return AuthFailure(_authMessage(error.code));
     }
 
-    return UnknownFailure(error.toString());
+    if (error is FirebaseException) {
+      return switch (error.code) {
+        'unavailable' || 'deadline-exceeded' || 'network-request-failed' => const NetworkFailure(
+          'No hay conexión. El movimiento queda pendiente.',
+        ),
+        'permission-denied' ||
+        'unauthenticated' => const AuthFailure('La sesión necesita actualizarse.'),
+        _ => const UnknownFailure('No pudimos completar la operación.'),
+      };
+    }
+    if (error is SocketException) {
+      return const NetworkFailure('No hay conexión. El movimiento queda pendiente.');
+    }
+
+    return const UnknownFailure('No pudimos completar la operación.');
   }
 
   static String _authMessage(String code) {

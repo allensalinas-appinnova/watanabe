@@ -6,6 +6,8 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'sync_state.dart';
+
 part 'pending_operation_queue.g.dart';
 
 class PendingOperations extends Table {
@@ -73,8 +75,27 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
     await (delete(pendingOperations)..where((row) => row.idempotencyKey.equals(key))).go();
   }
 
-  Future<void> markSyncing(int id) => (update(pendingOperations)..where((row) => row.id.equals(id)))
-      .write(const PendingOperationsCompanion(status: Value('syncing')));
+  Future<void> markSyncing(int id) =>
+      (update(pendingOperations)..where((row) => row.id.equals(id))).write(
+        PendingOperationsCompanion(
+          status: const Value('syncing'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+
+  Future<void> markPending(int id, SyncIssueCode code) async {
+    final operation = await (select(
+      pendingOperations,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await (update(pendingOperations)..where((row) => row.id.equals(id))).write(
+      PendingOperationsCompanion(
+        status: const Value('pending'),
+        lastError: Value(code.name),
+        retryCount: Value(operation.retryCount + 1),
+        updatedAt: Value(DateTime.now().toUtc()),
+      ),
+    );
+  }
 
   Future<void> markConfirmed(int id) =>
       (update(pendingOperations)..where((row) => row.id.equals(id))).write(
@@ -85,11 +106,11 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
         ),
       );
 
-  Future<void> markRejected(int id, String error) =>
+  Future<void> markRejected(int id, SyncIssueCode code) =>
       (update(pendingOperations)..where((row) => row.id.equals(id))).write(
         PendingOperationsCompanion(
           status: const Value('rejected'),
-          lastError: Value(error),
+          lastError: Value(code.name),
           retryCount: const Value(0),
           updatedAt: Value(DateTime.now().toUtc()),
         ),

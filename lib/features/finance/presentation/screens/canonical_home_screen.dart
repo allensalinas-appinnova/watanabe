@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,12 +25,22 @@ class CanonicalHomeScreen extends ConsumerWidget {
     final session = ref.watch(authSessionProvider);
     return session.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) => Scaffold(body: Center(child: Text(error.toString()))),
+      error: (_, _) => Scaffold(
+        body: Center(child: Text(AppLocalizations.of(context).genericError)),
+      ),
       data: (user) {
         final l10n = AppLocalizations.of(context);
         if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
         final accounts = ref.watch(canonicalAccountsProvider(user.id));
-        final operations = ref.watch(canonicalOperationsProvider(user.id));
+        final operations = ref.watch(
+          canonicalOperationsPageProvider((
+            userId: user.id,
+            cursor: null,
+            monthKey: null,
+            currency: null,
+            pageSize: 10,
+          )),
+        );
         final primaryCurrency = accounts.valueOrNull?.isNotEmpty == true
             ? accounts.valueOrNull!.first.currency
             : 'COP';
@@ -54,7 +66,15 @@ class CanonicalHomeScreen extends ConsumerWidget {
             onRefresh: () async {
               ref
                 ..invalidate(canonicalAccountsProvider(user.id))
-                ..invalidate(canonicalOperationsProvider(user.id));
+                ..invalidate(
+                  canonicalOperationsPageProvider((
+                    userId: user.id,
+                    cursor: null,
+                    monthKey: null,
+                    currency: null,
+                    pageSize: 10,
+                  )),
+                );
             },
             child: ListView(
               padding: const EdgeInsets.all(20),
@@ -62,19 +82,39 @@ class CanonicalHomeScreen extends ConsumerWidget {
                 if (pending.isNotEmpty)
                   Card(
                     color: Theme.of(context).colorScheme.tertiaryContainer,
-                    child: ListTile(
-                      leading: const Icon(Icons.sync_problem),
-                      title: Text(l10n.offlinePending),
-                      subtitle: Text('${pending.length}'),
-                      trailing: TextButton(
-                        onPressed: () => ref.read(canonicalActionsProvider).syncPending(user.id),
-                        child: Text(l10n.retry),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.sync_problem),
+                        title: Text(
+                          pending.any((item) => item.status == 'rejected')
+                              ? l10n.offlineRejected
+                              : l10n.offlinePending,
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final operation in pending.take(3))
+                              Text(
+                                _pendingDescription(
+                                  operation.operationType,
+                                  operation.payload,
+                                  l10n,
+                                ),
+                              ),
+                            if (pending.length > 3) Text('+${pending.length - 3}'),
+                          ],
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => ref.read(canonicalActionsProvider).syncPending(user.id),
+                          child: Text(l10n.retry),
+                        ),
                       ),
                     ),
                   ),
                 accounts.when(
                   loading: () => const LinearProgressIndicator(),
-                  error: (error, _) => _ErrorCard(message: error.toString()),
+                  error: (_, _) => _ErrorCard(message: l10n.genericError),
                   data: (items) => _BalanceCard(accounts: items),
                 ),
                 summary.when(
@@ -84,36 +124,6 @@ class CanonicalHomeScreen extends ConsumerWidget {
                       value == null ? const SizedBox.shrink() : _MonthlySummaryCard(summary: value),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        key: const ValueKey('home_add_income'),
-                        label: l10n.income,
-                        icon: Icons.add,
-                        onTap: () => context.push('/operations/new?type=income'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionButton(
-                        key: const ValueKey('home_add_expense'),
-                        label: l10n.expense,
-                        icon: Icons.remove,
-                        onTap: () => context.push('/operations/new?type=expense'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionButton(
-                        key: const ValueKey('home_transfer'),
-                        label: l10n.transfer,
-                        icon: Icons.swap_horiz,
-                        onTap: () => context.push('/transfers/new'),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 24),
                 Text(
                   l10n.recentActivity,
@@ -122,8 +132,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 operations.when(
                   loading: () => const CircularProgressIndicator(),
-                  error: (error, _) => _ErrorCard(message: error.toString()),
-                  data: (items) => items.isEmpty
+                  error: (_, _) => _ErrorCard(message: l10n.genericError),
+                  data: (page) => page.items.isEmpty
                       ? Card(
                           child: Padding(
                             padding: const EdgeInsets.all(20),
@@ -131,7 +141,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
                           ),
                         )
                       : Column(
-                          children: items
+                          children: page.items
                               .take(10)
                               .map((item) => _OperationTile(operation: item))
                               .toList(),
@@ -139,40 +149,6 @@ class CanonicalHomeScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: 0,
-            onDestinationSelected: (index) {
-              if (index == 1) context.go('/activity');
-              if (index == 2) context.go('/budgets');
-              if (index == 3) context.go('/accounts');
-            },
-            destinations: [
-              NavigationDestination(
-                key: const ValueKey('home_home_nav'),
-                icon: const Icon(Icons.home_outlined),
-                selectedIcon: const Icon(Icons.home),
-                label: l10n.home,
-              ),
-              NavigationDestination(
-                key: const ValueKey('home_activity_nav'),
-                icon: const Icon(Icons.list_alt_outlined),
-                selectedIcon: const Icon(Icons.list_alt),
-                label: l10n.activity,
-              ),
-              NavigationDestination(
-                key: const ValueKey('home_budget_nav'),
-                icon: const Icon(Icons.pie_chart_outline),
-                selectedIcon: const Icon(Icons.pie_chart),
-                label: l10n.budget,
-              ),
-              NavigationDestination(
-                key: const ValueKey('home_accounts_nav'),
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: const Icon(Icons.account_balance_wallet),
-                label: l10n.accounts,
-              ),
-            ],
           ),
         );
       },
@@ -274,6 +250,9 @@ class _OperationTile extends StatelessWidget {
         ),
       ),
       title: Text(operation.description.isEmpty ? operation.type.name : operation.description),
+      onTap: isTransfer
+          ? null
+          : () => context.push('/operations/${operation.id}/edit', extra: operation),
       subtitle: Text(DateFormat.yMMMd().format(operation.occurredAt.toLocal())),
       trailing: Text(
         '${isIncome
@@ -286,23 +265,32 @@ class _OperationTile extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.label, required this.icon, required this.onTap, super.key});
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) =>
-      FilledButton.tonalIcon(onPressed: onTap, icon: Icon(icon), label: Text(label));
-}
-
 class _ErrorCard extends StatelessWidget {
   const _ErrorCard({required this.message});
   final String message;
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(padding: const EdgeInsets.all(16), child: Text('No se pudo cargar: $message')),
+    child: Padding(padding: const EdgeInsets.all(16), child: Text(message)),
   );
 }
 
 String _money(int minor, String currency) => CurrencyFormatter.formatMinor(minor, currency);
+
+String _pendingDescription(String operationType, String payload, AppLocalizations l10n) {
+  try {
+    final data = jsonDecode(payload) as Map<String, dynamic>;
+    final rawType = operationType == 'transfer' ? 'transfer' : data['type'] as String?;
+    final typeLabel = switch (rawType) {
+      'income' => l10n.income,
+      'expense' => l10n.expense,
+      'transfer' => l10n.transfer,
+      _ => l10n.activity,
+    };
+    final description = (data['description'] as String?)?.trim();
+    return description == null || description.isEmpty ? typeLabel : '$typeLabel · $description';
+  } on FormatException {
+    return l10n.genericError;
+  } on TypeError {
+    return l10n.genericError;
+  }
+}

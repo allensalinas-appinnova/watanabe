@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -23,10 +24,10 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
     return Scaffold(
-      appBar: AppBar(title: const Text('Presupuesto')),
+      appBar: AppBar(title: Text(l10n.budget)),
       body: budgets.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (_, _) => Center(child: Text(l10n.genericError)),
         data: (items) => items.isEmpty
             ? Center(
                 child: FilledButton.icon(
@@ -46,12 +47,14 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                     return Card(
                       child: ListTile(
                         title: Text(category?.customName ?? budget.categoryId),
-                        subtitle: Text('${budget.flowType.name} · ${budget.items.length} items'),
+                        subtitle: Text(
+                          '${budget.flowType.name == 'income' ? l10n.income : l10n.expense} · ${budget.items.length}',
+                        ),
                         trailing: Text(
-                          NumberFormat.currency(
-                            name: budget.currency,
-                            decimalDigits: 2,
-                          ).format(budget.plannedAmountMinor / 100),
+                          CurrencyFormatter.formatMinor(
+                            budget.plannedAmountMinor,
+                            budget.currency,
+                          ),
                         ),
                         onTap: () => context.push('/budgets/${budget.id}'),
                       ),
@@ -77,42 +80,109 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
     String month,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final description = TextEditingController();
-    final amount = TextEditingController();
+    final drafts = [_BudgetItemControllers(day: DateTime.now().day)];
     String? categoryId;
+    var flowType = 'expense';
+    var saving = false;
+    var hasValidationError = false;
     try {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
             title: Text(l10n.newBudget),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: categoryId,
-                  decoration: InputDecoration(labelText: l10n.budgetCategory),
-                  items: categories
-                      .where((item) => item.type.name == 'expense' && !item.isArchived)
-                      .map<DropdownMenuItem<String>>(
-                        (item) => DropdownMenuItem(
-                          value: item.id,
-                          child: Text(item.customName ?? item.id),
+            content: SizedBox(
+              width: 360,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: flowType,
+                      decoration: InputDecoration(labelText: l10n.category),
+                      items: [
+                        DropdownMenuItem(value: 'expense', child: Text(l10n.expense)),
+                        DropdownMenuItem(value: 'income', child: Text(l10n.income)),
+                      ],
+                      onChanged: (value) => setState(() {
+                        flowType = value ?? 'expense';
+                        categoryId = null;
+                      }),
+                    ),
+                    DropdownButtonFormField<String>(
+                      initialValue: categoryId,
+                      decoration: InputDecoration(labelText: l10n.budgetCategory),
+                      items: categories
+                          .where((item) => item.type.name == flowType && !item.isArchived)
+                          .map<DropdownMenuItem<String>>(
+                            (item) => DropdownMenuItem(
+                              value: item.id,
+                              child: Text(item.customName ?? item.id),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() => categoryId = value),
+                    ),
+                    const SizedBox(height: 12),
+                    for (var index = 0; index < drafts.length; index++) ...[
+                      TextField(
+                        controller: drafts[index].description,
+                        decoration: InputDecoration(
+                          labelText: '${l10n.budgetItem} ${index + 1}',
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) => setState(() => categoryId = value),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: drafts[index].amount,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(labelText: l10n.amount),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          DropdownButton<int>(
+                            value: drafts[index].day,
+                            items: [
+                              for (var day = 1; day <= 31; day++)
+                                DropdownMenuItem(value: day, child: Text('$day')),
+                            ],
+                            onChanged: (day) => setState(() => drafts[index].day = day ?? 1),
+                          ),
+                          if (drafts.length > 1)
+                            IconButton(
+                              tooltip: l10n.cancel,
+                              onPressed: () => setState(() => drafts.removeAt(index).dispose()),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                        ],
+                      ),
+                    ],
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(
+                          () => drafts.add(_BudgetItemControllers(day: DateTime.now().day)),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.budgetItem),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${l10n.plannedAmountLabel}: ${CurrencyFormatter.formatMinor(_draftTotal(drafts), 'COP')}',
+                      ),
+                    ),
+                    if (hasValidationError)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(l10n.completeRequiredFields),
+                      ),
+                  ],
                 ),
-                TextField(
-                  controller: description,
-                  decoration: InputDecoration(labelText: l10n.budgetItem),
-                ),
-                TextField(
-                  controller: amount,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: l10n.amount),
-                ),
-              ],
+              ),
             ),
             actions: [
               TextButton(
@@ -120,45 +190,85 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                 child: Text(l10n.cancel),
               ),
               FilledButton(
-                onPressed: () async {
-                  int? amountMinor;
-                  try {
-                    amountMinor = MoneyParser.minorUnits(amount.text, 'COP');
-                  } on FormatException {
-                    amountMinor = null;
-                  }
-                  if (categoryId == null ||
-                      description.text.trim().isEmpty ||
-                      amountMinor == null) {
-                    return;
-                  }
-                  await ref
-                      .read(canonicalActionsProvider)
-                      .createBudget(
-                        userId,
-                        categoryId: categoryId!,
-                        flowType: 'expense',
-                        monthKey: month,
-                        currency: 'COP',
-                        items: [
-                          CanonicalBudgetItemDraft(
-                            description: description.text,
-                            amountMinor: amountMinor,
-                            dayOfMonth: DateTime.now().day,
-                          ),
-                        ],
-                      );
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                },
-                child: Text(l10n.save),
+                onPressed: saving
+                    ? null
+                    : () async {
+                        final items = <CanonicalBudgetItemDraft>[];
+                        try {
+                          for (final draft in drafts) {
+                            if (draft.description.text.trim().isEmpty) {
+                              throw const FormatException();
+                            }
+                            items.add(
+                              CanonicalBudgetItemDraft(
+                                description: draft.description.text.trim(),
+                                amountMinor: MoneyParser.minorUnits(draft.amount.text, 'COP'),
+                                dayOfMonth: draft.day,
+                              ),
+                            );
+                          }
+                        } on FormatException {
+                          setState(() => hasValidationError = true);
+                          return;
+                        }
+                        if (categoryId == null) {
+                          setState(() => hasValidationError = true);
+                          return;
+                        }
+                        setState(() => saving = true);
+                        try {
+                          await ref
+                              .read(canonicalActionsProvider)
+                              .createBudget(
+                                userId,
+                                categoryId: categoryId!,
+                                flowType: flowType,
+                                monthKey: month,
+                                currency: 'COP',
+                                items: items,
+                              );
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                        } catch (_) {
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(content: Text(l10n.genericError)),
+                            );
+                          }
+                        } finally {
+                          if (dialogContext.mounted) setState(() => saving = false);
+                        }
+                      },
+                child: saving ? const CircularProgressIndicator() : Text(l10n.save),
               ),
             ],
           ),
         ),
       );
     } finally {
-      description.dispose();
-      amount.dispose();
+      for (final draft in drafts) {
+        draft.dispose();
+      }
     }
   }
 }
+
+class _BudgetItemControllers {
+  _BudgetItemControllers({required this.day});
+
+  final description = TextEditingController();
+  final amount = TextEditingController();
+  int day;
+
+  void dispose() {
+    description.dispose();
+    amount.dispose();
+  }
+}
+
+int _draftTotal(List<_BudgetItemControllers> drafts) => drafts.fold<int>(0, (total, draft) {
+  try {
+    return total + MoneyParser.minorUnits(draft.amount.text, 'COP');
+  } on FormatException {
+    return total;
+  }
+});

@@ -1,5 +1,7 @@
 enum SyncState { pending, syncing, confirmed, rejected }
 
+enum SyncIssueCode { networkUnavailable, permissionDenied, invalidOperation, unexpected }
+
 class SyncStatusSnapshot {
   const SyncStatusSnapshot({
     required this.pending,

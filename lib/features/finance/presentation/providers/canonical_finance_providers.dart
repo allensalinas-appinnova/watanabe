@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/error/failure.dart';
 import '../../../../core/firebase/firebase_observability.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/offline/pending_operation_sync_service.dart';
@@ -33,10 +34,6 @@ final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, St
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId),
 );
 
-final canonicalOperationsProvider = StreamProvider.family<List<FinancialOperation>, String>(
-  (ref, userId) => getIt<CanonicalFinanceRepository>().watchOperations(userId),
-);
-
 final canonicalOperationsPageProvider =
     FutureProvider.family<
       OperationPage,
@@ -45,6 +42,7 @@ final canonicalOperationsPageProvider =
         OperationPageCursor? cursor,
         String? monthKey,
         String? currency,
+        int pageSize,
       })
     >((ref, input) async {
       final result = await getIt<CanonicalFinanceRepository>().fetchOperationsPage(
@@ -52,6 +50,7 @@ final canonicalOperationsPageProvider =
         cursor: input.cursor,
         monthKey: input.monthKey,
         currency: input.currency,
+        pageSize: input.pageSize,
       );
       return result.match((failure) => throw Exception(failure.message), (page) => page);
     });
@@ -261,7 +260,7 @@ class CanonicalFinanceActions {
     });
   }
 
-  Future<bool> createOperation(
+  Future<SyncState> createOperation(
     String userId,
     FinancialOperationDraft draft,
   ) async {
@@ -271,23 +270,29 @@ class CanonicalFinanceActions {
       payload: _operationPayload(draft),
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
-    final confirmed =
-        (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
-    if (confirmed) await _observability.logEvent('${draft.type.name}_created');
-    return confirmed;
+    final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+    if (status == SyncState.confirmed.name) {
+      await _observability.logEvent('${draft.type.name}_created');
+    }
+    return SyncState.values.firstWhere(
+      (value) => value.name == status,
+      orElse: () => SyncState.pending,
+    );
   }
 
-  Future<bool> createTransfer(String userId, TransferDraft draft) async {
+  Future<SyncState> createTransfer(String userId, TransferDraft draft) async {
     await _sync.enqueue(
       idempotencyKey: draft.idempotencyKey,
       operationType: 'transfer',
       payload: _transferPayload(draft),
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
-    final confirmed =
-        (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status == 'confirmed';
-    if (confirmed) await _observability.logEvent('transfer_created');
-    return confirmed;
+    final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+    if (status == SyncState.confirmed.name) await _observability.logEvent('transfer_created');
+    return SyncState.values.firstWhere(
+      (value) => value.name == status,
+      orElse: () => SyncState.pending,
+    );
   }
 
   Future<void> createBudget(
@@ -320,6 +325,16 @@ class CanonicalFinanceActions {
     result.match((failure) => throw Exception(failure.message), (_) {});
   }
 
+  Future<void> updateOperation(String userId, FinancialOperation operation) async {
+    final result = await _repository.updateOperation(userId, operation);
+    result.match((failure) => throw Exception(failure.message), (_) {});
+  }
+
+  Future<void> deleteOperation(String userId, String operationId) async {
+    final result = await _repository.deleteOperation(userId, operationId);
+    result.match((failure) => throw Exception(failure.message), (_) {});
+  }
+
   Future<void> syncPending(String userId, {bool retryRejected = true}) {
     return _sync.drain(
       (type, payload) => _send(userId, type, payload),
@@ -330,7 +345,7 @@ class CanonicalFinanceActions {
   StreamSubscription<dynamic> startAutoSync(String userId) =>
       _sync.listenForReconnect((type, payload) => _send(userId, type, payload));
 
-  Future<void> _send(String userId, String type, Map<String, dynamic> payload) async {
+  Future<SyncAttemptResult> _send(String userId, String type, Map<String, dynamic> payload) async {
     if (type == 'transfer') {
       final result = await _repository.createTransfer(
         userId,
@@ -345,8 +360,7 @@ class CanonicalFinanceActions {
           monthKey: payload['monthKey'] as String?,
         ),
       );
-      result.match((failure) => throw Exception(failure.message), (_) {});
-      return;
+      return result.match(_syncFailureResult, (_) => const SyncAttemptResult.success());
     }
     final result = await _repository.createOperation(
       userId,
@@ -362,8 +376,14 @@ class CanonicalFinanceActions {
         idempotencyKey: payload['idempotencyKey'] as String,
       ),
     );
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    return result.match(_syncFailureResult, (_) => const SyncAttemptResult.success());
   }
+
+  SyncAttemptResult _syncFailureResult(Failure failure) => switch (failure) {
+    NetworkFailure() => const SyncAttemptResult.retryable(SyncIssueCode.networkUnavailable),
+    AuthFailure() => const SyncAttemptResult.rejected(SyncIssueCode.permissionDenied),
+    UnknownFailure() => const SyncAttemptResult.rejected(SyncIssueCode.invalidOperation),
+  };
 
   Map<String, dynamic> _operationPayload(FinancialOperationDraft draft) => {
     'type': draft.type.name,

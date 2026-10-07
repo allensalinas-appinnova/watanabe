@@ -57,6 +57,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accounts => 'Accounts';
 
   @override
+  String get addMovement => 'Add transaction';
+
+  @override
+  String get genericError => 'Something went wrong. Please try again.';
+
+  @override
+  String get createFirstAccount => 'Create your first account to get started.';
+
+  @override
+  String get plannedAmountLabel => 'Planned total';
+
+  @override
+  String get timeZone => 'Time zone';
+
+  @override
+  String get timeZoneBogota => 'Bogotá (UTC−5)';
+
+  @override
+  String get timeZoneMexicoCity => 'Mexico City (UTC−6)';
+
+  @override
+  String get timeZoneSaoPaulo => 'São Paulo (UTC−3)';
+
+  @override
+  String get createCategory => 'Create category';
+
+  @override
+  String get newCategory => 'New category';
+
+  @override
+  String get archive => 'Archive';
+
+  @override
+  String get confirmArchiveCategory =>
+      'This category will be archived and kept on your past transactions.';
+
+  @override
+  String get expenseCategories => 'Expenses';
+
+  @override
+  String get incomeCategories => 'Income';
+
+  @override
+  String get systemCategory => 'Default';
+
+  @override
+  String get customCategory => 'Custom';
+
+  @override
+  String get noCategories => 'You don\'t have categories for this type yet.';
+
+  @override
+  String get categoryType => 'Category type';
+
+  @override
+  String get newAccount => 'New account';
+
+  @override
+  String get accountName => 'Account name';
+
+  @override
+  String get initialBalance => 'Starting balance';
+
+  @override
+  String get editAccount => 'Edit account';
+
+  @override
+  String get confirmArchiveAccount =>
+      'The account will be archived. Your history and balance will be kept.';
+
+  @override
+  String get deleteOperation => 'Delete transaction';
+
+  @override
+  String get confirmDeleteOperation =>
+      'This transaction will be removed from your activity and the balance recalculated.';
+
+  @override
+  String get editOperation => 'Edit transaction';
+
+  @override
+  String get savedPending => 'Saved on this device. It will sync when your connection returns.';
+
+  @override
   String get categories => 'Categories';
 
   @override

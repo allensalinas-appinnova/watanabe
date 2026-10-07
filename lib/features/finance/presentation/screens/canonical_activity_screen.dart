@@ -59,10 +59,17 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
       ),
       body: pager.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: FilledButton.tonal(
-            onPressed: () => ref.read(operationsPagerProvider(user.id).notifier).refresh(),
-            child: Text(l10n.retry),
+        error: (_, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.genericError),
+              const SizedBox(height: 8),
+              FilledButton.tonal(
+                onPressed: () => ref.read(operationsPagerProvider(user.id).notifier).refresh(),
+                child: Text(l10n.retry),
+              ),
+            ],
           ),
         ),
         data: (page) => page.items.isEmpty
@@ -91,23 +98,6 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                   },
                 ),
               ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 1,
-        onDestinationSelected: (index) {
-          if (index == 0) context.go('/home');
-          if (index == 2) context.go('/budgets');
-          if (index == 3) context.go('/accounts');
-        },
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.home_outlined), label: l10n.home),
-          NavigationDestination(icon: const Icon(Icons.list_alt), label: l10n.activity),
-          NavigationDestination(icon: const Icon(Icons.pie_chart_outline), label: l10n.budget),
-          NavigationDestination(
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            label: l10n.accounts,
-          ),
-        ],
       ),
     );
   }
@@ -138,6 +128,9 @@ class _ActivityOperationTile extends StatelessWidget {
           ),
         ),
         title: Text(operation.description.isEmpty ? operation.type.name : operation.description),
+        onTap: operation.type == OperationType.transfer
+            ? null
+            : () => context.push('/operations/${operation.id}/edit', extra: operation),
         subtitle: Text(DateFormat.yMMMd().format(operation.occurredAt.toLocal())),
         trailing: Text(
           '${isIncome
