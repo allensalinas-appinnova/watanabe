@@ -6,12 +6,18 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 UX contract: [docs/ux-implementation-contract.md](ux-implementation-contract.md)
 
 project_status:
-  updated_at: "2026-10-07T16:59:09-05:00"
-  iteration: "ITERATION-6-UX-P0"
-  last_commit: "9e43e5e"
-  status: "Navegación P0 persistente, gestión de cuentas/categorías y presupuestos itemizados ampliadas; sincronización distingue pendiente/rechazada y conserva los comandos. Frames P0 de Figma creados. Verificación local Android/Emulator aprobada; quedan iOS, staging y validación UX completa."
+  updated_at: "2026-10-08T12:03:08-05:00"
+  iteration: "ITERATION-7-VISUAL-QA"
+  last_commit: "d89fe40"
+  status: "Baseline UX P0 verificado en Android y preparado para publicar; Iteración 7 inicia aceptación visual pantalla por pantalla. El E2E llega a onboarding y dashboard, pero aún falta evidencia comparable guardada para cada frame."
   verified:
-    - "ITERATION-6: flutter analyze sin issues y flutter test con 47 pruebas aprobadas"
+    - "Baseline UX P0: flutter analyze sin issues"
+    - "Baseline UX P0: flutter test con 54 pruebas aprobadas"
+    - "Baseline UX P0: E2E Android Emulator Suite demo-clearbudget aprobado en emulator-5554 (Android 17/API 37); onboarding completo, flujo financiero canónico y dashboard verificado"
+    - "Baseline UX P0: dashboard final visible durante 10 segundos en el E2E"
+    - "Baseline UX P0: git diff --check aprobado antes de los commits"
+    - "Commit funcional creado: d89fe40"
+    - "ITERATION-6: flutter analyze sin issues y flutter test con 47 pruebas aprobadas en ese corte histórico"
     - "ITERATION-6: Android E2E completo del runner pasó en emulator-5554, Android 17/API 37, usando solo demo-clearbudget Emulator Suite"
     - "ITERATION-6: prueba E2E cubrió onboarding de UI y flujo canónico de ingreso, gasto, transferencia y presupuesto itemizado; Functions processOperation ejecutó en Emulator"
     - "ITERATION-6: cinco escenarios de Firestore Rules pasaron con Emulator Suite"
@@ -21,7 +27,7 @@ project_status:
     - "ITERATION-6: Figma 07 P0 Screens contiene 12 frames funcionales y 4 variantes QA: compacto 360 px, portugués largo, estados de sync y presupuesto excedido"
     - "Commit funcional de ITERATION-6: 9e43e5e"
     - "flutter analyze passes with no issues"
-    - "Historical Flutter test suite had 39 tests before ITERATION-6 (current suite: 47)"
+    - "Historical Flutter test suite had 39 tests before ITERATION-6; ITERATION-7 baseline suite: 54"
     - "Functions compile"
     - "Firestore Emulator security tests pass (5 tests)"
     - "Firebase Emulator Suite starts with Java 21 and category seeding"
@@ -40,12 +46,14 @@ project_status:
     - "Android Auth-to-Firestore diagnostic passes with emulator-issued token and strict rules"
     - "Android E2E covers onboarding in UI and income/expense/transfer/itemized budget through the canonical repository; full screen-by-screen UI E2E remains open"
     - "Itemized budget parent and items pass atomic creation rules test"
-    - "Flutter test suite passed with 47 tests after ITERATION-6"
+    - "Flutter test suite passed with 54 tests at ITERATION-7 baseline"
     - "Commit fc96aed publica el E2E de registro, ingreso, gasto y verificación de saldo en origin/main"
     - "git diff --check, flutter analyze y flutter test fueron ejecutados antes de publicar el baseline"
     - "Figma page 06 UX Contract contiene componentes P0, estados globales, onboarding, presupuesto, tracking, transferencia y variantes corregidas de Add Expense/Add Income"
     - "La matriz visual de estados fue revisada con screenshot y todos sus estados quedaron visibles"
   blocked:
+    - "Iteración 7: no se han guardado aún capturas de aceptación comparables para cada pantalla P0"
+    - "Iteración 7: onboarding fue recorrido en el E2E, pero falta su captura post-cambio equivalente a Figma para sign-off visual"
     - "iOS Simulator/runtime no disponible en esta máquina; la cualificación visual y E2E iOS sigue pendiente"
     - "Firebase staging, OAuth productivo, firma Android/iOS, Crashlytics/Analytics staging y archivos SDK oficiales no configurados"
     - "El E2E Android valida onboarding visual y resto del flujo a nivel de repositorio; falta el recorrido UI de todas las pantallas P0"
@@ -58,7 +66,7 @@ project_status:
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
     - "Firebase CLI reauthentication is pending before project discovery"
-  next_iteration: "Completar E2E UI por pantallas P0 y offline real; cerrar brechas de localización/accesibilidad y revisar los frames con usuarios. Después, provisionar staging y firmar builds cuando se entreguen credenciales."
+  next_iteration: "Completar la aceptación visual Android de las pantallas P0 con capturas locales y resumen QA; luego provisionar staging cuando se entreguen el proyecto y las credenciales."
 
 ## Iteration status snapshot
 
@@ -75,7 +83,7 @@ project_status:
 | CB-11 | in_progress | Added translated shell, category/account, budget, sync, error and editing labels in es/pt/en; text-scale, semantic and full hardcoded-string audit remain. |
 | CB-12 | in_progress | Minor-unit formatting applied in account/budget views and onboarding time-zone selection added for CO/MX/BR; full country/currency matrix remains. |
 | CB-16 | in_progress | Five Firestore Rules Emulator scenarios pass; staging rule review, App Check, recovery and cost verification remain. |
-| CB-19 | in_progress | 47 Flutter tests, five rules tests and Android 17 Emulator E2E pass; full UI offline journey, iOS and staging remain unavailable. |
+| CB-19 | in_progress | 54 Flutter tests, five rules tests and Android 17 Emulator E2E pass; visual acceptance by screen, full offline UI journey, iOS and staging remain unavailable. |
 | CB-18 | in_progress | Crashlytics records only typed technical codes; Analytics remains allowlisted and parameterless; staging delivery and consent validation remain. |
 
 # ClearBudget implementation and business backlog
