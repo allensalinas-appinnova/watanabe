@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +55,13 @@ void main() {
       find.byKey(const ValueKey('onboarding_account_name')),
       'Cuenta UI',
     );
+    await tester.pump();
+    final continueButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('onboarding_continue')),
+    );
+    expect(continueButton.onPressed, isNotNull, reason: 'Account name should enable onboarding.');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     for (var attempt = 0; attempt < 10; attempt++) {
       await tester.pump(const Duration(seconds: 1));
@@ -193,5 +199,34 @@ void main() {
     expect(entries.docs, hasLength(4));
     expect(budget.data()?['plannedAmountMinor'], 100000);
     expect(operations.docs.where((doc) => doc.data()['type'] == 'transfer'), hasLength(1));
+
+    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
+
+    final expectedActivity = ['Pago', 'Almuerzo', 'Ahorro'];
+    var dashboardLoaded = false;
+    for (var attempt = 0; attempt < 60; attempt++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      dashboardLoaded =
+          find.text('Balance actual').evaluate().isNotEmpty &&
+          expectedActivity.every((description) => find.text(description).evaluate().isNotEmpty);
+      if (dashboardLoaded) break;
+    }
+
+    expect(
+      dashboardLoaded,
+      isTrue,
+      reason:
+          'Dashboard must render the account balance and all seeded activity, not stay loading.',
+    );
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    debugPrint('FINAL_SCREEN_HOLD: dashboard will remain visible for 10 seconds');
+    final holdUntil = DateTime.now().add(const Duration(seconds: 10));
+    while (DateTime.now().isBefore(holdUntil)) {
+      await tester.pump(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    await tester.pump();
   });
 }

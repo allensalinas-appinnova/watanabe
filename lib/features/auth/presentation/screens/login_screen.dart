@@ -151,10 +151,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: FilledButton(
                         key: const ValueKey('auth_submit_button'),
                         onPressed: isLoading ? null : _submit,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.blueDark,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        ),
                         child: isLoading
                             ? const SizedBox.square(
                                 dimension: 20,
@@ -176,12 +172,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: isLoading
                             ? null
                             : () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.navy,
-                          backgroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFFDFE8F1)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        ),
                         icon: const Text(
                           'G',
                           style: TextStyle(

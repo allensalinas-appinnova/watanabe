@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/offline/sync_state.dart';
 import '../../../../core/utils/async_value_extensions.dart';
@@ -12,6 +13,7 @@ import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_components.dart';
 
 class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
   const CanonicalOperationFormScreen({
@@ -34,6 +36,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   String? _categoryId;
   String? _idempotencyKey;
   bool _saving = false;
+  DateTime _occurredAt = DateTime.now();
 
   @override
   void initState() {
@@ -46,6 +49,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       _accountId = operation.accountId;
       _categoryId = operation.categoryId;
       _idempotencyKey = operation.idempotencyKey;
+      _occurredAt = operation.occurredAt.toLocal();
     }
   }
 
@@ -68,6 +72,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             ?.where((category) => category.type.name == _type.name && !category.isArchived)
             .toList() ??
         const <FinanceCategory>[];
+    String? selectedCurrency;
+    for (final account in accounts.valueOrNull ?? const <FinanceAccount>[]) {
+      if (account.id == _accountId) selectedCurrency = account.currency;
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -86,73 +94,99 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         children: [
-          SegmentedButton<OperationType>(
-            segments: [
-              ButtonSegment(
-                value: OperationType.expense,
-                label: Text(l10n.expense),
-                icon: const Icon(Icons.remove),
-              ),
-              ButtonSegment(
-                value: OperationType.income,
-                label: Text(l10n.income),
-                icon: const Icon(Icons.add),
-              ),
-            ],
-            selected: {_type},
-            onSelectionChanged: (value) => setState(() {
-              _type = value.first;
+          FinanceOperationTypeSelector(
+            expenseLabel: l10n.expense,
+            incomeLabel: l10n.income,
+            isIncomeSelected: _type == OperationType.income,
+            onChanged: (isIncome) => setState(() {
+              _type = isIncome ? OperationType.income : OperationType.expense;
               _categoryId = null;
             }),
           ),
-          const SizedBox(height: 20),
-          TextField(
-            key: const ValueKey('operation_amount'),
-            controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: l10n.amount),
-          ),
-          const SizedBox(height: 12),
-          accounts.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (_, _) => Text(l10n.genericError),
-            data: (items) => DropdownButtonFormField<String>(
-              key: const ValueKey('operation_account_selector'),
-              initialValue: _accountId,
-              decoration: InputDecoration(labelText: l10n.account),
-              items: items
-                  .map(
-                    (account) => DropdownMenuItem(
-                      value: account.id,
-                      child: Text('${account.name} (${account.currency})'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _accountId = value),
+          const SizedBox(height: 16),
+          FinanceLabeledField(
+            label: l10n.amount,
+            child: TextField(
+              key: const ValueKey('operation_amount'),
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(prefixText: selectedCurrency),
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            key: const ValueKey('operation_category_selector'),
-            initialValue: _categoryId,
-            decoration: InputDecoration(labelText: l10n.category),
-            items: filteredCategories
-                .map(
-                  (category) => DropdownMenuItem(
-                    value: category.id,
-                    child: Text(category.customName ?? category.id),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _categoryId = value),
+          FinanceLabeledField(
+            label: l10n.account,
+            child: accounts.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, _) => Text(l10n.genericError),
+              data: (items) => DropdownButtonFormField<String>(
+                key: const ValueKey('operation_account_selector'),
+                initialValue: _accountId,
+                decoration: const InputDecoration(),
+                items: items
+                    .map(
+                      (account) => DropdownMenuItem(
+                        value: account.id,
+                        child: Text('${account.name} (${account.currency})'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => _accountId = value),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            key: const ValueKey('operation_description'),
-            controller: _description,
-            decoration: InputDecoration(labelText: l10n.descriptionOptional),
+          FinanceLabeledField(
+            label: l10n.category,
+            child: DropdownButtonFormField<String>(
+              key: const ValueKey('operation_category_selector'),
+              initialValue: _categoryId,
+              decoration: const InputDecoration(),
+              items: filteredCategories
+                  .map(
+                    (category) => DropdownMenuItem(
+                      value: category.id,
+                      child: Text(category.customName ?? category.id),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _categoryId = value),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FinanceLabeledField(
+            label: l10n.date,
+            child: Semantics(
+              button: true,
+              label:
+                  '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(_occurredAt)}',
+              child: InkWell(
+                key: const ValueKey('operation_date_selector'),
+                borderRadius: BorderRadius.circular(14),
+                onTap: _selectDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    suffixIcon: Icon(Icons.calendar_today_outlined),
+                  ),
+                  child: Text(
+                    DateFormat.yMMMd(
+                      Localizations.localeOf(context).toString(),
+                    ).format(_occurredAt),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FinanceLabeledField(
+            label: l10n.descriptionOptional,
+            child: TextField(
+              key: const ValueKey('operation_description'),
+              controller: _description,
+              decoration: const InputDecoration(),
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton(
@@ -190,8 +224,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       currency: account.currency,
       accountId: account.id,
       categoryId: _categoryId,
-      occurredAt: existing?.occurredAt ?? DateTime.now().toUtc(),
-      monthKey: existing?.monthKey ?? _currentMonthKey(),
+      occurredAt: _occurredAt.toUtc(),
+      monthKey: _currentMonthKey(_occurredAt),
       description: _description.text,
       idempotencyKey: _idempotencyKey ??= '${DateTime.now().microsecondsSinceEpoch}_operation',
     );
@@ -281,9 +315,19 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     }
   }
 
-  String _currentMonthKey() {
-    final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+  String _currentMonthKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+
+  Future<void> _selectDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _occurredAt,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (selected != null && mounted) {
+      setState(() => _occurredAt = DateTime(selected.year, selected.month, selected.day));
+    }
   }
 }
 

@@ -27,7 +27,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setupTitle => 'Set up ClearBudget';
 
   @override
-  String get personalizeExperience => 'Personalize your experience';
+  String get personalizeExperience => 'Set up your space';
+
+  @override
+  String get onboardingSubtitle => 'Choose your preferences. You can change them later.';
 
   @override
   String get language => 'Language';
@@ -42,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firstAccountName => 'Name of your first account';
 
   @override
-  String get getStarted => 'Get started';
+  String get continueAction => 'Continue';
 
   @override
   String get home => 'Home';
@@ -174,6 +177,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amount => 'Amount';
 
   @override
+  String get type => 'Type';
+
+  @override
+  String get date => 'Date';
+
+  @override
   String get account => 'Account';
 
   @override
@@ -199,6 +208,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmTransfer => 'Confirm transfer';
+
+  @override
+  String get reviewTransfer => 'Review transfer';
 
   @override
   String get invalidTransfer =>

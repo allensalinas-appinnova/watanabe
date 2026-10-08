@@ -134,6 +134,111 @@ class FinanceSectionHeading extends StatelessWidget {
   );
 }
 
+class FinanceLabeledField extends StatelessWidget {
+  const FinanceLabeledField({required this.label, required this.child, super.key});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Text(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: AppColors.muted,
+            fontWeight: FontWeight.w600,
+            letterSpacing: .7,
+          ),
+        ),
+      ),
+      child,
+    ],
+  );
+}
+
+class FinanceOperationTypeSelector extends StatelessWidget {
+  const FinanceOperationTypeSelector({
+    required this.expenseLabel,
+    required this.incomeLabel,
+    required this.isIncomeSelected,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String expenseLabel;
+  final String incomeLabel;
+  final bool isIncomeSelected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(color: AppColors.blueSoft, borderRadius: BorderRadius.circular(24)),
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          _OperationTypeOption(
+            label: expenseLabel,
+            selected: !isIncomeSelected,
+            onPressed: () => onChanged(false),
+          ),
+          _OperationTypeOption(
+            label: incomeLabel,
+            selected: isIncomeSelected,
+            onPressed: () => onChanged(true),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _OperationTypeOption extends StatelessWidget {
+  const _OperationTypeOption({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        color: selected ? AppColors.blueDark : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(20),
+          child: SizedBox(
+            height: 40,
+            child: Center(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: selected ? Colors.white : AppColors.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class FinancePill extends StatelessWidget {
   const FinancePill({
     required this.label,

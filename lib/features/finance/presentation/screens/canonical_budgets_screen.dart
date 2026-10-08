@@ -11,6 +11,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_components.dart';
 
 class CanonicalBudgetsScreen extends ConsumerWidget {
   const CanonicalBudgetsScreen({super.key});
@@ -23,6 +24,8 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
     final budgets = ref.watch(canonicalBudgetsProvider((userId: user.id, monthKey: month)));
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
+    final currency =
+        ref.watch(canonicalUserProfileProvider(user.id)).valueOrNull?.defaultCurrency ?? 'COP';
     return Scaffold(
       appBar: AppBar(title: Text(l10n.budget)),
       body: budgets.when(
@@ -31,7 +34,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
         data: (items) => items.isEmpty
             ? Center(
                 child: FilledButton.icon(
-                  onPressed: () => _showCreate(context, ref, user.id, categories, month),
+                  onPressed: () => _showCreate(context, ref, user.id, categories, month, currency),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.createBudget),
                 ),
@@ -65,7 +68,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
               ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreate(context, ref, user.id, categories, month),
+        onPressed: () => _showCreate(context, ref, user.id, categories, month, currency),
         icon: const Icon(Icons.add),
         label: Text(l10n.budget),
       ),
@@ -78,6 +81,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
     String userId,
     List<FinanceCategory> categories,
     String month,
+    String currency,
   ) async {
     final l10n = AppLocalizations.of(context);
     final drafts = [_BudgetItemControllers(day: DateTime.now().day)];
@@ -97,38 +101,46 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: flowType,
-                      decoration: InputDecoration(labelText: l10n.category),
-                      items: [
-                        DropdownMenuItem(value: 'expense', child: Text(l10n.expense)),
-                        DropdownMenuItem(value: 'income', child: Text(l10n.income)),
-                      ],
-                      onChanged: (value) => setState(() {
-                        flowType = value ?? 'expense';
-                        categoryId = null;
-                      }),
+                    FinanceLabeledField(
+                      label: l10n.type,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: flowType,
+                        decoration: const InputDecoration(),
+                        items: [
+                          DropdownMenuItem(value: 'expense', child: Text(l10n.expense)),
+                          DropdownMenuItem(value: 'income', child: Text(l10n.income)),
+                        ],
+                        onChanged: (value) => setState(() {
+                          flowType = value ?? 'expense';
+                          categoryId = null;
+                        }),
+                      ),
                     ),
-                    DropdownButtonFormField<String>(
-                      initialValue: categoryId,
-                      decoration: InputDecoration(labelText: l10n.budgetCategory),
-                      items: categories
-                          .where((item) => item.type.name == flowType && !item.isArchived)
-                          .map<DropdownMenuItem<String>>(
-                            (item) => DropdownMenuItem(
-                              value: item.id,
-                              child: Text(item.customName ?? item.id),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) => setState(() => categoryId = value),
+                    const SizedBox(height: 12),
+                    FinanceLabeledField(
+                      label: l10n.budgetCategory,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: categoryId,
+                        decoration: const InputDecoration(),
+                        items: categories
+                            .where((item) => item.type.name == flowType && !item.isArchived)
+                            .map<DropdownMenuItem<String>>(
+                              (item) => DropdownMenuItem(
+                                value: item.id,
+                                child: Text(item.customName ?? item.id),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) => setState(() => categoryId = value),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     for (var index = 0; index < drafts.length; index++) ...[
-                      TextField(
-                        controller: drafts[index].description,
-                        decoration: InputDecoration(
-                          labelText: '${l10n.budgetItem} ${index + 1}',
+                      FinanceLabeledField(
+                        label: '${l10n.budgetItem} ${index + 1}',
+                        child: TextField(
+                          controller: drafts[index].description,
+                          decoration: const InputDecoration(),
                         ),
                       ),
                       Row(
@@ -138,7 +150,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                               controller: drafts[index].amount,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(labelText: l10n.amount),
+                              decoration: InputDecoration(prefixText: '$currency '),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -172,7 +184,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        '${l10n.plannedAmountLabel}: ${CurrencyFormatter.formatMinor(_draftTotal(drafts), 'COP')}',
+                        '${l10n.plannedAmountLabel}: ${CurrencyFormatter.formatMinor(_draftTotal(drafts, currency), currency)}',
                       ),
                     ),
                     if (hasValidationError)
@@ -202,7 +214,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                             items.add(
                               CanonicalBudgetItemDraft(
                                 description: draft.description.text.trim(),
-                                amountMinor: MoneyParser.minorUnits(draft.amount.text, 'COP'),
+                                amountMinor: MoneyParser.minorUnits(draft.amount.text, currency),
                                 dayOfMonth: draft.day,
                               ),
                             );
@@ -224,7 +236,7 @@ class CanonicalBudgetsScreen extends ConsumerWidget {
                                 categoryId: categoryId!,
                                 flowType: flowType,
                                 monthKey: month,
-                                currency: 'COP',
+                                currency: currency,
                                 items: items,
                               );
                           if (dialogContext.mounted) Navigator.pop(dialogContext);
@@ -265,10 +277,11 @@ class _BudgetItemControllers {
   }
 }
 
-int _draftTotal(List<_BudgetItemControllers> drafts) => drafts.fold<int>(0, (total, draft) {
-  try {
-    return total + MoneyParser.minorUnits(draft.amount.text, 'COP');
-  } on FormatException {
-    return total;
-  }
-});
+int _draftTotal(List<_BudgetItemControllers> drafts, String currency) =>
+    drafts.fold<int>(0, (total, draft) {
+      try {
+        return total + MoneyParser.minorUnits(draft.amount.text, currency);
+      } on FormatException {
+        return total;
+      }
+    });

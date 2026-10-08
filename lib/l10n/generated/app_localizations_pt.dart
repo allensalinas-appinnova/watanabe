@@ -27,7 +27,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get setupTitle => 'Configure o ClearBudget';
 
   @override
-  String get personalizeExperience => 'Personalize sua experiência';
+  String get personalizeExperience => 'Prepare seu espaço';
+
+  @override
+  String get onboardingSubtitle => 'Escolha suas preferências. Você pode alterá-las depois.';
 
   @override
   String get language => 'Idioma';
@@ -42,7 +45,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get firstAccountName => 'Nome da sua primeira conta';
 
   @override
-  String get getStarted => 'Começar';
+  String get continueAction => 'Continuar';
 
   @override
   String get home => 'Início';
@@ -174,6 +177,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get amount => 'Valor';
 
   @override
+  String get type => 'Tipo';
+
+  @override
+  String get date => 'Data';
+
+  @override
   String get account => 'Conta';
 
   @override
@@ -199,6 +208,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get confirmTransfer => 'Confirmar transferência';
+
+  @override
+  String get reviewTransfer => 'Revisar transferência';
 
   @override
   String get invalidTransfer => 'Escolha contas diferentes, com a mesma moeda, e um valor válido.';

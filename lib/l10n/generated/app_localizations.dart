@@ -133,8 +133,14 @@ abstract class AppLocalizations {
   /// No description provided for @personalizeExperience.
   ///
   /// In es, this message translates to:
-  /// **'Personaliza tu experiencia'**
+  /// **'Prepara tu espacio'**
   String get personalizeExperience;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige tus preferencias. Puedes cambiarlas después.'**
+  String get onboardingSubtitle;
 
   /// No description provided for @language.
   ///
@@ -160,11 +166,11 @@ abstract class AppLocalizations {
   /// **'Nombre de tu primera cuenta'**
   String get firstAccountName;
 
-  /// No description provided for @getStarted.
+  /// No description provided for @continueAction.
   ///
   /// In es, this message translates to:
-  /// **'Comenzar'**
-  String get getStarted;
+  /// **'Continuar'**
+  String get continueAction;
 
   /// No description provided for @home.
   ///
@@ -418,6 +424,18 @@ abstract class AppLocalizations {
   /// **'Monto'**
   String get amount;
 
+  /// No description provided for @type.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo'**
+  String get type;
+
+  /// No description provided for @date.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha'**
+  String get date;
+
   /// No description provided for @account.
   ///
   /// In es, this message translates to:
@@ -471,6 +489,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Confirmar transferencia'**
   String get confirmTransfer;
+
+  /// No description provided for @reviewTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar transferencia'**
+  String get reviewTransfer;
 
   /// No description provided for @invalidTransfer.
   ///
