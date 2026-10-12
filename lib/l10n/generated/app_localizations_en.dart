@@ -54,10 +54,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activity => 'Activity';
 
   @override
+  String get activitySubtitle => 'Find and review your transactions';
+
+  @override
+  String get activityFilterAll => 'All';
+
+  @override
+  String get transferOperationLabel => 'Transfer';
+
+  @override
   String get budget => 'Budget';
 
   @override
   String get accounts => 'Accounts';
+
+  @override
+  String get accountsTitle => 'Your accounts';
+
+  @override
+  String get accountsSubtitle => 'Balances organized by currency';
+
+  @override
+  String get addAccount => 'Add account';
+
+  @override
+  String get cashAccountType => 'Cash';
+
+  @override
+  String get checkingAccountType => 'Checking account';
+
+  @override
+  String get savingsAccountType => 'Savings account';
 
   @override
   String get addMovement => 'Add transaction';
@@ -85,6 +112,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createCategory => 'Create category';
+
+  @override
+  String get manageCategories => 'Manage categories';
+
+  @override
+  String get editCategory => 'Edit category';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get categoriesSubtitle => 'Organize transactions with familiar names.';
+
+  @override
+  String get categorySavedDescription => 'This name will appear on your transactions and budgets.';
+
+  @override
+  String get confirmArchiveCategoryTitle => 'Archive this category?';
+
+  @override
+  String get categoryName => 'Name';
+
+  @override
+  String get categoryTypeReadOnly => 'Type · cannot be changed';
+
+  @override
+  String get saveCategoryChanges => 'Save changes';
+
+  @override
+  String get archiveCategoryDetails =>
+      'It will no longer appear in new transactions. Existing records will keep this category.';
+
+  @override
+  String get categoryNameRequired => 'Enter a name for this category.';
+
+  @override
+  String get categorySaved => 'Category updated';
 
   @override
   String get newCategory => 'New category';
@@ -315,4 +379,255 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewBudgetDetails => 'View budget details';
+
+  @override
+  String get accountFormCreateSubtitle => 'Choose how you want to organize this money.';
+
+  @override
+  String get accountFormEditSubtitle =>
+      'You can change the name; balance and account type stay tied to your history.';
+
+  @override
+  String get accountNameHint => 'For example, Everyday spending';
+
+  @override
+  String get accountType => 'Account type';
+
+  @override
+  String get accountCurrency => 'Currency';
+
+  @override
+  String get openingBalanceHelper =>
+      'Enter 0 or more. You can update the balance with transactions.';
+
+  @override
+  String profileCurrencyHint(Object currency) {
+    return 'Your profile currency is $currency.';
+  }
+
+  @override
+  String get accountBalanceReadOnlyHelper =>
+      'The balance changes when you add income, expenses, or transfers.';
+
+  @override
+  String get accountNameRequired => 'Enter an account name.';
+
+  @override
+  String get invalidInitialBalance => 'Enter a valid balance of 0 or more.';
+
+  @override
+  String get accountSaveFailed =>
+      'We couldn\'t save this account. Your information is still here; try again.';
+
+  @override
+  String get budgetCreateTitle => 'Plan by category';
+
+  @override
+  String get budgetCreateSubtitle => 'Plan each item for your month.';
+
+  @override
+  String get budgetTrackingTitle => 'Budget tracking';
+
+  @override
+  String get viewBudgetTracking => 'View tracking';
+
+  @override
+  String get budgetTrackingEmptyTitle => 'No budgets yet';
+
+  @override
+  String get budgetTrackingEmptyMessage =>
+      'Create a budget to compare your plan with this month\'s activity.';
+
+  @override
+  String budgetUsedPercent(Object percent) {
+    return '$percent% used';
+  }
+
+  @override
+  String budgetReceivedPercent(Object percent) {
+    return '$percent% received';
+  }
+
+  @override
+  String unbudgetedCategoryCount(Object count) {
+    return '$count categories have activity without a budget';
+  }
+
+  @override
+  String get budgetMonth => 'Month';
+
+  @override
+  String get budgetSelectMonth => 'Choose a month';
+
+  @override
+  String get budgetPlannedItems => 'Planned items';
+
+  @override
+  String get budgetAddItem => 'Add item';
+
+  @override
+  String get budgetRemoveItem => 'Remove';
+
+  @override
+  String get budgetItemDescription => 'Item description';
+
+  @override
+  String get budgetDescriptionRequired => 'Enter a description.';
+
+  @override
+  String get budgetAmountPositive => 'Enter an amount greater than zero.';
+
+  @override
+  String get budgetSelectCategory => 'Choose a category.';
+
+  @override
+  String get budgetNoCategories =>
+      'There are no categories for this type. Create a category to continue.';
+
+  @override
+  String get budgetValidateItems => 'Check the description, amount, and day for each item.';
+
+  @override
+  String get budgetAlreadyExists => 'A budget already exists for this category and month.';
+
+  @override
+  String get budgetSaveFailed =>
+      'We couldn\'t save the budget. Your details are still here; try again.';
+
+  @override
+  String get budgetSave => 'Save budget';
+
+  @override
+  String get budgetsTitle => 'Your budgets';
+
+  @override
+  String get budgetsSubtitle => 'Plan and review your month';
+
+  @override
+  String get budgetsForMonth => 'Budgets this month';
+
+  @override
+  String get budgetFilterAll => 'All';
+
+  @override
+  String get budgetFilterExpenses => 'Expenses';
+
+  @override
+  String get budgetFilterIncome => 'Income';
+
+  @override
+  String get budgetEmptyTitle => 'You don\'t have any budgets yet';
+
+  @override
+  String get budgetEmptyMessage =>
+      'Create a budget by category to see how much you plan to spend and what you have left this month.';
+
+  @override
+  String get budgetFilteredEmptyTitle => 'No budgets match this filter';
+
+  @override
+  String get budgetFilteredEmptyMessage => 'Try another filter to see your budgets.';
+
+  @override
+  String get budgetFilterReset => 'View all';
+
+  @override
+  String get budgetSpent => 'Spent';
+
+  @override
+  String get budgetReceived => 'Received';
+
+  @override
+  String get day => 'Day';
+
+  @override
+  String get budgetDetailTitle => 'Budget details';
+
+  @override
+  String get budgetBackToBudgets => 'Budgets';
+
+  @override
+  String budgetItemsHeading(Object count) {
+    return 'Planned items · $count';
+  }
+
+  @override
+  String get budgetEditItemTitle => 'Edit item';
+
+  @override
+  String get budgetAddItemSubtitle => 'Add another item to this budget.';
+
+  @override
+  String get budgetEditItemSubtitle => 'Update the details, amount, or expected day.';
+
+  @override
+  String get budgetDescription => 'Description';
+
+  @override
+  String budgetPlannedAmount(Object currency) {
+    return 'Planned amount · $currency';
+  }
+
+  @override
+  String get budgetExpectedDay => 'Expected day';
+
+  @override
+  String get budgetDayRange => 'Choose a day between 1 and 31.';
+
+  @override
+  String get budgetTotalUpdatesHint => 'The planned total will update automatically when you save.';
+
+  @override
+  String get budgetSaveChanges => 'Save changes';
+
+  @override
+  String get budgetEditFailed =>
+      'We couldn\'t save your changes. Your details are still here; try again.';
+
+  @override
+  String get budgetAddItemFailed =>
+      'We couldn\'t add the item. Your details are still here; try again.';
+
+  @override
+  String get budgetDeleteItemTitle => 'Remove this item?';
+
+  @override
+  String budgetDeleteItemMessage(Object amount) {
+    return 'The planned total will decrease by $amount. Recorded transactions will not change.';
+  }
+
+  @override
+  String get budgetLastItemTitle => 'Keep at least one item';
+
+  @override
+  String get budgetLastItemMessage =>
+      'A budget needs at least one item. To remove it, delete the entire budget.';
+
+  @override
+  String get budgetDeleteBudgetAction => 'Delete budget';
+
+  @override
+  String get budgetDeleteBudgetTitle => 'Delete this budget?';
+
+  @override
+  String get budgetDeleteBudgetMessage =>
+      'It will be removed from your active budgets. Your transactions and balances will remain.';
+
+  @override
+  String get budgetArchiveSuccess => 'Budget removed from the active list.';
+
+  @override
+  String get budgetDeleteFailed => 'We couldn\'t delete the budget. Please try again.';
+
+  @override
+  String get budgetItemDeleteFailed => 'We couldn\'t remove the item. Please try again.';
+
+  @override
+  String get budgetItemSaved => 'Changes saved.';
+
+  @override
+  String get budgetItemAdded => 'Item added.';
+
+  @override
+  String get budgetEditAction => 'Edit';
 }

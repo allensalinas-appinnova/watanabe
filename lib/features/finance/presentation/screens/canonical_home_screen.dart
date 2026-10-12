@@ -38,6 +38,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
             cursor: null,
             monthKey: null,
             currency: null,
+            type: null,
             pageSize: 10,
           )),
         );
@@ -72,6 +73,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     cursor: null,
                     monthKey: null,
                     currency: null,
+                    type: null,
                     pageSize: 10,
                   )),
                 );

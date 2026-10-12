@@ -13,12 +13,14 @@ class AppShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: navigationShell,
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('global_add_operation'),
-        onPressed: () => _showAddMovementSheet(context, l10n),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.addMovement),
-      ),
+      floatingActionButton: navigationShell.currentIndex != 0
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('global_add_operation'),
+              onPressed: () => _showAddMovementSheet(context, l10n),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.addMovement),
+            ),
       bottomNavigationBar: NavigationBar(
         key: const ValueKey('finance_bottom_navigation'),
         selectedIndex: navigationShell.currentIndex,
@@ -29,7 +31,11 @@ class AppShell extends StatelessWidget {
         destinations: [
           NavigationDestination(icon: const Icon(Icons.home_outlined), label: l10n.home),
           NavigationDestination(icon: const Icon(Icons.list_alt_outlined), label: l10n.activity),
-          NavigationDestination(icon: const Icon(Icons.pie_chart_outline), label: l10n.budget),
+          NavigationDestination(
+            key: const ValueKey('nav_budget'),
+            icon: const Icon(Icons.pie_chart_outline),
+            label: l10n.budget,
+          ),
           NavigationDestination(
             icon: const Icon(Icons.account_balance_wallet_outlined),
             label: l10n.accounts,

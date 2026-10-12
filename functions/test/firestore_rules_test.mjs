@@ -98,12 +98,23 @@ test('itemized budgets can create the parent and items atomically', async () => 
   const batch = alice.batch();
   batch.set(budget, {
     categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
-    plannedAmountMinor: 100000, status: 'active',
+    plannedAmountMinor: 150000, itemCount: 2, status: 'active',
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   });
   batch.set(budget.collection('items').doc('item-1'), {
     description: 'Comidas', amountMinor: 100000, dayOfMonth: 15,
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   });
+  batch.set(budget.collection('items').doc('item-2'), {
+    description: 'Bebidas', amountMinor: 50000, dayOfMonth: 16,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
   await assertSucceeds(batch.commit());
+
+  const removeItem = alice.batch();
+  removeItem.update(budget, {
+    plannedAmountMinor: 100000, itemCount: 1, updatedAt: Timestamp.now(),
+  });
+  removeItem.delete(budget.collection('items').doc('item-2'));
+  await assertSucceeds(removeItem.commit());
 });

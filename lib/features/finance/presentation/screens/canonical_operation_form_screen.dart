@@ -72,6 +72,9 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             ?.where((category) => category.type.name == _type.name && !category.isArchived)
             .toList() ??
         const <FinanceCategory>[];
+    final selectedCategoryId = filteredCategories.any((category) => category.id == _categoryId)
+        ? _categoryId
+        : null;
     String? selectedCurrency;
     for (final account in accounts.valueOrNull ?? const <FinanceAccount>[]) {
       if (account.id == _accountId) selectedCurrency = account.currency;
@@ -142,7 +145,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             label: l10n.category,
             child: DropdownButtonFormField<String>(
               key: const ValueKey('operation_category_selector'),
-              initialValue: _categoryId,
+              initialValue: selectedCategoryId,
               decoration: const InputDecoration(),
               items: filteredCategories
                   .map(
@@ -153,6 +156,16 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                   )
                   .toList(),
               onChanged: (value) => setState(() => _categoryId = value),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              key: const ValueKey('operation_manage_categories'),
+              onPressed: () => context.push('/categories'),
+              icon: const Icon(Icons.tune),
+              label: Text(l10n.manageCategories),
             ),
           ),
           const SizedBox(height: 12),

@@ -19,6 +19,17 @@ When sources disagree, use this order:
 3. The web repository as a reference for behavior and domain vocabulary.
 4. Figma as the visual reference for intended mobile UI.
 
+For Figma work, use the `Personal Finance Mobile — ClearBudget` file and its
+`07 P0 Screens` page (`325:3059`) as the canonical implementation reference
+for P0 screens and states. `00 Current Baseline` is a comparison/reference
+page for existing product patterns; it is not a second implementation target.
+When a useful pattern exists only in the baseline (for example, tab icons or
+top-right header actions), reconcile it into the corresponding canonical P0
+screen before implementing it. Do not create competing copies or silently
+switch pages. If the file, page, or frame cannot be verified, stop and ask for
+the exact Figma URL rather than inferring a target. Record the canonical page
+and frame name/ID in the task or design handoff.
+
 Label proposed behavior as proposed. Do not silently convert web behavior into
 mobile behavior when offline, synchronization, platform permissions, or UX
 decisions are unresolved.

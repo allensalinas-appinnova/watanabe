@@ -15,8 +15,17 @@
   "continueAction": "Continue",
   "home": "Home",
   "activity": "Activity",
+  "activitySubtitle": "Find and review your transactions",
+  "activityFilterAll": "All",
+  "transferOperationLabel": "Transfer",
   "budget": "Budget",
   "accounts": "Accounts",
+  "accountsTitle": "Your accounts",
+  "accountsSubtitle": "Balances organized by currency",
+  "addAccount": "Add account",
+  "cashAccountType": "Cash",
+  "checkingAccountType": "Checking account",
+  "savingsAccountType": "Savings account",
   "addMovement": "Add transaction",
   "genericError": "Something went wrong. Please try again.",
   "createFirstAccount": "Create your first account to get started.",
@@ -26,6 +35,18 @@
   "timeZoneMexicoCity": "Mexico City (UTC−6)",
   "timeZoneSaoPaulo": "São Paulo (UTC−3)",
   "createCategory": "Create category",
+  "manageCategories": "Manage categories",
+  "editCategory": "Edit category",
+  "edit": "Edit",
+  "categoriesSubtitle": "Organize transactions with familiar names.",
+  "categorySavedDescription": "This name will appear on your transactions and budgets.",
+  "confirmArchiveCategoryTitle": "Archive this category?",
+  "categoryName": "Name",
+  "categoryTypeReadOnly": "Type · cannot be changed",
+  "saveCategoryChanges": "Save changes",
+  "archiveCategoryDetails": "It will no longer appear in new transactions. Existing records will keep this category.",
+  "categoryNameRequired": "Enter a name for this category.",
+  "categorySaved": "Category updated",
   "newCategory": "New category",
   "archive": "Archive",
   "confirmArchiveCategory": "This category will be archived and kept on your past transactions.",
@@ -96,4 +117,80 @@
   ,"unbudgetedMovements": "Unbudgeted movements"
   ,"reviewCategories": "Review categories"
   ,"viewBudgetDetails": "View budget details"
+  ,"accountFormCreateSubtitle": "Choose how you want to organize this money."
+  ,"accountFormEditSubtitle": "You can change the name; balance and account type stay tied to your history."
+  ,"accountNameHint": "For example, Everyday spending"
+  ,"accountType": "Account type"
+  ,"accountCurrency": "Currency"
+  ,"openingBalanceHelper": "Enter 0 or more. You can update the balance with transactions."
+  ,"profileCurrencyHint": "Your profile currency is {currency}."
+  ,"accountBalanceReadOnlyHelper": "The balance changes when you add income, expenses, or transfers."
+  ,"accountNameRequired": "Enter an account name."
+  ,"invalidInitialBalance": "Enter a valid balance of 0 or more."
+  ,"accountSaveFailed": "We couldn't save this account. Your information is still here; try again."
+  ,"budgetCreateTitle": "Plan by category"
+  ,"budgetCreateSubtitle": "Plan each item for your month."
+  ,"budgetTrackingTitle": "Budget tracking"
+  ,"viewBudgetTracking": "View tracking"
+  ,"budgetTrackingEmptyTitle": "No budgets yet"
+  ,"budgetTrackingEmptyMessage": "Create a budget to compare your plan with this month's activity."
+  ,"budgetUsedPercent": "{percent}% used"
+  ,"budgetReceivedPercent": "{percent}% received"
+  ,"unbudgetedCategoryCount": "{count} categories have activity without a budget"
+  ,"budgetMonth": "Month"
+  ,"budgetSelectMonth": "Choose a month"
+  ,"budgetPlannedItems": "Planned items"
+  ,"budgetAddItem": "Add item"
+  ,"budgetRemoveItem": "Remove item"
+  ,"budgetItemDescription": "Item description"
+  ,"budgetDescriptionRequired": "Enter a description."
+  ,"budgetAmountPositive": "Enter an amount greater than zero."
+  ,"budgetSelectCategory": "Choose a category."
+  ,"budgetNoCategories": "There are no categories for this type. Create a category to continue."
+  ,"budgetValidateItems": "Check the description, amount, and day for each item."
+  ,"budgetAlreadyExists": "A budget already exists for this category and month."
+  ,"budgetSaveFailed": "We couldn't save the budget. Your details are still here; try again."
+  ,"budgetSave": "Save budget"
+  ,"budgetsTitle": "Your budgets"
+  ,"budgetsSubtitle": "Plan and review your month"
+  ,"budgetsForMonth": "Budgets this month"
+  ,"budgetFilterAll": "All"
+  ,"budgetFilterExpenses": "Expenses"
+  ,"budgetFilterIncome": "Income"
+  ,"budgetEmptyTitle": "You don't have any budgets yet"
+  ,"budgetEmptyMessage": "Create a budget by category to see how much you plan to spend and what you have left this month."
+  ,"budgetFilteredEmptyTitle": "No budgets match this filter"
+  ,"budgetFilteredEmptyMessage": "Try another filter to see your budgets."
+  ,"budgetFilterReset": "View all"
+  ,"budgetSpent": "Spent"
+  ,"budgetReceived": "Received"
+  ,"day": "Day"
+  ,"budgetDetailTitle": "Budget details"
+  ,"budgetBackToBudgets": "Budgets"
+  ,"budgetItemsHeading": "Planned items · {count}"
+  ,"budgetEditItemTitle": "Edit item"
+  ,"budgetAddItemSubtitle": "Add another item to this budget."
+  ,"budgetEditItemSubtitle": "Update the details, amount, or expected day."
+  ,"budgetDescription": "Description"
+  ,"budgetPlannedAmount": "Planned amount · {currency}"
+  ,"budgetExpectedDay": "Expected day"
+  ,"budgetDayRange": "Choose a day between 1 and 31."
+  ,"budgetTotalUpdatesHint": "The planned total will update automatically when you save."
+  ,"budgetSaveChanges": "Save changes"
+  ,"budgetEditFailed": "We couldn't save your changes. Your details are still here; try again."
+  ,"budgetAddItemFailed": "We couldn't add the item. Your details are still here; try again."
+  ,"budgetRemoveItem": "Remove"
+  ,"budgetDeleteItemTitle": "Remove this item?"
+  ,"budgetDeleteItemMessage": "The planned total will decrease by {amount}. Recorded transactions will not change."
+  ,"budgetLastItemTitle": "Keep at least one item"
+  ,"budgetLastItemMessage": "A budget needs at least one item. To remove it, delete the entire budget."
+  ,"budgetDeleteBudgetAction": "Delete budget"
+  ,"budgetDeleteBudgetTitle": "Delete this budget?"
+  ,"budgetDeleteBudgetMessage": "It will be removed from your active budgets. Your transactions and balances will remain."
+  ,"budgetArchiveSuccess": "Budget removed from the active list."
+  ,"budgetDeleteFailed": "We couldn't delete the budget. Please try again."
+  ,"budgetItemDeleteFailed": "We couldn't remove the item. Please try again."
+  ,"budgetItemSaved": "Changes saved."
+  ,"budgetItemAdded": "Item added."
+  ,"budgetEditAction": "Edit"
 }

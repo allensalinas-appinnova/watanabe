@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
@@ -19,135 +22,118 @@ class CanonicalAccountsScreen extends ConsumerWidget {
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts = ref.watch(canonicalAccountsProvider(user.id));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.accounts)),
-      body: accounts.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(child: Text(l10n.genericError)),
-        data: (items) => items.isEmpty
-            ? Center(child: Text(l10n.createFirstAccount))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final account = items[index];
-                  return Card(
-                    key: ValueKey('account_row_${account.id}'),
-                    child: ListTile(
-                      leading: const Icon(Icons.account_balance_wallet),
-                      title: Text(account.name),
-                      subtitle: Text('${account.type} · ${account.currency}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.appTitle,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.blueDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                l10n.accountsTitle,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.navy,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.accountsSubtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 24),
+              accounts.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => _AccountsError(
+                  message: l10n.genericError,
+                  retryLabel: l10n.retry,
+                  onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                ),
+                data: (items) => items.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Text(
+                          l10n.createFirstAccount,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      )
+                    : Column(
                         children: [
-                          Text(
-                            CurrencyFormatter.formatMinor(
-                              account.currentBalanceMinor,
-                              account.currency,
+                          for (var index = 0; index < items.length; index++) ...[
+                            if (index > 0) const SizedBox(height: 18),
+                            _AccountCard(
+                              account: items[index],
+                              subtitle: _accountSubtitle(l10n, items[index]),
+                              balance: CurrencyFormatter.formatMinor(
+                                items[index].currentBalanceMinor,
+                                items[index].currency,
+                              ),
+                              editLabel: l10n.editAccount,
+                              archiveLabel: l10n.archive,
+                              onEdit: () => _editAccount(context, items[index]),
+                              onArchive: () => _archiveAccount(context, ref, user.id, items[index]),
                             ),
-                            key: ValueKey('account_balance_${account.id}'),
-                          ),
-                          PopupMenuButton<String>(
-                            onSelected: (action) {
-                              if (action == 'edit') {
-                                _editAccount(context, ref, user.id, account);
-                              }
-                              if (action == 'archive') {
-                                _archiveAccount(context, ref, user.id, account);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(value: 'edit', child: Text(l10n.editAccount)),
-                              PopupMenuItem(value: 'archive', child: Text(l10n.archive)),
-                            ],
-                          ),
+                          ],
                         ],
                       ),
-                      isThreeLine: false,
-                    ),
-                  );
-                },
               ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('accounts_add_button'),
-        onPressed: () => _showCreate(context, ref, user.id),
-        icon: const Icon(Icons.add),
-        label: const Text('Cuenta'),
+              const SizedBox(height: 42),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const ValueKey('accounts_add_button'),
+                  onPressed: () => _showCreate(context),
+                  child: Text(l10n.addAccount),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _showCreate(BuildContext context, WidgetRef ref, String userId) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => _CreateAccountDialog(userId: userId),
-    );
+  String _accountSubtitle(AppLocalizations l10n, FinanceAccount account) {
+    final typeLabel = switch (account.type.toLowerCase()) {
+      'cash' || 'wallet' => l10n.cashAccountType,
+      'checking' => l10n.checkingAccountType,
+      'savings' => l10n.savingsAccountType,
+      _ => account.type,
+    };
+    return '${account.currency} · $typeLabel';
   }
 
-  Future<void> _editAccount(
+  void _showCreate(BuildContext context) {
+    unawaited(context.pushNamed<void>('new-account'));
+  }
+
+  void _editAccount(
     BuildContext context,
-    WidgetRef ref,
-    String userId,
     FinanceAccount account,
   ) async {
-    final l10n = AppLocalizations.of(context);
-    final name = TextEditingController(text: account.name);
-    try {
-      final save = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l10n.editAccount),
-          content: TextField(
-            controller: name,
-            decoration: InputDecoration(labelText: l10n.accountName),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(l10n.save),
-            ),
-          ],
-        ),
-      );
-      if (save == true && name.text.trim().isNotEmpty) {
-        final result = await ref
-            .read(canonicalFinanceRepositoryProvider)
-            .updateAccount(
-              userId,
-              FinanceAccount(
-                id: account.id,
-                name: name.text.trim(),
-                type: account.type,
-                currency: account.currency,
-                openingBalanceMinor: account.openingBalanceMinor,
-                currentBalanceMinor: account.currentBalanceMinor,
-                includeInDashboard: account.includeInDashboard,
-                status: account.status,
-                createdAt: account.createdAt,
-                updatedAt: account.updatedAt,
-                archivedAt: account.archivedAt,
-              ),
-            );
-        result.match(
-          (_) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.genericError)),
-          ),
-          (_) {},
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.genericError)),
-        );
-      }
-    } finally {
-      name.dispose();
-    }
+    await context.pushNamed<void>(
+      'edit-account',
+      pathParameters: {'id': account.id},
+      extra: account,
+    );
   }
 
   Future<void> _archiveAccount(
@@ -195,85 +181,129 @@ class CanonicalAccountsScreen extends ConsumerWidget {
   }
 }
 
-class _CreateAccountDialog extends ConsumerStatefulWidget {
-  const _CreateAccountDialog({required this.userId});
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({
+    required this.account,
+    required this.subtitle,
+    required this.balance,
+    required this.editLabel,
+    required this.archiveLabel,
+    required this.onEdit,
+    required this.onArchive,
+  });
 
-  final String userId;
+  final FinanceAccount account;
+  final String subtitle;
+  final String balance;
+  final String editLabel;
+  final String archiveLabel;
+  final VoidCallback onEdit;
+  final VoidCallback onArchive;
 
   @override
-  ConsumerState<_CreateAccountDialog> createState() => _CreateAccountDialogState();
+  Widget build(BuildContext context) => Card(
+    key: ValueKey('account_row_${account.id}'),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: const BorderSide(color: AppColors.line),
+    ),
+    child: SizedBox(
+      height: 82,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(start: 17, end: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.navy,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              balance,
+              key: ValueKey('account_balance_${account.id}'),
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.blueDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            PopupMenuButton<String>(
+              key: ValueKey('account_menu_${account.id}'),
+              tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              iconSize: 19,
+              icon: const Icon(Icons.more_vert, color: AppColors.muted),
+              onSelected: (action) {
+                if (action == 'edit') onEdit();
+                if (action == 'archive') onArchive();
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: const ValueKey('account_edit_action'),
+                  value: 'edit',
+                  child: Text(editLabel),
+                ),
+                PopupMenuItem(
+                  key: const ValueKey('account_archive_action'),
+                  value: 'archive',
+                  child: Text(archiveLabel),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
-class _CreateAccountDialogState extends ConsumerState<_CreateAccountDialog> {
-  final _name = TextEditingController();
-  final _initial = TextEditingController(text: '0');
-  bool _saving = false;
+class _AccountsError extends StatelessWidget {
+  const _AccountsError({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
 
   @override
-  void dispose() {
-    _name.dispose();
-    _initial.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(AppLocalizations.of(context).newAccount),
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          key: const ValueKey('account_name_field'),
-          controller: _name,
-          decoration: InputDecoration(labelText: AppLocalizations.of(context).accountName),
-        ),
-        TextField(
-          key: const ValueKey('account_initial_balance_field'),
-          controller: _initial,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: AppLocalizations.of(context).initialBalance),
-        ),
+        Text(message, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 8),
+        TextButton(onPressed: onRetry, child: Text(retryLabel)),
       ],
     ),
-    actions: [
-      TextButton(
-        onPressed: _saving ? null : () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        key: const ValueKey('account_save'),
-        onPressed: _saving ? null : _save,
-        child: _saving
-            ? const CircularProgressIndicator()
-            : Text(AppLocalizations.of(context).save),
-      ),
-    ],
   );
-
-  Future<void> _save() async {
-    int openingBalanceMinor;
-    try {
-      openingBalanceMinor = _initial.text.trim() == '0'
-          ? 0
-          : MoneyParser.minorUnits(_initial.text, 'COP');
-    } on FormatException {
-      return;
-    }
-    if (_name.text.trim().isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(canonicalActionsProvider)
-          .createAccount(
-            widget.userId,
-            name: _name.text,
-            type: 'cash',
-            currency: 'COP',
-            openingBalanceMinor: openingBalanceMinor,
-          );
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
 }

@@ -1,0 +1,175 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:personal_finance/core/offline/sync_state.dart';
+import 'package:personal_finance/core/theme/app_theme.dart';
+import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
+import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
+import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
+import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
+import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
+import 'package:personal_finance/features/finance/domain/entities/operation_page.dart';
+import 'package:personal_finance/features/finance/domain/repositories/canonical_finance_repository.dart';
+import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
+import 'package:personal_finance/features/finance/presentation/screens/canonical_activity_screen.dart';
+import 'package:personal_finance/l10n/generated/app_localizations.dart';
+
+class _MockFinanceRepository extends Mock implements CanonicalFinanceRepository {}
+
+void main() {
+  final operations = [
+    _operation(
+      id: 'salary',
+      type: OperationType.income,
+      description: 'Salario',
+      accountId: 'savings',
+      categoryId: 'salary-category',
+      amountMinor: 100,
+    ),
+    _operation(
+      id: 'market',
+      type: OperationType.expense,
+      description: 'Mercado',
+      accountId: 'savings',
+      categoryId: 'food',
+      amountMinor: 80,
+    ),
+    _operation(
+      id: 'transfer',
+      type: OperationType.transfer,
+      description: 'Mover dinero',
+      amountMinor: 20,
+    ),
+  ];
+
+  Widget buildSubject({required Locale locale}) {
+    final repository = _MockFinanceRepository();
+    when(
+      () => repository.fetchOperationsPage(any(), type: any(named: 'type')),
+    ).thenAnswer((invocation) async {
+      final type = invocation.namedArguments[#type] as OperationType?;
+      return Right(
+        OperationPage(
+          items: operations.where((item) => type == null || item.type == type).toList(),
+        ),
+      );
+    });
+
+    return ProviderScope(
+      overrides: [
+        authSessionProvider.overrideWith(
+          (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
+        ),
+        canonicalFinanceRepositoryProvider.overrideWithValue(repository),
+        canonicalAccountsProvider('user-1').overrideWith(
+          (ref) => Stream.value(
+            const [FinanceAccount(id: 'savings', name: 'Banco1 Ahorros', type: 'savings')],
+          ),
+        ),
+        canonicalCategoriesProvider('user-1').overrideWith(
+          (ref) => Stream.value([
+            const FinanceCategory(
+              id: 'food',
+              type: CategoryType.expense,
+              customName: 'Comida',
+              icon: 'food',
+              sortOrder: 1,
+              isSystem: true,
+              isArchived: false,
+            ),
+          ]),
+        ),
+        pendingOperationSyncStatusProvider.overrideWith(
+          (ref) => Stream.value(
+            const SyncStatusSnapshot(pending: 0, syncing: 0, confirmed: 0, rejected: 0),
+          ),
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        locale: locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const CanonicalActivityScreen(),
+      ),
+    );
+  }
+
+  testWidgets('renders canonical activity rows and filters income and expense', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildSubject(locale: const Locale('es')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Encuentra y revisa tus movimientos'), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_operation_salary')), findsOneWidget);
+    expect(find.text('Ingreso · Banco1 Ahorros'), findsOneWidget);
+    expect(find.text('Gasto · Comida'), findsOneWidget);
+    expect(find.text('Transferencia'), findsOneWidget);
+    expect(find.textContaining('COP'), findsNWidgets(3));
+
+    await tester.tap(find.byKey(const ValueKey('activity_filter_income')));
+    await tester.pumpAndSettle();
+    expect(find.text('Salario'), findsOneWidget);
+    expect(find.text('Mercado'), findsNothing);
+    expect(find.text('Mover dinero'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('activity_filter_expense')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mercado'), findsOneWidget);
+    expect(find.text('Salario'), findsNothing);
+    expect(find.text('Mover dinero'), findsNothing);
+  });
+
+  testWidgets('fits compact width and enlarged text in Spanish, Portuguese, and English', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    for (final locale in const [Locale('es'), Locale('pt'), Locale('en')]) {
+      await tester.pumpWidget(buildSubject(locale: locale));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('activity_title')), findsOneWidget);
+      expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+}
+
+FinancialOperation _operation({
+  required String id,
+  required OperationType type,
+  required String description,
+  int amountMinor = 100,
+  String? accountId,
+  String? categoryId,
+}) => FinancialOperation(
+  id: id,
+  type: type,
+  amountMinor: amountMinor,
+  currency: 'COP',
+  monthKey: '2026-10',
+  occurredAt: DateTime.utc(2026, 10, 7),
+  status: OperationStatus.confirmed,
+  idempotencyKey: id,
+  description: description,
+  accountId: accountId,
+  categoryId: categoryId,
+);

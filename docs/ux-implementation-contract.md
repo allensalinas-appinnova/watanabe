@@ -102,8 +102,12 @@ included in actual income, expense, or budget usage.
 
 ## Figma delivery contract
 
-The existing file `Personal Finance Mobile — ClearBudget` now contains a
-dedicated page `06 UX Contract` (`321:2`). It contains:
+The existing file `Personal Finance Mobile — ClearBudget` uses
+`07 P0 Screens` (`325:3059`) as the canonical design-to-code page for P0
+screens and states. `00 Current Baseline` remains a comparison page for
+existing screen patterns, not a competing implementation target. `06 UX
+Contract` (`321:2`) records reusable UX rules and components; it does not
+replace the canonical P0 screen frames. It contains:
 
 - product rules and implementation tokens;
 - named component variants for `MoneyInput`, `AccountSelector`,
@@ -119,6 +123,41 @@ dedicated page `06 UX Contract` (`321:2`). It contains:
 Figma components must retain Flutter-compatible names, document variants,
 spacing, 48 px minimum touch targets, error/offline behavior, accessibility
 annotations, and examples in Spanish, Portuguese, and English.
+
+Before implementing a P0 screen, compare its `00 Current Baseline` counterpart
+with the canonical frame in `07 P0 Screens`. Reconcile meaningful patterns
+(such as tab icons, header actions, content hierarchy, and navigation) in the
+canonical frame and its prototype before changing Flutter. Record the Figma
+file, page, and frame name/ID in the implementation task. Do not create a new
+copy of a screen on the baseline page unless a task explicitly calls for a
+baseline snapshot.
+
+### Canonical bottom navigation
+
+The persistent app shell has four destinations, in this order: **Inicio**
+(`Icons.home_outlined`), **Actividad** (`Icons.list_alt_outlined`),
+**Presupuesto** (`Icons.pie_chart_outline`), and **Cuentas**
+(`Icons.account_balance_wallet_outlined`). Figma represents these with the
+shared `Bottom Navigation` component on `02 Components` (`436:114`) and its
+`Selected=Home|Activity|Budget|Accounts` variants. The same four icons and
+labels must appear on the corresponding frames in `07 P0 Screens`; the
+selected destination uses the same indicator and emphasized icon/label.
+The old circle-placeholder component is retained as
+`Bottom Navigation / Legacy — do not use` and is not a source of implementation
+truth.
+
+Use the bar only on routes rendered inside the persistent shell: Inicio,
+Actividad, Cuentas, Presupuesto mensual/empty/success, and Seguimiento.
+Full-screen root routes (for example, onboarding, operation/account forms,
+budget creation and budget detail) do not show it. Category management is a
+secondary route outside the shell and therefore has no bottom bar. Every
+visible tab prototype hotspot must navigate to its matching canonical P0
+frame; do not make a selected tab navigate to itself. Do not add header
+actions unless both the action exists in Flutter and its outcome is represented
+in the canonical prototype. In particular, the Flutter Home screen currently
+has sign-out but `07 P0 Screens` has no login destination. Keep that action out
+of the canonical Figma Home frame until a P0 login/auth destination is added;
+do not route sign-out to onboarding as a substitute.
 
 ## Observability gap solution
 

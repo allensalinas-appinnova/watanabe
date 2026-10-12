@@ -10,6 +10,7 @@ import '../../../../core/offline/pending_operation_sync_service.dart';
 import '../../../../core/offline/sync_state.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -42,6 +43,7 @@ final canonicalOperationsPageProvider =
         OperationPageCursor? cursor,
         String? monthKey,
         String? currency,
+        OperationType? type,
         int pageSize,
       })
     >((ref, input) async {
@@ -50,41 +52,52 @@ final canonicalOperationsPageProvider =
         cursor: input.cursor,
         monthKey: input.monthKey,
         currency: input.currency,
+        type: input.type,
         pageSize: input.pageSize,
       );
       return result.match((failure) => throw Exception(failure.message), (page) => page);
     });
 
 final operationsPagerProvider =
-    AsyncNotifierProvider.family<OperationsPagerNotifier, OperationPagerState, String>(
+    AsyncNotifierProvider.family<
+      OperationsPagerNotifier,
+      OperationPagerState,
+      ({String userId, OperationType? type})
+    >(
       OperationsPagerNotifier.new,
     );
 
 class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
-  OperationsPagerNotifier(this.userId);
+  OperationsPagerNotifier(this.filter);
 
-  final String userId;
+  final ({String userId, OperationType? type}) filter;
+  int _requestGeneration = 0;
 
   @override
-  Future<OperationPagerState> build() => _loadInitial();
+  Future<OperationPagerState> build() => _loadInitial(type: filter.type);
 
   Future<void> refresh() async {
+    final generation = ++_requestGeneration;
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_loadInitial);
+    final result = await AsyncValue.guard(() => _loadInitial(type: filter.type));
+    if (generation == _requestGeneration) state = result;
   }
 
   Future<void> loadMore() async {
     final current = state.asData?.value;
     if (current == null || !current.hasMore || current.isLoadingMore) return;
+    final generation = _requestGeneration;
     state = AsyncData(current.copyWith(isLoadingMore: true, errorMessage: null));
     final result = await ref
         .read(canonicalFinanceRepositoryProvider)
         .fetchOperationsPage(
-          userId,
+          filter.userId,
           cursor: current.nextCursor,
           monthKey: current.monthKey,
           currency: current.currency,
+          type: current.type,
         );
+    if (generation != _requestGeneration) return;
     result.match(
       (failure) => state = AsyncData(
         current.copyWith(isLoadingMore: false, errorMessage: failure.message),
@@ -107,11 +120,13 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
     );
   }
 
-  Future<OperationPagerState> _loadInitial() async {
-    final result = await ref.read(canonicalFinanceRepositoryProvider).fetchOperationsPage(userId);
+  Future<OperationPagerState> _loadInitial({required OperationType? type}) async {
+    final result = await ref
+        .read(canonicalFinanceRepositoryProvider)
+        .fetchOperationsPage(filter.userId, type: type);
     return result.match(
       (failure) => throw Exception(failure.message),
-      (page) => OperationPagerState(items: page.items, nextCursor: page.nextCursor),
+      (page) => OperationPagerState(items: page.items, nextCursor: page.nextCursor, type: type),
     );
   }
 }
@@ -124,6 +139,7 @@ class OperationPagerState {
     this.errorMessage,
     this.monthKey,
     this.currency,
+    this.type,
   });
 
   final List<FinancialOperation> items;
@@ -132,6 +148,7 @@ class OperationPagerState {
   final String? errorMessage;
   final String? monthKey;
   final String? currency;
+  final OperationType? type;
 
   bool get hasMore => nextCursor != null;
 
@@ -144,6 +161,8 @@ class OperationPagerState {
     bool clearError = false,
     String? monthKey,
     String? currency,
+    OperationType? type,
+    bool clearType = false,
   }) => OperationPagerState(
     items: items ?? this.items,
     nextCursor: clearCursor ? null : nextCursor ?? this.nextCursor,
@@ -151,6 +170,7 @@ class OperationPagerState {
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     monthKey: monthKey ?? this.monthKey,
     currency: currency ?? this.currency,
+    type: clearType ? null : type ?? this.type,
   );
 }
 
@@ -159,6 +179,10 @@ final canonicalBudgetsProvider =
       (ref, input) =>
           getIt<CanonicalFinanceRepository>().watchBudgets(input.userId, input.monthKey),
     );
+
+final canonicalBudgetProvider = StreamProvider.family<Budget?, ({String userId, String budgetId})>(
+  (ref, input) => getIt<CanonicalFinanceRepository>().watchBudget(input.userId, input.budgetId),
+);
 
 final canonicalMonthlySummaryProvider =
     StreamProvider.family<MonthlySummary?, ({String userId, String monthKey, String currency})>(
@@ -260,6 +284,26 @@ class CanonicalFinanceActions {
     });
   }
 
+  Future<void> updateAccount(String userId, FinanceAccount account, {required String name}) async {
+    final result = await _repository.updateAccount(
+      userId,
+      FinanceAccount(
+        id: account.id,
+        name: name,
+        type: account.type,
+        currency: account.currency,
+        openingBalanceMinor: account.openingBalanceMinor,
+        currentBalanceMinor: account.currentBalanceMinor,
+        includeInDashboard: account.includeInDashboard,
+        status: account.status,
+        createdAt: account.createdAt,
+        updatedAt: account.updatedAt,
+        archivedAt: account.archivedAt,
+      ),
+    );
+    result.match((failure) => throw Exception(failure.message), (_) {});
+  }
+
   Future<SyncState> createOperation(
     String userId,
     FinancialOperationDraft draft,
@@ -325,6 +369,26 @@ class CanonicalFinanceActions {
     result.match((failure) => throw Exception(failure.message), (_) {});
   }
 
+  Future<void> updateBudgetItem(String userId, String budgetId, BudgetItem item) async {
+    final result = await _repository.updateBudgetItem(userId, budgetId, item);
+    result.match((failure) => throw Exception(failure.message), (_) {});
+  }
+
+  Future<void> deleteBudgetItem(String userId, String budgetId, String itemId) async {
+    final result = await _repository.deleteBudgetItem(userId, budgetId, itemId);
+    result.match((failure) {
+      if (failure is ConflictFailure && failure.message == 'budget-last-item') {
+        throw StateError('budget-last-item');
+      }
+      throw Exception(failure.message);
+    }, (_) {});
+  }
+
+  Future<void> archiveBudget(String userId, String budgetId) async {
+    final result = await _repository.archiveBudget(userId, budgetId);
+    result.match((failure) => throw Exception(failure.message), (_) {});
+  }
+
   Future<void> updateOperation(String userId, FinancialOperation operation) async {
     final result = await _repository.updateOperation(userId, operation);
     result.match((failure) => throw Exception(failure.message), (_) {});
@@ -382,6 +446,7 @@ class CanonicalFinanceActions {
   SyncAttemptResult _syncFailureResult(Failure failure) => switch (failure) {
     NetworkFailure() => const SyncAttemptResult.retryable(SyncIssueCode.networkUnavailable),
     AuthFailure() => const SyncAttemptResult.rejected(SyncIssueCode.permissionDenied),
+    ConflictFailure() => const SyncAttemptResult.rejected(SyncIssueCode.invalidOperation),
     UnknownFailure() => const SyncAttemptResult.rejected(SyncIssueCode.invalidOperation),
   };
 

@@ -54,10 +54,37 @@ class AppLocalizationsEs extends AppLocalizations {
   String get activity => 'Actividad';
 
   @override
+  String get activitySubtitle => 'Encuentra y revisa tus movimientos';
+
+  @override
+  String get activityFilterAll => 'Todos';
+
+  @override
+  String get transferOperationLabel => 'Transferencia';
+
+  @override
   String get budget => 'Presupuesto';
 
   @override
   String get accounts => 'Cuentas';
+
+  @override
+  String get accountsTitle => 'Tus cuentas';
+
+  @override
+  String get accountsSubtitle => 'Saldos organizados por moneda';
+
+  @override
+  String get addAccount => 'Agregar cuenta';
+
+  @override
+  String get cashAccountType => 'Efectivo';
+
+  @override
+  String get checkingAccountType => 'Cuenta corriente';
+
+  @override
+  String get savingsAccountType => 'Cuenta de ahorros';
 
   @override
   String get addMovement => 'Agregar movimiento';
@@ -85,6 +112,43 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get createCategory => 'Crear categoría';
+
+  @override
+  String get manageCategories => 'Administrar categorías';
+
+  @override
+  String get editCategory => 'Editar categoría';
+
+  @override
+  String get edit => 'Editar';
+
+  @override
+  String get categoriesSubtitle => 'Organiza tus movimientos con nombres conocidos.';
+
+  @override
+  String get categorySavedDescription => 'El nombre se verá en tus movimientos y presupuestos.';
+
+  @override
+  String get confirmArchiveCategoryTitle => '¿Archivar esta categoría?';
+
+  @override
+  String get categoryName => 'Nombre';
+
+  @override
+  String get categoryTypeReadOnly => 'Tipo · no se puede cambiar';
+
+  @override
+  String get saveCategoryChanges => 'Guardar cambios';
+
+  @override
+  String get archiveCategoryDetails =>
+      'Dejará de aparecer en nuevos movimientos. Los registros existentes conservarán esta categoría.';
+
+  @override
+  String get categoryNameRequired => 'Escribe un nombre para la categoría.';
+
+  @override
+  String get categorySaved => 'Categoría actualizada';
 
   @override
   String get newCategory => 'Nueva categoría';
@@ -316,4 +380,256 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get viewBudgetDetails => 'Ver detalle del presupuesto';
+
+  @override
+  String get accountFormCreateSubtitle => 'Elige cómo quieres organizar este dinero.';
+
+  @override
+  String get accountFormEditSubtitle =>
+      'Puedes cambiar el nombre; el saldo y el tipo se conservan con tu historial.';
+
+  @override
+  String get accountNameHint => 'Por ejemplo, Gastos diarios';
+
+  @override
+  String get accountType => 'Tipo de cuenta';
+
+  @override
+  String get accountCurrency => 'Moneda';
+
+  @override
+  String get openingBalanceHelper =>
+      'Ingresa 0 o más. Puedes actualizar el saldo con tus movimientos.';
+
+  @override
+  String profileCurrencyHint(Object currency) {
+    return 'La moneda de tu perfil es $currency.';
+  }
+
+  @override
+  String get accountBalanceReadOnlyHelper =>
+      'El saldo cambia al agregar ingresos, gastos o transferencias.';
+
+  @override
+  String get accountNameRequired => 'Escribe el nombre de la cuenta.';
+
+  @override
+  String get invalidInitialBalance => 'Ingresa un saldo válido de 0 o más.';
+
+  @override
+  String get accountSaveFailed =>
+      'No pudimos guardar la cuenta. La información sigue aquí; inténtalo de nuevo.';
+
+  @override
+  String get budgetCreateTitle => 'Planea por categoría';
+
+  @override
+  String get budgetCreateSubtitle => 'Define cada elemento para tu mes.';
+
+  @override
+  String get budgetTrackingTitle => 'Seguimiento';
+
+  @override
+  String get viewBudgetTracking => 'Ver seguimiento';
+
+  @override
+  String get budgetTrackingEmptyTitle => 'Aún no hay presupuestos';
+
+  @override
+  String get budgetTrackingEmptyMessage =>
+      'Crea un presupuesto para comparar lo planeado con tus movimientos del mes.';
+
+  @override
+  String budgetUsedPercent(Object percent) {
+    return '$percent% utilizado';
+  }
+
+  @override
+  String budgetReceivedPercent(Object percent) {
+    return '$percent% recibido';
+  }
+
+  @override
+  String unbudgetedCategoryCount(Object count) {
+    return '$count categorías tienen movimientos sin presupuesto';
+  }
+
+  @override
+  String get budgetMonth => 'Mes';
+
+  @override
+  String get budgetSelectMonth => 'Elige un mes';
+
+  @override
+  String get budgetPlannedItems => 'Elementos planeados';
+
+  @override
+  String get budgetAddItem => 'Agregar elemento';
+
+  @override
+  String get budgetRemoveItem => 'Quitar';
+
+  @override
+  String get budgetItemDescription => 'Descripción del elemento';
+
+  @override
+  String get budgetDescriptionRequired => 'Escribe una descripción.';
+
+  @override
+  String get budgetAmountPositive => 'Ingresa un monto mayor que cero.';
+
+  @override
+  String get budgetSelectCategory => 'Selecciona una categoría.';
+
+  @override
+  String get budgetNoCategories =>
+      'No hay categorías para este tipo. Crea una categoría para continuar.';
+
+  @override
+  String get budgetValidateItems => 'Revisa la descripción, el monto y el día de cada elemento.';
+
+  @override
+  String get budgetAlreadyExists => 'Ya existe un presupuesto para esta categoría y este mes.';
+
+  @override
+  String get budgetSaveFailed =>
+      'No pudimos guardar el presupuesto. Tus datos siguen aquí; inténtalo de nuevo.';
+
+  @override
+  String get budgetSave => 'Guardar presupuesto';
+
+  @override
+  String get budgetsTitle => 'Tus presupuestos';
+
+  @override
+  String get budgetsSubtitle => 'Planea y revisa el avance del mes';
+
+  @override
+  String get budgetsForMonth => 'Presupuestos del mes';
+
+  @override
+  String get budgetFilterAll => 'Todos';
+
+  @override
+  String get budgetFilterExpenses => 'Gastos';
+
+  @override
+  String get budgetFilterIncome => 'Ingresos';
+
+  @override
+  String get budgetEmptyTitle => 'Aún no tienes presupuestos';
+
+  @override
+  String get budgetEmptyMessage =>
+      'Crea un presupuesto por categoría para saber cuánto planeas y cuánto te queda durante el mes.';
+
+  @override
+  String get budgetFilteredEmptyTitle => 'No hay resultados para este filtro';
+
+  @override
+  String get budgetFilteredEmptyMessage => 'Prueba otro filtro para ver tus presupuestos.';
+
+  @override
+  String get budgetFilterReset => 'Ver todos';
+
+  @override
+  String get budgetSpent => 'Gastado';
+
+  @override
+  String get budgetReceived => 'Recibido';
+
+  @override
+  String get day => 'Día';
+
+  @override
+  String get budgetDetailTitle => 'Detalle del presupuesto';
+
+  @override
+  String get budgetBackToBudgets => 'Presupuestos';
+
+  @override
+  String budgetItemsHeading(Object count) {
+    return 'Elementos planeados · $count';
+  }
+
+  @override
+  String get budgetEditItemTitle => 'Editar elemento';
+
+  @override
+  String get budgetAddItemSubtitle => 'Añade otro elemento a este presupuesto.';
+
+  @override
+  String get budgetEditItemSubtitle => 'Ajusta el detalle, el importe o el día esperado.';
+
+  @override
+  String get budgetDescription => 'Descripción';
+
+  @override
+  String budgetPlannedAmount(Object currency) {
+    return 'Monto planeado · $currency';
+  }
+
+  @override
+  String get budgetExpectedDay => 'Día esperado';
+
+  @override
+  String get budgetDayRange => 'Elige un día entre 1 y 31.';
+
+  @override
+  String get budgetTotalUpdatesHint =>
+      'Al guardar, el total planeado se actualizará automáticamente.';
+
+  @override
+  String get budgetSaveChanges => 'Guardar cambios';
+
+  @override
+  String get budgetEditFailed =>
+      'No pudimos guardar los cambios. Tus datos siguen aquí; inténtalo de nuevo.';
+
+  @override
+  String get budgetAddItemFailed =>
+      'No pudimos agregar el elemento. Tus datos siguen aquí; inténtalo de nuevo.';
+
+  @override
+  String get budgetDeleteItemTitle => '¿Quitar este elemento?';
+
+  @override
+  String budgetDeleteItemMessage(Object amount) {
+    return 'El total planeado bajará en $amount. Los movimientos registrados no cambiarán.';
+  }
+
+  @override
+  String get budgetLastItemTitle => 'Conserva al menos un elemento';
+
+  @override
+  String get budgetLastItemMessage =>
+      'Un presupuesto necesita al menos un elemento. Para quitarlo, elimina el presupuesto completo.';
+
+  @override
+  String get budgetDeleteBudgetAction => 'Eliminar presupuesto';
+
+  @override
+  String get budgetDeleteBudgetTitle => '¿Eliminar este presupuesto?';
+
+  @override
+  String get budgetDeleteBudgetMessage =>
+      'Se quitará de tus presupuestos activos. Tus movimientos y saldos se conservarán.';
+
+  @override
+  String get budgetArchiveSuccess => 'Presupuesto eliminado de la lista activa.';
+
+  @override
+  String get budgetDeleteFailed => 'No pudimos eliminar el presupuesto. Inténtalo de nuevo.';
+
+  @override
+  String get budgetItemDeleteFailed => 'No pudimos quitar el elemento. Inténtalo de nuevo.';
+
+  @override
+  String get budgetItemSaved => 'Cambios guardados.';
+
+  @override
+  String get budgetItemAdded => 'Elemento agregado.';
+
+  @override
+  String get budgetEditAction => 'Editar';
 }

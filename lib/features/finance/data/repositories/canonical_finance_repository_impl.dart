@@ -157,6 +157,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     OperationPageCursor? cursor,
     String? monthKey,
     String? currency,
+    OperationType? type,
     int pageSize = 100,
   }) async {
     try {
@@ -165,6 +166,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         cursor: cursor,
         monthKey: monthKey,
         currency: currency,
+        type: type,
         pageSize: pageSize,
       );
       return Right(
@@ -238,6 +240,11 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       .map((records) => records.map(_budget).toList());
 
   @override
+  Stream<Budget?> watchBudget(String userId, String budgetId) => _remoteDataSource
+      .watchBudget(userId, budgetId)
+      .map((record) => record == null ? null : _budget(record));
+
+  @override
   Future<Either<Failure, Budget>> createBudgetWithItems(
     String userId, {
     required String categoryId,
@@ -257,6 +264,9 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       );
       return Right(_budget(record));
     } catch (error) {
+      if (error is StateError && error.message.contains('A budget already exists')) {
+        return const Left(ConflictFailure('budget-already-exists'));
+      }
       return Left(FirebaseFailureMapper.fromException(error));
     }
   }
@@ -305,6 +315,9 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       await _remoteDataSource.deleteBudgetItem(userId, budgetId, itemId);
       return const Right(unit);
     } catch (error) {
+      if (error is StateError && error.message == 'budget-last-item') {
+        return const Left(ConflictFailure('budget-last-item'));
+      }
       return Left(FirebaseFailureMapper.fromException(error));
     }
   }

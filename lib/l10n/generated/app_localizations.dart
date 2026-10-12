@@ -184,6 +184,24 @@ abstract class AppLocalizations {
   /// **'Actividad'**
   String get activity;
 
+  /// No description provided for @activitySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Encuentra y revisa tus movimientos'**
+  String get activitySubtitle;
+
+  /// No description provided for @activityFilterAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get activityFilterAll;
+
+  /// No description provided for @transferOperationLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Transferencia'**
+  String get transferOperationLabel;
+
   /// No description provided for @budget.
   ///
   /// In es, this message translates to:
@@ -195,6 +213,42 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cuentas'**
   String get accounts;
+
+  /// No description provided for @accountsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus cuentas'**
+  String get accountsTitle;
+
+  /// No description provided for @accountsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldos organizados por moneda'**
+  String get accountsSubtitle;
+
+  /// No description provided for @addAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar cuenta'**
+  String get addAccount;
+
+  /// No description provided for @cashAccountType.
+  ///
+  /// In es, this message translates to:
+  /// **'Efectivo'**
+  String get cashAccountType;
+
+  /// No description provided for @checkingAccountType.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta corriente'**
+  String get checkingAccountType;
+
+  /// No description provided for @savingsAccountType.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta de ahorros'**
+  String get savingsAccountType;
 
   /// No description provided for @addMovement.
   ///
@@ -249,6 +303,78 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Crear categoría'**
   String get createCategory;
+
+  /// No description provided for @manageCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Administrar categorías'**
+  String get manageCategories;
+
+  /// No description provided for @editCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar categoría'**
+  String get editCategory;
+
+  /// No description provided for @edit.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get edit;
+
+  /// No description provided for @categoriesSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Organiza tus movimientos con nombres conocidos.'**
+  String get categoriesSubtitle;
+
+  /// No description provided for @categorySavedDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'El nombre se verá en tus movimientos y presupuestos.'**
+  String get categorySavedDescription;
+
+  /// No description provided for @confirmArchiveCategoryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Archivar esta categoría?'**
+  String get confirmArchiveCategoryTitle;
+
+  /// No description provided for @categoryName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre'**
+  String get categoryName;
+
+  /// No description provided for @categoryTypeReadOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo · no se puede cambiar'**
+  String get categoryTypeReadOnly;
+
+  /// No description provided for @saveCategoryChanges.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar cambios'**
+  String get saveCategoryChanges;
+
+  /// No description provided for @archiveCategoryDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Dejará de aparecer en nuevos movimientos. Los registros existentes conservarán esta categoría.'**
+  String get archiveCategoryDetails;
+
+  /// No description provided for @categoryNameRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un nombre para la categoría.'**
+  String get categoryNameRequired;
+
+  /// No description provided for @categorySaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Categoría actualizada'**
+  String get categorySaved;
 
   /// No description provided for @newCategory.
   ///
@@ -669,6 +795,456 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ver detalle del presupuesto'**
   String get viewBudgetDetails;
+
+  /// No description provided for @accountFormCreateSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige cómo quieres organizar este dinero.'**
+  String get accountFormCreateSubtitle;
+
+  /// No description provided for @accountFormEditSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes cambiar el nombre; el saldo y el tipo se conservan con tu historial.'**
+  String get accountFormEditSubtitle;
+
+  /// No description provided for @accountNameHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Por ejemplo, Gastos diarios'**
+  String get accountNameHint;
+
+  /// No description provided for @accountType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de cuenta'**
+  String get accountType;
+
+  /// No description provided for @accountCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda'**
+  String get accountCurrency;
+
+  /// No description provided for @openingBalanceHelper.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa 0 o más. Puedes actualizar el saldo con tus movimientos.'**
+  String get openingBalanceHelper;
+
+  /// No description provided for @profileCurrencyHint.
+  ///
+  /// In es, this message translates to:
+  /// **'La moneda de tu perfil es {currency}.'**
+  String profileCurrencyHint(Object currency);
+
+  /// No description provided for @accountBalanceReadOnlyHelper.
+  ///
+  /// In es, this message translates to:
+  /// **'El saldo cambia al agregar ingresos, gastos o transferencias.'**
+  String get accountBalanceReadOnlyHelper;
+
+  /// No description provided for @accountNameRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el nombre de la cuenta.'**
+  String get accountNameRequired;
+
+  /// No description provided for @invalidInitialBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa un saldo válido de 0 o más.'**
+  String get invalidInitialBalance;
+
+  /// No description provided for @accountSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos guardar la cuenta. La información sigue aquí; inténtalo de nuevo.'**
+  String get accountSaveFailed;
+
+  /// No description provided for @budgetCreateTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Planea por categoría'**
+  String get budgetCreateTitle;
+
+  /// No description provided for @budgetCreateSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Define cada elemento para tu mes.'**
+  String get budgetCreateSubtitle;
+
+  /// No description provided for @budgetTrackingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguimiento'**
+  String get budgetTrackingTitle;
+
+  /// No description provided for @viewBudgetTracking.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver seguimiento'**
+  String get viewBudgetTracking;
+
+  /// No description provided for @budgetTrackingEmptyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay presupuestos'**
+  String get budgetTrackingEmptyTitle;
+
+  /// No description provided for @budgetTrackingEmptyMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea un presupuesto para comparar lo planeado con tus movimientos del mes.'**
+  String get budgetTrackingEmptyMessage;
+
+  /// No description provided for @budgetUsedPercent.
+  ///
+  /// In es, this message translates to:
+  /// **'{percent}% utilizado'**
+  String budgetUsedPercent(Object percent);
+
+  /// No description provided for @budgetReceivedPercent.
+  ///
+  /// In es, this message translates to:
+  /// **'{percent}% recibido'**
+  String budgetReceivedPercent(Object percent);
+
+  /// No description provided for @unbudgetedCategoryCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} categorías tienen movimientos sin presupuesto'**
+  String unbudgetedCategoryCount(Object count);
+
+  /// No description provided for @budgetMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Mes'**
+  String get budgetMonth;
+
+  /// No description provided for @budgetSelectMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un mes'**
+  String get budgetSelectMonth;
+
+  /// No description provided for @budgetPlannedItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Elementos planeados'**
+  String get budgetPlannedItems;
+
+  /// No description provided for @budgetAddItem.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar elemento'**
+  String get budgetAddItem;
+
+  /// No description provided for @budgetRemoveItem.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar'**
+  String get budgetRemoveItem;
+
+  /// No description provided for @budgetItemDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción del elemento'**
+  String get budgetItemDescription;
+
+  /// No description provided for @budgetDescriptionRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe una descripción.'**
+  String get budgetDescriptionRequired;
+
+  /// No description provided for @budgetAmountPositive.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa un monto mayor que cero.'**
+  String get budgetAmountPositive;
+
+  /// No description provided for @budgetSelectCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona una categoría.'**
+  String get budgetSelectCategory;
+
+  /// No description provided for @budgetNoCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay categorías para este tipo. Crea una categoría para continuar.'**
+  String get budgetNoCategories;
+
+  /// No description provided for @budgetValidateItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la descripción, el monto y el día de cada elemento.'**
+  String get budgetValidateItems;
+
+  /// No description provided for @budgetAlreadyExists.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya existe un presupuesto para esta categoría y este mes.'**
+  String get budgetAlreadyExists;
+
+  /// No description provided for @budgetSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos guardar el presupuesto. Tus datos siguen aquí; inténtalo de nuevo.'**
+  String get budgetSaveFailed;
+
+  /// No description provided for @budgetSave.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar presupuesto'**
+  String get budgetSave;
+
+  /// No description provided for @budgetsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus presupuestos'**
+  String get budgetsTitle;
+
+  /// No description provided for @budgetsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Planea y revisa el avance del mes'**
+  String get budgetsSubtitle;
+
+  /// No description provided for @budgetsForMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuestos del mes'**
+  String get budgetsForMonth;
+
+  /// No description provided for @budgetFilterAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get budgetFilterAll;
+
+  /// No description provided for @budgetFilterExpenses.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastos'**
+  String get budgetFilterExpenses;
+
+  /// No description provided for @budgetFilterIncome.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresos'**
+  String get budgetFilterIncome;
+
+  /// No description provided for @budgetEmptyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes presupuestos'**
+  String get budgetEmptyTitle;
+
+  /// No description provided for @budgetEmptyMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea un presupuesto por categoría para saber cuánto planeas y cuánto te queda durante el mes.'**
+  String get budgetEmptyMessage;
+
+  /// No description provided for @budgetFilteredEmptyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay resultados para este filtro'**
+  String get budgetFilteredEmptyTitle;
+
+  /// No description provided for @budgetFilteredEmptyMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Prueba otro filtro para ver tus presupuestos.'**
+  String get budgetFilteredEmptyMessage;
+
+  /// No description provided for @budgetFilterReset.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver todos'**
+  String get budgetFilterReset;
+
+  /// No description provided for @budgetSpent.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastado'**
+  String get budgetSpent;
+
+  /// No description provided for @budgetReceived.
+  ///
+  /// In es, this message translates to:
+  /// **'Recibido'**
+  String get budgetReceived;
+
+  /// No description provided for @day.
+  ///
+  /// In es, this message translates to:
+  /// **'Día'**
+  String get day;
+
+  /// No description provided for @budgetDetailTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Detalle del presupuesto'**
+  String get budgetDetailTitle;
+
+  /// No description provided for @budgetBackToBudgets.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuestos'**
+  String get budgetBackToBudgets;
+
+  /// No description provided for @budgetItemsHeading.
+  ///
+  /// In es, this message translates to:
+  /// **'Elementos planeados · {count}'**
+  String budgetItemsHeading(Object count);
+
+  /// No description provided for @budgetEditItemTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar elemento'**
+  String get budgetEditItemTitle;
+
+  /// No description provided for @budgetAddItemSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Añade otro elemento a este presupuesto.'**
+  String get budgetAddItemSubtitle;
+
+  /// No description provided for @budgetEditItemSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajusta el detalle, el importe o el día esperado.'**
+  String get budgetEditItemSubtitle;
+
+  /// No description provided for @budgetDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción'**
+  String get budgetDescription;
+
+  /// No description provided for @budgetPlannedAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Monto planeado · {currency}'**
+  String budgetPlannedAmount(Object currency);
+
+  /// No description provided for @budgetExpectedDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Día esperado'**
+  String get budgetExpectedDay;
+
+  /// No description provided for @budgetDayRange.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un día entre 1 y 31.'**
+  String get budgetDayRange;
+
+  /// No description provided for @budgetTotalUpdatesHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Al guardar, el total planeado se actualizará automáticamente.'**
+  String get budgetTotalUpdatesHint;
+
+  /// No description provided for @budgetSaveChanges.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar cambios'**
+  String get budgetSaveChanges;
+
+  /// No description provided for @budgetEditFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos guardar los cambios. Tus datos siguen aquí; inténtalo de nuevo.'**
+  String get budgetEditFailed;
+
+  /// No description provided for @budgetAddItemFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos agregar el elemento. Tus datos siguen aquí; inténtalo de nuevo.'**
+  String get budgetAddItemFailed;
+
+  /// No description provided for @budgetDeleteItemTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar este elemento?'**
+  String get budgetDeleteItemTitle;
+
+  /// No description provided for @budgetDeleteItemMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'El total planeado bajará en {amount}. Los movimientos registrados no cambiarán.'**
+  String budgetDeleteItemMessage(Object amount);
+
+  /// No description provided for @budgetLastItemTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Conserva al menos un elemento'**
+  String get budgetLastItemTitle;
+
+  /// No description provided for @budgetLastItemMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Un presupuesto necesita al menos un elemento. Para quitarlo, elimina el presupuesto completo.'**
+  String get budgetLastItemMessage;
+
+  /// No description provided for @budgetDeleteBudgetAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar presupuesto'**
+  String get budgetDeleteBudgetAction;
+
+  /// No description provided for @budgetDeleteBudgetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Eliminar este presupuesto?'**
+  String get budgetDeleteBudgetTitle;
+
+  /// No description provided for @budgetDeleteBudgetMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Se quitará de tus presupuestos activos. Tus movimientos y saldos se conservarán.'**
+  String get budgetDeleteBudgetMessage;
+
+  /// No description provided for @budgetArchiveSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuesto eliminado de la lista activa.'**
+  String get budgetArchiveSuccess;
+
+  /// No description provided for @budgetDeleteFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos eliminar el presupuesto. Inténtalo de nuevo.'**
+  String get budgetDeleteFailed;
+
+  /// No description provided for @budgetItemDeleteFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos quitar el elemento. Inténtalo de nuevo.'**
+  String get budgetItemDeleteFailed;
+
+  /// No description provided for @budgetItemSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambios guardados.'**
+  String get budgetItemSaved;
+
+  /// No description provided for @budgetItemAdded.
+  ///
+  /// In es, this message translates to:
+  /// **'Elemento agregado.'**
+  String get budgetItemAdded;
+
+  /// No description provided for @budgetEditAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get budgetEditAction;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

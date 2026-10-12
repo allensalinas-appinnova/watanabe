@@ -15,8 +15,17 @@
   "continueAction": "Continuar",
   "home": "Início",
   "activity": "Atividade",
+  "activitySubtitle": "Encontre e revise suas movimentações",
+  "activityFilterAll": "Todas",
+  "transferOperationLabel": "Transferência",
   "budget": "Orçamento",
   "accounts": "Contas",
+  "accountsTitle": "Suas contas",
+  "accountsSubtitle": "Saldos organizados por moeda",
+  "addAccount": "Adicionar conta",
+  "cashAccountType": "Dinheiro",
+  "checkingAccountType": "Conta corrente",
+  "savingsAccountType": "Conta poupança",
   "addMovement": "Adicionar movimentação",
   "genericError": "Algo deu errado. Tente novamente.",
   "createFirstAccount": "Crie sua primeira conta para começar.",
@@ -26,6 +35,18 @@
   "timeZoneMexicoCity": "Cidade do México (UTC−6)",
   "timeZoneSaoPaulo": "São Paulo (UTC−3)",
   "createCategory": "Criar categoria",
+  "manageCategories": "Gerenciar categorias",
+  "editCategory": "Editar categoria",
+  "edit": "Editar",
+  "categoriesSubtitle": "Organize seus lançamentos com nomes conhecidos.",
+  "categorySavedDescription": "O nome aparecerá nos seus lançamentos e orçamentos.",
+  "confirmArchiveCategoryTitle": "Arquivar esta categoria?",
+  "categoryName": "Nome",
+  "categoryTypeReadOnly": "Tipo · não pode ser alterado",
+  "saveCategoryChanges": "Salvar alterações",
+  "archiveCategoryDetails": "Ela não aparecerá em novos lançamentos. Os registros existentes continuarão com esta categoria.",
+  "categoryNameRequired": "Digite um nome para esta categoria.",
+  "categorySaved": "Categoria atualizada",
   "newCategory": "Nova categoria",
   "archive": "Arquivar",
   "confirmArchiveCategory": "A categoria será arquivada e mantida nos seus lançamentos anteriores.",
@@ -96,4 +117,80 @@
   ,"unbudgetedMovements": "Movimentações sem orçamento"
   ,"reviewCategories": "Revisar categorias"
   ,"viewBudgetDetails": "Ver detalhes do orçamento"
+  ,"accountFormCreateSubtitle": "Escolha como deseja organizar este dinheiro."
+  ,"accountFormEditSubtitle": "Você pode alterar o nome; o saldo e o tipo ficam vinculados ao seu histórico."
+  ,"accountNameHint": "Por exemplo, Gastos do dia a dia"
+  ,"accountType": "Tipo de conta"
+  ,"accountCurrency": "Moeda"
+  ,"openingBalanceHelper": "Informe 0 ou mais. Você pode atualizar o saldo com suas movimentações."
+  ,"profileCurrencyHint": "A moeda do seu perfil é {currency}."
+  ,"accountBalanceReadOnlyHelper": "O saldo muda quando você adiciona receitas, despesas ou transferências."
+  ,"accountNameRequired": "Informe o nome da conta."
+  ,"invalidInitialBalance": "Informe um saldo válido igual ou maior que 0."
+  ,"accountSaveFailed": "Não foi possível salvar a conta. Seus dados continuam aqui; tente novamente."
+  ,"budgetCreateTitle": "Planeje por categoria"
+  ,"budgetCreateSubtitle": "Defina cada item para o seu mês."
+  ,"budgetTrackingTitle": "Acompanhamento"
+  ,"viewBudgetTracking": "Ver acompanhamento"
+  ,"budgetTrackingEmptyTitle": "Ainda não há orçamentos"
+  ,"budgetTrackingEmptyMessage": "Crie um orçamento para comparar seu planejamento com as movimentações do mês."
+  ,"budgetUsedPercent": "{percent}% utilizado"
+  ,"budgetReceivedPercent": "{percent}% recebido"
+  ,"unbudgetedCategoryCount": "{count} categorias têm movimentações sem orçamento"
+  ,"budgetMonth": "Mês"
+  ,"budgetSelectMonth": "Escolha um mês"
+  ,"budgetPlannedItems": "Itens planejados"
+  ,"budgetAddItem": "Adicionar item"
+  ,"budgetRemoveItem": "Remover item"
+  ,"budgetItemDescription": "Descrição do item"
+  ,"budgetDescriptionRequired": "Informe uma descrição."
+  ,"budgetAmountPositive": "Informe um valor maior que zero."
+  ,"budgetSelectCategory": "Escolha uma categoria."
+  ,"budgetNoCategories": "Não há categorias para este tipo. Crie uma categoria para continuar."
+  ,"budgetValidateItems": "Confira a descrição, o valor e o dia de cada item."
+  ,"budgetAlreadyExists": "Já existe um orçamento para esta categoria e este mês."
+  ,"budgetSaveFailed": "Não foi possível salvar o orçamento. Seus dados continuam aqui; tente novamente."
+  ,"budgetSave": "Salvar orçamento"
+  ,"budgetsTitle": "Seus orçamentos"
+  ,"budgetsSubtitle": "Planeje e acompanhe o seu mês"
+  ,"budgetsForMonth": "Orçamentos do mês"
+  ,"budgetFilterAll": "Todos"
+  ,"budgetFilterExpenses": "Despesas"
+  ,"budgetFilterIncome": "Receitas"
+  ,"budgetEmptyTitle": "Você ainda não tem orçamentos"
+  ,"budgetEmptyMessage": "Crie um orçamento por categoria para saber quanto planeja gastar e quanto resta durante o mês."
+  ,"budgetFilteredEmptyTitle": "Nenhum orçamento corresponde a este filtro"
+  ,"budgetFilteredEmptyMessage": "Escolha outro filtro para ver seus orçamentos."
+  ,"budgetFilterReset": "Ver todos"
+  ,"budgetSpent": "Gasto"
+  ,"budgetReceived": "Recebido"
+  ,"day": "Dia"
+  ,"budgetDetailTitle": "Detalhes do orçamento"
+  ,"budgetBackToBudgets": "Orçamentos"
+  ,"budgetItemsHeading": "Itens planejados · {count}"
+  ,"budgetEditItemTitle": "Editar item"
+  ,"budgetAddItemSubtitle": "Adicione outro item a este orçamento."
+  ,"budgetEditItemSubtitle": "Ajuste a descrição, o valor ou o dia esperado."
+  ,"budgetDescription": "Descrição"
+  ,"budgetPlannedAmount": "Valor planejado · {currency}"
+  ,"budgetExpectedDay": "Dia esperado"
+  ,"budgetDayRange": "Escolha um dia entre 1 e 31."
+  ,"budgetTotalUpdatesHint": "O total planejado será atualizado automaticamente ao salvar."
+  ,"budgetSaveChanges": "Salvar alterações"
+  ,"budgetEditFailed": "Não foi possível salvar as alterações. Seus dados continuam aqui; tente novamente."
+  ,"budgetAddItemFailed": "Não foi possível adicionar o item. Seus dados continuam aqui; tente novamente."
+  ,"budgetRemoveItem": "Remover"
+  ,"budgetDeleteItemTitle": "Remover este item?"
+  ,"budgetDeleteItemMessage": "O total planejado diminuirá em {amount}. As movimentações registradas não mudarão."
+  ,"budgetLastItemTitle": "Mantenha pelo menos um item"
+  ,"budgetLastItemMessage": "Um orçamento precisa ter pelo menos um item. Para removê-lo, exclua o orçamento completo."
+  ,"budgetDeleteBudgetAction": "Excluir orçamento"
+  ,"budgetDeleteBudgetTitle": "Excluir este orçamento?"
+  ,"budgetDeleteBudgetMessage": "Ele será removido dos seus orçamentos ativos. Suas movimentações e saldos serão mantidos."
+  ,"budgetArchiveSuccess": "Orçamento removido da lista ativa."
+  ,"budgetDeleteFailed": "Não foi possível excluir o orçamento. Tente novamente."
+  ,"budgetItemDeleteFailed": "Não foi possível remover o item. Tente novamente."
+  ,"budgetItemSaved": "Alterações salvas."
+  ,"budgetItemAdded": "Item adicionado."
+  ,"budgetEditAction": "Editar"
 }

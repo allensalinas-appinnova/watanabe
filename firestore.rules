@@ -48,11 +48,13 @@ service cloud.firestore {
       return required(data, ['categoryId', 'flowType', 'monthKey', 'currency', 'plannedAmountMinor', 'status', 'createdAt', 'updatedAt']) &&
         data.keys().hasOnly([
           'categoryId', 'flowType', 'monthKey', 'currency',
-          'plannedAmountMinor', 'status', 'createdAt', 'updatedAt'
+          'plannedAmountMinor', 'itemCount', 'status', 'createdAt', 'updatedAt'
         ]) && data.categoryId is string && data.categoryId.size() > 0 &&
         data.flowType in ['income', 'expense'] && validMonthKey(data.monthKey) &&
         validCurrency(data.currency) && data.plannedAmountMinor is int &&
-        data.plannedAmountMinor >= 0 && data.status in ['active', 'archived'];
+        data.plannedAmountMinor >= 0 &&
+        (!('itemCount' in data) || (data.itemCount is int && data.itemCount >= 1)) &&
+        data.status in ['active', 'archived'];
     }
     function validBudgetItem(data) {
       return data.keys().hasOnly([
@@ -158,7 +160,7 @@ service cloud.firestore {
         allow create: if owner(uid) && validBudget(request.resource.data) &&
           categoryExists(uid, request.resource.data.categoryId, request.resource.data.flowType);
         allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'plannedAmountMinor', 'status', 'updatedAt'
+          'plannedAmountMinor', 'itemCount', 'status', 'updatedAt'
         ]) && validBudget(request.resource.data);
         allow delete: if false;
         match /items/{itemId} {

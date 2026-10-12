@@ -44,4 +44,24 @@
 
 ## Figma relationship
 
-The current mobile concept is in the Figma file `Personal Finance Mobile — ClearBudget`. Figma is the visual reference; Flutter theme tokens and reusable widgets are the implementation source of truth.
+The current mobile concept is in the Figma file `Personal Finance Mobile — ClearBudget`.
+For P0 implementation, **`07 P0 Screens` (page `325:3059`) is the canonical
+screen and state reference**. **`00 Current Baseline` is a comparison page**
+that records existing product patterns; it is not a parallel implementation
+target. Flutter theme tokens and reusable widgets remain the implementation
+source of truth for code.
+
+When reconciling a screen, inspect both Figma pages before changing the design.
+Keep useful established patterns from `00 Current Baseline`—including tab
+icons, top-right header actions, and existing navigation affordances—unless a
+documented UX decision supersedes them. Apply approved changes to the matching
+screen in `07 P0 Screens`, and update its connected states and prototype links
+there. Do not maintain separate competing versions of the same P0 screen.
+
+Every design-to-code task must identify the Figma file, canonical page, and
+frame name (and node ID when available). Verify the target page by its actual
+page node ID when using Figma tools; a file-level page listing may be
+incomplete. If a target cannot be confirmed, request its page/frame URL before
+editing. A completed design reconciliation should note which baseline pattern
+was retained, changed, or intentionally omitted so later iterations do not
+reopen the same discrepancy.

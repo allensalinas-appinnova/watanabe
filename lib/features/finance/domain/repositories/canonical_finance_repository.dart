@@ -118,6 +118,7 @@ abstract interface class CanonicalFinanceRepository {
     OperationPageCursor? cursor,
     String? monthKey,
     String? currency,
+    OperationType? type,
     int pageSize = 100,
   });
 
@@ -141,6 +142,8 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> deleteOperation(String userId, String operationId);
 
   Stream<List<Budget>> watchBudgets(String userId, String monthKey);
+
+  Stream<Budget?> watchBudget(String userId, String budgetId);
 
   Future<Either<Failure, Budget>> createBudgetWithItems(
     String userId, {

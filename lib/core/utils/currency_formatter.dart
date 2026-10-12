@@ -14,10 +14,11 @@ abstract final class CurrencyFormatter {
   static int decimalDigits(String currency) =>
       zeroDecimalCurrencies.contains(currency.toUpperCase()) ? 0 : 2;
 
-  static String formatMinor(int amountMinor, String currency) {
+  static String formatMinor(int amountMinor, String currency, {String? locale}) {
     final decimals = decimalDigits(currency);
     final divisor = decimals == 0 ? 1 : 100;
     return NumberFormat.currency(
+      locale: locale,
       name: currency,
       decimalDigits: decimals,
     ).format(amountMinor / divisor);
