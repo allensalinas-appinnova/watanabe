@@ -15,6 +15,8 @@ import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/budget_month_picker.dart';
+import '../widgets/finance_category_icon.dart';
 
 class CanonicalBudgetTrackingScreen extends ConsumerStatefulWidget {
   const CanonicalBudgetTrackingScreen({super.key, this.initialMonthKey});
@@ -139,7 +141,7 @@ class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetT
                         )
                       : ListView(
                           key: const ValueKey('budget_tracking_scroll'),
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 104),
                           children: [
                             _MonthSelector(
                               month: _selectedMonth,
@@ -173,14 +175,7 @@ class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetT
   }
 
   Future<void> _chooseMonth() async {
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _selectedMonth,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      initialDatePickerMode: DatePickerMode.year,
-      helpText: AppLocalizations.of(context).changeMonth,
-    );
+    final selected = await showBudgetMonthPicker(context, _selectedMonth);
     if (selected != null && mounted) {
       setState(() => _selectedMonth = DateTime(selected.year, selected.month));
     }
@@ -397,9 +392,11 @@ class _FlowTrackingSection extends StatelessWidget {
         .map((budget) => calculator(budget, const <FinancialOperation>[], summary: summary))
         .toList();
     final planned = tracking.fold<int>(0, (sum, item) => sum + item.plannedMinor);
-    // Monthly totals exclude transfers by definition. Keep activity without a matching budget
-    // in the actual figure so the user can see why it is not covered by their plan.
-    final actual = _summaryActual(summary, flowType);
+    // Compare the plan only with activity from the categories that have a budget.
+    // The rest of the month's activity is surfaced separately below.
+    final actual = tracking.fold<int>(0, (sum, item) => sum + item.actualMinor);
+    final totalActual = _summaryActual(summary, flowType);
+    final unbudgetedActual = totalActual > actual ? totalActual - actual : 0;
     final remaining = planned - actual;
     final ratio = planned <= 0 ? 0.0 : (actual / planned).clamp(0.0, 1.0);
     final budgetedCategoryIds = budgets.map((budget) => budget.categoryId).toSet();
@@ -454,16 +451,25 @@ class _FlowTrackingSection extends StatelessWidget {
             child: _BudgetTrackingCard(
               budget: budget,
               name: _categoryName(categories, budget.categoryId),
+              categoryIcon: _categoryIcon(categories, budget.categoryId),
               summary: summary,
               locale: locale,
               l10n: l10n,
               calculator: calculator,
             ),
           ),
-        if (unbudgetedCategoryIds.isNotEmpty)
+        if (unbudgetedCategoryIds.isNotEmpty || unbudgetedActual > 0)
           _UnbudgetedNotice(
             title: l10n.unbudgetedMovements,
-            message: l10n.unbudgetedCategoryCount(unbudgetedCategoryIds.length),
+            message: unbudgetedCategoryIds.isEmpty
+                ? l10n.unbudgetedMovements
+                : l10n.unbudgetedCategoryCount(unbudgetedCategoryIds.length),
+            amountKey: ValueKey(
+              'budget_tracking_unbudgeted_amount_${currency}_${flowType.value}',
+            ),
+            amount: l10n.unbudgetedActualAmount(
+              CurrencyFormatter.formatMinor(unbudgetedActual, currency, locale: locale),
+            ),
             action: l10n.reviewCategories,
             onAction: () => context.push('/categories'),
           ),
@@ -580,6 +586,7 @@ class _BudgetTrackingCard extends StatelessWidget {
   const _BudgetTrackingCard({
     required this.budget,
     required this.name,
+    required this.categoryIcon,
     required this.summary,
     required this.locale,
     required this.l10n,
@@ -588,6 +595,7 @@ class _BudgetTrackingCard extends StatelessWidget {
 
   final Budget budget;
   final String name;
+  final String? categoryIcon;
   final MonthlySummary? summary;
   final String locale;
   final AppLocalizations l10n;
@@ -625,6 +633,8 @@ class _BudgetTrackingCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  FinanceCategoryIcon(iconId: categoryIcon, size: 32, iconSize: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       name,
@@ -675,12 +685,16 @@ class _UnbudgetedNotice extends StatelessWidget {
   const _UnbudgetedNotice({
     required this.title,
     required this.message,
+    required this.amountKey,
+    required this.amount,
     required this.action,
     required this.onAction,
   });
 
   final String title;
   final String message;
+  final Key amountKey;
+  final String amount;
   final String action;
   final VoidCallback onAction;
 
@@ -704,6 +718,14 @@ class _UnbudgetedNotice extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(message, style: const TextStyle(color: AppColors.muted)),
+                Text(
+                  amount,
+                  key: amountKey,
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 TextButton(
                   key: const ValueKey('budget_tracking_review_categories'),
                   onPressed: onAction,
@@ -749,7 +771,7 @@ class _TrackingEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     key: const ValueKey('budget_tracking_empty'),
-    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 104),
     children: [
       _MonthSelector(
         month: month,
@@ -817,6 +839,13 @@ String _categoryName(List<FinanceCategory> categories, String categoryId) {
     if (category.id == categoryId) return category.customName ?? category.id;
   }
   return categoryId;
+}
+
+String? _categoryIcon(List<FinanceCategory> categories, String categoryId) {
+  for (final category in categories) {
+    if (category.id == categoryId) return category.icon;
+  }
+  return null;
 }
 
 int _summaryActual(MonthlySummary? summary, BudgetFlowType flowType) => switch (flowType) {

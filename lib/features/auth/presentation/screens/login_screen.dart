@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -28,18 +30,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     ref.listen(authControllerProvider, (previous, next) {
       if (next.status == AuthActionStatus.success && next.navigateToHome) {
         context.go('/home');
       }
       if (next.status == AuthActionStatus.success && next.message != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.message!)),
+          SnackBar(content: Text(l10n.authPasswordResetSent)),
         );
       }
       if (next.status == AuthActionStatus.failure) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.failure?.message ?? 'We could not sign you in.')),
+          SnackBar(
+            content: Text(
+              next.failure is NetworkFailure ? l10n.authNetworkError : l10n.authActionFailed,
+            ),
+          ),
         );
       }
     });
@@ -64,9 +71,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     _AuthTabs(
                       isCreatingAccount: _isCreatingAccount,
                       onSelectionChanged: (value) => setState(() => _isCreatingAccount = value),
+                      loginLabel: l10n.authLoginTab,
+                      createLabel: l10n.createAccount,
                     ),
                     const SizedBox(height: 27),
-                    const _FieldLabel('EMAIL'),
+                    _FieldLabel(l10n.authEmailLabel.toUpperCase()),
                     const SizedBox(height: 7),
                     TextFormField(
                       key: const ValueKey('auth_email_field'),
@@ -86,12 +95,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           borderSide: BorderSide(color: Color(0xFFDFE8F1)),
                         ),
                       ),
-                      validator: (value) => value != null && value.contains('@')
-                          ? null
-                          : 'Enter a valid email address.',
+                      validator: (value) =>
+                          value != null && value.contains('@') ? null : l10n.authEmailInvalid,
                     ),
                     const SizedBox(height: 17),
-                    const _FieldLabel('PASSWORD'),
+                    _FieldLabel(l10n.authPasswordLabel.toUpperCase()),
                     const SizedBox(height: 7),
                     TextFormField(
                       key: const ValueKey('auth_password_field'),
@@ -114,7 +122,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         suffixIcon: IconButton(
                           key: const ValueKey('auth_password_visibility'),
-                          tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                          tooltip: _obscurePassword ? l10n.authShowPassword : l10n.authHidePassword,
                           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           icon: Icon(
                             _obscurePassword
@@ -126,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       validator: (value) =>
-                          value != null && value.length >= 8 ? null : 'Use at least 8 characters.',
+                          value != null && value.length >= 8 ? null : l10n.authPasswordTooShort,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                     if (!_isCreatingAccount)
@@ -140,7 +148,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             visualDensity: VisualDensity.compact,
                           ),
-                          child: const Text('Forgot password?', style: TextStyle(fontSize: 12)),
+                          child: Text(
+                            l10n.authForgotPassword,
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
                       )
                     else
@@ -157,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : Text(
-                                _isCreatingAccount ? 'Create account' : 'Log in',
+                                _isCreatingAccount ? l10n.createAccount : l10n.authLoginTab,
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                               ),
                       ),
@@ -180,9 +191,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        label: const Text(
-                          'Continue with Google',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        label: Text(
+                          l10n.authContinueWithGoogle,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -193,16 +204,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         foregroundColor: AppColors.blueDark,
                         padding: const EdgeInsets.symmetric(vertical: 17),
                       ),
-                      child: const Text(
-                        'Continue as guest',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      child: Text(
+                        l10n.continueAsGuest,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(height: 13),
-                    const Text(
-                      'Your data is private and encrypted.',
+                    Text(
+                      l10n.authPrivacyNote,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted, fontSize: 11),
+                      style: const TextStyle(color: AppColors.muted, fontSize: 11),
                     ),
                   ],
                 ),
@@ -232,9 +243,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _requestPasswordReset() {
     final email = _emailController.text.trim();
+    final l10n = AppLocalizations.of(context);
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid email address to reset your password.')),
+        SnackBar(content: Text(l10n.authResetEmailInvalid)),
       );
       return;
     }
@@ -257,24 +269,35 @@ class _BrandHeader extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 12),
-      const Text(
-        'ClearBudget',
-        style: TextStyle(color: AppColors.navy, fontSize: 26, fontWeight: FontWeight.w700),
+      Text(
+        AppLocalizations.of(context).appTitle,
+        style: const TextStyle(
+          color: AppColors.navy,
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       const SizedBox(height: 4),
-      const Text(
-        'Clarity for every peso.',
-        style: TextStyle(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w500),
+      Text(
+        AppLocalizations.of(context).authTagline,
+        style: const TextStyle(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w500),
       ),
     ],
   );
 }
 
 class _AuthTabs extends StatelessWidget {
-  const _AuthTabs({required this.isCreatingAccount, required this.onSelectionChanged});
+  const _AuthTabs({
+    required this.isCreatingAccount,
+    required this.onSelectionChanged,
+    required this.loginLabel,
+    required this.createLabel,
+  });
 
   final bool isCreatingAccount;
   final ValueChanged<bool> onSelectionChanged;
+  final String loginLabel;
+  final String createLabel;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -286,7 +309,7 @@ class _AuthTabs extends StatelessWidget {
         Expanded(
           child: _AuthTab(
             key: const ValueKey('auth_login_tab'),
-            label: 'Log in',
+            label: loginLabel,
             selected: !isCreatingAccount,
             onTap: () => onSelectionChanged(false),
           ),
@@ -294,7 +317,7 @@ class _AuthTabs extends StatelessWidget {
         Expanded(
           child: _AuthTab(
             key: const ValueKey('auth_signup_tab'),
-            label: 'Create account',
+            label: createLabel,
             selected: isCreatingAccount,
             onTap: () => onSelectionChanged(true),
           ),
@@ -359,7 +382,7 @@ class _OrDivider extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Text(
-          'or continue with',
+          AppLocalizations.of(context).authOrContinueWith,
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: AppColors.muted, fontSize: 12),

@@ -1,5 +1,5 @@
 # Copy to android/key.properties locally. Never commit the real file.
-storeFile=/absolute/path/to/clearbudget-upload-keystore.jks
+storeFile=/absolute/path/to/lumiomoney-upload-keystore.jks
 storePassword=REPLACE_ME
-keyAlias=clearbudget-upload
+keyAlias=lumiomoney-upload
 keyPassword=REPLACE_ME

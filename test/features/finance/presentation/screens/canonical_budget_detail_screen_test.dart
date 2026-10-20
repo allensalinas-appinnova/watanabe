@@ -262,6 +262,11 @@ void main() {
     await tester.pumpAndSettle();
     verify(() => actions.deleteBudgetItem('user-1', 'budget-1', 'item-1')).called(1);
 
+    await tester.drag(
+      find.byKey(const ValueKey('budget_detail_scroll')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('budget_archive_button')));
     await tester.pumpAndSettle();
     expect(find.text('¿Eliminar este presupuesto?'), findsOneWidget);

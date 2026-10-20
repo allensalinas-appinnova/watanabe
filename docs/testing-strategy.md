@@ -36,8 +36,12 @@ The Firebase Auth/Firestore/Storage test requires Node.js, Firebase CLI (invoked
 Java supported by the currently downloaded emulator, Flutter, and an Android
 or iOS simulator (or attached device). By default the runner targets Android's
 `emulator-5554` with host `10.0.2.2`. For an iOS simulator, set
-`E2E_PLATFORM=ios` and `DEVELOPER_DIR` to the selected Xcode developer path;
-the default host is `127.0.0.1`. Pass the target device ID as the first
+`E2E_PLATFORM=ios` and select the full Xcode installation as the active
+developer directory first (not Command Line Tools), because native-asset build
+hooks also resolve the iOS SDK through `xcode-select`. For example, run once:
+`sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.
+`DEVELOPER_DIR` may then be set when choosing among multiple Xcode installs.
+The default host is `127.0.0.1`. Pass the target device ID as the first
 argument. Set `FIREBASE_EMULATOR_HOST` when using another target, for example
 a physical device's reachable development-machine address.
 The suite is isolated per invocation and its emulator data is discarded when

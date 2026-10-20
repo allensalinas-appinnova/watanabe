@@ -12,6 +12,7 @@ import 'package:personal_finance/features/finance/domain/entities/finance_catego
 import 'package:personal_finance/features/finance/domain/repositories/canonical_finance_repository.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_categories_screen.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/finance_category_icon.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 class _MockFinanceRepository extends Mock implements CanonicalFinanceRepository {}
@@ -40,7 +41,10 @@ const _categories = [
 ];
 
 void main() {
-  setUpAll(() => registerFallbackValue(_FakeFinanceCategory()));
+  setUpAll(() {
+    registerFallbackValue(_FakeFinanceCategory());
+    registerFallbackValue(CategoryType.expense);
+  });
 
   Widget subject({
     required _MockFinanceRepository repository,
@@ -106,17 +110,127 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('category_edit_food')));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const ValueKey('category_icon_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_option_health')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_cancel')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FinanceCategoryIcon>(find.byKey(const ValueKey('category_icon_preview')))
+          .iconId,
+      'restaurant',
+    );
+    await tester.tap(find.byKey(const ValueKey('category_icon_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_option_health')));
+    await tester.tap(find.byKey(const ValueKey('category_icon_use')));
+    await tester.pumpAndSettle();
+
     final nameField = find.byKey(const ValueKey('category_edit_name'));
     await tester.enterText(nameField, 'Mercado y comida');
     await tester.tap(find.byKey(const ValueKey('category_edit_save')));
     await tester.pumpAndSettle();
     expect(find.text('Ocurrió un problema. Inténtalo de nuevo.'), findsWidgets);
     expect(tester.widget<TextField>(nameField).controller!.text, 'Mercado y comida');
+    expect(
+      tester
+          .widget<FinanceCategoryIcon>(find.byKey(const ValueKey('category_icon_preview')))
+          .iconId,
+      'health',
+    );
 
     await tester.tap(find.byKey(const ValueKey('category_edit_save')));
     await tester.pumpAndSettle();
     expect(find.text('Categoría actualizada'), findsOneWidget);
-    verify(() => repository.updateCategory('user-1', any(that: isA<FinanceCategory>()))).called(2);
+    verify(
+      () => repository.updateCategory(
+        'user-1',
+        any(that: predicate<FinanceCategory>((item) => item.icon == 'health')),
+      ),
+    ).called(2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('creates a category with the explicitly confirmed icon', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _MockFinanceRepository();
+    when(
+      () => repository.createCategory(
+        any(),
+        name: any(named: 'name'),
+        type: any(named: 'type'),
+        icon: any(named: 'icon'),
+      ),
+    ).thenAnswer(
+      (_) async => const Right<Failure, FinanceCategory>(
+        FinanceCategory(
+          id: 'custom1',
+          type: CategoryType.expense,
+          icon: 'transport',
+          sortOrder: 9,
+          isSystem: false,
+          isArchived: false,
+          customName: 'Movilidad',
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(subject(repository: repository, locale: const Locale('pt')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('categories_create')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('category_create_name')), 'Mobilidade');
+    await tester.tap(find.byKey(const ValueKey('category_icon_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_option_transport')));
+    await tester.tap(find.byKey(const ValueKey('category_icon_use')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_create_save')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.createCategory(
+        'user-1',
+        name: 'Mobilidade',
+        type: CategoryType.expense,
+        icon: 'transport',
+      ),
+    ).called(1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('create category uses the edit form visual system on compact screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _MockFinanceRepository();
+    await tester.pumpWidget(
+      subject(repository: repository, locale: const Locale('es'), textScale: 1.35),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('categories_create')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('category_create_dialog_surface')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_create_title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_create_name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_create_type')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_icon_preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_icon_change')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_create_cancel')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_create_save')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('category_create_save')));
     expect(tester.takeException(), isNull);
   });
 
@@ -133,6 +247,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('category_edit_food')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('category_edit_archive')));
     await tester.tap(find.byKey(const ValueKey('category_edit_archive')));
     await tester.pumpAndSettle();
 

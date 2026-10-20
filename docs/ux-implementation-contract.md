@@ -1,9 +1,9 @@
 ---
-title: ClearBudget UX implementation contract
+title: LumioMoney UX implementation contract
 summary: UX decisions, visual states, data mapping, and observability rules for the mobile beta.
 ---
 
-# ClearBudget UX implementation contract
+# LumioMoney UX implementation contract
 
 Status: proposed implementation contract for the next Flutter UX iteration.
 

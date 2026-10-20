@@ -10,6 +10,7 @@ import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
 import '../../features/finance/presentation/screens/account_form_screen.dart';
+import '../../features/finance/presentation/screens/activity_filters_screen.dart';
 import '../../features/finance/presentation/screens/canonical_accounts_screen.dart';
 import '../../features/finance/presentation/screens/canonical_activity_screen.dart';
 import '../../features/finance/presentation/screens/canonical_budget_create_screen.dart';
@@ -88,6 +89,14 @@ GoRouter _buildAppRouter() => GoRouter(
               path: '/activity',
               name: 'activity',
               builder: (context, state) => const CanonicalActivityScreen(),
+              routes: [
+                GoRoute(
+                  path: 'filters',
+                  name: 'activity-filters',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => const ActivityFiltersScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -174,6 +183,8 @@ GoRouter _buildAppRouter() => GoRouter(
         initialType: state.uri.queryParameters['type'] == 'income'
             ? OperationType.income
             : OperationType.expense,
+        initialAccountId: state.uri.queryParameters['accountId'],
+        initialCategoryId: state.uri.queryParameters['categoryId'],
       ),
     ),
     GoRoute(
@@ -197,6 +208,8 @@ GoRouter _buildAppRouter() => GoRouter(
         initialType: state.uri.queryParameters['type'] == 'income'
             ? OperationType.income
             : OperationType.expense,
+        initialAccountId: state.uri.queryParameters['accountId'],
+        initialCategoryId: state.uri.queryParameters['categoryId'],
       ),
     ),
     GoRoute(
@@ -211,7 +224,9 @@ GoRouter _buildAppRouter() => GoRouter(
     GoRoute(
       path: '/transfers/new',
       name: 'new-transfer',
-      builder: (context, state) => const CanonicalTransferScreen(),
+      builder: (context, state) => CanonicalTransferScreen(
+        initialSourceAccountId: state.uri.queryParameters['sourceAccountId'],
+      ),
     ),
   ],
 );

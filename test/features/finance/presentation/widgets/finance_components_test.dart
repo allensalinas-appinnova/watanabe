@@ -1,8 +1,114 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_finance/features/finance/presentation/widgets/finance_components.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/finance_design_assets.dart';
+import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
+  testWidgets('bottom navigation uses the approved four vector destinations and styles', (
+    tester,
+  ) async {
+    var selectedIndex = 0;
+    await tester.pumpWidget(
+      _localizedApp(
+        locale: const Locale('es'),
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            bottomNavigationBar: FinanceBottomNavigation(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) => setState(() => selectedIndex = index),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final bar = tester.widget<NavigationBar>(
+      find.byKey(const ValueKey('finance_bottom_navigation')),
+    );
+    expect(bar.selectedIndex, 0);
+    final destinations = tester.widgetList<NavigationDestination>(
+      find.byType(NavigationDestination),
+    );
+    expect(destinations.map((destination) => destination.label), [
+      'Inicio',
+      'Actividad',
+      'Presupuesto',
+      'Cuentas',
+    ]);
+    expect(
+      [
+        for (var index = 0; index < 4; index++)
+          FinanceDesignAssets.navigation(index: index, selected: true),
+      ],
+      [
+        'assets/icons/nav_home_selected.svg',
+        'assets/icons/nav_activity_selected.svg',
+        'assets/icons/nav_budget_selected.svg',
+        'assets/icons/nav_accounts_selected.svg',
+      ],
+    );
+    for (final destination in destinations) {
+      expect(destination.icon, isA<SvgPicture>());
+      expect(destination.selectedIcon, isA<SvgPicture>());
+    }
+    for (final key in const [
+      'finance_nav_home',
+      'finance_nav_activity',
+      'finance_nav_budget',
+      'finance_nav_accounts',
+    ]) {
+      expect(tester.getSize(find.byKey(ValueKey(key))).height, greaterThanOrEqualTo(48));
+    }
+    final navTheme = tester.widget<NavigationBarTheme>(
+      find.ancestor(
+        of: find.byKey(const ValueKey('finance_bottom_navigation')),
+        matching: find.byType(NavigationBarTheme),
+      ),
+    );
+    expect(navTheme.data.height, 76);
+    expect(navTheme.data.backgroundColor, Colors.white);
+    expect(navTheme.data.indicatorColor, const Color(0xFFE3F2FD));
+
+    for (final (index, label) in ['Inicio', 'Actividad', 'Presupuesto', 'Cuentas'].indexed) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(selectedIndex, index);
+      expect(
+        tester
+            .widget<NavigationBar>(find.byKey(const ValueKey('finance_bottom_navigation')))
+            .selectedIndex,
+        index,
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('bottom navigation fits compact width with enlarged Portuguese text', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _localizedApp(
+        locale: const Locale('pt'),
+        textScale: 1.5,
+        home: const Scaffold(
+          bottomNavigationBar: FinanceBottomNavigation(selectedIndex: 2),
+        ),
+      ),
+    );
+
+    expect(find.text('Início'), findsOneWidget);
+    expect(find.text('Atividade'), findsOneWidget);
+    expect(find.text('Orçamento'), findsOneWidget);
+    expect(find.text('Contas'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('operation type selector exposes both centered choices and reports selection', (
     tester,
   ) async {
@@ -61,3 +167,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+Widget _localizedApp({
+  required Widget home,
+  Locale? locale,
+  double textScale = 1,
+}) => MaterialApp(
+  locale: locale,
+  localizationsDelegates: const [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: AppLocalizations.supportedLocales,
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+    child: child!,
+  ),
+  home: home,
+);

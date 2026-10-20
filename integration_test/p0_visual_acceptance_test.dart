@@ -189,6 +189,17 @@ void main() {
     await _capture(tester, binding, '05_accounts');
     await _go(tester, '/categories', find.byType(CanonicalCategoriesScreen));
     await _capture(tester, binding, '06_categories');
+    await tester.tap(find.byKey(ValueKey('category_edit_${expenseCategory.id}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_icon_option_health')));
+    await tester.tap(find.byKey(const ValueKey('category_icon_use')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_edit_save')));
+    await tester.pumpAndSettle();
+    final persistedCategory = await userRef.collection('categories').doc(expenseCategory.id).get();
+    expect(persistedCategory.data()?['icon'], 'health');
     await _go(tester, '/operations/new?type=income', find.byType(CanonicalOperationFormScreen));
     await _capture(tester, binding, '07_add_income');
     await _go(tester, '/operations/new?type=expense', find.byType(CanonicalOperationFormScreen));

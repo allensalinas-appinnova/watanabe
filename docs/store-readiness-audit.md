@@ -1,6 +1,6 @@
 ---
 title: Mobile store readiness audit
-summary: Evidence-based release gaps for ClearBudget on iOS and Android, reviewed on 2026-10-04.
+summary: Evidence-based release gaps for LumioMoney on iOS and Android, reviewed on 2026-10-04.
 ---
 
 # Mobile store readiness audit

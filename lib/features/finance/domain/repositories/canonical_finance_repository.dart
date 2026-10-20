@@ -119,6 +119,10 @@ abstract interface class CanonicalFinanceRepository {
     String? monthKey,
     String? currency,
     OperationType? type,
+    String? accountId,
+    List<String>? accountIds,
+    DateTime? startAt,
+    DateTime? endAtExclusive,
     int pageSize = 100,
   });
 

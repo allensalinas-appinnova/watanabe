@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:intl/intl.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/offline/sync_state.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
@@ -42,13 +43,26 @@ void main() {
       type: OperationType.transfer,
       description: 'Mover dinero',
       amountMinor: 20,
+      sourceAccountId: 'savings',
+      destinationAccountId: 'cash',
     ),
   ];
 
   Widget buildSubject({required Locale locale}) {
     final repository = _MockFinanceRepository();
     when(
-      () => repository.fetchOperationsPage(any(), type: any(named: 'type')),
+      () => repository.fetchOperationsPage(
+        any(),
+        cursor: any(named: 'cursor'),
+        monthKey: any(named: 'monthKey'),
+        currency: any(named: 'currency'),
+        type: any(named: 'type'),
+        accountId: any(named: 'accountId'),
+        accountIds: any(named: 'accountIds'),
+        startAt: any(named: 'startAt'),
+        endAtExclusive: any(named: 'endAtExclusive'),
+        pageSize: any(named: 'pageSize'),
+      ),
     ).thenAnswer((invocation) async {
       final type = invocation.namedArguments[#type] as OperationType?;
       return Right(
@@ -66,7 +80,10 @@ void main() {
         canonicalFinanceRepositoryProvider.overrideWithValue(repository),
         canonicalAccountsProvider('user-1').overrideWith(
           (ref) => Stream.value(
-            const [FinanceAccount(id: 'savings', name: 'Banco1 Ahorros', type: 'savings')],
+            const [
+              FinanceAccount(id: 'savings', name: 'Banco1 Ahorros', type: 'savings'),
+              FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash'),
+            ],
           ),
         ),
         canonicalCategoriesProvider('user-1').overrideWith(
@@ -77,6 +94,15 @@ void main() {
               customName: 'Comida',
               icon: 'food',
               sortOrder: 1,
+              isSystem: true,
+              isArchived: false,
+            ),
+            const FinanceCategory(
+              id: 'salary-category',
+              type: CategoryType.income,
+              customName: 'Salario',
+              icon: 'payments',
+              sortOrder: 2,
               isSystem: true,
               isArchived: false,
             ),
@@ -115,9 +141,13 @@ void main() {
     expect(find.text('Encuentra y revisa tus movimientos'), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_operation_salary')), findsOneWidget);
-    expect(find.text('Ingreso · Banco1 Ahorros'), findsOneWidget);
-    expect(find.text('Gasto · Comida'), findsOneWidget);
-    expect(find.text('Transferencia'), findsOneWidget);
+    final dateTime = DateFormat.yMMMd('es').add_Hm().format(DateTime(2026, 10, 7, 9, 30));
+    expect(find.text('Ingreso · $dateTime'), findsOneWidget);
+    expect(find.text('Gasto · $dateTime'), findsOneWidget);
+    expect(find.text('Transferencia · $dateTime'), findsOneWidget);
+    expect(find.text('Banco1 Ahorros · Salario'), findsOneWidget);
+    expect(find.text('Banco1 Ahorros · Comida'), findsOneWidget);
+    expect(find.text('Banco1 Ahorros → Efectivo'), findsOneWidget);
     expect(find.textContaining('COP'), findsNWidgets(3));
 
     await tester.tap(find.byKey(const ValueKey('activity_filter_income')));
@@ -160,16 +190,20 @@ FinancialOperation _operation({
   int amountMinor = 100,
   String? accountId,
   String? categoryId,
+  String? sourceAccountId,
+  String? destinationAccountId,
 }) => FinancialOperation(
   id: id,
   type: type,
   amountMinor: amountMinor,
   currency: 'COP',
   monthKey: '2026-10',
-  occurredAt: DateTime.utc(2026, 10, 7),
+  occurredAt: DateTime(2026, 10, 7, 9, 30),
   status: OperationStatus.confirmed,
   idempotencyKey: id,
   description: description,
   accountId: accountId,
   categoryId: categoryId,
+  sourceAccountId: sourceAccountId,
+  destinationAccountId: destinationAccountId,
 );

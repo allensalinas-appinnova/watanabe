@@ -7,7 +7,7 @@ The sibling `../studio` directory is the original web implementation and may be
 used only as a business-domain and functional reference. Do not copy its
 architecture or React/Next.js implementation decisions into this project.
 
-The current product concept is named ClearBudget. The functional baseline is
+The current product concept is named LumioMoney. The functional baseline is
 documented in `docs/functional-scope.md`.
 
 ## Source of truth

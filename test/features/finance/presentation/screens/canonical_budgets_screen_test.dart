@@ -204,9 +204,19 @@ void main() {
     expect(find.textContaining('Recibido'), findsOneWidget);
     expect(find.textContaining('Restante'), findsOneWidget);
     expect(find.textContaining('Excedido'), findsNWidgets(2));
+    await tester.drag(
+      find.byKey(const ValueKey('budget_monthly_list')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('budget_card_progress_food-budget')), findsOneWidget);
     expect(find.byKey(const ValueKey('budgets_manage_categories')), findsOneWidget);
 
+    await tester.drag(
+      find.byKey(const ValueKey('budget_monthly_list')),
+      const Offset(0, 500),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('budget_card_tap_food-budget')));
     await tester.pumpAndSettle();
     expect(find.text('Detail food-budget'), findsOneWidget);
@@ -241,6 +251,20 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('budget_filter_income')));
     await tester.pumpAndSettle();
     expect(find.text('Salario'), findsOneWidget);
+
+    for (final entry in const {
+      'budget_filter_all': 'Todos',
+      'budget_filter_expenses': 'Gastos',
+      'budget_filter_income': 'Ingresos',
+    }.entries) {
+      final button = find.byKey(ValueKey(entry.key));
+      final label = find.descendant(of: button, matching: find.text(entry.value));
+      final buttonCenter = tester.getCenter(button);
+      final labelCenter = tester.getCenter(label);
+      expect((buttonCenter.dx - labelCenter.dx).abs(), lessThan(1));
+      expect((buttonCenter.dy - labelCenter.dy).abs(), lessThan(1));
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+    }
   });
 
   testWidgets('month selector reloads empty month; error offers retry', (tester) async {
@@ -249,10 +273,43 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('budget_list_month')));
     await tester.pumpAndSettle();
-    expect(find.byType(DatePickerDialog), findsOneWidget);
-    await tester.tap(find.byType(TextButton).last);
+    expect(find.byKey(const ValueKey('budget_month_grid')), findsOneWidget);
+    final option = find.byKey(const ValueKey('budget_month_option_1'));
+    final optionText = find.descendant(of: option, matching: find.byType(Text));
+    final optionCenter = tester.getCenter(option);
+    final textCenter = tester.getCenter(optionText);
+    expect((optionCenter.dx - textCenter.dx).abs(), lessThan(1));
+    expect((optionCenter.dy - textCenter.dy).abs(), lessThan(1));
+    await tester.tap(find.byKey(const ValueKey('budget_month_confirm')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('budget_empty_title')), findsOneWidget);
+  });
+
+  testWidgets('month options and confirmation stay centered with localized large text', (
+    tester,
+  ) async {
+    setScreen(tester, const Size(360, 760));
+    await tester.pumpWidget(subject(locale: const Locale('pt'), textScale: 1.35));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_list_month')));
+    await tester.pumpAndSettle();
+
+    for (var month = 1; month <= 12; month++) {
+      final option = find.byKey(ValueKey('budget_month_option_$month'));
+      final label = find.descendant(of: option, matching: find.byType(Text));
+      final optionCenter = tester.getCenter(option);
+      final labelCenter = tester.getCenter(label);
+      expect((optionCenter.dx - labelCenter.dx).abs(), lessThan(1));
+      expect((optionCenter.dy - labelCenter.dy).abs(), lessThan(1));
+      expect(tester.getSize(option).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(option).height, greaterThanOrEqualTo(48));
+    }
+
+    final confirm = find.byKey(const ValueKey('budget_month_confirm'));
+    final confirmLabel = find.descendant(of: confirm, matching: find.text('Confirmar mês'));
+    expect((tester.getCenter(confirm).dx - tester.getCenter(confirmLabel).dx).abs(), lessThan(1));
+    expect((tester.getCenter(confirm).dy - tester.getCenter(confirmLabel).dy).abs(), lessThan(1));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('load error offers a recovery action', (tester) async {
@@ -268,7 +325,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Seus orçamentos'), findsOneWidget);
     expect(tester.takeException(), isNull);
-
     await tester.pumpWidget(subject(locale: const Locale('en'), textScale: 1.2));
     await tester.pumpAndSettle();
     expect(find.text('Your budgets'), findsOneWidget);

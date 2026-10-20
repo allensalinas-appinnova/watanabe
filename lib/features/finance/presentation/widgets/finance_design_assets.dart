@@ -1,6 +1,17 @@
 abstract final class FinanceDesignAssets {
   static const headerAction = 'assets/icons/clearbudget_header_action.svg';
 
+  static String navigation({required int index, required bool selected}) {
+    final state = selected ? 'selected' : 'unselected';
+    return switch (index) {
+      0 => 'assets/icons/nav_home_$state.svg',
+      1 => 'assets/icons/nav_activity_$state.svg',
+      2 => 'assets/icons/nav_budget_$state.svg',
+      3 => 'assets/icons/nav_accounts_$state.svg',
+      _ => throw RangeError.index(index, const [0, 1, 2, 3], 'index'),
+    };
+  }
+
   static String activity({required String category, required bool isIncome}) {
     if (isIncome) return 'assets/icons/activity_income.svg';
     return switch (category.toLowerCase()) {

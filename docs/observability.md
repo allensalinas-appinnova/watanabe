@@ -1,4 +1,4 @@
-# Observabilidad de ClearBudget
+# Observabilidad de LumioMoney
 
 ## Política
 

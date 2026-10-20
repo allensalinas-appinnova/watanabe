@@ -28,7 +28,7 @@
 
 - Typography: Inter is inherited from the app theme; heading and secondary hierarchy use Material 3 text roles. Post-change pixel comparison is not available.
 - Spacing/layout: explicit header gaps, 12 px between form fields, and fixed bottom action; post-change pixel comparison is not available.
-- Colors/tokens: existing ClearBudget `AppColors` are reused, not duplicated in the feature.
+- Colors/tokens: existing LumioMoney `AppColors` are reused, not duplicated in the feature.
 - Images/assets: the onboarding frame contains no static imagery requiring asset mapping.
 - Copy: heading now follows the Figma frame (`Prepara tu espacio`) and all visible labels use the currently selected locale.
 

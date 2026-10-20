@@ -269,14 +269,11 @@ void main() {
     await tester.pumpAndSettle();
     await _tap(tester, 'budget_month_selector');
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Next month'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('1').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
+    final nextMonth = DateTime(DateTime.now().year, DateTime.now().month + 1);
+    await tester.tap(find.byKey(ValueKey('budget_month_option_${nextMonth.month}')));
+    await tester.tap(find.byKey(const ValueKey('budget_month_confirm')));
     await tester.pumpAndSettle();
 
-    final nextMonth = DateTime(DateTime.now().year, DateTime.now().month + 1);
     final expectedLabel = DateFormat('MMMM yyyy', 'en').format(nextMonth);
     expect(
       find.descendant(

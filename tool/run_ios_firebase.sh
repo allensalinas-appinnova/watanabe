@@ -11,8 +11,8 @@ if [[ ! -f "$config_file" ]]; then
 fi
 
 project_id="$(sed -n 's/.*"FIREBASE_DEV_PROJECT_ID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$config_file")"
-if [[ "$project_id" != "studio-2659953950-840b8" ]]; then
-  echo "Refusing to run: expected Firebase project studio-2659953950-840b8." >&2
+if [[ "$project_id" != "lumiomoney" ]]; then
+  echo "Refusing to run: expected the new Firebase project lumiomoney." >&2
   exit 1
 fi
 

@@ -1,6 +1,6 @@
 ---
 title: Latin America market and business analysis
-summary: Competitor evidence, proposed positioning, pricing experiments and explicit unit-economics assumptions for ClearBudget.
+summary: Competitor evidence, proposed positioning, pricing experiments and explicit unit-economics assumptions for LumioMoney.
 ---
 
 # Latin America market and business analysis
@@ -8,7 +8,7 @@ summary: Competitor evidence, proposed positioning, pricing experiments and expl
 Research date: 2026-10-04. Market direction approved by the founder: Latin America
 from launch. Product, price, channel and revenue assumptions below are **proposed**.
 There is no measured acquisition, retention, willingness-to-pay or revenue dataset
-for ClearBudget in the reviewed project. No market-size or earnings claim is made.
+for LumioMoney in the reviewed project. No market-size or earnings claim is made.
 
 Read with [current release gaps](store-readiness-audit.md) and the
 [implementation backlog](implementation-backlog.md).
@@ -193,7 +193,7 @@ actual loaded rate and add design/QA/legal, acquisition and operating runway.
 - Product: which customer subgroup shows the clearest recurring pain and payment commitment.
 - Engineering: isolate mobile data from web or provide a tested versioned migration.
 - Product/engineering: whether credit-card instalments are essential to the first paying cohort.
-- Founder: final brand/domain after availability and trademark checks; ClearBudget is a working name.
+- Founder: final brand/domain after availability and trademark checks; LumioMoney remains a working name until those checks are complete.
 
 Recommended next business action: run CB-01 interviews and test the available-to-spend
 prototype while engineering corrects the ledger. Do not commit to bank sync, Gmail,

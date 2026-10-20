@@ -1,5 +1,5 @@
 ---
-title: ClearBudget implementation and business backlog
+title: LumioMoney implementation and business backlog
 summary: Prioritized, dependency-aware work with acceptance criteria and effort ranges for a LATAM launch.
 ---
 
@@ -86,7 +86,7 @@ project_status:
 | CB-19 | in_progress | 54 Flutter tests, five rules tests and Android 17 Emulator E2E pass; visual acceptance by screen, full offline UI journey, iOS and staging remain unavailable. |
 | CB-18 | in_progress | Crashlytics records only typed technical codes; Analytics remains allowlisted and parameterless; staging delivery and consent validation remain. |
 
-# ClearBudget implementation and business backlog
+# LumioMoney implementation and business backlog
 
 Baseline: 2026-10-04 local mobile project. All items are **Proposed / not started**
 in this planning delivery, including repairs. This document does not mean the

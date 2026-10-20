@@ -63,11 +63,13 @@ final _currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
 MonthlySummary _summary(String currency) => MonthlySummary(
   monthKey: '2026-03',
   currency: currency,
-  incomeMinor: currency == 'MXN' ? 120000 : 0,
-  expenseMinor: currency == 'COP' ? 32000 : 0,
+  incomeMinor: currency == 'MXN' ? 150000 : 0,
+  expenseMinor: currency == 'COP' ? 50000 : 0,
   transferInMinor: 90000,
   transferOutMinor: 90000,
-  byCategory: currency == 'MXN' ? {'salary': 120000} : {'food': -32000},
+  byCategory: currency == 'MXN'
+      ? {'salary': 120000, 'other-income': 30000}
+      : {'food': -32000, 'transport': -18000},
 );
 
 MonthlySummary _emptySummary(String currency) => MonthlySummary(
@@ -202,6 +204,18 @@ void main() {
     expect(find.text('Comida'), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_tracking_category_food-budget')), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_tracking_progress_COP_expense')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('budget_tracking_actual_COP_expense'))).data,
+      contains('32.000'),
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('budget_tracking_unbudgeted_amount_COP_expense')),
+          )
+          .data,
+      contains('18.000'),
+    );
     expect(find.textContaining('Restante'), findsWidgets);
     expect(find.textContaining('COP'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -226,6 +240,18 @@ void main() {
       find.byKey(const ValueKey('budget_tracking_remaining_MXN_income')),
     );
     expect(incomeRemaining.data, contains('200,00'));
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('budget_tracking_actual_MXN_income'))).data,
+      contains('1.200,00'),
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('budget_tracking_unbudgeted_amount_MXN_income')),
+          )
+          .data,
+      contains('300,00'),
+    );
   });
 
   testWidgets('empty state keeps month selection and opens budget creation', (tester) async {
@@ -256,16 +282,20 @@ void main() {
     );
     expect(find.text('MXN · Ingreso'), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_tracking_review_categories')), findsNWidgets(2));
-    // Actual income/expense are sourced from their own summary fields, not transfer totals.
+    // With no budgets, all normal flow activity is shown separately as unbudgeted.
     final incomeRemaining = tester.widget<Text>(
       find.byKey(const ValueKey('budget_tracking_remaining_MXN_income')),
     );
     final actualIncome = tester.widget<Text>(
       find.byKey(const ValueKey('budget_tracking_actual_MXN_income')),
     );
-    expect(actualIncome.data, contains('1.200,00'));
+    expect(actualIncome.data, contains('0,00'));
     expect(incomeRemaining.data, contains('Movimientos sin presupuesto'));
     expect(find.byKey(const ValueKey('budget_tracking_progress_MXN_income')), findsNothing);
+    final unbudgetedAmounts = tester.widgetList<Text>(
+      find.byKey(const ValueKey('budget_tracking_unbudgeted_amount_MXN_income')),
+    );
+    expect(unbudgetedAmounts.single.data, contains('1.500,00'));
   });
 
   testWidgets('load failure exposes retry and layout supports Portuguese enlarged text', (

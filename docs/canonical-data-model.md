@@ -1,4 +1,4 @@
-# ClearBudget canonical mobile data model
+# LumioMoney canonical mobile data model
 
 The mobile application owns this model. The retired web schema is not a
 compatibility constraint and no migration is planned for development data.

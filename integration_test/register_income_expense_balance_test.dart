@@ -62,31 +62,52 @@ void main() {
       find.byKey(const ValueKey('onboarding_account_name')),
       'Cuenta inicial',
     );
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
-    await _pumpUntil(tester, find.byKey(const ValueKey('home_add_income')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     expect(uid, isNotNull, reason: 'The registration flow must leave an authenticated user.');
 
-    await tester.tap(find.byKey(const ValueKey('home_accounts_nav')));
+    await tester.tap(find.byKey(const ValueKey('finance_nav_accounts')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
-    await tester.pumpAndSettle();
+    await _pumpUntil(tester, find.byKey(const ValueKey('account_name_field')));
     await tester.enterText(find.byKey(const ValueKey('account_name_field')), 'Banco1 Ahorros');
     await tester.enterText(find.byKey(const ValueKey('account_initial_balance_field')), '0');
     await tester.tap(find.byKey(const ValueKey('account_save')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.text('Banco1 Ahorros'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('accounts_home_nav')));
+    await tester.tap(find.byKey(const ValueKey('finance_nav_home')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const ValueKey('home_add_income')));
+    await tester.tap(find.byKey(const ValueKey('global_add_operation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add_movement_income')));
     await tester.pumpAndSettle();
     await _selectDropdown(tester, 'operation_account_selector', 'Banco1 Ahorros (COP)');
     await _selectDropdown(tester, 'operation_category_selector', 'Salario');
+    await tester.tap(find.byKey(const ValueKey('operation_more_options')));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('operation_amount')), '100');
     await tester.enterText(find.byKey(const ValueKey('operation_description')), 'Salario');
-    await tester.tap(find.byKey(const ValueKey('operation_save')));
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final incomeSave = find.byKey(const ValueKey('operation_save'));
+    final operationScrollable = find
+        .ancestor(
+          of: find.byKey(const ValueKey('operation_amount')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      incomeSave,
+      240,
+      scrollable: operationScrollable,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(incomeSave);
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     final accountId = await _waitForAccountBalance(
@@ -96,13 +117,32 @@ void main() {
     );
     expect(accountId, isNotEmpty);
 
-    await tester.tap(find.byKey(const ValueKey('home_add_expense')));
+    await tester.tap(find.byKey(const ValueKey('global_add_operation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add_movement_expense')));
     await tester.pumpAndSettle();
     await _selectDropdown(tester, 'operation_account_selector', 'Banco1 Ahorros (COP)');
     await _selectDropdown(tester, 'operation_category_selector', 'Alimentación');
+    await tester.tap(find.byKey(const ValueKey('operation_more_options')));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('operation_amount')), '80');
     await tester.enterText(find.byKey(const ValueKey('operation_description')), 'Mercado');
-    await tester.tap(find.byKey(const ValueKey('operation_save')));
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final expenseSave = find.byKey(const ValueKey('operation_save'));
+    final expenseScrollable = find
+        .ancestor(
+          of: find.byKey(const ValueKey('operation_amount')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      expenseSave,
+      240,
+      scrollable: expenseScrollable,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(expenseSave);
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     await _waitForAccountBalance(
@@ -111,7 +151,7 @@ void main() {
       expectedBalanceMinor: 20,
     );
 
-    await tester.tap(find.byKey(const ValueKey('home_accounts_nav')));
+    await tester.tap(find.byKey(const ValueKey('finance_nav_accounts')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     final row = find.byKey(ValueKey('account_row_$accountId'));
     expect(row, findsOneWidget);
@@ -130,7 +170,14 @@ Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> _selectDropdown(WidgetTester tester, String key, String option) async {
-  await tester.tap(find.byKey(ValueKey(key)));
+  final exact = find.byKey(ValueKey(key));
+  final finder = exact.evaluate().isNotEmpty
+      ? exact
+      : find.byWidgetPredicate(
+          (widget) =>
+              widget.key is ValueKey && '${(widget.key! as ValueKey).value}'.startsWith(key),
+        );
+  await tester.tap(finder.first);
   await tester.pumpAndSettle();
   final optionFinder = find.text(option);
   expect(optionFinder, findsWidgets, reason: 'Missing dropdown option: $option');

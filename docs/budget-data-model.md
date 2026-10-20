@@ -1,4 +1,4 @@
-# ClearBudget budget data model
+# LumioMoney budget data model
 
 > This document is retained as the budget-specific reference. The canonical
 > mobile schema is defined in [canonical-data-model.md](canonical-data-model.md);

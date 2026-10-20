@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -24,87 +25,97 @@ class CanonicalAccountsScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.appTitle,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.blueDark,
-                  fontWeight: FontWeight.w600,
+        child: GlobalFabScrollObserver(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 26, 24, 104),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.appTitle,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.blueDark,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.accountsTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.navy,
-                  fontSize: 25,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
+                const SizedBox(height: 20),
+                Text(
+                  l10n.accountsTitle,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.navy,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                l10n.accountsSubtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                  fontSize: 13,
+                const SizedBox(height: 2),
+                Text(
+                  l10n.accountsSubtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.muted,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              accounts.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => _AccountsError(
-                  message: l10n.genericError,
-                  retryLabel: l10n.retry,
-                  onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
-                ),
-                data: (items) => items.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Text(
-                          l10n.createFirstAccount,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          for (var index = 0; index < items.length; index++) ...[
-                            if (index > 0) const SizedBox(height: 18),
-                            _AccountCard(
-                              account: items[index],
-                              subtitle: _accountSubtitle(l10n, items[index]),
-                              balance: CurrencyFormatter.formatMinor(
-                                items[index].currentBalanceMinor,
-                                items[index].currency,
-                              ),
-                              editLabel: l10n.editAccount,
-                              archiveLabel: l10n.archive,
-                              onEdit: () => _editAccount(context, items[index]),
-                              onArchive: () => _archiveAccount(context, ref, user.id, items[index]),
+                const SizedBox(height: 24),
+                accounts.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (_, _) => _AccountsError(
+                    message: l10n.genericError,
+                    retryLabel: l10n.retry,
+                    onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                  ),
+                  data: (items) => items.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Text(
+                            l10n.createFirstAccount,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.muted,
                             ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (var index = 0; index < items.length; index++) ...[
+                              if (index > 0) const SizedBox(height: 18),
+                              _AccountCard(
+                                account: items[index],
+                                subtitle: _accountSubtitle(l10n, items[index]),
+                                balance: CurrencyFormatter.formatMinor(
+                                  items[index].currentBalanceMinor,
+                                  items[index].currency,
+                                ),
+                                editLabel: l10n.editAccount,
+                                archiveLabel: l10n.archive,
+                                onEdit: () => _editAccount(context, items[index]),
+                                onArchive: () =>
+                                    _archiveAccount(context, ref, user.id, items[index]),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 42),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  key: const ValueKey('accounts_add_button'),
-                  onPressed: () => _showCreate(context),
-                  child: Text(l10n.addAccount),
+                        ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 42),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    key: const ValueKey('accounts_add_button'),
+                    onPressed: () => _showCreate(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.navy,
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: AppColors.line),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      minimumSize: const Size.fromHeight(52),
+                    ),
+                    child: Text(l10n.addAccount),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

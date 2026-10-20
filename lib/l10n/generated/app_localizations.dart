@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In es, this message translates to:
-  /// **'ClearBudget'**
+  /// **'LumioMoney'**
   String get appTitle;
 
   /// No description provided for @loginTitle.
@@ -118,16 +118,166 @@ abstract class AppLocalizations {
   /// **'Continuar como invitado'**
   String get continueAsGuest;
 
+  /// No description provided for @authLoginTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar sesión'**
+  String get authLoginTab;
+
+  /// No description provided for @authEmailLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo electrónico'**
+  String get authEmailLabel;
+
+  /// No description provided for @authPasswordLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña'**
+  String get authPasswordLabel;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un correo electrónico válido.'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authPasswordTooShort.
+  ///
+  /// In es, this message translates to:
+  /// **'Usa al menos 8 caracteres.'**
+  String get authPasswordTooShort;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Olvidaste tu contraseña?'**
+  String get authForgotPassword;
+
+  /// No description provided for @authResetEmailInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un correo válido para recuperar tu contraseña.'**
+  String get authResetEmailInvalid;
+
+  /// No description provided for @authPasswordResetSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Si existe una cuenta con este correo, enviamos un enlace para restablecer la contraseña.'**
+  String get authPasswordResetSent;
+
+  /// No description provided for @authShowPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Mostrar contraseña'**
+  String get authShowPassword;
+
+  /// No description provided for @authHidePassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocultar contraseña'**
+  String get authHidePassword;
+
+  /// No description provided for @authContinueWithGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Google'**
+  String get authContinueWithGoogle;
+
+  /// No description provided for @authOrContinueWith.
+  ///
+  /// In es, this message translates to:
+  /// **'o continúa con'**
+  String get authOrContinueWith;
+
+  /// No description provided for @authPrivacyNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus datos son privados y están cifrados.'**
+  String get authPrivacyNote;
+
+  /// No description provided for @authActionFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos completar la acción. Revisa tus datos e inténtalo de nuevo.'**
+  String get authActionFailed;
+
+  /// No description provided for @authNetworkError.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay conexión. Revisa tu internet e inténtalo de nuevo.'**
+  String get authNetworkError;
+
+  /// No description provided for @authTagline.
+  ///
+  /// In es, this message translates to:
+  /// **'Claridad para cada peso.'**
+  String get authTagline;
+
+  /// No description provided for @hideBalances.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocultar importes'**
+  String get hideBalances;
+
+  /// No description provided for @showBalances.
+  ///
+  /// In es, this message translates to:
+  /// **'Mostrar importes'**
+  String get showBalances;
+
+  /// No description provided for @hiddenAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Importe oculto'**
+  String get hiddenAmount;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Más opciones'**
+  String get moreOptions;
+
   /// No description provided for @dashboardTitle.
   ///
   /// In es, this message translates to:
   /// **'Tu dinero, con claridad.'**
   String get dashboardTitle;
 
+  /// No description provided for @homeMenu.
+  ///
+  /// In es, this message translates to:
+  /// **'Más opciones'**
+  String get homeMenu;
+
+  /// No description provided for @homeTotalBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo total'**
+  String get homeTotalBalance;
+
+  /// No description provided for @homeBudgetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuesto del mes'**
+  String get homeBudgetTitle;
+
+  /// No description provided for @homeMonthlySummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen de {month} · {currency}'**
+  String homeMonthlySummary(Object month, Object currency);
+
+  /// No description provided for @seeAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver todos'**
+  String get seeAll;
+
   /// No description provided for @setupTitle.
   ///
   /// In es, this message translates to:
-  /// **'Configura ClearBudget'**
+  /// **'Configura LumioMoney'**
   String get setupTitle;
 
   /// No description provided for @personalizeExperience.
@@ -196,6 +346,138 @@ abstract class AppLocalizations {
   /// **'Todos'**
   String get activityFilterAll;
 
+  /// No description provided for @activityFilterAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtros · {account} · {period}'**
+  String activityFilterAction(Object account, Object period);
+
+  /// No description provided for @activityFilterTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtrar actividad'**
+  String get activityFilterTitle;
+
+  /// No description provided for @activityFilterAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'CUENTA'**
+  String get activityFilterAccount;
+
+  /// No description provided for @activityFilterAllAccounts.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas las cuentas'**
+  String get activityFilterAllAccounts;
+
+  /// No description provided for @activityFilterPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'PERIODO'**
+  String get activityFilterPeriod;
+
+  /// No description provided for @activityFilterMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Mes'**
+  String get activityFilterMonth;
+
+  /// No description provided for @activityFilterDateRange.
+  ///
+  /// In es, this message translates to:
+  /// **'Rango de fechas'**
+  String get activityFilterDateRange;
+
+  /// No description provided for @activityFilterSelectAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige las cuentas'**
+  String get activityFilterSelectAccount;
+
+  /// No description provided for @activityFilterMultiSelectHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes elegir hasta 10 cuentas. Una transferencia aparece si seleccionas cualquiera de sus cuentas.'**
+  String get activityFilterMultiSelectHint;
+
+  /// No description provided for @activityFilterDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get activityFilterDone;
+
+  /// No description provided for @activityFilterSelectedAccountCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, one{{count} cuenta} other{{count} cuentas}}'**
+  String activityFilterSelectedAccountCount(int count);
+
+  /// No description provided for @activityFilterSelectMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir mes'**
+  String get activityFilterSelectMonth;
+
+  /// No description provided for @activityFilterStartDate.
+  ///
+  /// In es, this message translates to:
+  /// **'DESDE'**
+  String get activityFilterStartDate;
+
+  /// No description provided for @activityFilterEndDate.
+  ///
+  /// In es, this message translates to:
+  /// **'HASTA'**
+  String get activityFilterEndDate;
+
+  /// No description provided for @activityFilterTimezoneHint.
+  ///
+  /// In es, this message translates to:
+  /// **'El mes se interpreta según tu zona horaria.'**
+  String get activityFilterTimezoneHint;
+
+  /// No description provided for @activityFilterRangeHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige fechas dentro de {month}.'**
+  String activityFilterRangeHint(Object month);
+
+  /// No description provided for @activityFilterApply.
+  ///
+  /// In es, this message translates to:
+  /// **'Aplicar filtros'**
+  String get activityFilterApply;
+
+  /// No description provided for @activityFilterReset.
+  ///
+  /// In es, this message translates to:
+  /// **'Restablecer'**
+  String get activityFilterReset;
+
+  /// No description provided for @activityFilterUseMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar {month}'**
+  String activityFilterUseMonth(Object month);
+
+  /// No description provided for @activityFilterUseDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar fecha'**
+  String get activityFilterUseDate;
+
+  /// No description provided for @activityFilterAllDates.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas las fechas'**
+  String get activityFilterAllDates;
+
+  /// No description provided for @activityFilterSelectedDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'{account} · {range}'**
+  String activityFilterSelectedDetails(Object account, Object range);
+
   /// No description provided for @transferOperationLabel.
   ///
   /// In es, this message translates to:
@@ -255,6 +537,84 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Agregar movimiento'**
   String get addMovement;
+
+  /// No description provided for @addMovementChoiceTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué quieres agregar?'**
+  String get addMovementChoiceTitle;
+
+  /// No description provided for @addMovementChoiceSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige una opción para continuar'**
+  String get addMovementChoiceSubtitle;
+
+  /// No description provided for @moveMoney.
+  ///
+  /// In es, this message translates to:
+  /// **'Mover dinero'**
+  String get moveMoney;
+
+  /// No description provided for @close.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get close;
+
+  /// No description provided for @transferExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Mover dinero pasa fondos entre tus cuentas propias. No suma ni resta al saldo total.'**
+  String get transferExplanation;
+
+  /// No description provided for @incomeRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingreso registrado · {amount}'**
+  String incomeRegistered(Object amount);
+
+  /// No description provided for @expenseRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Gasto registrado · {amount}'**
+  String expenseRegistered(Object amount);
+
+  /// No description provided for @transferRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Transferencia registrada'**
+  String get transferRegistered;
+
+  /// No description provided for @viewMovement.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver movimiento'**
+  String get viewMovement;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver detalle'**
+  String get viewDetails;
+
+  /// No description provided for @viewPendingOperations.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver pendientes'**
+  String get viewPendingOperations;
+
+  /// No description provided for @pendingBalanceNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Hay movimientos guardados en este dispositivo. El saldo confirmado puede no incluirlos todavía.'**
+  String get pendingBalanceNote;
+
+  /// No description provided for @notVisibleWithCurrentFilters.
+  ///
+  /// In es, this message translates to:
+  /// **'No aparece con los filtros actuales'**
+  String get notVisibleWithCurrentFilters;
 
   /// No description provided for @genericError.
   ///
@@ -561,6 +921,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Fecha'**
   String get date;
+
+  /// No description provided for @time.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora'**
+  String get time;
 
   /// No description provided for @account.
   ///
@@ -916,6 +1282,12 @@ abstract class AppLocalizations {
   /// **'{count} categorías tienen movimientos sin presupuesto'**
   String unbudgetedCategoryCount(Object count);
 
+  /// No description provided for @unbudgetedActualAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Total sin presupuesto · {amount}'**
+  String unbudgetedActualAmount(Object amount);
+
   /// No description provided for @budgetMonth.
   ///
   /// In es, this message translates to:
@@ -1245,6 +1617,120 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Editar'**
   String get budgetEditAction;
+
+  /// No description provided for @categoryIcon.
+  ///
+  /// In es, this message translates to:
+  /// **'Ícono de categoría'**
+  String get categoryIcon;
+
+  /// No description provided for @categoryIconLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Ícono'**
+  String get categoryIconLabel;
+
+  /// No description provided for @categoryIconUtensils.
+  ///
+  /// In es, this message translates to:
+  /// **'Cubiertos'**
+  String get categoryIconUtensils;
+
+  /// No description provided for @categoryIconHouse.
+  ///
+  /// In es, this message translates to:
+  /// **'Casa'**
+  String get categoryIconHouse;
+
+  /// No description provided for @categoryIconCar.
+  ///
+  /// In es, this message translates to:
+  /// **'Automóvil'**
+  String get categoryIconCar;
+
+  /// No description provided for @categoryIconHeart.
+  ///
+  /// In es, this message translates to:
+  /// **'Corazón'**
+  String get categoryIconHeart;
+
+  /// No description provided for @categoryIconBook.
+  ///
+  /// In es, this message translates to:
+  /// **'Libro'**
+  String get categoryIconBook;
+
+  /// No description provided for @categoryIconBriefcase.
+  ///
+  /// In es, this message translates to:
+  /// **'Maletín'**
+  String get categoryIconBriefcase;
+
+  /// No description provided for @categoryIconTag.
+  ///
+  /// In es, this message translates to:
+  /// **'Etiqueta'**
+  String get categoryIconTag;
+
+  /// No description provided for @changeIcon.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar'**
+  String get changeIcon;
+
+  /// No description provided for @useIcon.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar ícono'**
+  String get useIcon;
+
+  /// No description provided for @budgetConfirmMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar mes'**
+  String get budgetConfirmMonth;
+
+  /// No description provided for @categoryIconFood.
+  ///
+  /// In es, this message translates to:
+  /// **'Comida'**
+  String get categoryIconFood;
+
+  /// No description provided for @categoryIconHousing.
+  ///
+  /// In es, this message translates to:
+  /// **'Vivienda'**
+  String get categoryIconHousing;
+
+  /// No description provided for @categoryIconTransport.
+  ///
+  /// In es, this message translates to:
+  /// **'Transporte'**
+  String get categoryIconTransport;
+
+  /// No description provided for @categoryIconHealth.
+  ///
+  /// In es, this message translates to:
+  /// **'Salud'**
+  String get categoryIconHealth;
+
+  /// No description provided for @categoryIconEducation.
+  ///
+  /// In es, this message translates to:
+  /// **'Educación'**
+  String get categoryIconEducation;
+
+  /// No description provided for @categoryIconSalary.
+  ///
+  /// In es, this message translates to:
+  /// **'Salario'**
+  String get categoryIconSalary;
+
+  /// No description provided for @categoryIconOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otros'**
+  String get categoryIconOther;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -9,7 +9,7 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'ClearBudget';
+  String get appTitle => 'LumioMoney';
 
   @override
   String get loginTitle => 'Entrar';
@@ -21,10 +21,88 @@ class AppLocalizationsPt extends AppLocalizations {
   String get continueAsGuest => 'Continuar como convidado';
 
   @override
+  String get authLoginTab => 'Entrar';
+
+  @override
+  String get authEmailLabel => 'E-mail';
+
+  @override
+  String get authPasswordLabel => 'Senha';
+
+  @override
+  String get authEmailInvalid => 'Digite um e-mail válido.';
+
+  @override
+  String get authPasswordTooShort => 'Use pelo menos 8 caracteres.';
+
+  @override
+  String get authForgotPassword => 'Esqueceu a senha?';
+
+  @override
+  String get authResetEmailInvalid => 'Digite um e-mail válido para recuperar sua senha.';
+
+  @override
+  String get authPasswordResetSent =>
+      'Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.';
+
+  @override
+  String get authShowPassword => 'Mostrar senha';
+
+  @override
+  String get authHidePassword => 'Ocultar senha';
+
+  @override
+  String get authContinueWithGoogle => 'Continuar com Google';
+
+  @override
+  String get authOrContinueWith => 'ou continue com';
+
+  @override
+  String get authPrivacyNote => 'Seus dados são privados e criptografados.';
+
+  @override
+  String get authActionFailed => 'Não foi possível concluir. Confira seus dados e tente novamente.';
+
+  @override
+  String get authNetworkError => 'Sem conexão. Verifique sua internet e tente novamente.';
+
+  @override
+  String get authTagline => 'Clareza para cada real.';
+
+  @override
+  String get hideBalances => 'Ocultar valores';
+
+  @override
+  String get showBalances => 'Mostrar valores';
+
+  @override
+  String get hiddenAmount => 'Valor oculto';
+
+  @override
+  String get moreOptions => 'Mais opções';
+
+  @override
   String get dashboardTitle => 'Seu dinheiro, com clareza.';
 
   @override
-  String get setupTitle => 'Configure o ClearBudget';
+  String get homeMenu => 'Mais opções';
+
+  @override
+  String get homeTotalBalance => 'Saldo total';
+
+  @override
+  String get homeBudgetTitle => 'Orçamento do mês';
+
+  @override
+  String homeMonthlySummary(Object month, Object currency) {
+    return 'Resumo de $month · $currency';
+  }
+
+  @override
+  String get seeAll => 'Ver tudo';
+
+  @override
+  String get setupTitle => 'Configure o LumioMoney';
 
   @override
   String get personalizeExperience => 'Prepare seu espaço';
@@ -60,6 +138,89 @@ class AppLocalizationsPt extends AppLocalizations {
   String get activityFilterAll => 'Todas';
 
   @override
+  String activityFilterAction(Object account, Object period) {
+    return 'Filtros · $account · $period';
+  }
+
+  @override
+  String get activityFilterTitle => 'Filtrar atividade';
+
+  @override
+  String get activityFilterAccount => 'CONTA';
+
+  @override
+  String get activityFilterAllAccounts => 'Todas as contas';
+
+  @override
+  String get activityFilterPeriod => 'PERÍODO';
+
+  @override
+  String get activityFilterMonth => 'Mês';
+
+  @override
+  String get activityFilterDateRange => 'Intervalo de datas';
+
+  @override
+  String get activityFilterSelectAccount => 'Escolha as contas';
+
+  @override
+  String get activityFilterMultiSelectHint =>
+      'Escolha até 10 contas. Uma transferência aparece se qualquer uma das contas for selecionada.';
+
+  @override
+  String get activityFilterDone => 'Concluído';
+
+  @override
+  String activityFilterSelectedAccountCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count contas',
+      one: '$count conta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityFilterSelectMonth => 'Escolher mês';
+
+  @override
+  String get activityFilterStartDate => 'DE';
+
+  @override
+  String get activityFilterEndDate => 'ATÉ';
+
+  @override
+  String get activityFilterTimezoneHint => 'O mês segue o seu fuso horário.';
+
+  @override
+  String activityFilterRangeHint(Object month) {
+    return 'Escolha datas dentro de $month.';
+  }
+
+  @override
+  String get activityFilterApply => 'Aplicar filtros';
+
+  @override
+  String get activityFilterReset => 'Redefinir';
+
+  @override
+  String activityFilterUseMonth(Object month) {
+    return 'Usar $month';
+  }
+
+  @override
+  String get activityFilterUseDate => 'Usar data';
+
+  @override
+  String get activityFilterAllDates => 'Todas as datas';
+
+  @override
+  String activityFilterSelectedDetails(Object account, Object range) {
+    return '$account · $range';
+  }
+
+  @override
   String get transferOperationLabel => 'Transferência';
 
   @override
@@ -88,6 +249,51 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get addMovement => 'Adicionar movimentação';
+
+  @override
+  String get addMovementChoiceTitle => 'O que você quer adicionar?';
+
+  @override
+  String get addMovementChoiceSubtitle => 'Escolha uma opção para continuar';
+
+  @override
+  String get moveMoney => 'Mover dinheiro';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get transferExplanation =>
+      'Transfira dinheiro entre suas próprias contas. Isso não aumenta nem reduz o saldo total.';
+
+  @override
+  String incomeRegistered(Object amount) {
+    return 'Receita registrada · $amount';
+  }
+
+  @override
+  String expenseRegistered(Object amount) {
+    return 'Despesa registrada · $amount';
+  }
+
+  @override
+  String get transferRegistered => 'Transferência registrada';
+
+  @override
+  String get viewMovement => 'Ver lançamento';
+
+  @override
+  String get viewDetails => 'Ver detalhes';
+
+  @override
+  String get viewPendingOperations => 'Ver pendentes';
+
+  @override
+  String get pendingBalanceNote =>
+      'Há lançamentos salvos neste dispositivo. O saldo confirmado pode ainda não incluí-los.';
+
+  @override
+  String get notVisibleWithCurrentFilters => 'Este lançamento não aparece com os filtros atuais';
 
   @override
   String get genericError => 'Algo deu errado. Tente novamente.';
@@ -245,6 +451,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get date => 'Data';
+
+  @override
+  String get time => 'Horário';
 
   @override
   String get account => 'Conta';
@@ -453,6 +662,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String unbudgetedActualAmount(Object amount) {
+    return 'Total sem orçamento · $amount';
+  }
+
+  @override
   String get budgetMonth => 'Mês';
 
   @override
@@ -630,4 +844,61 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get budgetEditAction => 'Editar';
+
+  @override
+  String get categoryIcon => 'Ícone da categoria';
+
+  @override
+  String get categoryIconLabel => 'Ícone';
+
+  @override
+  String get categoryIconUtensils => 'Talheres';
+
+  @override
+  String get categoryIconHouse => 'Casa';
+
+  @override
+  String get categoryIconCar => 'Carro';
+
+  @override
+  String get categoryIconHeart => 'Coração';
+
+  @override
+  String get categoryIconBook => 'Livro';
+
+  @override
+  String get categoryIconBriefcase => 'Maleta';
+
+  @override
+  String get categoryIconTag => 'Etiqueta';
+
+  @override
+  String get changeIcon => 'Alterar';
+
+  @override
+  String get useIcon => 'Usar ícone';
+
+  @override
+  String get budgetConfirmMonth => 'Confirmar mês';
+
+  @override
+  String get categoryIconFood => 'Alimentação';
+
+  @override
+  String get categoryIconHousing => 'Moradia';
+
+  @override
+  String get categoryIconTransport => 'Transporte';
+
+  @override
+  String get categoryIconHealth => 'Saúde';
+
+  @override
+  String get categoryIconEducation => 'Educação';
+
+  @override
+  String get categoryIconSalary => 'Salário';
+
+  @override
+  String get categoryIconOther => 'Outros';
 }

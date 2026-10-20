@@ -56,11 +56,12 @@ files. The checks intentionally fail until the staging project, Android upload
 key and iOS development team are configured. They do not deploy or mutate
 Firebase.
 
-## Ejecutar en iOS contra el Firebase existente
+## Ejecutar en iOS contra el nuevo Firebase
 
-El proyecto de desarrollo enlazado actualmente es `studio-2659953950-840b8`
-(`watanabe`). La app iOS registrada usa el bundle ID
-`co.appinnova.personalFinance`. La configuración local está en
+El proyecto Firebase nuevo es `lumiomoney`. El bundle ID de iOS y el package
+name Android del código son `com.appinnova.lumiomoney`; ambos están registrados
+en este proyecto según los archivos de configuración locales. La configuración
+iOS local está en
 `config/firebase.dev.json` y se excluye de Git; no se debe copiar a un archivo
 versionado ni compartir en capturas o logs.
 
@@ -68,7 +69,7 @@ Para ejecutar en el simulador iOS:
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  ./tool/run_ios_firebase.sh 5FE95D04-2888-4AAF-8D4E-F85E7407ED95
+  ./tool/run_ios_firebase.sh <simulator-or-device-id>
 ```
 
 Este proyecto iOS integra plugins nativos usando Swift Package Manager, opción
@@ -81,15 +82,14 @@ configura firma de desarrollo en Xcode; lista su ID con `flutter devices` y
 pásalo al script. Si Flutter no está en `PATH`, configura `FLUTTER_BIN`.
 El script valida el ID del proyecto y siempre desactiva los emuladores.
 
-## Ejecutar en Android contra el Firebase existente
+## Ejecutar en Android contra el nuevo Firebase
 
-La app Android quedó registrada en el proyecto con el package name
-`co.appinnova.personal_finance`. Sus Dart defines locales se guardan en
+Los Dart defines Android locales se guardan en
 `config/firebase.dev.android.json`, excluido de Git y separado de las opciones
 iOS porque el `appId` de Firebase es específico por plataforma.
 
 En VS Code, selecciona el dispositivo Android en la barra de estado, elige
-**ClearBudget · Firebase real (Android)** en Run and Debug y presiona F5. El
+**LumioMoney · Firebase real (Android)** en Run and Debug y presiona F5. El
 perfil pasa `USE_FIREBASE_EMULATORS=false`; por tanto, opera contra el proyecto
 Firebase real. En un teléfono físico habilita USB debugging, conecta y acepta
 el diálogo de autorización. En un emulador Android, inicia primero el AVD.
@@ -102,14 +102,31 @@ esto no es requisito para abrir la app o usar otro proveedor ya habilitado.
 
 Google Sign-In requiere que Google esté habilitado como proveedor de Firebase
 Authentication y que el OAuth client esté asociado al bundle ID. El URL scheme
-reverso del client iOS ya está en `ios/Runner/Info.plist`. Los proveedores
-habilitados en Firebase Console deben comprobarse antes de probar el login; no
-activar ni desplegar proveedores sin revisar el impacto sobre la app web que
-comparte el proyecto.
+reverso del nuevo client iOS está en `ios/Runner/Info.plist`, y los archivos
+locales ignorados incluyen el Web OAuth client ID. El archivo Android recibido
+contiene un Web OAuth client pero no un Android OAuth client; añade las huellas
+SHA-1/SHA-256 de los certificados debug y release a la app Android en Firebase
+Console y descarga la configuración actualizada antes de probar Google Sign-In.
 
-La configuración no apunta a `staging` ni `prod`: el proyecto Firebase real
-seleccionado es compartido con el producto web, así que usa una cuenta de prueba
-propia y evita ejecutar pruebas automatizadas o crear datos de prueba allí.
+En un proyecto recién creado, habilita los proveedores de Authentication que
+vayas a probar (email/password se usa en el flujo normal), crea la base de datos
+Cloud Firestore en la región deseada e inicializa Cloud Storage si vas a usarlo.
+Revisa las reglas de Firestore y Storage antes de cargar datos reales. La
+configuración local no crea servicios ni despliega reglas.
+
+El catálogo global de categorías se inicializa por separado del perfil de cada
+usuario. Para sembrar únicamente los documentos faltantes en el proyecto
+`lumiomoney`, autentícate localmente con Google Cloud Application Default
+Credentials (ADC) y usa una cuenta con permisos de escritura de Firestore; luego
+ejecuta `npm --prefix functions run seed:catalog:real`. Este comando está fijado
+a `lumiomoney`, rechaza el uso de un host de emulador y preserva documentos
+existentes. El comando `npm --prefix functions run seed:catalog` continúa siendo
+exclusivo del emulador `demo-clearbudget`.
+
+La configuración `dev` apunta al proyecto Firebase real `lumiomoney`, no a
+`staging` ni `prod`. Usa cuentas de prueba propias y no ejecutes E2E automatizados
+contra ese proyecto; las pruebas automatizadas deben permanecer aisladas en
+`demo-clearbudget`.
 
 Para CI, cada entorno debe tener su propio grupo de secretos y su propio bundle/application ID cuando la distribución lo requiera. La configuración nativa `google-services.json` y `GoogleService-Info.plist` debe gestionarse fuera del repositorio o mediante perfiles seguros del pipeline.
 
@@ -137,11 +154,19 @@ recuperación, invitado y persistencia Firestore sí se cubren localmente.
 Las pruebas E2E siempre usan el proyecto ficticio `demo-clearbudget`; nunca
 usan el archivo local de Firebase real. Con el simulador iOS 17e ya iniciado:
 
+Antes de la primera ejecución, configura Xcode completo como el directorio
+activo de herramientas (los hooks nativos no resuelven el SDK iOS si `xcode-select -p`
+apunta a Command Line Tools):
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+
 ```bash
 E2E_PLATFORM=ios \
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 PATH="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin:/Users/allensalinas/dev/tools/flutter/bin:$PATH" \
-./tool/run_emulator_e2e.sh 5FE95D04-2888-4AAF-8D4E-F85E7407ED95
+./tool/run_emulator_e2e.sh <simulator-id>
 ```
 
 En Android, inicia un emulador y ejecuta

@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ClearBudget · Firebase real (iOS)",
+      "name": "LumioMoney · Firebase real (iOS)",
       "request": "launch",
       "type": "dart",
       "toolArgs": [
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "name": "ClearBudget · Firebase real (Android)",
+      "name": "LumioMoney · Firebase real (Android)",
       "request": "launch",
       "type": "dart",
       "toolArgs": [
@@ -22,7 +22,7 @@
       ]
     },
     {
-      "name": "ClearBudget · Firebase staging (iOS)",
+      "name": "LumioMoney · Firebase staging (iOS)",
       "request": "launch",
       "type": "dart",
       "toolArgs": [
@@ -32,7 +32,7 @@
       ]
     },
     {
-      "name": "ClearBudget · Firebase staging (Android)",
+      "name": "LumioMoney · Firebase staging (Android)",
       "request": "launch",
       "type": "dart",
       "toolArgs": [

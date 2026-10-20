@@ -33,6 +33,13 @@ case "$target_platform" in
     app_test_command="flutter test $test_file_arg -d $device_arg"
     ;;
   ios)
+    active_developer_dir="$(xcode-select -p 2>/dev/null || true)"
+    if [[ "$active_developer_dir" == *"/CommandLineTools" ]]; then
+      echo "iOS simulator builds require full Xcode as the active developer directory." >&2
+      echo "Run once: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer" >&2
+      echo "DEVELOPER_DIR alone does not fix native asset build hooks." >&2
+      exit 1
+    fi
     emulator_host="${FIREBASE_EMULATOR_HOST:-127.0.0.1}"
     app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=$test_file_arg -d $device_arg"
     ;;

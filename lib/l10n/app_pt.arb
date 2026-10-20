@@ -1,11 +1,42 @@
 {
   "@@locale": "pt",
-  "appTitle": "ClearBudget",
+  "appTitle": "LumioMoney",
   "loginTitle": "Entrar",
   "createAccount": "Criar conta",
   "continueAsGuest": "Continuar como convidado",
+  "authLoginTab": "Entrar",
+  "authEmailLabel": "E-mail",
+  "authPasswordLabel": "Senha",
+  "authEmailInvalid": "Digite um e-mail válido.",
+  "authPasswordTooShort": "Use pelo menos 8 caracteres.",
+  "authForgotPassword": "Esqueceu a senha?",
+  "authResetEmailInvalid": "Digite um e-mail válido para recuperar sua senha.",
+  "authPasswordResetSent": "Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.",
+  "authShowPassword": "Mostrar senha",
+  "authHidePassword": "Ocultar senha",
+  "authContinueWithGoogle": "Continuar com Google",
+  "authOrContinueWith": "ou continue com",
+  "authPrivacyNote": "Seus dados são privados e criptografados.",
+  "authActionFailed": "Não foi possível concluir. Confira seus dados e tente novamente.",
+  "authNetworkError": "Sem conexão. Verifique sua internet e tente novamente.",
+  "authTagline": "Clareza para cada real.",
+  "hideBalances": "Ocultar valores",
+  "showBalances": "Mostrar valores",
+  "hiddenAmount": "Valor oculto",
+  "moreOptions": "Mais opções",
   "dashboardTitle": "Seu dinheiro, com clareza.",
-  "setupTitle": "Configure o ClearBudget",
+  "homeMenu": "Mais opções",
+  "homeTotalBalance": "Saldo total",
+  "homeBudgetTitle": "Orçamento do mês",
+  "homeMonthlySummary": "Resumo de {month} · {currency}",
+  "@homeMonthlySummary": {
+    "placeholders": {
+      "month": {},
+      "currency": {}
+    }
+  },
+  "seeAll": "Ver tudo",
+  "setupTitle": "Configure o LumioMoney",
   "personalizeExperience": "Prepare seu espaço",
   "onboardingSubtitle": "Escolha suas preferências. Você pode alterá-las depois.",
   "language": "Idioma",
@@ -17,6 +48,33 @@
   "activity": "Atividade",
   "activitySubtitle": "Encontre e revise suas movimentações",
   "activityFilterAll": "Todas",
+  "activityFilterAction": "Filtros · {account} · {period}",
+  "@activityFilterAction": {"placeholders": {"account": {}, "period": {}}},
+  "activityFilterTitle": "Filtrar atividade",
+  "activityFilterAccount": "CONTA",
+  "activityFilterAllAccounts": "Todas as contas",
+  "activityFilterPeriod": "PERÍODO",
+  "activityFilterMonth": "Mês",
+  "activityFilterDateRange": "Intervalo de datas",
+  "activityFilterSelectAccount": "Escolha as contas",
+  "activityFilterMultiSelectHint": "Escolha até 10 contas. Uma transferência aparece se qualquer uma das contas for selecionada.",
+  "activityFilterDone": "Concluído",
+  "activityFilterSelectedAccountCount": "{count, plural, one{{count} conta} other{{count} contas}}",
+  "@activityFilterSelectedAccountCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityFilterSelectMonth": "Escolher mês",
+  "activityFilterStartDate": "DE",
+  "activityFilterEndDate": "ATÉ",
+  "activityFilterTimezoneHint": "O mês segue o seu fuso horário.",
+  "activityFilterRangeHint": "Escolha datas dentro de {month}.",
+  "@activityFilterRangeHint": {"placeholders": {"month": {}}},
+  "activityFilterApply": "Aplicar filtros",
+  "activityFilterReset": "Redefinir",
+  "activityFilterUseMonth": "Usar {month}",
+  "@activityFilterUseMonth": {"placeholders": {"month": {}}},
+  "activityFilterUseDate": "Usar data",
+  "activityFilterAllDates": "Todas as datas",
+  "activityFilterSelectedDetails": "{account} · {range}",
+  "@activityFilterSelectedDetails": {"placeholders": {"account": {}, "range": {}}},
   "transferOperationLabel": "Transferência",
   "budget": "Orçamento",
   "accounts": "Contas",
@@ -27,6 +85,21 @@
   "checkingAccountType": "Conta corrente",
   "savingsAccountType": "Conta poupança",
   "addMovement": "Adicionar movimentação",
+  "addMovementChoiceTitle": "O que você quer adicionar?",
+  "addMovementChoiceSubtitle": "Escolha uma opção para continuar",
+  "moveMoney": "Mover dinheiro",
+  "close": "Fechar",
+  "transferExplanation": "Transfira dinheiro entre suas próprias contas. Isso não aumenta nem reduz o saldo total.",
+  "incomeRegistered": "Receita registrada · {amount}",
+  "@incomeRegistered": { "placeholders": { "amount": {} } },
+  "expenseRegistered": "Despesa registrada · {amount}",
+  "@expenseRegistered": { "placeholders": { "amount": {} } },
+  "transferRegistered": "Transferência registrada",
+  "viewMovement": "Ver lançamento",
+  "viewDetails": "Ver detalhes",
+  "viewPendingOperations": "Ver pendentes",
+  "pendingBalanceNote": "Há lançamentos salvos neste dispositivo. O saldo confirmado pode ainda não incluí-los.",
+  "notVisibleWithCurrentFilters": "Este lançamento não aparece com os filtros atuais",
   "genericError": "Algo deu errado. Tente novamente.",
   "createFirstAccount": "Crie sua primeira conta para começar.",
   "plannedAmountLabel": "Total planejado",
@@ -78,6 +151,7 @@
   "amount": "Valor",
   "type": "Tipo",
   "date": "Data",
+  "time": "Horário",
   "account": "Conta",
   "category": "Categoria",
   "descriptionOptional": "Descrição (opcional)",
@@ -137,6 +211,7 @@
   ,"budgetUsedPercent": "{percent}% utilizado"
   ,"budgetReceivedPercent": "{percent}% recebido"
   ,"unbudgetedCategoryCount": "{count} categorias têm movimentações sem orçamento"
+  ,"unbudgetedActualAmount": "Total sem orçamento · {amount}"
   ,"budgetMonth": "Mês"
   ,"budgetSelectMonth": "Escolha um mês"
   ,"budgetPlannedItems": "Itens planejados"
@@ -193,4 +268,23 @@
   ,"budgetItemSaved": "Alterações salvas."
   ,"budgetItemAdded": "Item adicionado."
   ,"budgetEditAction": "Editar"
+  ,"categoryIcon": "Ícone da categoria"
+  ,"categoryIconLabel": "Ícone"
+  ,"categoryIconUtensils": "Talheres"
+  ,"categoryIconHouse": "Casa"
+  ,"categoryIconCar": "Carro"
+  ,"categoryIconHeart": "Coração"
+  ,"categoryIconBook": "Livro"
+  ,"categoryIconBriefcase": "Maleta"
+  ,"categoryIconTag": "Etiqueta"
+  ,"changeIcon": "Alterar"
+  ,"useIcon": "Usar ícone"
+  ,"budgetConfirmMonth": "Confirmar mês"
+  ,"categoryIconFood": "Alimentação"
+  ,"categoryIconHousing": "Moradia"
+  ,"categoryIconTransport": "Transporte"
+  ,"categoryIconHealth": "Saúde"
+  ,"categoryIconEducation": "Educação"
+  ,"categoryIconSalary": "Salário"
+  ,"categoryIconOther": "Outros"
 }

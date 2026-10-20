@@ -7,6 +7,8 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/category_icon_picker.dart';
+import '../widgets/finance_category_icon.dart';
 
 enum _CategoryEditAction { saved, archive }
 
@@ -85,7 +87,10 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.category_outlined, color: AppColors.blueDark),
+                          FinanceCategoryIcon(
+                            iconId: category.icon,
+                            semanticLabel: category.customName ?? category.id,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -141,65 +146,215 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
     final l10n = AppLocalizations.of(context);
     final name = TextEditingController();
     var type = _selectedType;
+    var icon = 'other';
+    var isSaving = false;
+    var errorMessage = '';
     try {
       final dialogRoute = DialogRoute<bool>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text(l10n.newCategory),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  key: const ValueKey('category_create_name'),
-                  controller: name,
-                  autofocus: true,
-                  onChanged: (_) => setDialogState(() {}),
-                  decoration: InputDecoration(labelText: l10n.categoryName),
+            title: null,
+            contentPadding: EdgeInsets.zero,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            content: Container(
+              key: const ValueKey('category_create_dialog_surface'),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.line),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 394),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.newCategory,
+                        key: const ValueKey('category_create_title'),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.navy,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.categorySavedDescription,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryName),
+                      const SizedBox(height: 8),
+                      TextField(
+                        key: const ValueKey('category_create_name'),
+                        controller: name,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        onChanged: (_) => setDialogState(() => errorMessage = ''),
+                        decoration: InputDecoration(
+                          errorText: errorMessage == l10n.categoryNameRequired
+                              ? errorMessage
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryType),
+                      const SizedBox(height: 8),
+                      Container(
+                        constraints: const BoxConstraints(minHeight: 52),
+                        padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.line),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<CategoryType>(
+                            key: const ValueKey('category_create_type'),
+                            value: type,
+                            isExpanded: true,
+                            items: [
+                              DropdownMenuItem(
+                                value: CategoryType.expense,
+                                child: Text(l10n.expense),
+                              ),
+                              DropdownMenuItem(
+                                value: CategoryType.income,
+                                child: Text(l10n.income),
+                              ),
+                            ],
+                            onChanged: isSaving
+                                ? null
+                                : (value) => setDialogState(() => type = value ?? type),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryIconLabel),
+                      const SizedBox(height: 8),
+                      _EditCategoryIconPreview(
+                        iconId: icon,
+                        iconLabel: _categoryIconLabel(icon, l10n),
+                        changeLabel: l10n.changeIcon,
+                        onChange: () async {
+                          final selected = await showCategoryIconPicker(dialogContext, icon);
+                          if (selected != null && dialogContext.mounted) {
+                            setDialogState(() => icon = selected);
+                          }
+                        },
+                      ),
+                      if (errorMessage == l10n.genericError) ...[
+                        const SizedBox(height: 8),
+                        Semantics(liveRegion: true, child: Text(errorMessage)),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: OutlinedButton(
+                                key: const ValueKey('category_create_cancel'),
+                                onPressed: isSaving
+                                    ? null
+                                    : () => Navigator.pop(dialogContext, false),
+                                child: Text(l10n.cancel, textAlign: TextAlign.center),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: FilledButton(
+                                key: const ValueKey('category_create_save'),
+                                onPressed: isSaving
+                                    ? null
+                                    : () async {
+                                        if (name.text.trim().isEmpty) {
+                                          setDialogState(
+                                            () => errorMessage = l10n.categoryNameRequired,
+                                          );
+                                          return;
+                                        }
+                                        setDialogState(() {
+                                          isSaving = true;
+                                          errorMessage = '';
+                                        });
+                                        try {
+                                          final result = await ref
+                                              .read(canonicalFinanceRepositoryProvider)
+                                              .createCategory(
+                                                userId,
+                                                name: name.text.trim(),
+                                                type: type,
+                                                icon: icon,
+                                              );
+                                          result.match(
+                                            (_) {
+                                              if (dialogContext.mounted) {
+                                                setDialogState(() {
+                                                  isSaving = false;
+                                                  errorMessage = l10n.genericError;
+                                                });
+                                              }
+                                            },
+                                            (_) {
+                                              ref.invalidate(
+                                                canonicalCategoriesProvider(userId),
+                                              );
+                                              if (dialogContext.mounted) {
+                                                Navigator.pop(dialogContext, true);
+                                              }
+                                            },
+                                          );
+                                        } catch (_) {
+                                          if (dialogContext.mounted) {
+                                            setDialogState(() {
+                                              isSaving = false;
+                                              errorMessage = l10n.genericError;
+                                            });
+                                          }
+                                        }
+                                      },
+                                child: isSaving
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : Text(l10n.save, textAlign: TextAlign.center),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<CategoryType>(
-                  key: const ValueKey('category_create_type'),
-                  initialValue: type,
-                  decoration: InputDecoration(labelText: l10n.categoryType),
-                  items: [
-                    DropdownMenuItem(value: CategoryType.expense, child: Text(l10n.expense)),
-                    DropdownMenuItem(value: CategoryType.income, child: Text(l10n.income)),
-                  ],
-                  onChanged: (value) => setDialogState(() => type = value ?? type),
-                ),
-              ],
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: name.text.trim().isEmpty
-                    ? null
-                    : () => Navigator.pop(dialogContext, true),
-                child: Text(l10n.save),
-              ),
-            ],
           ),
         ),
       );
       final shouldCreate = await Navigator.of(context, rootNavigator: true).push(dialogRoute);
       await dialogRoute.completed;
-      if (shouldCreate != true || name.text.trim().isEmpty || !mounted) return;
-      final result = await ref
-          .read(canonicalFinanceRepositoryProvider)
-          .createCategory(
-            userId,
-            name: name.text.trim(),
-            type: type,
-            icon: 'category_outlined',
-          );
-      result.match(
-        (_) => _showMessage(l10n.genericError),
-        (_) => ref.invalidate(canonicalCategoriesProvider(userId)),
-      );
+      if (shouldCreate == true && mounted) _showMessage(l10n.categorySaved);
     } catch (_) {
       if (mounted) _showMessage(l10n.genericError);
     } finally {
@@ -210,6 +365,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
   Future<void> _edit(String userId, FinanceCategory category) async {
     final l10n = AppLocalizations.of(context);
     final name = TextEditingController(text: category.customName ?? category.id);
+    var icon = category.icon;
     var isSaving = false;
     var errorMessage = '';
     try {
@@ -217,121 +373,210 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text(l10n.editCategory),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.categorySavedDescription,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  key: const ValueKey('category_edit_name'),
-                  controller: name,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: l10n.categoryName,
-                    errorText: errorMessage == l10n.categoryNameRequired ? errorMessage : null,
-                  ),
-                  onChanged: (_) {
-                    if (errorMessage.isNotEmpty) setDialogState(() => errorMessage = '');
-                  },
-                ),
-                const SizedBox(height: 12),
-                InputDecorator(
-                  decoration: InputDecoration(labelText: l10n.categoryTypeReadOnly),
-                  child: Text(_categoryTypeLabel(category.type, l10n)),
-                ),
-                if (errorMessage == l10n.genericError) ...[
-                  const SizedBox(height: 8),
-                  Semantics(liveRegion: true, child: Text(errorMessage)),
-                ],
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    key: const ValueKey('category_edit_archive'),
-                    onPressed: isSaving
-                        ? null
-                        : () => Navigator.pop(dialogContext, _CategoryEditAction.archive),
-                    icon: const Icon(Icons.archive_outlined),
-                    label: Text(l10n.archive),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: Text(l10n.cancel),
+            title: null,
+            contentPadding: EdgeInsets.zero,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            content: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.line),
+                borderRadius: BorderRadius.circular(24),
               ),
-              FilledButton(
-                key: const ValueKey('category_edit_save'),
-                onPressed: isSaving
-                    ? null
-                    : () async {
-                        if (name.text.trim().isEmpty) {
-                          setDialogState(() => errorMessage = l10n.categoryNameRequired);
-                          return;
-                        }
-                        setDialogState(() {
-                          isSaving = true;
-                          errorMessage = '';
-                        });
-                        final edited = FinanceCategory(
-                          id: category.id,
-                          type: category.type,
-                          icon: category.icon,
-                          sortOrder: category.sortOrder,
-                          isSystem: category.isSystem,
-                          isArchived: category.isArchived,
-                          catalogId: category.catalogId,
-                          customName: name.text.trim(),
-                          colorValue: category.colorValue,
-                        );
-                        try {
-                          final result = await ref
-                              .read(canonicalFinanceRepositoryProvider)
-                              .updateCategory(userId, edited);
-                          result.match(
-                            (_) {
-                              if (dialogContext.mounted) {
-                                setDialogState(() {
-                                  isSaving = false;
-                                  errorMessage = l10n.genericError;
-                                });
-                              }
-                            },
-                            (_) {
-                              ref.invalidate(canonicalCategoriesProvider(userId));
-                              if (dialogContext.mounted) {
-                                Navigator.pop(dialogContext, _CategoryEditAction.saved);
-                              }
-                            },
-                          );
-                        } catch (_) {
-                          if (dialogContext.mounted) {
-                            setDialogState(() {
-                              isSaving = false;
-                              errorMessage = l10n.genericError;
-                            });
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 394),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.editCategory,
+                        key: const ValueKey('category_edit_title'),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.navy,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.categorySavedDescription,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryName),
+                      const SizedBox(height: 8),
+                      TextField(
+                        key: const ValueKey('category_edit_name'),
+                        controller: name,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          errorText: errorMessage == l10n.categoryNameRequired
+                              ? errorMessage
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        ),
+                        onChanged: (_) {
+                          if (errorMessage.isNotEmpty) setDialogState(() => errorMessage = '');
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryIconLabel),
+                      const SizedBox(height: 8),
+                      _EditCategoryIconPreview(
+                        iconId: icon,
+                        iconLabel: _categoryIconLabel(icon, l10n),
+                        changeLabel: l10n.changeIcon,
+                        onChange: () async {
+                          final selected = await showCategoryIconPicker(dialogContext, icon);
+                          if (selected != null && dialogContext.mounted) {
+                            setDialogState(() => icon = selected);
                           }
-                        }
-                      },
-                child: isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.saveCategoryChanges),
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryFieldLabel(label: l10n.categoryTypeReadOnly),
+                      const SizedBox(height: 8),
+                      Container(
+                        key: const ValueKey('category_edit_type_read_only'),
+                        constraints: const BoxConstraints(minHeight: 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.line),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(_categoryTypeLabel(category.type, l10n)),
+                      ),
+                      if (errorMessage == l10n.genericError) ...[
+                        const SizedBox(height: 8),
+                        Semantics(liveRegion: true, child: Text(errorMessage)),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 48,
+                        child: TextButton(
+                          key: const ValueKey('category_edit_archive'),
+                          onPressed: isSaving
+                              ? null
+                              : () => Navigator.pop(dialogContext, _CategoryEditAction.archive),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(context).colorScheme.error,
+                            alignment: AlignmentDirectional.centerStart,
+                            padding: EdgeInsets.zero,
+                            tapTargetSize: MaterialTapTargetSize.padded,
+                          ),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(l10n.archive),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: OutlinedButton(
+                                key: const ValueKey('category_edit_cancel'),
+                                onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+                                child: Text(l10n.cancel, textAlign: TextAlign.center),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: FilledButton(
+                                key: const ValueKey('category_edit_save'),
+                                onPressed: isSaving
+                                    ? null
+                                    : () async {
+                                        if (name.text.trim().isEmpty) {
+                                          setDialogState(
+                                            () => errorMessage = l10n.categoryNameRequired,
+                                          );
+                                          return;
+                                        }
+                                        setDialogState(() {
+                                          isSaving = true;
+                                          errorMessage = '';
+                                        });
+                                        final edited = FinanceCategory(
+                                          id: category.id,
+                                          type: category.type,
+                                          icon: icon,
+                                          sortOrder: category.sortOrder,
+                                          isSystem: category.isSystem,
+                                          isArchived: category.isArchived,
+                                          catalogId: category.catalogId,
+                                          customName: name.text.trim(),
+                                          colorValue: category.colorValue,
+                                        );
+                                        try {
+                                          final result = await ref
+                                              .read(canonicalFinanceRepositoryProvider)
+                                              .updateCategory(userId, edited);
+                                          result.match(
+                                            (_) {
+                                              if (dialogContext.mounted) {
+                                                setDialogState(() {
+                                                  isSaving = false;
+                                                  errorMessage = l10n.genericError;
+                                                });
+                                              }
+                                            },
+                                            (_) {
+                                              ref.invalidate(canonicalCategoriesProvider(userId));
+                                              if (dialogContext.mounted) {
+                                                Navigator.pop(
+                                                  dialogContext,
+                                                  _CategoryEditAction.saved,
+                                                );
+                                              }
+                                            },
+                                          );
+                                        } catch (_) {
+                                          if (dialogContext.mounted) {
+                                            setDialogState(() {
+                                              isSaving = false;
+                                              errorMessage = l10n.genericError;
+                                            });
+                                          }
+                                        }
+                                      },
+                                child: isSaving
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : Text(
+                                        l10n.saveCategoryChanges,
+                                        textAlign: TextAlign.center,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -391,6 +636,92 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
+
+class _EditCategoryFieldLabel extends StatelessWidget {
+  const _EditCategoryFieldLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    label.toUpperCase(),
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: AppColors.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      height: 1.2,
+    ),
+  );
+}
+
+class _EditCategoryIconPreview extends StatelessWidget {
+  const _EditCategoryIconPreview({
+    required this.iconId,
+    required this.iconLabel,
+    required this.changeLabel,
+    required this.onChange,
+  });
+
+  final String? iconId;
+  final String iconLabel;
+  final String changeLabel;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 64),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: AppColors.line),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      children: [
+        FinanceCategoryIcon(
+          key: const ValueKey('category_icon_preview'),
+          iconId: iconId,
+          size: 32,
+          iconSize: 18,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            iconLabel,
+            key: const ValueKey('category_edit_icon_label'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        TextButton(
+          key: const ValueKey('category_icon_change'),
+          onPressed: onChange,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 4),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+          child: Text(changeLabel, textAlign: TextAlign.end),
+        ),
+      ],
+    ),
+  );
+}
+
+String _categoryIconLabel(String? iconId, AppLocalizations l10n) =>
+    switch (FinanceCategoryIcons.canonicalId(iconId)) {
+      'food' => l10n.categoryIconUtensils,
+      'housing' => l10n.categoryIconHouse,
+      'transport' => l10n.categoryIconCar,
+      'health' => l10n.categoryIconHeart,
+      'education' => l10n.categoryIconBook,
+      'salary' => l10n.categoryIconBriefcase,
+      _ => l10n.categoryIconTag,
+    };
 
 class _CategoriesError extends StatelessWidget {
   const _CategoriesError({required this.message, required this.retryLabel, required this.onRetry});

@@ -82,7 +82,11 @@ void main() {
     expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('global_add_operation')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('add_income_action')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add_movement_income')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add_movement_expense')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add_movement_transfer')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('add_movement_close')));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {
@@ -203,12 +207,12 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
     expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
 
-    final expectedActivity = ['Pago', 'Almuerzo', 'Ahorro'];
+    final expectedActivity = ['Pago', 'Almuerzo', 'Cuenta principal → Ahorros'];
     var dashboardLoaded = false;
     for (var attempt = 0; attempt < 60; attempt++) {
       await tester.pump(const Duration(milliseconds: 250));
       dashboardLoaded =
-          find.text('Balance actual').evaluate().isNotEmpty &&
+          find.byKey(const ValueKey('home_balance_card')).evaluate().isNotEmpty &&
           expectedActivity.every((description) => find.text(description).evaluate().isNotEmpty);
       if (dashboardLoaded) break;
     }
@@ -219,7 +223,7 @@ void main() {
       reason:
           'Dashboard must render the account balance and all seeded activity, not stay loading.',
     );
-    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byKey(const ValueKey('home_budget_progress')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     debugPrint('FINAL_SCREEN_HOLD: dashboard will remain visible for 10 seconds');
     final holdUntil = DateTime.now().add(const Duration(seconds: 10));

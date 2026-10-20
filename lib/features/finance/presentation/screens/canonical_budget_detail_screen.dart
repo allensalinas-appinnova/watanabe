@@ -15,6 +15,7 @@ import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_category_icon.dart';
 
 class CanonicalBudgetDetailScreen extends ConsumerWidget {
   const CanonicalBudgetDetailScreen({super.key, required this.budgetId});
@@ -173,6 +174,7 @@ class _BudgetDetailContent extends ConsumerWidget {
               const SizedBox(height: 16),
               _BudgetSummaryCard(
                 category: categoryName,
+                categoryIcon: category?.icon,
                 typeAndMonth: '$typeLabel · $month',
                 planned: l10n.planned(planned),
                 actual: '$actualLabel · $actual',
@@ -331,6 +333,7 @@ class _BudgetDetailContent extends ConsumerWidget {
 class _BudgetSummaryCard extends StatelessWidget {
   const _BudgetSummaryCard({
     required this.category,
+    required this.categoryIcon,
     required this.typeAndMonth,
     required this.planned,
     required this.actual,
@@ -340,6 +343,7 @@ class _BudgetSummaryCard extends StatelessWidget {
   });
 
   final String category;
+  final String? categoryIcon;
   final String typeAndMonth;
   final String planned;
   final String actual;
@@ -361,12 +365,20 @@ class _BudgetSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            category,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: AppColors.navy,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              FinanceCategoryIcon(iconId: categoryIcon, size: 32, iconSize: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  category,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           Text(
             typeAndMonth,

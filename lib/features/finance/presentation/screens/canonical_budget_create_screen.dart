@@ -12,6 +12,8 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/budget_month_picker.dart';
+import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
 
 class CanonicalBudgetCreateScreen extends ConsumerStatefulWidget {
@@ -81,14 +83,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   }
 
   Future<void> _selectMonth() async {
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _month,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      initialDatePickerMode: DatePickerMode.day,
-      helpText: AppLocalizations.of(context).budgetSelectMonth,
-    );
+    final selected = await showBudgetMonthPicker(context, _month);
     if (selected != null && mounted) {
       setState(() {
         _month = DateTime(selected.year, selected.month);
@@ -285,7 +280,21 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                                     (category) => DropdownMenuItem(
                                       key: ValueKey('budget_category_option_${category.id}'),
                                       value: category.id,
-                                      child: Text(category.customName ?? category.id),
+                                      child: Row(
+                                        children: [
+                                          FinanceCategoryIcon(
+                                            iconId: category.icon,
+                                            size: 28,
+                                            iconSize: 16,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            category.customName ?? category.id,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   )
                                   .toList(),

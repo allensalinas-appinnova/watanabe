@@ -1,4 +1,4 @@
-package co.appinnova.personal_finance
+package com.appinnova.lumiomoney
 
 import io.flutter.embedding.android.FlutterActivity
 

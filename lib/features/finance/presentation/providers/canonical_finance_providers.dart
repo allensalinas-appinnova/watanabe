@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/error/failure.dart';
@@ -23,6 +24,26 @@ final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
   (ref) => getIt<CanonicalFinanceRepository>(),
 );
 
+final dashboardAmountsHiddenProvider = NotifierProvider<DashboardAmountsHiddenNotifier, bool>(
+  DashboardAmountsHiddenNotifier.new,
+);
+
+class DashboardAmountsHiddenNotifier extends Notifier<bool> {
+  static const _preferenceKey = 'dashboard_amounts_hidden';
+
+  @override
+  bool build() => getIt.isRegistered<SharedPreferences>()
+      ? getIt<SharedPreferences>().getBool(_preferenceKey) ?? false
+      : false;
+
+  Future<void> setHidden(bool hidden) async {
+    if (getIt.isRegistered<SharedPreferences>()) {
+      await getIt<SharedPreferences>().setBool(_preferenceKey, hidden);
+    }
+    state = hidden;
+  }
+}
+
 final canonicalUserProfileProvider = StreamProvider.family<UserProfile?, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
 );
@@ -44,17 +65,21 @@ final canonicalOperationsPageProvider =
         String? monthKey,
         String? currency,
         OperationType? type,
+        List<String>? accountIds,
         int pageSize,
       })
     >((ref, input) async {
-      final result = await getIt<CanonicalFinanceRepository>().fetchOperationsPage(
-        input.userId,
-        cursor: input.cursor,
-        monthKey: input.monthKey,
-        currency: input.currency,
-        type: input.type,
-        pageSize: input.pageSize,
-      );
+      final result = await ref
+          .read(canonicalFinanceRepositoryProvider)
+          .fetchOperationsPage(
+            input.userId,
+            cursor: input.cursor,
+            monthKey: input.monthKey,
+            currency: input.currency,
+            type: input.type,
+            accountIds: input.accountIds,
+            pageSize: input.pageSize,
+          );
       return result.match((failure) => throw Exception(failure.message), (page) => page);
     });
 
@@ -67,6 +92,55 @@ final operationsPagerProvider =
       OperationsPagerNotifier.new,
     );
 
+final activityTypeFilterProvider = NotifierProvider<ActivityTypeFilterNotifier, OperationType?>(
+  ActivityTypeFilterNotifier.new,
+);
+
+final activityQueryFiltersProvider =
+    NotifierProvider<ActivityQueryFiltersNotifier, ActivityQueryFilters>(
+      ActivityQueryFiltersNotifier.new,
+    );
+
+class ActivityQueryFilters {
+  const ActivityQueryFilters({
+    this.accountIds = const [],
+    this.monthKey,
+    this.startAt,
+    this.endAtExclusive,
+    this.hasBeenApplied = false,
+  });
+
+  final List<String> accountIds;
+  final String? monthKey;
+  final DateTime? startAt;
+  final DateTime? endAtExclusive;
+  final bool hasBeenApplied;
+
+  bool get isDateRange => startAt != null && endAtExclusive != null;
+}
+
+class ActivityQueryFiltersNotifier extends Notifier<ActivityQueryFilters> {
+  @override
+  ActivityQueryFilters build() => ActivityQueryFilters(monthKey: _monthKey(DateTime.now()));
+
+  void apply(ActivityQueryFilters filters) => state = filters;
+
+  void reset() => state = ActivityQueryFilters(
+    monthKey: _monthKey(DateTime.now()),
+    hasBeenApplied: true,
+  );
+
+  static String _monthKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+}
+
+class ActivityTypeFilterNotifier extends Notifier<OperationType?> {
+  @override
+  OperationType? build() => null;
+
+  void select(OperationType? type) => state = type;
+}
+
 class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
   OperationsPagerNotifier(this.filter);
 
@@ -74,7 +148,10 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
   int _requestGeneration = 0;
 
   @override
-  Future<OperationPagerState> build() => _loadInitial(type: filter.type);
+  Future<OperationPagerState> build() {
+    ref.watch(activityQueryFiltersProvider);
+    return _loadInitial(type: filter.type);
+  }
 
   Future<void> refresh() async {
     final generation = ++_requestGeneration;
@@ -96,6 +173,9 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
           monthKey: current.monthKey,
           currency: current.currency,
           type: current.type,
+          accountIds: current.accountIds,
+          startAt: current.startAt,
+          endAtExclusive: current.endAtExclusive,
         );
     if (generation != _requestGeneration) return;
     result.match(
@@ -121,12 +201,28 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
   }
 
   Future<OperationPagerState> _loadInitial({required OperationType? type}) async {
+    final filters = ref.read(activityQueryFiltersProvider);
     final result = await ref
         .read(canonicalFinanceRepositoryProvider)
-        .fetchOperationsPage(filter.userId, type: type);
+        .fetchOperationsPage(
+          filter.userId,
+          type: type,
+          accountIds: filters.accountIds,
+          monthKey: filters.monthKey,
+          startAt: filters.startAt,
+          endAtExclusive: filters.endAtExclusive,
+        );
     return result.match(
       (failure) => throw Exception(failure.message),
-      (page) => OperationPagerState(items: page.items, nextCursor: page.nextCursor, type: type),
+      (page) => OperationPagerState(
+        items: page.items,
+        nextCursor: page.nextCursor,
+        type: type,
+        accountIds: filters.accountIds,
+        monthKey: filters.monthKey,
+        startAt: filters.startAt,
+        endAtExclusive: filters.endAtExclusive,
+      ),
     );
   }
 }
@@ -140,6 +236,9 @@ class OperationPagerState {
     this.monthKey,
     this.currency,
     this.type,
+    this.accountIds = const [],
+    this.startAt,
+    this.endAtExclusive,
   });
 
   final List<FinancialOperation> items;
@@ -149,6 +248,9 @@ class OperationPagerState {
   final String? monthKey;
   final String? currency;
   final OperationType? type;
+  final List<String> accountIds;
+  final DateTime? startAt;
+  final DateTime? endAtExclusive;
 
   bool get hasMore => nextCursor != null;
 
@@ -163,6 +265,9 @@ class OperationPagerState {
     String? currency,
     OperationType? type,
     bool clearType = false,
+    List<String>? accountIds,
+    DateTime? startAt,
+    DateTime? endAtExclusive,
   }) => OperationPagerState(
     items: items ?? this.items,
     nextCursor: clearCursor ? null : nextCursor ?? this.nextCursor,
@@ -171,6 +276,9 @@ class OperationPagerState {
     monthKey: monthKey ?? this.monthKey,
     currency: currency ?? this.currency,
     type: clearType ? null : type ?? this.type,
+    accountIds: accountIds ?? this.accountIds,
+    startAt: startAt ?? this.startAt,
+    endAtExclusive: endAtExclusive ?? this.endAtExclusive,
   );
 }
 

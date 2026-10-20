@@ -158,6 +158,10 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     String? monthKey,
     String? currency,
     OperationType? type,
+    String? accountId,
+    List<String>? accountIds,
+    DateTime? startAt,
+    DateTime? endAtExclusive,
     int pageSize = 100,
   }) async {
     try {
@@ -167,6 +171,10 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         monthKey: monthKey,
         currency: currency,
         type: type,
+        accountId: accountId,
+        accountIds: accountIds,
+        startAt: startAt,
+        endAtExclusive: endAtExclusive,
         pageSize: pageSize,
       );
       return Right(

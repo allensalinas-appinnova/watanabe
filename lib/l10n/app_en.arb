@@ -1,11 +1,42 @@
 {
   "@@locale": "en",
-  "appTitle": "ClearBudget",
+  "appTitle": "LumioMoney",
   "loginTitle": "Log in",
   "createAccount": "Create account",
   "continueAsGuest": "Continue as guest",
+  "authLoginTab": "Log in",
+  "authEmailLabel": "Email",
+  "authPasswordLabel": "Password",
+  "authEmailInvalid": "Enter a valid email address.",
+  "authPasswordTooShort": "Use at least 8 characters.",
+  "authForgotPassword": "Forgot password?",
+  "authResetEmailInvalid": "Enter a valid email address to reset your password.",
+  "authPasswordResetSent": "If an account exists for this email, a reset link has been sent.",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authContinueWithGoogle": "Continue with Google",
+  "authOrContinueWith": "or continue with",
+  "authPrivacyNote": "Your data is private and encrypted.",
+  "authActionFailed": "We couldn't complete that. Check your details and try again.",
+  "authNetworkError": "No connection. Check your internet and try again.",
+  "authTagline": "Clarity for every peso.",
+  "hideBalances": "Hide amounts",
+  "showBalances": "Show amounts",
+  "hiddenAmount": "Hidden amount",
+  "moreOptions": "More options",
   "dashboardTitle": "Your money, clearly.",
-  "setupTitle": "Set up ClearBudget",
+  "homeMenu": "More options",
+  "homeTotalBalance": "Total balance",
+  "homeBudgetTitle": "Monthly budget",
+  "homeMonthlySummary": "{month} summary · {currency}",
+  "@homeMonthlySummary": {
+    "placeholders": {
+      "month": {},
+      "currency": {}
+    }
+  },
+  "seeAll": "See all",
+  "setupTitle": "Set up LumioMoney",
   "personalizeExperience": "Set up your space",
   "onboardingSubtitle": "Choose your preferences. You can change them later.",
   "language": "Language",
@@ -17,6 +48,33 @@
   "activity": "Activity",
   "activitySubtitle": "Find and review your transactions",
   "activityFilterAll": "All",
+  "activityFilterAction": "Filters · {account} · {period}",
+  "@activityFilterAction": {"placeholders": {"account": {}, "period": {}}},
+  "activityFilterTitle": "Filter activity",
+  "activityFilterAccount": "ACCOUNT",
+  "activityFilterAllAccounts": "All accounts",
+  "activityFilterPeriod": "PERIOD",
+  "activityFilterMonth": "Month",
+  "activityFilterDateRange": "Date range",
+  "activityFilterSelectAccount": "Choose accounts",
+  "activityFilterMultiSelectHint": "Choose up to 10 accounts. Transfers appear when either account is selected.",
+  "activityFilterDone": "Done",
+  "activityFilterSelectedAccountCount": "{count, plural, one{{count} account} other{{count} accounts}}",
+  "@activityFilterSelectedAccountCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityFilterSelectMonth": "Choose month",
+  "activityFilterStartDate": "FROM",
+  "activityFilterEndDate": "TO",
+  "activityFilterTimezoneHint": "The month follows your time zone.",
+  "activityFilterRangeHint": "Choose dates within {month}.",
+  "@activityFilterRangeHint": {"placeholders": {"month": {}}},
+  "activityFilterApply": "Apply filters",
+  "activityFilterReset": "Reset",
+  "activityFilterUseMonth": "Use {month}",
+  "@activityFilterUseMonth": {"placeholders": {"month": {}}},
+  "activityFilterUseDate": "Use date",
+  "activityFilterAllDates": "All dates",
+  "activityFilterSelectedDetails": "{account} · {range}",
+  "@activityFilterSelectedDetails": {"placeholders": {"account": {}, "range": {}}},
   "transferOperationLabel": "Transfer",
   "budget": "Budget",
   "accounts": "Accounts",
@@ -27,6 +85,21 @@
   "checkingAccountType": "Checking account",
   "savingsAccountType": "Savings account",
   "addMovement": "Add transaction",
+  "addMovementChoiceTitle": "What would you like to add?",
+  "addMovementChoiceSubtitle": "Choose an option to continue",
+  "moveMoney": "Transfer money",
+  "close": "Close",
+  "transferExplanation": "Transfer money between your own accounts. It does not add to or subtract from your total balance.",
+  "incomeRegistered": "Income recorded · {amount}",
+  "@incomeRegistered": { "placeholders": { "amount": {} } },
+  "expenseRegistered": "Expense recorded · {amount}",
+  "@expenseRegistered": { "placeholders": { "amount": {} } },
+  "transferRegistered": "Transfer recorded",
+  "viewMovement": "View transaction",
+  "viewDetails": "View details",
+  "viewPendingOperations": "View pending",
+  "pendingBalanceNote": "Some transactions are saved on this device. Confirmed balances may not include them yet.",
+  "notVisibleWithCurrentFilters": "This transaction is hidden by your current filters",
   "genericError": "Something went wrong. Please try again.",
   "createFirstAccount": "Create your first account to get started.",
   "plannedAmountLabel": "Planned total",
@@ -78,6 +151,7 @@
   "amount": "Amount",
   "type": "Type",
   "date": "Date",
+  "time": "Time",
   "account": "Account",
   "category": "Category",
   "descriptionOptional": "Description (optional)",
@@ -137,6 +211,7 @@
   ,"budgetUsedPercent": "{percent}% used"
   ,"budgetReceivedPercent": "{percent}% received"
   ,"unbudgetedCategoryCount": "{count} categories have activity without a budget"
+  ,"unbudgetedActualAmount": "Unbudgeted total · {amount}"
   ,"budgetMonth": "Month"
   ,"budgetSelectMonth": "Choose a month"
   ,"budgetPlannedItems": "Planned items"
@@ -193,4 +268,23 @@
   ,"budgetItemSaved": "Changes saved."
   ,"budgetItemAdded": "Item added."
   ,"budgetEditAction": "Edit"
+  ,"categoryIcon": "Category icon"
+  ,"categoryIconLabel": "Icon"
+  ,"categoryIconUtensils": "Utensils"
+  ,"categoryIconHouse": "House"
+  ,"categoryIconCar": "Car"
+  ,"categoryIconHeart": "Heart"
+  ,"categoryIconBook": "Book"
+  ,"categoryIconBriefcase": "Briefcase"
+  ,"categoryIconTag": "Tag"
+  ,"changeIcon": "Change"
+  ,"useIcon": "Use icon"
+  ,"budgetConfirmMonth": "Confirm month"
+  ,"categoryIconFood": "Food"
+  ,"categoryIconHousing": "Housing"
+  ,"categoryIconTransport": "Transport"
+  ,"categoryIconHealth": "Health"
+  ,"categoryIconEducation": "Education"
+  ,"categoryIconSalary": "Salary"
+  ,"categoryIconOther": "Other"
 }

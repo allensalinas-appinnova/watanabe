@@ -77,38 +77,83 @@ class FinanceHeader extends StatelessWidget {
 }
 
 class FinanceBottomNavigation extends StatelessWidget {
-  const FinanceBottomNavigation({required this.selectedIndex, super.key});
+  const FinanceBottomNavigation({
+    required this.selectedIndex,
+    this.onDestinationSelected,
+    this.backgroundColor,
+    this.indicatorColor,
+    this.height,
+    super.key,
+  });
 
   final int selectedIndex;
+  final ValueChanged<int>? onDestinationSelected;
+  final Color? backgroundColor;
+  final Color? indicatorColor;
+  final double? height;
 
   static const _routes = ['/home', '/activity', '/budgets', '/accounts'];
-  static const _labels = ['Home', 'Activity', 'Budgets', 'Accounts'];
-  static const _icons = [
-    Icons.home_outlined,
-    Icons.swap_vert,
-    Icons.receipt_long_outlined,
-    Icons.account_circle_outlined,
+  static const _destinationKeys = [
+    'finance_nav_home',
+    'finance_nav_activity',
+    'finance_nav_budget',
+    'finance_nav_accounts',
   ];
 
   @override
-  Widget build(BuildContext context) => NavigationBar(
-    key: const ValueKey('finance_bottom_navigation'),
-    selectedIndex: selectedIndex,
-    height: 80,
-    backgroundColor: Colors.white,
-    indicatorColor: Colors.transparent,
-    labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-    onDestinationSelected: (index) => context.go(_routes[index]),
-    destinations: [
-      for (var index = 0; index < _labels.length; index++)
-        NavigationDestination(
-          key: ValueKey('finance_nav_${_labels[index].toLowerCase()}'),
-          icon: Icon(_icons[index]),
-          selectedIcon: Icon(_icons[index]),
-          label: _labels[index],
-        ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final labels = [l10n.home, l10n.activity, l10n.budget, l10n.accounts];
+    final selectedLabelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: AppColors.blueDark,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      height: 18 / 11,
+    );
+    final unselectedLabelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: AppColors.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w400,
+      height: 18 / 11,
+    );
+
+    return NavigationBarTheme(
+      data: NavigationBarThemeData(
+        height: height ?? 76,
+        backgroundColor: backgroundColor ?? Colors.white,
+        indicatorColor: indicatorColor ?? AppColors.blueSoft,
+        indicatorShape: const StadiumBorder(),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected) ? selectedLabelStyle : unselectedLabelStyle;
+        }),
+      ),
+      child: NavigationBar(
+        key: const ValueKey('finance_bottom_navigation'),
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onDestinationSelected ?? (index) => context.go(_routes[index]),
+        destinations: [
+          for (var index = 0; index < labels.length; index++)
+            NavigationDestination(
+              key: ValueKey(_destinationKeys[index]),
+              icon: SvgPicture.asset(
+                FinanceDesignAssets.navigation(index: index, selected: false),
+                width: 24,
+                height: 24,
+                excludeFromSemantics: true,
+              ),
+              selectedIcon: SvgPicture.asset(
+                FinanceDesignAssets.navigation(index: index, selected: true),
+                width: 24,
+                height: 24,
+                excludeFromSemantics: true,
+              ),
+              label: labels[index],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class FinanceSectionHeading extends StatelessWidget {

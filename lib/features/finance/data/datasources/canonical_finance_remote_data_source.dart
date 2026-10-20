@@ -61,6 +61,10 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     String? monthKey,
     String? currency,
     OperationType? type,
+    String? accountId,
+    List<String>? accountIds,
+    DateTime? startAt,
+    DateTime? endAtExclusive,
     int pageSize = 100,
   });
 
@@ -203,6 +207,10 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String? monthKey,
     String? currency,
     OperationType? type,
+    String? accountId,
+    List<String>? accountIds,
+    DateTime? startAt,
+    DateTime? endAtExclusive,
     int pageSize = 100,
   }) async {
     if (pageSize < 1 || pageSize > 100) {
@@ -212,6 +220,34 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     if (monthKey != null) query = query.where('monthKey', isEqualTo: monthKey);
     if (currency != null) query = query.where('currency', isEqualTo: currency);
     if (type != null) query = query.where('type', isEqualTo: type.name);
+    final selectedAccountIds = {
+      ?accountId,
+      ...?accountIds,
+    }.toList(growable: false);
+    if (selectedAccountIds.length > 10) {
+      throw ArgumentError.value(
+        selectedAccountIds.length,
+        'accountIds',
+        'Firestore account filtering supports up to 10 selected accounts.',
+      );
+    }
+    if (selectedAccountIds.isNotEmpty) {
+      final accountFilters = [
+        for (final selectedId in selectedAccountIds) ...[
+          Filter('accountId', isEqualTo: selectedId),
+          Filter('sourceAccountId', isEqualTo: selectedId),
+          Filter('destinationAccountId', isEqualTo: selectedId),
+        ],
+      ];
+      final accountFilter = accountFilters.reduce(Filter.or);
+      query = query.where(accountFilter);
+    }
+    if (startAt != null) {
+      query = query.where('occurredAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startAt));
+    }
+    if (endAtExclusive != null) {
+      query = query.where('occurredAt', isLessThan: Timestamp.fromDate(endAtExclusive));
+    }
     query = query
         .orderBy('occurredAt', descending: true)
         .orderBy(FieldPath.documentId)

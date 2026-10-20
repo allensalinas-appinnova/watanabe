@@ -12,7 +12,9 @@ import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import '../models/movement_save_result.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
 
 class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
@@ -20,10 +22,14 @@ class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
     super.key,
     this.initialType = OperationType.expense,
     this.initialOperation,
+    this.initialAccountId,
+    this.initialCategoryId,
   });
 
   final OperationType initialType;
   final FinancialOperation? initialOperation;
+  final String? initialAccountId;
+  final String? initialCategoryId;
   @override
   ConsumerState<CanonicalOperationFormScreen> createState() => _CanonicalOperationFormScreenState();
 }
@@ -43,6 +49,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     super.initState();
     final operation = widget.initialOperation;
     _type = operation?.type ?? widget.initialType;
+    _accountId = operation?.accountId ?? widget.initialAccountId;
+    _categoryId = operation?.categoryId ?? widget.initialCategoryId;
     if (operation != null) {
       _amount.text = _minorAmountInput(operation.amountMinor, operation.currency);
       _description.text = operation.description;
@@ -67,6 +75,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts = ref.watch(canonicalAccountsProvider(user.id));
     final categories = ref.watch(canonicalCategoriesProvider(user.id));
+    final selectedAccountId = _effectiveAccountId(accounts.valueOrNull ?? const []);
     final filteredCategories =
         categories.valueOrNull
             ?.where((category) => category.type.name == _type.name && !category.isArchived)
@@ -125,8 +134,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
               loading: () => const LinearProgressIndicator(),
               error: (_, _) => Text(l10n.genericError),
               data: (items) => DropdownButtonFormField<String>(
-                key: const ValueKey('operation_account_selector'),
-                initialValue: _accountId,
+                key: ValueKey('operation_account_selector_${selectedAccountId ?? 'none'}'),
+                initialValue: selectedAccountId,
                 decoration: const InputDecoration(),
                 items: items
                     .map(
@@ -151,7 +160,17 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                   .map(
                     (category) => DropdownMenuItem(
                       value: category.id,
-                      child: Text(category.customName ?? category.id),
+                      child: Row(
+                        children: [
+                          FinanceCategoryIcon(iconId: category.icon, size: 28, iconSize: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            category.customName ?? category.id,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   )
                   .toList(),
@@ -168,38 +187,64 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
               label: Text(l10n.manageCategories),
             ),
           ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.date,
-            child: Semantics(
-              button: true,
-              label:
-                  '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(_occurredAt)}',
-              child: InkWell(
-                key: const ValueKey('operation_date_selector'),
-                borderRadius: BorderRadius.circular(14),
-                onTap: _selectDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
-                  ),
-                  child: Text(
-                    DateFormat.yMMMd(
-                      Localizations.localeOf(context).toString(),
-                    ).format(_occurredAt),
+          const SizedBox(height: 8),
+          ExpansionTile(
+            key: const ValueKey('operation_more_options'),
+            tilePadding: EdgeInsets.zero,
+            initiallyExpanded: false,
+            title: Text(l10n.moreOptions),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            children: [
+              FinanceLabeledField(
+                label: l10n.date,
+                child: Semantics(
+                  button: true,
+                  label:
+                      '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(_occurredAt)}',
+                  child: InkWell(
+                    key: const ValueKey('operation_date_selector'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: _selectDate,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        suffixIcon: Icon(Icons.calendar_today_outlined),
+                      ),
+                      child: Text(
+                        DateFormat.yMMMd(
+                          Localizations.localeOf(context).toString(),
+                        ).format(_occurredAt),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.descriptionOptional,
-            child: TextField(
-              key: const ValueKey('operation_description'),
-              controller: _description,
-              decoration: const InputDecoration(),
-            ),
+              const SizedBox(height: 12),
+              FinanceLabeledField(
+                label: l10n.time,
+                child: Semantics(
+                  button: true,
+                  label: '${l10n.time}, ${TimeOfDay.fromDateTime(_occurredAt).format(context)}',
+                  child: InkWell(
+                    key: const ValueKey('operation_time_selector'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: _selectTime,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(suffixIcon: Icon(Icons.schedule_outlined)),
+                      child: Text(TimeOfDay.fromDateTime(_occurredAt).format(context)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FinanceLabeledField(
+                label: l10n.descriptionOptional,
+                child: TextField(
+                  key: const ValueKey('operation_description'),
+                  controller: _description,
+                  decoration: const InputDecoration(),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           FilledButton(
@@ -213,9 +258,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   }
 
   Future<void> _save(String userId, List<FinanceAccount> accounts) async {
+    final selectedAccountId = _effectiveAccountId(accounts);
     FinanceAccount? account;
     for (final item in accounts) {
-      if (item.id == _accountId) account = item;
+      if (item.id == selectedAccountId) account = item;
     }
     int? amountMinor;
     try {
@@ -231,6 +277,11 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     }
     setState(() => _saving = true);
     final existing = widget.initialOperation;
+    final categories = ref.read(canonicalCategoriesProvider(userId)).valueOrNull ?? const [];
+    String? categoryName;
+    for (final category in categories) {
+      if (category.id == _categoryId) categoryName = category.customName ?? category.id;
+    }
     final draft = FinancialOperationDraft(
       type: _type,
       amountMinor: amountMinor,
@@ -267,8 +318,22 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         if (mounted) context.pop();
       } else {
         final status = await ref.read(canonicalActionsProvider).createOperation(userId, draft);
-        if (mounted && status == SyncState.confirmed) {
-          context.pop();
+        if (mounted && (status == SyncState.confirmed || status == SyncState.pending)) {
+          context.pop(
+            MovementSaveResult(
+              type: draft.type,
+              status: status == SyncState.confirmed
+                  ? MovementSaveStatus.confirmed
+                  : MovementSaveStatus.pending,
+              amountMinor: draft.amountMinor,
+              currency: draft.currency,
+              idempotencyKey: draft.idempotencyKey,
+              occurredAt: _occurredAt,
+              description: draft.description,
+              accountName: account.name,
+              categoryName: categoryName,
+            ),
+          );
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -331,6 +396,13 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   String _currentMonthKey(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
 
+  String? _effectiveAccountId(List<FinanceAccount> accounts) {
+    if (_accountId != null) return _accountId;
+    if (widget.initialAccountId != null || widget.initialOperation != null) return null;
+    final activeAccounts = accounts.where((account) => account.status == 'active').toList();
+    return activeAccounts.length == 1 ? activeAccounts.single.id : null;
+  }
+
   Future<void> _selectDate() async {
     final selected = await showDatePicker(
       context: context,
@@ -339,7 +411,33 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       lastDate: DateTime(2100),
     );
     if (selected != null && mounted) {
-      setState(() => _occurredAt = DateTime(selected.year, selected.month, selected.day));
+      setState(
+        () => _occurredAt = DateTime(
+          selected.year,
+          selected.month,
+          selected.day,
+          _occurredAt.hour,
+          _occurredAt.minute,
+        ),
+      );
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_occurredAt),
+    );
+    if (selected != null && mounted) {
+      setState(
+        () => _occurredAt = DateTime(
+          _occurredAt.year,
+          _occurredAt.month,
+          _occurredAt.day,
+          selected.hour,
+          selected.minute,
+        ),
+      );
     }
   }
 }

@@ -10,12 +10,16 @@ import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
+import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import '../models/movement_save_result.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_components.dart';
 
 class CanonicalTransferScreen extends ConsumerStatefulWidget {
-  const CanonicalTransferScreen({super.key});
+  const CanonicalTransferScreen({super.key, this.initialSourceAccountId});
+
+  final String? initialSourceAccountId;
   @override
   ConsumerState<CanonicalTransferScreen> createState() => _CanonicalTransferScreenState();
 }
@@ -28,6 +32,12 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   String? _idempotencyKey;
   bool saving = false;
   DateTime occurredAt = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    source = widget.initialSourceAccountId;
+  }
 
   @override
   void dispose() {
@@ -111,6 +121,23 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                       Localizations.localeOf(context).toString(),
                     ).format(occurredAt),
                   ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FinanceLabeledField(
+            label: l10n.time,
+            child: Semantics(
+              button: true,
+              label: '${l10n.time}, ${TimeOfDay.fromDateTime(occurredAt).format(context)}',
+              child: InkWell(
+                key: const ValueKey('transfer_time_selector'),
+                borderRadius: BorderRadius.circular(14),
+                onTap: _selectTime,
+                child: InputDecorator(
+                  decoration: const InputDecoration(suffixIcon: Icon(Icons.schedule_outlined)),
+                  child: Text(TimeOfDay.fromDateTime(occurredAt).format(context)),
                 ),
               ),
             ),
@@ -203,8 +230,22 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                   '${DateTime.now().microsecondsSinceEpoch}_transfer',
             ),
           );
-      if (mounted && status == SyncState.confirmed) {
-        context.pop();
+      if (mounted && (status == SyncState.confirmed || status == SyncState.pending)) {
+        context.pop(
+          MovementSaveResult(
+            type: OperationType.transfer,
+            status: status == SyncState.confirmed
+                ? MovementSaveStatus.confirmed
+                : MovementSaveStatus.pending,
+            amountMinor: transferAmountMinor,
+            currency: sourceAccount.currency,
+            idempotencyKey: _idempotencyKey!,
+            occurredAt: occurredAt,
+            description: note.text,
+            sourceAccountName: sourceAccount.name,
+            destinationAccountName: destinationAccount.name,
+          ),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -238,7 +279,33 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
       lastDate: DateTime(2100),
     );
     if (selected != null && mounted) {
-      setState(() => occurredAt = DateTime(selected.year, selected.month, selected.day));
+      setState(
+        () => occurredAt = DateTime(
+          selected.year,
+          selected.month,
+          selected.day,
+          occurredAt.hour,
+          occurredAt.minute,
+        ),
+      );
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(occurredAt),
+    );
+    if (selected != null && mounted) {
+      setState(
+        () => occurredAt = DateTime(
+          occurredAt.year,
+          occurredAt.month,
+          occurredAt.day,
+          selected.hour,
+          selected.minute,
+        ),
+      );
     }
   }
 }

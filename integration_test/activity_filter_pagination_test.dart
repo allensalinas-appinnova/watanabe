@@ -161,13 +161,25 @@ void main() {
         (_) {},
       );
 
-      Future<List<FinancialOperation>> readAllPages({OperationType? type}) async {
+      Future<List<FinancialOperation>> readAllPages({
+        OperationType? type,
+        String? accountId,
+        List<String>? accountIds,
+        String? monthKey,
+        DateTime? startAt,
+        DateTime? endAtExclusive,
+      }) async {
         final result = <FinancialOperation>[];
         OperationPageCursor? cursor;
         do {
           final pageResult = await repository.fetchOperationsPage(
             uid,
             type: type,
+            accountId: accountId,
+            accountIds: accountIds,
+            monthKey: monthKey,
+            startAt: startAt,
+            endAtExclusive: endAtExclusive,
             cursor: cursor,
             pageSize: 1,
           );
@@ -181,6 +193,22 @@ void main() {
       final all = await readAllPages();
       final incomes = await readAllPages(type: OperationType.income);
       final expenses = await readAllPages(type: OperationType.expense);
+      final sourceAccountOperations = await readAllPages(
+        accountId: account.id,
+        monthKey: '2026-10',
+      );
+      final destinationAccountOperations = await readAllPages(
+        accountId: secondAccount.id,
+        monthKey: '2026-10',
+      );
+      final selectedAccountsOperations = await readAllPages(
+        accountIds: [account.id, secondAccount.id],
+        monthKey: '2026-10',
+      );
+      final recentOperations = await readAllPages(
+        startAt: now.subtract(const Duration(minutes: 2)),
+        endAtExclusive: now.add(const Duration(seconds: 1)),
+      );
 
       expect(all, hasLength(4));
       expect(all.where((operation) => operation.type == OperationType.transfer), hasLength(1));
@@ -189,6 +217,16 @@ void main() {
       expect(incomes.map((operation) => operation.id).toSet(), hasLength(2));
       expect(expenses, hasLength(1));
       expect(expenses.single.type, OperationType.expense);
+      expect(sourceAccountOperations, hasLength(4));
+      expect(
+        sourceAccountOperations.where((operation) => operation.type == OperationType.transfer),
+        hasLength(1),
+      );
+      expect(destinationAccountOperations, hasLength(1));
+      expect(destinationAccountOperations.single.type, OperationType.transfer);
+      expect(selectedAccountsOperations, hasLength(4));
+      expect(selectedAccountsOperations.map((operation) => operation.id).toSet(), hasLength(4));
+      expect(recentOperations, hasLength(3));
 
       await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
       var homeLoaded = false;
