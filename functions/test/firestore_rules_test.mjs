@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test, {after, before, beforeEach} from 'node:test';
 import {assertFails, assertSucceeds, initializeTestEnvironment} from '@firebase/rules-unit-testing';
-import {Timestamp} from 'firebase/firestore';
+import {Timestamp, deleteField} from 'firebase/firestore';
 
 const rules = readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8');
 let environment;
@@ -40,6 +40,25 @@ test('user data is isolated and authenticated catalog reads are allowed', async 
   await assertSucceeds(alice.collection('categoryCatalog').doc('food').get());
   await assertSucceeds(alice.collection('users').doc('alice').set(userProfile()));
   await assertFails(bob.collection('users').doc('alice').get());
+});
+
+test('category colors accept valid ARGB values and reject malformed values without widening access', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const bob = environment.authenticatedContext('bob').firestore();
+  const category = alice.collection('users').doc('alice').collection('categories').doc('food');
+  await assertSucceeds(alice.collection('users').doc('alice').set(userProfile()));
+  await assertSucceeds(category.set({
+    type: 'expense', name: 'Food', icon: 'food', colorValue: 0xFF1C61D1,
+    sortOrder: 1, isSystem: false, isArchived: false,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertSucceeds(category.update({colorValue: 0xFF147D55}));
+  await assertSucceeds(category.update({colorValue: deleteField()}));
+  await assertFails(category.update({colorValue: 'blue'}));
+  await assertFails(category.update({colorValue: -1}));
+  await assertFails(category.update({colorValue: 4294967296}));
+  const bobCategory = bob.collection('users').doc('alice').collection('categories').doc('food');
+  await assertFails(bobCategory.update({colorValue: 0xFFB54708}));
 });
 
 test('clients cannot write calculated balances or monthly summaries', async () => {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/authenticated_route_resolver.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/finance_input_validators.dart';
@@ -287,6 +288,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
             currency: currency,
             openingBalanceMinor: 0,
           );
+      invalidateCachedUserProfile(user.id);
       if (mounted) context.go('/home');
     } catch (_) {
       if (mounted) {

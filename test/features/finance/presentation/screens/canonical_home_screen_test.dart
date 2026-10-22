@@ -64,6 +64,15 @@ void main() {
               isArchived: false,
               customName: 'Salario',
             ),
+            const FinanceCategory(
+              id: 'housing',
+              type: CategoryType.expense,
+              icon: 'housing',
+              sortOrder: 2,
+              isSystem: true,
+              isArchived: false,
+              customName: 'Vivienda',
+            ),
           ]),
         ),
         canonicalMonthlySummaryProvider((
@@ -79,7 +88,7 @@ void main() {
               expenseMinor: 8000,
               transferInMinor: 0,
               transferOutMinor: 0,
-              byCategory: const {'food': -8000},
+              byCategory: const {'food': -8000, 'housing': -6000},
             ),
           ),
         ),
@@ -91,7 +100,16 @@ void main() {
               flowType: BudgetFlowType.expense,
               monthKey: monthKey,
               currency: 'COP',
-              plannedAmountMinor: 10000,
+              plannedAmountMinor: 5000,
+              status: 'active',
+            ),
+            Budget(
+              id: 'housing-budget',
+              categoryId: 'housing',
+              flowType: BudgetFlowType.expense,
+              monthKey: monthKey,
+              currency: 'COP',
+              plannedAmountMinor: 4000,
               status: 'active',
             ),
           ]),
@@ -148,13 +166,46 @@ void main() {
     expect(find.byKey(const ValueKey('home_balance_card')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_income_summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_expense_summary')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const ValueKey('home_budget_preview')));
-    expect(find.byKey(const ValueKey('home_budget_preview')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('home_budget_preview_food-budget')));
+    expect(find.byKey(const ValueKey('home_budget_preview_food-budget')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_budget_preview_housing-budget')), findsOneWidget);
+    expect(find.textContaining('Vivienda ·'), findsOneWidget);
+    final exceededLabels = find.byWidgetPredicate(
+      (widget) => widget is Text && (widget.data?.startsWith('Excedido') ?? false),
+    );
+    expect(exceededLabels, findsNWidgets(2));
+    final exceededText = tester.widget<Text>(
+      find.byKey(const ValueKey('home_budget_remaining_food-budget')),
+    );
+    expect(exceededText.style?.color, const Color(0xFFC73338));
+    final exceededProgress = tester.widget<LinearProgressIndicator>(
+      find.byKey(const ValueKey('home_budget_progress_food-budget')),
+    );
+    expect(exceededProgress.color, const Color(0xFFC73338));
     expect(find.text('Presupuesto del mes'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('home_dashboard_content')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('home_view_all_activity')));
     expect(find.byKey(const ValueKey('home_view_all_activity')), findsOneWidget);
     expect(find.text('Actividad reciente'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('home_dashboard_content')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    final homeAmount = find.byKey(const ValueKey('home_operation_amount_op-1'));
+    expect(tester.widget<Text>(homeAmount).textAlign, TextAlign.end);
+    final homeAmountColumn = find.ancestor(of: homeAmount, matching: find.byType(SizedBox)).first;
+    expect(tester.getSize(homeAmountColumn).width, greaterThanOrEqualTo(96));
 
+    await tester.drag(
+      find.byKey(const ValueKey('home_dashboard_content')),
+      const Offset(0, 500),
+    );
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('home_toggle_amount_visibility')));
     await tester.tap(find.byKey(const ValueKey('home_toggle_amount_visibility')));
     await tester.pumpAndSettle();

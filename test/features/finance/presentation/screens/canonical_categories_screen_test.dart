@@ -28,6 +28,7 @@ const _categories = [
     isSystem: true,
     isArchived: false,
     customName: 'Comida',
+    colorValue: 0xFFB4233A,
   ),
   FinanceCategory(
     id: 'salary',
@@ -128,6 +129,24 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('category_icon_use')));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const ValueKey('category_color_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_color_option_ff087e8b')));
+    await tester.tap(find.byKey(const ValueKey('category_color_cancel')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FinanceCategoryIcon>(find.byKey(const ValueKey('category_icon_preview')))
+          .colorValue,
+      0xFFB4233A,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('category_color_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_color_option_ff147d55')));
+    await tester.tap(find.byKey(const ValueKey('category_color_use')));
+    await tester.pumpAndSettle();
+
     final nameField = find.byKey(const ValueKey('category_edit_name'));
     await tester.enterText(nameField, 'Mercado y comida');
     await tester.tap(find.byKey(const ValueKey('category_edit_save')));
@@ -140,6 +159,12 @@ void main() {
           .iconId,
       'health',
     );
+    expect(
+      tester
+          .widget<FinanceCategoryIcon>(find.byKey(const ValueKey('category_icon_preview')))
+          .colorValue,
+      0xFF147D55,
+    );
 
     await tester.tap(find.byKey(const ValueKey('category_edit_save')));
     await tester.pumpAndSettle();
@@ -147,7 +172,11 @@ void main() {
     verify(
       () => repository.updateCategory(
         'user-1',
-        any(that: predicate<FinanceCategory>((item) => item.icon == 'health')),
+        any(
+          that: predicate<FinanceCategory>(
+            (item) => item.icon == 'health' && item.colorValue == 0xFF147D55,
+          ),
+        ),
       ),
     ).called(2);
     expect(tester.takeException(), isNull);
@@ -166,6 +195,7 @@ void main() {
         name: any(named: 'name'),
         type: any(named: 'type'),
         icon: any(named: 'icon'),
+        colorValue: any(named: 'colorValue'),
       ),
     ).thenAnswer(
       (_) async => const Right<Failure, FinanceCategory>(
@@ -191,6 +221,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('category_icon_option_transport')));
     await tester.tap(find.byKey(const ValueKey('category_icon_use')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_color_change')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category_color_option_ffb54708')));
+    await tester.tap(find.byKey(const ValueKey('category_color_use')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('category_create_save')));
     await tester.tap(find.byKey(const ValueKey('category_create_save')));
     await tester.pumpAndSettle();
 
@@ -200,6 +236,7 @@ void main() {
         name: 'Mobilidade',
         type: CategoryType.expense,
         icon: 'transport',
+        colorValue: 0xFFB54708,
       ),
     ).called(1);
     expect(tester.takeException(), isNull);
@@ -227,6 +264,8 @@ void main() {
     expect(find.byKey(const ValueKey('category_create_type')), findsOneWidget);
     expect(find.byKey(const ValueKey('category_icon_preview')), findsOneWidget);
     expect(find.byKey(const ValueKey('category_icon_change')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_color_preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_color_change')), findsOneWidget);
     expect(find.byKey(const ValueKey('category_create_cancel')), findsOneWidget);
     expect(find.byKey(const ValueKey('category_create_save')), findsOneWidget);
 

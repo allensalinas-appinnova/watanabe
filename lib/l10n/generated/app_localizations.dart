@@ -100,6 +100,18 @@ abstract class AppLocalizations {
   /// **'LumioMoney'**
   String get appTitle;
 
+  /// No description provided for @sessionCheckFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos verificar tu perfil. Revisa tu conexión e inténtalo de nuevo, o vuelve a iniciar sesión.'**
+  String get sessionCheckFailed;
+
+  /// No description provided for @sessionSignOut.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar sesión y volver al acceso'**
+  String get sessionSignOut;
+
   /// No description provided for @loginTitle.
   ///
   /// In es, this message translates to:
@@ -1983,6 +1995,72 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ícono de categoría'**
   String get categoryIcon;
+
+  /// No description provided for @categoryColor.
+  ///
+  /// In es, this message translates to:
+  /// **'Color de categoría'**
+  String get categoryColor;
+
+  /// No description provided for @categoryColorDefault.
+  ///
+  /// In es, this message translates to:
+  /// **'Predeterminado'**
+  String get categoryColorDefault;
+
+  /// No description provided for @categoryColorBlue.
+  ///
+  /// In es, this message translates to:
+  /// **'Azul'**
+  String get categoryColorBlue;
+
+  /// No description provided for @categoryColorGreen.
+  ///
+  /// In es, this message translates to:
+  /// **'Verde'**
+  String get categoryColorGreen;
+
+  /// No description provided for @categoryColorOrange.
+  ///
+  /// In es, this message translates to:
+  /// **'Naranja'**
+  String get categoryColorOrange;
+
+  /// No description provided for @categoryColorPurple.
+  ///
+  /// In es, this message translates to:
+  /// **'Morado'**
+  String get categoryColorPurple;
+
+  /// No description provided for @categoryColorRed.
+  ///
+  /// In es, this message translates to:
+  /// **'Rojo'**
+  String get categoryColorRed;
+
+  /// No description provided for @categoryColorTeal.
+  ///
+  /// In es, this message translates to:
+  /// **'Turquesa'**
+  String get categoryColorTeal;
+
+  /// No description provided for @categoryColorOption.
+  ///
+  /// In es, this message translates to:
+  /// **'{color} · {hex}'**
+  String categoryColorOption(Object color, Object hex);
+
+  /// No description provided for @changeColor.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar'**
+  String get changeColor;
+
+  /// No description provided for @useColor.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar color'**
+  String get useColor;
 
   /// No description provided for @categoryIconLabel.
   ///

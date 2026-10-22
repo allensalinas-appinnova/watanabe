@@ -325,7 +325,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       _userCollection(userId, 'categories').doc(category.id).update({
         'name': category.customName,
         'icon': category.icon,
-        'colorValue': ?category.colorValue,
+        'colorValue': category.colorValue ?? FieldValue.delete(),
         'sortOrder': category.sortOrder,
         'isArchived': category.isArchived,
         'updatedAt': FieldValue.serverTimestamp(),

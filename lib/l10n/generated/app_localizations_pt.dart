@@ -12,6 +12,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'LumioMoney';
 
   @override
+  String get sessionCheckFailed =>
+      'Não foi possível verificar seu perfil. Confira a conexão e tente novamente, ou entre na conta outra vez.';
+
+  @override
+  String get sessionSignOut => 'Sair da conta e voltar ao login';
+
+  @override
   String get loginTitle => 'Entrar';
 
   @override
@@ -1078,6 +1085,41 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get categoryIcon => 'Ícone da categoria';
+
+  @override
+  String get categoryColor => 'Cor da categoria';
+
+  @override
+  String get categoryColorDefault => 'Padrão';
+
+  @override
+  String get categoryColorBlue => 'Azul';
+
+  @override
+  String get categoryColorGreen => 'Verde';
+
+  @override
+  String get categoryColorOrange => 'Laranja';
+
+  @override
+  String get categoryColorPurple => 'Roxo';
+
+  @override
+  String get categoryColorRed => 'Vermelho';
+
+  @override
+  String get categoryColorTeal => 'Verde-azulado';
+
+  @override
+  String categoryColorOption(Object color, Object hex) {
+    return '$color · $hex';
+  }
+
+  @override
+  String get changeColor => 'Alterar';
+
+  @override
+  String get useColor => 'Usar cor';
 
   @override
   String get categoryIconLabel => 'Ícone';

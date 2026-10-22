@@ -406,7 +406,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     isArchived: data['isArchived'] as bool? ?? false,
     catalogId: data['catalogId'] as String?,
     customName: data['name'] as String?,
-    colorValue: (data['colorValue'] as num?)?.toInt(),
+    colorValue: data['colorValue'] is int ? data['colorValue'] as int : null,
   );
 
   FinanceAccount _account(Map<String, dynamic> data) => FinanceAccount(

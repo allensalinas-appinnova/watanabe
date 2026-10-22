@@ -6,11 +6,14 @@ summary: Prioritized, dependency-aware work with acceptance criteria and effort 
 UX contract: [docs/ux-implementation-contract.md](ux-implementation-contract.md)
 
 project_status:
-  updated_at: "2026-10-08T12:03:08-05:00"
-  iteration: "ITERATION-7-VISUAL-QA"
+  updated_at: "2026-10-21T23:59:00-05:00"
+  iteration: "ARCHITECTURE-HARDENING"
   last_commit: "d89fe40"
   status: "Baseline UX P0 verificado en Android y preparado para publicar; Iteración 7 inicia aceptación visual pantalla por pantalla. El E2E llega a onboarding y dashboard, pero aún falta evidencia comparable guardada para cada frame."
   verified:
+    - "ARCHITECTURE-HARDENING: profile route reads use the finance repository, cache per UID across redirects, and show a localized recovery route on profile read failure"
+    - "ARCHITECTURE-HARDENING: operation projection deltas cover confirmed create, edit, rejection and deletion with event-marker idempotency and automatic trigger retry"
+    - "ARCHITECTURE-HARDENING: CI runs Flutter analysis/tests, Functions compilation/projection tests, and Firestore rules against demo-clearbudget only"
     - "Baseline UX P0: flutter analyze sin issues"
     - "Baseline UX P0: flutter test con 54 pruebas aprobadas"
     - "Baseline UX P0: E2E Android Emulator Suite demo-clearbudget aprobado en emulator-5554 (Android 17/API 37); onboarding completo, flujo financiero canónico y dashboard verificado"
@@ -66,7 +69,10 @@ project_status:
     - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
     - "Firebase CLI credentials require reauthentication for project discovery"
     - "Firebase CLI reauthentication is pending before project discovery"
-  next_iteration: "Completar la aceptación visual Android de las pantallas P0 con capturas locales y resumen QA; luego provisionar staging cuando se entreguen el proyecto y las credenciales."
+  next_iteration: "Implementar reconciliación dry-run de proyecciones, resolver la autoridad de agregados de presupuestos y provisionar staging/App Check; completar E2E en CI y aceptación física Android/iOS cuando haya emuladores, proyectos y credenciales."
+
+Current verification for ARCHITECTURE-HARDENING is recorded in `docs/architecture-hardening.md`.
+Historical test counts above are retained as historical evidence and are not the current suite size.
 
 ## Iteration status snapshot
 

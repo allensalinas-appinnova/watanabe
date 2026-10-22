@@ -1,14 +1,15 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/session_recovery_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
+import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
 import '../../features/finance/presentation/models/budget_item_movement_preset.dart';
 import '../../features/finance/presentation/screens/account_form_screen.dart';
 import '../../features/finance/presentation/screens/activity_filters_screen.dart';
@@ -24,7 +25,9 @@ import '../../features/finance/presentation/screens/canonical_home_screen.dart';
 import '../../features/finance/presentation/screens/canonical_onboarding_screen.dart';
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
+import '../di/injection.dart';
 import 'app_shell.dart';
+import 'authenticated_route_resolver.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(Stream<User?> stream) {
@@ -51,26 +54,25 @@ GoRouter _buildAppRouter() => GoRouter(
   refreshListenable: AuthRefreshListenable(FirebaseAuth.instance.authStateChanges()),
   redirect: (context, state) async {
     final user = FirebaseAuth.instance.currentUser;
-    final authenticated = user != null;
-    final isLogin = state.matchedLocation == '/login';
-    if (!authenticated && !isLogin) return '/login';
-    final isOnboarding = state.matchedLocation == '/onboarding';
-    if (user != null && !isLogin) {
-      final profile = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final onboardingComplete = profile.data()?['onboardingStatus'] == 'complete';
-      if (!onboardingComplete && !isOnboarding) return '/onboarding';
-      if (onboardingComplete && isOnboarding) return '/home';
-    } else if (user != null && isLogin) {
-      final profile = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (profile.data()?['onboardingStatus'] == 'complete') return '/home';
-    }
-    return null;
+    return resolveAuthenticatedRoute(
+      authenticated: user != null,
+      matchedLocation: state.matchedLocation,
+      loadProfile: () => loadCachedUserProfile(
+        user!.uid,
+        () => getIt<CanonicalFinanceRepository>().watchUserProfile(user.uid).first,
+      ),
+    );
   },
   routes: [
     GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/session-recovery',
+      name: 'session-recovery',
+      builder: (context, state) => const SessionRecoveryScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),

@@ -178,9 +178,10 @@ class CanonicalHomeScreen extends ConsumerWidget {
                       onRetry: () => ref.invalidate(canonicalBudgetsProvider(budgetInput)),
                     ),
                     data: (items) {
-                      final matching = items.where((item) => item.currency == primaryCurrency);
-                      final budget = matching.isEmpty ? null : matching.first;
-                      if (budget == null) {
+                      final matching = items
+                          .where((item) => item.currency == primaryCurrency)
+                          .toList(growable: false);
+                      if (matching.isEmpty) {
                         return _EmptyBudgetPreview(
                           message: l10n.budgetEmptyTitle,
                           onTap: () => context.go('/budgets'),
@@ -193,15 +194,23 @@ class CanonicalHomeScreen extends ConsumerWidget {
                           onRetry: () =>
                               ref.invalidate(canonicalMonthlySummaryProvider(summaryInput)),
                         ),
-                        data: (value) => _BudgetPreview(
-                          budget: budget,
-                          category: _categoryName(
-                            categories.valueOrNull ?? const [],
-                            budget.categoryId,
-                          ),
-                          summary: value,
-                          onTap: () => context.push('/budgets/${budget.id}'),
-                          amountsHidden: amountsHidden,
+                        data: (value) => Column(
+                          children: [
+                            for (final budget in matching) ...[
+                              _BudgetPreview(
+                                key: ValueKey('home_budget_preview_${budget.id}'),
+                                budget: budget,
+                                category: _categoryName(
+                                  categories.valueOrNull ?? const [],
+                                  budget.categoryId,
+                                ),
+                                summary: value,
+                                onTap: () => context.push('/budgets/${budget.id}'),
+                                amountsHidden: amountsHidden,
+                              ),
+                              if (budget != matching.last) const SizedBox(height: 8),
+                            ],
+                          ],
                         ),
                       );
                     },
@@ -433,6 +442,7 @@ class _BudgetPreview extends StatelessWidget {
     required this.summary,
     required this.onTap,
     required this.amountsHidden,
+    super.key,
   });
 
   final Budget budget;
@@ -448,14 +458,17 @@ class _BudgetPreview extends StatelessWidget {
     final ratio = budget.plannedAmountMinor == 0
         ? 0.0
         : (tracking.actualMinor / budget.plannedAmountMinor).clamp(0.0, 1.0);
+    final statusColor = tracking.isExceeded ? const Color(0xFFC73338) : AppColors.green;
     final actualLabel = budget.flowType == BudgetFlowType.income
         ? l10n.budgetReceived
         : l10n.budgetSpent;
+    final remainingLabel = tracking.isExceeded
+        ? l10n.exceeded(_money(-tracking.remainingMinor, budget.currency))
+        : l10n.remaining(_money(tracking.remainingMinor, budget.currency));
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        key: const ValueKey('home_budget_preview'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
@@ -472,23 +485,35 @@ class _BudgetPreview extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                amountsHidden
-                    ? '$actualLabel · •••••• · ${l10n.remaining('••••••')}'
-                    : '$actualLabel · ${_money(tracking.actualMinor, budget.currency)} · '
-                          '${l10n.remaining(_money(tracking.remainingMinor, budget.currency))}',
-                maxLines: 2,
+                '$actualLabel · ${amountsHidden ? '••••••' : _money(tracking.actualMinor, budget.currency)}',
+                key: ValueKey('home_budget_actual_${budget.id}'),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+              Text(
+                amountsHidden
+                    ? tracking.isExceeded
+                          ? l10n.exceeded('••••••')
+                          : l10n.remaining('••••••')
+                    : remainingLabel,
+                key: ValueKey('home_budget_remaining_${budget.id}'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: statusColor,
+                  fontWeight: tracking.isExceeded ? FontWeight.w600 : null,
+                ),
               ),
               const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(5),
                 child: LinearProgressIndicator(
-                  key: const ValueKey('home_budget_progress'),
+                  key: ValueKey('home_budget_progress_${budget.id}'),
                   value: ratio,
                   minHeight: 8,
                   backgroundColor: AppColors.blueSoft,
-                  color: AppColors.blueDark,
+                  color: tracking.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
                 ),
               ),
             ],
@@ -573,67 +598,75 @@ class _OperationTile extends StatelessWidget {
               border: Border.all(color: AppColors.line),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
-              children: [
-                if (isTransfer)
-                  const CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.blueSoft,
-                    child: Icon(Icons.swap_horiz, color: AppColors.blueDark, size: 18),
-                  )
-                else
-                  FinanceCategoryIcon(
-                    iconId: category?.icon,
-                    semanticLabel: category?.customName ?? category?.id,
-                    size: 32,
-                    iconSize: 18,
-                  ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.navy,
-                          fontWeight: FontWeight.w600,
-                        ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final amountWidth = (constraints.maxWidth * .42).clamp(96.0, 160.0);
+                return Row(
+                  children: [
+                    if (isTransfer)
+                      const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.blueSoft,
+                        child: Icon(Icons.swap_horiz, color: AppColors.blueDark, size: 18),
+                      )
+                    else
+                      FinanceCategoryIcon(
+                        iconId: category?.icon,
+                        colorValue: category?.colorValue,
+                        semanticLabel: category?.customName ?? category?.id,
+                        size: 32,
+                        iconSize: 18,
                       ),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.navy,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    amountsHidden
-                        ? '••••••'
-                        : '${isIncome
-                              ? '+'
-                              : isTransfer
-                              ? ''
-                              : '−'}${_money(operation.amountMinor, operation.currency)}',
-                    maxLines: 1,
-                    textAlign: TextAlign.end,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: isIncome ? AppColors.green : AppColors.navy,
-                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: amountWidth,
+                      child: Text(
+                        key: ValueKey('home_operation_amount_${operation.id}'),
+                        amountsHidden
+                            ? '••••••'
+                            : '${isIncome
+                                  ? '+'
+                                  : isTransfer
+                                  ? ''
+                                  : '−'}${_money(operation.amountMinor, operation.currency)}',
+                        maxLines: 1,
+                        textAlign: TextAlign.end,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: isIncome ? AppColors.green : AppColors.navy,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

@@ -85,6 +85,10 @@ service cloud.firestore {
         (!('archivedAt' in data) || data.archivedAt is timestamp) &&
         data.dayOfMonth is int && data.dayOfMonth >= 1 && data.dayOfMonth <= 31;
     }
+    function validCategoryColor(data) {
+      return !('colorValue' in data) ||
+        (data.colorValue is int && data.colorValue >= 0 && data.colorValue <= 4294967295);
+    }
 
     match /categoryCatalog/{categoryId} {
       allow read: if authenticated();
@@ -130,11 +134,12 @@ service cloud.firestore {
           'isSystem', 'isArchived', 'createdAt', 'updatedAt'
         ]) && required(request.resource.data, ['type', 'name', 'icon', 'sortOrder', 'isSystem', 'isArchived', 'createdAt', 'updatedAt']) && request.resource.data.type in ['income', 'expense'] &&
           request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+          validCategoryColor(request.resource.data) &&
           (!request.resource.data.isSystem ||
             exists(/databases/$(database)/documents/categoryCatalog/$(request.resource.data.catalogId)));
         allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'icon', 'colorValue', 'sortOrder', 'isArchived', 'updatedAt'
-        ]);
+        ]) && validCategoryColor(request.resource.data);
         allow delete: if false;
       }
 

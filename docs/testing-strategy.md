@@ -101,11 +101,12 @@ integration tests for Firebase persistence and access rules where applicable.
 
 ## CI guidance
 
-Run unit/widget tests on each pull request. Run the emulator E2E job on pull
-requests that affect authentication, Firestore data sources, security rules,
-navigation or shared application startup. Cache Flutter/Dart packages and
-Firebase emulator binaries when the CI platform permits it. Do not store or
-inject production credentials into emulator tests.
+`.github/workflows/flutter.yml` runs `flutter analyze`, `flutter test`, Functions
+TypeScript compilation/projection tests, and Firestore Rules Emulator tests on
+pull requests and pushes to `main`. The workflow uses only the reserved
+`demo-clearbudget` project and has no Firebase production credentials. Full
+Auth/Firestore/Functions device E2E remains a separate qualification job; it is
+not currently part of this workflow.
 
 ## References
 

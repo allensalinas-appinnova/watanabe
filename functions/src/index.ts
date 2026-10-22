@@ -1,10 +1,10 @@
 import {initializeApp} from "firebase-admin/app";
-import {FieldValue, getFirestore, type DocumentReference, type DocumentSnapshot} from "firebase-admin/firestore";
+import {FieldValue, getFirestore, type DocumentReference} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 initializeApp();
 
-type Operation = {
+export type Operation = {
   type: "income" | "expense" | "transfer";
   amountMinor: number;
   currency: string;
@@ -18,97 +18,138 @@ type Operation = {
   status: "pending" | "confirmed" | "rejected";
 };
 
+type SummaryDelta = {income: number; expense: number; transferIn: number; transferOut: number; categories: Map<string, number>};
+
+export function calculateProjectionDeltas(previous: Operation | undefined, current: Operation | undefined) {
+  const accounts = new Map<string, number>();
+  const summaries = new Map<string, SummaryDelta>();
+  const budgetItems = new Map<string, number>();
+  addOperationDelta(previous, -1, accounts, summaries, budgetItems);
+  addOperationDelta(current, 1, accounts, summaries, budgetItems);
+  return {accounts, summaries, budgetItems};
+}
+
+function addOperationDelta(operation: Operation | undefined, direction: 1 | -1,
+  accounts: Map<string, number>, summaries: Map<string, SummaryDelta>, budgetItems: Map<string, number>) {
+  if (!operation || operation.status !== "confirmed") return;
+  const amount = operation.amountMinor * direction;
+  const accountDelta = (id: string | undefined, delta: number) => {
+    if (id) accounts.set(id, (accounts.get(id) ?? 0) + delta);
+  };
+  const summaryKey = `${operation.monthKey}_${operation.currency}`;
+  const summary = summaries.get(summaryKey) ?? {
+    income: 0, expense: 0, transferIn: 0, transferOut: 0, categories: new Map<string, number>(),
+  };
+  if (operation.type === "income") {
+    summary.income += amount;
+    if (operation.categoryId) summary.categories.set(operation.categoryId, (summary.categories.get(operation.categoryId) ?? 0) + amount);
+    accountDelta(operation.accountId, amount);
+  } else if (operation.type === "expense") {
+    summary.expense += amount;
+    if (operation.categoryId) summary.categories.set(operation.categoryId, (summary.categories.get(operation.categoryId) ?? 0) - amount);
+    accountDelta(operation.accountId, -amount);
+  } else {
+    summary.transferIn += amount;
+    summary.transferOut += amount;
+    accountDelta(operation.sourceAccountId, -amount);
+    accountDelta(operation.destinationAccountId, amount);
+  }
+  summaries.set(summaryKey, summary);
+  if (operation.budgetId && operation.budgetItemId && operation.type !== "transfer") {
+    const key = `${operation.budgetId}/${operation.budgetItemId}`;
+    budgetItems.set(key, (budgetItems.get(key) ?? 0) + amount);
+  }
+}
+
 export const processOperation = onDocumentWritten(
-  "users/{userId}/operations/{operationId}",
+  {document: "users/{userId}/operations/{operationId}", retry: true},
   async (event) => {
-    const after = event.data?.after;
-    if (!after?.exists) return;
     const before = event.data?.before;
-    const operation = after.data() as Operation;
+    const after = event.data?.after;
+    if (!before?.exists && !after?.exists) return;
     const previous = before?.exists ? before.data() as Operation : undefined;
-    const sign = !previous ? 1 : previous.status === "confirmed" && operation.status === "rejected" ? -1 : previous.status === "rejected" && operation.status === "confirmed" ? 1 : 0;
-    if (sign === 0 || operation.status !== "confirmed" && previous?.status !== "confirmed") return;
+    const current = after?.exists ? after.data() as Operation : undefined;
+    const {accounts: accountDeltas, summaries: summaryDeltas, budgetItems: budgetDeltas} =
+      calculateProjectionDeltas(previous, current);
+    if (!accountDeltas.size && !summaryDeltas.size && !budgetDeltas.size) return;
+
     const userId = event.params.userId;
-    const operationId = event.params.operationId;
     const db = getFirestore();
     const markerRef = db.doc(`users/${userId}/processedOperations/${event.id}`);
+    const accountRefs = new Map([...accountDeltas.keys()].map((id) => [id, db.doc(`users/${userId}/accounts/${id}`)]));
+    const summaryRefs = new Map([...summaryDeltas.keys()].map((id) => [id, db.doc(`users/${userId}/monthlySummaries/${id}`)]));
+    const budgetRefs = new Map<string, DocumentReference>();
+    const budgetParentRefs = new Map<string, DocumentReference>();
+    for (const key of budgetDeltas.keys()) {
+      const [budgetId, itemId] = key.split("/");
+      budgetRefs.set(key, db.doc(`users/${userId}/budgets/${budgetId}/items/${itemId}`));
+      budgetParentRefs.set(budgetId, db.doc(`users/${userId}/budgets/${budgetId}`));
+    }
 
     await db.runTransaction(async (transaction) => {
-      const marker = await transaction.get(markerRef);
-      if (marker.exists) return;
-
-      const summaryRef = db.doc(`users/${userId}/monthlySummaries/${operation.monthKey}_${operation.currency}`);
-      const summary = await transaction.get(summaryRef);
-      const current = summary.exists ? summary.data() ?? {} : {};
-      const byCategory = {...((current.byCategory as Record<string, number> | undefined) ?? {})};
-
-      let budgetItemRef: DocumentReference | undefined;
-      let budgetItem: DocumentSnapshot | undefined;
-      if (operation.budgetId !== undefined || operation.budgetItemId !== undefined) {
+      if ((await transaction.get(markerRef)).exists) return;
+      const [accountDocs, summaryDocs, budgetDocs, budgetParentDocs] = await Promise.all([
+        Promise.all([...accountRefs.values()].map((ref) => transaction.get(ref))),
+        Promise.all([...summaryRefs.values()].map((ref) => transaction.get(ref))),
+        Promise.all([...budgetRefs.values()].map((ref) => transaction.get(ref))),
+        Promise.all([...budgetParentRefs.values()].map((ref) => transaction.get(ref))),
+      ]);
+      const accountByPath = new Map([...accountRefs].map(([id, ref], i) => [id, accountDocs[i]]));
+      const summaryByPath = new Map([...summaryRefs].map(([id, ref], i) => [id, summaryDocs[i]]));
+      const budgetByPath = new Map([...budgetRefs].map(([id, ref], i) => [id, budgetDocs[i]]));
+      const budgetParentById = new Map([...budgetParentRefs].map(([id, ref], i) => [id, budgetParentDocs[i]]));
+      for (const operation of [previous, current]) {
+        if (!operation || operation.budgetId === undefined && operation.budgetItemId === undefined) continue;
         if (!operation.budgetId || !operation.budgetItemId || operation.type === "transfer" || !operation.categoryId) {
           throw new Error("Budget item operation must include a complete non-transfer reference.");
         }
-        const budgetRef = db.doc(`users/${userId}/budgets/${operation.budgetId}`);
-        budgetItemRef = budgetRef.collection("items").doc(operation.budgetItemId);
-        const [budget, item] = await Promise.all([
-          transaction.get(budgetRef),
-          transaction.get(budgetItemRef),
-        ]);
-        const budgetData = budget.data();
-        if (!budget.exists || !item.exists || !budgetData ||
-            budgetData.categoryId !== operation.categoryId ||
-            budgetData.flowType !== operation.type ||
-            budgetData.currency !== operation.currency) {
+        const key = `${operation.budgetId}/${operation.budgetItemId}`;
+        const budget = budgetParentById.get(operation.budgetId)?.data();
+        const item = budgetByPath.get(key)?.data();
+        if (!budget || !item || budget.categoryId !== operation.categoryId ||
+            budget.flowType !== operation.type || budget.currency !== operation.currency) {
           throw new Error("Budget item reference does not match the operation.");
         }
-        budgetItem = item;
       }
 
-      if (operation.type === "transfer") {
-        if (!operation.sourceAccountId || !operation.destinationAccountId) {
-          throw new Error("Transfer operation has no source or destination account.");
-        }
-        transaction.update(
-          db.doc(`users/${userId}/accounts/${operation.sourceAccountId}`),
-          {currentBalanceMinor: FieldValue.increment(-sign * operation.amountMinor), updatedAt: FieldValue.serverTimestamp()},
-        );
-        transaction.update(
-          db.doc(`users/${userId}/accounts/${operation.destinationAccountId}`),
-          {currentBalanceMinor: FieldValue.increment(sign * operation.amountMinor), updatedAt: FieldValue.serverTimestamp()},
-        );
-      } else if (operation.accountId) {
-        const delta = operation.type === "income" ? operation.amountMinor : -operation.amountMinor;
-        transaction.update(
-          db.doc(`users/${userId}/accounts/${operation.accountId}`),
-          {currentBalanceMinor: FieldValue.increment(sign * delta), updatedAt: FieldValue.serverTimestamp()},
-        );
+      for (const [id, delta] of accountDeltas) {
+        const snapshot = accountByPath.get(id);
+        if (!snapshot?.exists) throw new Error(`Projection account missing: ${id}`);
+        const value = Number(snapshot.data()?.currentBalanceMinor ?? 0) + delta;
+        if (!Number.isSafeInteger(value)) throw new Error("Projected account balance is invalid.");
+        transaction.update(accountRefs.get(id)!, {currentBalanceMinor: value, updatedAt: FieldValue.serverTimestamp()});
       }
-
-      if (operation.categoryId && operation.type !== "transfer") {
-        const signedAmount = operation.type === "income" ? operation.amountMinor : -operation.amountMinor;
-        byCategory[operation.categoryId] = (byCategory[operation.categoryId] ?? 0) + sign * signedAmount;
-      }
-      transaction.set(summaryRef, {
-        monthKey: operation.monthKey,
-        currency: operation.currency,
-        incomeMinor: (current.incomeMinor ?? 0) + sign * (operation.type === "income" ? operation.amountMinor : 0),
-        expenseMinor: (current.expenseMinor ?? 0) + sign * (operation.type === "expense" ? operation.amountMinor : 0),
-        transferInMinor: (current.transferInMinor ?? 0) + sign * (operation.type === "transfer" ? operation.amountMinor : 0),
-        transferOutMinor: (current.transferOutMinor ?? 0) + sign * (operation.type === "transfer" ? operation.amountMinor : 0),
-        byCategory,
-        calculationVersion: 1,
-        updatedAt: FieldValue.serverTimestamp(),
-      }, {merge: true});
-      if (budgetItemRef && budgetItem) {
-        const currentItemAmount = Number(budgetItem.data()?.actualAmountMinor ?? 0);
-        const updatedItemAmount = currentItemAmount + sign * operation.amountMinor;
-        if (!Number.isSafeInteger(updatedItemAmount) || updatedItemAmount < 0) {
-          throw new Error("Budget item actual amount would become invalid.");
+      for (const [key, delta] of summaryDeltas) {
+        const ref = summaryRefs.get(key)!;
+        const snapshot = summaryByPath.get(key);
+        const data = snapshot?.data() ?? {};
+        const oldCategories = (data.byCategory as Record<string, number> | undefined) ?? {};
+        const byCategory = {...oldCategories};
+        for (const [categoryId, categoryDelta] of delta.categories) {
+          const value = (byCategory[categoryId] ?? 0) + categoryDelta;
+          if (!Number.isSafeInteger(value)) throw new Error("Projected category total is invalid.");
+          byCategory[categoryId] = value;
         }
-        transaction.update(budgetItemRef, {
-          actualAmountMinor: updatedItemAmount,
+        for (const field of ["income", "expense", "transferIn", "transferOut"] as const) {
+          const value = Number(data[`${field}Minor`] ?? 0) + delta[field];
+          if (!Number.isSafeInteger(value)) throw new Error("Projected monthly total is invalid.");
+        }
+        transaction.set(ref, {
+          incomeMinor: Number(data.incomeMinor ?? 0) + delta.income,
+          expenseMinor: Number(data.expenseMinor ?? 0) + delta.expense,
+          transferInMinor: Number(data.transferInMinor ?? 0) + delta.transferIn,
+          transferOutMinor: Number(data.transferOutMinor ?? 0) + delta.transferOut,
+          byCategory,
+          calculationVersion: 1,
           updatedAt: FieldValue.serverTimestamp(),
-        });
+        }, {merge: true});
+      }
+      for (const [key, delta] of budgetDeltas) {
+        const snapshot = budgetByPath.get(key);
+        if (!snapshot?.exists) throw new Error(`Projection budget item missing: ${key}`);
+        const value = Number(snapshot.data()?.actualAmountMinor ?? 0) + delta;
+        if (!Number.isSafeInteger(value) || value < 0) throw new Error("Budget item actual amount would become invalid.");
+        transaction.update(budgetRefs.get(key)!, {actualAmountMinor: value, updatedAt: FieldValue.serverTimestamp()});
       }
       transaction.set(markerRef, {processedAt: FieldValue.serverTimestamp()});
     });

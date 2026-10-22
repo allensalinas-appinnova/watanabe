@@ -224,7 +224,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                             value: category.id,
                             child: Row(
                               children: [
-                                FinanceCategoryIcon(iconId: category.icon, size: 28, iconSize: 16),
+                                FinanceCategoryIcon(
+                                  iconId: category.icon,
+                                  colorValue: category.colorValue,
+                                  size: 28,
+                                  iconSize: 16,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   category.customName ?? category.id,

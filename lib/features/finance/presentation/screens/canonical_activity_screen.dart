@@ -790,6 +790,7 @@ class _ActivityOperationCard extends StatelessWidget {
                   else
                     FinanceCategoryIcon(
                       iconId: category?.icon,
+                      colorValue: category?.colorValue,
                       semanticLabel: categoryName,
                     ),
                   const SizedBox(width: 12),
@@ -798,34 +799,41 @@ class _ActivityOperationCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w600,
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final amountWidth = (constraints.maxWidth * .42).clamp(100.0, 160.0);
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: AppColors.navy,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                signedAmount,
-                                textAlign: TextAlign.end,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: isIncome ? AppColors.green : AppColors.navy,
-                                  fontWeight: FontWeight.w600,
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: amountWidth,
+                                  child: Text(
+                                    key: ValueKey('activity_operation_amount_${operation.id}'),
+                                    signedAmount,
+                                    textAlign: TextAlign.end,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      color: isIncome ? AppColors.green : AppColors.navy,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 2),
                         Text(

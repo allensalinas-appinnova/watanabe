@@ -11,6 +11,7 @@
     "seed:catalog": "npm run build && node lib/seed_category_catalog.js",
     "seed:catalog:real": "npm run build && node lib/seed_category_catalog_real.js",
     "test:rules": "node test/firestore_rules_test.mjs",
+    "test:projections": "npm run build && node --test test/projection_test.mjs",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "npm run build && firebase deploy --only functions"
   },

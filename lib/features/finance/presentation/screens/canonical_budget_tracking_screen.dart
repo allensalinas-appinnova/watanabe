@@ -452,6 +452,7 @@ class _FlowTrackingSection extends StatelessWidget {
               budget: budget,
               name: _categoryName(categories, budget.categoryId),
               categoryIcon: _categoryIcon(categories, budget.categoryId),
+              categoryColorValue: _categoryColorValue(categories, budget.categoryId),
               summary: summary,
               locale: locale,
               l10n: l10n,
@@ -587,6 +588,7 @@ class _BudgetTrackingCard extends StatelessWidget {
     required this.budget,
     required this.name,
     required this.categoryIcon,
+    required this.categoryColorValue,
     required this.summary,
     required this.locale,
     required this.l10n,
@@ -596,6 +598,7 @@ class _BudgetTrackingCard extends StatelessWidget {
   final Budget budget;
   final String name;
   final String? categoryIcon;
+  final int? categoryColorValue;
   final MonthlySummary? summary;
   final String locale;
   final AppLocalizations l10n;
@@ -633,7 +636,12 @@ class _BudgetTrackingCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  FinanceCategoryIcon(iconId: categoryIcon, size: 32, iconSize: 18),
+                  FinanceCategoryIcon(
+                    iconId: categoryIcon,
+                    colorValue: categoryColorValue,
+                    size: 32,
+                    iconSize: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -844,6 +852,13 @@ String _categoryName(List<FinanceCategory> categories, String categoryId) {
 String? _categoryIcon(List<FinanceCategory> categories, String categoryId) {
   for (final category in categories) {
     if (category.id == categoryId) return category.icon;
+  }
+  return null;
+}
+
+int? _categoryColorValue(List<FinanceCategory> categories, String categoryId) {
+  for (final category in categories) {
+    if (category.id == categoryId) return category.colorValue;
   }
   return null;
 }

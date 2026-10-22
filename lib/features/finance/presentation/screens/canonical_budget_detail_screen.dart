@@ -180,6 +180,7 @@ class _BudgetDetailContent extends ConsumerWidget {
               _BudgetSummaryCard(
                 category: categoryName,
                 categoryIcon: category?.icon,
+                categoryColorValue: category?.colorValue,
                 typeAndMonth: '$typeLabel · $month',
                 planned: l10n.planned(planned),
                 actual: '$actualLabel · $actual',
@@ -397,6 +398,7 @@ class _BudgetSummaryCard extends StatelessWidget {
   const _BudgetSummaryCard({
     required this.category,
     required this.categoryIcon,
+    required this.categoryColorValue,
     required this.typeAndMonth,
     required this.planned,
     required this.actual,
@@ -407,6 +409,7 @@ class _BudgetSummaryCard extends StatelessWidget {
 
   final String category;
   final String? categoryIcon;
+  final int? categoryColorValue;
   final String typeAndMonth;
   final String planned;
   final String actual;
@@ -430,7 +433,12 @@ class _BudgetSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              FinanceCategoryIcon(iconId: categoryIcon, size: 32, iconSize: 18),
+              FinanceCategoryIcon(
+                iconId: categoryIcon,
+                colorValue: categoryColorValue,
+                size: 32,
+                iconSize: 18,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

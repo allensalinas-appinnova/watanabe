@@ -1,6 +1,8 @@
 {
   "@@locale": "en",
   "appTitle": "LumioMoney",
+  "sessionCheckFailed": "We couldn't verify your profile. Check your connection and try again, or sign in again.",
+  "sessionSignOut": "Sign out and return to login",
   "loginTitle": "Log in",
   "createAccount": "Create account",
   "continueAsGuest": "Continue as guest",
@@ -337,6 +339,18 @@
   ,"budgetItemAdded": "Item added."
   ,"budgetEditAction": "Edit"
   ,"categoryIcon": "Category icon"
+  ,"categoryColor": "Category color"
+  ,"categoryColorDefault": "Default"
+  ,"categoryColorBlue": "Blue"
+  ,"categoryColorGreen": "Green"
+  ,"categoryColorOrange": "Orange"
+  ,"categoryColorPurple": "Purple"
+  ,"categoryColorRed": "Red"
+  ,"categoryColorTeal": "Teal"
+  ,"categoryColorOption": "{color} · {hex}"
+  ,"@categoryColorOption": {"placeholders": {"color": {}, "hex": {}}}
+  ,"changeColor": "Change"
+  ,"useColor": "Use color"
   ,"categoryIconLabel": "Icon"
   ,"categoryIconUtensils": "Utensils"
   ,"categoryIconHouse": "House"

@@ -247,6 +247,10 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                               budget: budget,
                               category: _categoryName(categories, budget.categoryId),
                               categoryIcon: _categoryIcon(categories, budget.categoryId),
+                              categoryColorValue: _categoryColorValue(
+                                categories,
+                                budget.categoryId,
+                              ),
                               summary: summary,
                               isSummaryLoading: summaries[budget.currency]?.isLoading ?? false,
                               locale: _localeName,
@@ -365,6 +369,13 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
     }
     return null;
   }
+
+  int? _categoryColorValue(List<FinanceCategory> categories, String categoryId) {
+    for (final category in categories) {
+      if (category.id == categoryId) return category.colorValue;
+    }
+    return null;
+  }
 }
 
 class _BudgetSummaryCard extends StatelessWidget {
@@ -373,6 +384,7 @@ class _BudgetSummaryCard extends StatelessWidget {
     required this.budget,
     required this.category,
     required this.categoryIcon,
+    required this.categoryColorValue,
     required this.summary,
     required this.isSummaryLoading,
     required this.locale,
@@ -383,6 +395,7 @@ class _BudgetSummaryCard extends StatelessWidget {
   final Budget budget;
   final String category;
   final String? categoryIcon;
+  final int? categoryColorValue;
   final MonthlySummary? summary;
   final bool isSummaryLoading;
   final String locale;
@@ -428,7 +441,12 @@ class _BudgetSummaryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  FinanceCategoryIcon(iconId: categoryIcon, size: 32, iconSize: 18),
+                  FinanceCategoryIcon(
+                    iconId: categoryIcon,
+                    colorValue: categoryColorValue,
+                    size: 32,
+                    iconSize: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

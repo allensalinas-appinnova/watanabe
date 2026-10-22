@@ -1,6 +1,8 @@
 {
   "@@locale": "es",
   "appTitle": "LumioMoney",
+  "sessionCheckFailed": "No pudimos verificar tu perfil. Revisa tu conexión e inténtalo de nuevo, o vuelve a iniciar sesión.",
+  "sessionSignOut": "Cerrar sesión y volver al acceso",
   "loginTitle": "Iniciar sesión",
   "createAccount": "Crear cuenta",
   "continueAsGuest": "Continuar como invitado",
@@ -337,6 +339,18 @@
   ,"budgetItemAdded": "Elemento agregado."
   ,"budgetEditAction": "Editar"
   ,"categoryIcon": "Ícono de categoría"
+  ,"categoryColor": "Color de categoría"
+  ,"categoryColorDefault": "Predeterminado"
+  ,"categoryColorBlue": "Azul"
+  ,"categoryColorGreen": "Verde"
+  ,"categoryColorOrange": "Naranja"
+  ,"categoryColorPurple": "Morado"
+  ,"categoryColorRed": "Rojo"
+  ,"categoryColorTeal": "Turquesa"
+  ,"categoryColorOption": "{color} · {hex}"
+  ,"@categoryColorOption": {"placeholders": {"color": {}, "hex": {}}}
+  ,"changeColor": "Cambiar"
+  ,"useColor": "Usar color"
   ,"categoryIconLabel": "Ícono"
   ,"categoryIconUtensils": "Cubiertos"
   ,"categoryIconHouse": "Casa"

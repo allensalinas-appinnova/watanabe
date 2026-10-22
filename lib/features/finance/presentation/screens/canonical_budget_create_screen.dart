@@ -301,6 +301,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                                         children: [
                                           FinanceCategoryIcon(
                                             iconId: category.icon,
+                                            colorValue: category.colorValue,
                                             size: 28,
                                             iconSize: 16,
                                           ),

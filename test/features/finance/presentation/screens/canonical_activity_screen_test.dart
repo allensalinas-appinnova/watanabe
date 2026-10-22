@@ -177,6 +177,12 @@ void main() {
     expect(find.text('Encuentra y revisa tus movimientos'), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_operation_salary')), findsOneWidget);
+    final activityAmount = find.byKey(const ValueKey('activity_operation_amount_salary'));
+    expect(tester.widget<Text>(activityAmount).textAlign, TextAlign.end);
+    final activityAmountColumn = find
+        .ancestor(of: activityAmount, matching: find.byType(SizedBox))
+        .first;
+    expect(tester.getSize(activityAmountColumn).width, greaterThanOrEqualTo(100));
     final dateTime = DateFormat.yMMMd('es').add_Hm().format(DateTime(2026, 10, 7, 9, 30));
     expect(find.text('Ingreso · $dateTime'), findsOneWidget);
     expect(find.text('Gasto · $dateTime'), findsOneWidget);

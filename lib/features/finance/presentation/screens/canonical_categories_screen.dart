@@ -7,6 +7,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/category_color_picker.dart';
 import '../widgets/category_icon_picker.dart';
 import '../widgets/finance_category_icon.dart';
 
@@ -89,6 +90,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         children: [
                           FinanceCategoryIcon(
                             iconId: category.icon,
+                            colorValue: category.colorValue,
                             semanticLabel: category.customName ?? category.id,
                           ),
                           const SizedBox(width: 10),
@@ -147,6 +149,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
     final name = TextEditingController();
     var type = _selectedType;
     var icon = 'other';
+    int? colorValue;
     var isSaving = false;
     var errorMessage = '';
     try {
@@ -249,12 +252,25 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                       const SizedBox(height: 8),
                       _EditCategoryIconPreview(
                         iconId: icon,
+                        colorValue: colorValue,
                         iconLabel: _categoryIconLabel(icon, l10n),
                         changeLabel: l10n.changeIcon,
                         onChange: () async {
                           final selected = await showCategoryIconPicker(dialogContext, icon);
                           if (selected != null && dialogContext.mounted) {
                             setDialogState(() => icon = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryColorPreview(
+                        colorValue: colorValue,
+                        colorLabel: _categoryColorLabel(colorValue, l10n),
+                        changeLabel: l10n.changeColor,
+                        onChange: () async {
+                          final selected = await showCategoryColorPicker(dialogContext, colorValue);
+                          if (selected != null && dialogContext.mounted) {
+                            setDialogState(() => colorValue = selected.colorValue);
                           }
                         },
                       ),
@@ -304,6 +320,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                                                 name: name.text.trim(),
                                                 type: type,
                                                 icon: icon,
+                                                colorValue: colorValue,
                                               );
                                           result.match(
                                             (_) {
@@ -366,6 +383,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
     final l10n = AppLocalizations.of(context);
     final name = TextEditingController(text: category.customName ?? category.id);
     var icon = category.icon;
+    var colorValue = category.colorValue;
     var isSaving = false;
     var errorMessage = '';
     try {
@@ -434,12 +452,25 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                       const SizedBox(height: 8),
                       _EditCategoryIconPreview(
                         iconId: icon,
+                        colorValue: colorValue,
                         iconLabel: _categoryIconLabel(icon, l10n),
                         changeLabel: l10n.changeIcon,
                         onChange: () async {
                           final selected = await showCategoryIconPicker(dialogContext, icon);
                           if (selected != null && dialogContext.mounted) {
                             setDialogState(() => icon = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _EditCategoryColorPreview(
+                        colorValue: colorValue,
+                        colorLabel: _categoryColorLabel(colorValue, l10n),
+                        changeLabel: l10n.changeColor,
+                        onChange: () async {
+                          final selected = await showCategoryColorPicker(dialogContext, colorValue);
+                          if (selected != null && dialogContext.mounted) {
+                            setDialogState(() => colorValue = selected.colorValue);
                           }
                         },
                       ),
@@ -523,7 +554,10 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                                           isArchived: category.isArchived,
                                           catalogId: category.catalogId,
                                           customName: name.text.trim(),
-                                          colorValue: category.colorValue,
+                                          colorValue:
+                                              FinanceCategoryColors.options.contains(colorValue)
+                                              ? colorValue
+                                              : null,
                                         );
                                         try {
                                           final result = await ref
@@ -657,12 +691,14 @@ class _EditCategoryFieldLabel extends StatelessWidget {
 class _EditCategoryIconPreview extends StatelessWidget {
   const _EditCategoryIconPreview({
     required this.iconId,
+    required this.colorValue,
     required this.iconLabel,
     required this.changeLabel,
     required this.onChange,
   });
 
   final String? iconId;
+  final int? colorValue;
   final String iconLabel;
   final String changeLabel;
   final VoidCallback onChange;
@@ -681,6 +717,7 @@ class _EditCategoryIconPreview extends StatelessWidget {
         FinanceCategoryIcon(
           key: const ValueKey('category_icon_preview'),
           iconId: iconId,
+          colorValue: colorValue,
           size: 32,
           iconSize: 18,
         ),
@@ -711,6 +748,64 @@ class _EditCategoryIconPreview extends StatelessWidget {
     ),
   );
 }
+
+class _EditCategoryColorPreview extends StatelessWidget {
+  const _EditCategoryColorPreview({
+    required this.colorValue,
+    required this.colorLabel,
+    required this.changeLabel,
+    required this.onChange,
+  });
+
+  final int? colorValue;
+  final String colorLabel;
+  final String changeLabel;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 64),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: AppColors.line),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      children: [
+        Container(
+          key: const ValueKey('category_color_preview'),
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: FinanceCategoryColors.background(colorValue),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: FinanceCategoryColors.resolve(colorValue)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Text(colorLabel, maxLines: 2, overflow: TextOverflow.ellipsis)),
+        TextButton(
+          key: const ValueKey('category_color_change'),
+          onPressed: onChange,
+          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+          child: Text(changeLabel, textAlign: TextAlign.end),
+        ),
+      ],
+    ),
+  );
+}
+
+String _categoryColorLabel(int? colorValue, AppLocalizations l10n) => switch (colorValue) {
+  null => l10n.categoryColorDefault,
+  0xFF1C61D1 => l10n.categoryColorBlue,
+  0xFF147D55 => l10n.categoryColorGreen,
+  0xFFB54708 => l10n.categoryColorOrange,
+  0xFF7A3E9D => l10n.categoryColorPurple,
+  0xFFB4233A => l10n.categoryColorRed,
+  0xFF087E8B => l10n.categoryColorTeal,
+  _ => l10n.categoryColorDefault,
+};
 
 String _categoryIconLabel(String? iconId, AppLocalizations l10n) =>
     switch (FinanceCategoryIcons.canonicalId(iconId)) {

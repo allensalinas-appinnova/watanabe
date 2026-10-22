@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_finance/core/theme/app_colors.dart';
 import 'package:personal_finance/features/finance/presentation/widgets/finance_category_icon.dart';
 
 void main() {
@@ -19,6 +20,15 @@ void main() {
       FinanceCategoryIcons.resolve('custom-future-icon'),
       FinanceCategoryIcons.resolve('other'),
     );
+  });
+
+  test('resolves expanded palette colors and falls back for invalid legacy values', () {
+    expect(FinanceCategoryColors.resolve(0xFF147D55), const Color(0xFF147D55));
+    expect(FinanceCategoryColors.resolve(0xFF174EA6), const Color(0xFF174EA6));
+    expect(FinanceCategoryColors.resolve(-1), FinanceCategoryColors.resolve(null));
+    expect(FinanceCategoryColors.resolve(0x100000000), FinanceCategoryColors.resolve(null));
+    expect(FinanceCategoryColors.background(0x100000000), AppColors.blueSoft);
+    expect(FinanceCategoryColors.options.length, 31);
   });
 
   testWidgets('shows a category icon in its soft-blue container and keeps label semantics', (
@@ -40,6 +50,30 @@ void main() {
     expect(find.text('Comida'), findsOneWidget);
     expect(find.byType(SvgPicture), findsOneWidget);
     expect(tester.getSemantics(find.byType(FinanceCategoryIcon)).label, 'Comida');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('uses the selected color for the icon and its tinted background', (tester) async {
+    const selectedColor = 0xFF147D55;
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: FinanceCategoryIcon(iconId: 'food', colorValue: selectedColor),
+        ),
+      ),
+    );
+
+    final container = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(FinanceCategoryIcon),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.color, FinanceCategoryColors.background(selectedColor));
+    expect(find.byType(SvgPicture), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
