@@ -16,9 +16,39 @@ import 'package:personal_finance/features/finance/domain/entities/operation_page
 import 'package:personal_finance/features/finance/domain/repositories/canonical_finance_repository.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_activity_screen.dart';
+import 'package:personal_finance/features/finance/presentation/services/activity_csv_save_service.dart';
+import 'package:personal_finance/features/finance/presentation/services/activity_csv_share_service.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 class _MockFinanceRepository extends Mock implements CanonicalFinanceRepository {}
+
+class _FakeActivityCsvShareService implements ActivityCsvShareService {
+  String? contents;
+  String? fileName;
+
+  @override
+  Future<void> shareCsv({
+    required String fileName,
+    required String contents,
+    required String subject,
+  }) async {
+    this.fileName = fileName;
+    this.contents = contents;
+  }
+}
+
+class _FakeActivityCsvSaveService implements ActivityCsvSaveService {
+  String? contents;
+  String? fileName;
+  bool saved = true;
+
+  @override
+  Future<bool> saveCsv({required String fileName, required String contents}) async {
+    this.fileName = fileName;
+    this.contents = contents;
+    return saved;
+  }
+}
 
 void main() {
   final operations = [
@@ -48,7 +78,11 @@ void main() {
     ),
   ];
 
-  Widget buildSubject({required Locale locale}) {
+  Widget buildSubject({
+    required Locale locale,
+    _FakeActivityCsvShareService? shareService,
+    _FakeActivityCsvSaveService? saveService,
+  }) {
     final repository = _MockFinanceRepository();
     when(
       () => repository.fetchOperationsPage(
@@ -78,6 +112,8 @@ void main() {
           (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
         ),
         canonicalFinanceRepositoryProvider.overrideWithValue(repository),
+        if (shareService != null) activityCsvShareServiceProvider.overrideWithValue(shareService),
+        if (saveService != null) activityCsvSaveServiceProvider.overrideWithValue(saveService),
         canonicalAccountsProvider('user-1').overrideWith(
           (ref) => Stream.value(
             const [
@@ -144,23 +180,81 @@ void main() {
     final dateTime = DateFormat.yMMMd('es').add_Hm().format(DateTime(2026, 10, 7, 9, 30));
     expect(find.text('Ingreso · $dateTime'), findsOneWidget);
     expect(find.text('Gasto · $dateTime'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Transferencia · $dateTime'), 250);
     expect(find.text('Transferencia · $dateTime'), findsOneWidget);
     expect(find.text('Banco1 Ahorros · Salario'), findsOneWidget);
     expect(find.text('Banco1 Ahorros · Comida'), findsOneWidget);
     expect(find.text('Banco1 Ahorros → Efectivo'), findsOneWidget);
-    expect(find.textContaining('COP'), findsNWidgets(3));
+    expect(find.text('Totales confirmados'), findsOneWidget);
+    expect(find.text('Saldo neto'), findsOneWidget);
+    expect(find.text('Movimientos · 3'), findsOneWidget);
+    expect(find.text('Los totales incluyen solo movimientos confirmados.'), findsNothing);
 
+    await tester.drag(
+      find.byKey(const ValueKey('canonical_activity_scroll_view')),
+      const Offset(0, 900),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('activity_filter_income')));
     await tester.pumpAndSettle();
     expect(find.text('Salario'), findsOneWidget);
     expect(find.text('Mercado'), findsNothing);
     expect(find.text('Mover dinero'), findsNothing);
 
+    await tester.drag(
+      find.byKey(const ValueKey('canonical_activity_scroll_view')),
+      const Offset(0, 900),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('activity_filter_expense')));
     await tester.pumpAndSettle();
     expect(find.text('Mercado'), findsOneWidget);
     expect(find.text('Salario'), findsNothing);
     expect(find.text('Mover dinero'), findsNothing);
+  });
+
+  testWidgets('opens export review and shares confirmed rows including transfers', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _FakeActivityCsvShareService();
+
+    await tester.pumpWidget(buildSubject(locale: const Locale('es'), shareService: service));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('activity_export_open')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Exportar CSV'), findsOneWidget);
+    expect(find.text('Todas las cuentas'), findsOneWidget);
+    expect(find.text('3 movimientos confirmados'), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_export_save')), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_export_share')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('activity_export_share')));
+    await tester.pumpAndSettle();
+    expect(service.fileName, startsWith('lumiomoney-activity-'));
+    expect(service.contents, contains('"Transferencia"'));
+    expect(service.contents, contains('"Salario"'));
+    expect(service.contents, contains('"Mercado"'));
+  });
+
+  testWidgets('saves CSV from the review sheet and keeps the same filtered rows', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _FakeActivityCsvSaveService();
+
+    await tester.pumpWidget(buildSubject(locale: const Locale('es'), saveService: service));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('activity_export_open')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('activity_export_save')));
+    await tester.pumpAndSettle();
+
+    expect(service.fileName, endsWith('.csv'));
+    expect(service.contents, contains('"Transferencia"'));
+    expect(find.text('Exportar CSV'), findsNothing);
   });
 
   testWidgets('fits compact width and enlarged text in Spanish, Portuguese, and English', (

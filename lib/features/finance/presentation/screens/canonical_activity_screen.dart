@@ -10,11 +10,17 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../domain/entities/activity_report.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../services/activity_csv_save_service.dart';
+import '../services/activity_csv_share_service.dart';
+import '../utils/activity_csv_exporter.dart';
+import '../widgets/activity_export_review_sheet.dart';
 import '../widgets/finance_category_icon.dart';
+import '../widgets/sync_issue_localization.dart';
 
 class CanonicalActivityScreen extends ConsumerStatefulWidget {
   const CanonicalActivityScreen({super.key});
@@ -59,11 +65,14 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
     final queryFilters = ref.watch(activityQueryFiltersProvider);
     final pagerProvider = operationsPagerProvider((userId: user.id, type: selectedType));
     final pager = ref.watch(pagerProvider);
+    final reportProvider = activityReportProvider(user.id);
+    final report = ref.watch(reportProvider);
     final accounts =
         ref.watch(canonicalAccountsProvider(user.id)).valueOrNull ?? const <FinanceAccount>[];
     final categories =
         ref.watch(canonicalCategoriesProvider(user.id)).valueOrNull ?? const <FinanceCategory>[];
     final syncStatus = ref.watch(pendingOperationSyncStatusProvider).valueOrNull;
+    final pendingOperations = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       body: SafeArea(
@@ -154,6 +163,20 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                     ),
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                    child: report.when(
+                      loading: () => const _ActivityReportLoading(),
+                      error: (_, _) => _ActivityReportError(
+                        message: l10n.genericError,
+                        retryLabel: l10n.retry,
+                        onRetry: () => ref.invalidate(reportProvider),
+                      ),
+                      data: (value) => _ActivityReportSummary(report: value),
+                    ),
+                  ),
+                ),
                 if (syncStatus != null &&
                     (syncStatus.pending > 0 || syncStatus.syncing > 0 || syncStatus.rejected > 0))
                   SliverToBoxAdapter(
@@ -161,10 +184,32 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                       padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                       child: _ActivitySyncBanner(
                         status: syncStatus,
+                        issue: firstSyncFailure(
+                          pendingOperations.map((operation) => operation.lastError),
+                        ),
                         onRetry: () => ref.read(canonicalActionsProvider).syncPending(user.id),
                       ),
                     ),
                   ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
+                    child: _ActivityMovementsHeader(
+                      report: report,
+                      onExport: report.valueOrNull == null || report.valueOrNull!.operations.isEmpty
+                          ? null
+                          : () => _showExportReview(
+                              userId: user.id,
+                              accounts: accounts,
+                              categories: categories,
+                              report: report.valueOrNull!,
+                              queryFilters: queryFilters,
+                              selectedType: selectedType,
+                              l10n: l10n,
+                            ),
+                    ),
+                  ),
+                ),
                 pager.when(
                   loading: () => const SliverFillRemaining(
                     hasScrollBody: false,
@@ -230,6 +275,274 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
       ),
     );
   }
+
+  Future<void> _showExportReview({
+    required String userId,
+    required List<FinanceAccount> accounts,
+    required List<FinanceCategory> categories,
+    required ActivityReport report,
+    required ActivityQueryFilters queryFilters,
+    required OperationType? selectedType,
+    required AppLocalizations l10n,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      // Activity lives inside the indexed shell navigator. Put the modal on
+      // the root navigator so it covers the shell's global FAB and tab bar;
+      // otherwise those persistent controls paint over the sheet's actions.
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ActivityExportReviewSheet(
+        report: report,
+        accountLabel: _activityAccountLabel(accounts, queryFilters.accountIds, l10n),
+        periodLabel: _activityPeriodRangeLabel(queryFilters, context),
+        typeLabel: selectedType == null
+            ? l10n.activityFilterAll
+            : selectedType == OperationType.income
+            ? l10n.income
+            : l10n.expense,
+        accounts: accounts,
+        categories: categories,
+        locale: Localizations.localeOf(context).toString(),
+        onExport: ({required operations, required action}) async {
+          final content = ActivityCsvExporter.export(
+            operations: operations,
+            accounts: accounts,
+            categories: categories,
+            labels: ActivityCsvLabels(
+              date: l10n.activityCsvDate,
+              type: l10n.activityCsvType,
+              description: l10n.activityCsvDescription,
+              account: l10n.activityCsvAccount,
+              category: l10n.activityCsvCategory,
+              amount: l10n.activityCsvAmount,
+              currency: l10n.activityCsvCurrency,
+              status: l10n.activityCsvStatus,
+              income: l10n.income,
+              expense: l10n.expense,
+              transfer: l10n.transferOperationLabel,
+              pending: l10n.activityCsvPending,
+              confirmed: l10n.activityCsvConfirmed,
+              rejected: l10n.activityCsvRejected,
+              unknownAccount: l10n.activityCsvUnknownAccount,
+              unknownCategory: l10n.activityCsvUnknownCategory,
+            ),
+          );
+          final now = DateTime.now();
+          final fileName =
+              'lumiomoney-activity-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+          return switch (action) {
+            ActivityExportAction.save =>
+              ref
+                  .read(activityCsvSaveServiceProvider)
+                  .saveCsv(fileName: fileName, contents: content),
+            ActivityExportAction.share => _shareExport(
+              fileName: fileName,
+              contents: content,
+              subject: l10n.activityShareSubject,
+            ),
+          };
+        },
+      ),
+    );
+  }
+
+  Future<bool> _shareExport({
+    required String fileName,
+    required String contents,
+    required String subject,
+  }) async {
+    await ref
+        .read(activityCsvShareServiceProvider)
+        .shareCsv(fileName: fileName, contents: contents, subject: subject);
+    return true;
+  }
+}
+
+class _ActivityMovementsHeader extends StatelessWidget {
+  const _ActivityMovementsHeader({required this.report, required this.onExport});
+
+  final AsyncValue<ActivityReport> report;
+  final VoidCallback? onExport;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final count = report.valueOrNull?.operations.length;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            count == null ? l10n.activityMovements : l10n.activityMovementCount(count),
+            key: const ValueKey('activity_movement_count'),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        TextButton.icon(
+          key: const ValueKey('activity_export_open'),
+          onPressed: onExport,
+          icon: const Icon(Icons.download_outlined),
+          label: Text(l10n.activityExportAction),
+          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActivityReportSummary extends StatelessWidget {
+  const _ActivityReportSummary({required this.report});
+
+  final ActivityReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final totals = report.totalsByCurrency.values.toList();
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.activityTotalsTitle, style: Theme.of(context).textTheme.titleSmall),
+            if (totals.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(l10n.activityTotalsEmpty),
+              )
+            else
+              for (final total in totals) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(total.currency, style: Theme.of(context).textTheme.labelLarge),
+                ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 340;
+                    final rows = [
+                      _ActivityTotalLine(
+                        label: l10n.activityTotalsIncome,
+                        amount: total.incomeMinor,
+                        currency: total.currency,
+                        color: AppColors.green,
+                        locale: locale,
+                      ),
+                      _ActivityTotalLine(
+                        label: l10n.activityTotalsExpenses,
+                        amount: total.expenseMinor,
+                        currency: total.currency,
+                        color: const Color(0xFFD32F2F),
+                        locale: locale,
+                      ),
+                      _ActivityTotalLine(
+                        label: l10n.activityTotalsNet,
+                        amount: total.netMinor,
+                        currency: total.currency,
+                        color: AppColors.navy,
+                        locale: locale,
+                      ),
+                    ];
+                    return compact
+                        ? Column(children: rows)
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [for (final row in rows) Expanded(child: row)],
+                          );
+                  },
+                ),
+              ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.activityTotalsPendingNote,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityTotalLine extends StatelessWidget {
+  const _ActivityTotalLine({
+    required this.label,
+    required this.amount,
+    required this.currency,
+    required this.color,
+    required this.locale,
+  });
+
+  final String label;
+  final int amount;
+  final String currency;
+  final Color color;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 4, right: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          CurrencyFormatter.formatMinor(amount, currency, locale: locale),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(color: color),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ActivityReportLoading extends StatelessWidget {
+  const _ActivityReportLoading();
+
+  @override
+  Widget build(BuildContext context) => const Card(
+    child: SizedBox(height: 110, child: Center(child: CircularProgressIndicator())),
+  );
+}
+
+class _ActivityReportError extends StatelessWidget {
+  const _ActivityReportError({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onRetry, child: Text(retryLabel)),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ActivityQueryFilterButton extends StatelessWidget {
@@ -546,9 +859,10 @@ class _ActivityOperationCard extends StatelessWidget {
 }
 
 class _ActivitySyncBanner extends StatelessWidget {
-  const _ActivitySyncBanner({required this.status, required this.onRetry});
+  const _ActivitySyncBanner({required this.status, required this.issue, required this.onRetry});
 
   final SyncStatusSnapshot status;
+  final SyncFailureInfo? issue;
   final VoidCallback onRetry;
 
   @override
@@ -570,7 +884,17 @@ class _ActivitySyncBanner extends StatelessWidget {
         children: [
           const Icon(Icons.sync, color: AppColors.blueDark),
           const SizedBox(width: 8),
-          Expanded(child: Text(message, style: Theme.of(context).textTheme.bodySmall)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message, style: Theme.of(context).textTheme.bodySmall),
+                if (issue != null) Text(syncIssueMessage(l10n, issue!)),
+                if (issue?.technicalCode case final code?)
+                  SelectableText(l10n.syncDiagnosticCode(code)),
+              ],
+            ),
+          ),
           TextButton(onPressed: onRetry, child: Text(l10n.retry)),
         ],
       ),

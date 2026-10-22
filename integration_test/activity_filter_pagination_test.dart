@@ -109,7 +109,7 @@ void main() {
           accountId: account.id,
           categoryId: incomeCategory.id,
           monthKey: '2026-10',
-          occurredAt: now.subtract(const Duration(minutes: 3)),
+          occurredAt: now.subtract(const Duration(minutes: 2)),
           description: 'Ingreso uno',
           idempotencyKey: 'activity-income-one-${now.microsecondsSinceEpoch}',
         ),
@@ -212,6 +212,13 @@ void main() {
 
       expect(all, hasLength(4));
       expect(all.where((operation) => operation.type == OperationType.transfer), hasLength(1));
+      expect(
+        all
+            .where((operation) => operation.occurredAt == now.subtract(const Duration(minutes: 2)))
+            .map((operation) => operation.id),
+        [operations[1].idempotencyKey, operations[0].idempotencyKey],
+        reason: 'Equal timestamps should use a stable descending document-ID cursor order.',
+      );
       expect(incomes, hasLength(2));
       expect(incomes.every((operation) => operation.type == OperationType.income), isTrue);
       expect(incomes.map((operation) => operation.id).toSet(), hasLength(2));
