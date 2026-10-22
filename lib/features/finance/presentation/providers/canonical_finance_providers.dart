@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +11,9 @@ import '../../../../core/firebase/firebase_observability.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/offline/pending_operation_sync_service.dart';
 import '../../../../core/offline/sync_state.dart';
+import '../../../../core/utils/async_value_extensions.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../domain/entities/activity_report.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
@@ -92,6 +96,28 @@ final operationsPagerProvider =
       OperationsPagerNotifier.new,
     );
 
+/// Refreshes the two read models that display recent and paginated activity.
+void invalidateOperationLists(WidgetRef ref, String userId) {
+  ref.invalidate(
+    canonicalOperationsPageProvider((
+      userId: userId,
+      cursor: null,
+      monthKey: null,
+      currency: null,
+      type: null,
+      accountIds: null,
+      pageSize: 10,
+    )),
+  );
+  for (final type in const <OperationType?>[
+    null,
+    OperationType.income,
+    OperationType.expense,
+  ]) {
+    ref.invalidate(operationsPagerProvider((userId: userId, type: type)));
+  }
+}
+
 final activityTypeFilterProvider = NotifierProvider<ActivityTypeFilterNotifier, OperationType?>(
   ActivityTypeFilterNotifier.new,
 );
@@ -100,6 +126,99 @@ final activityQueryFiltersProvider =
     NotifierProvider<ActivityQueryFiltersNotifier, ActivityQueryFilters>(
       ActivityQueryFiltersNotifier.new,
     );
+
+/// Loads every non-rejected activity record matching the current filters so
+/// summaries and exports are not limited to the list's currently loaded page.
+final activityReportProvider = FutureProvider.family<ActivityReport, String>((ref, userId) async {
+  final filters = ref.watch(activityQueryFiltersProvider);
+  final type = ref.watch(activityTypeFilterProvider);
+  final localPending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
+  final repository = ref.watch(canonicalFinanceRepositoryProvider);
+  final operations = <FinancialOperation>[];
+  OperationPageCursor? cursor;
+
+  while (true) {
+    final result = await repository.fetchOperationsPage(
+      userId,
+      cursor: cursor,
+      monthKey: filters.monthKey,
+      type: type,
+      accountIds: filters.accountIds,
+      startAt: filters.startAt,
+      endAtExclusive: filters.endAtExclusive,
+    );
+    final page = result.match((failure) => throw Exception(failure.message), (value) => value);
+    operations.addAll(page.items);
+    cursor = page.nextCursor;
+    if (cursor == null) break;
+  }
+
+  final knownIdempotencyKeys = operations.map((operation) => operation.idempotencyKey).toSet();
+  for (final pending in localPending) {
+    if (pending.status == 'rejected') continue;
+    try {
+      final payload = jsonDecode(pending.payload) as Map<String, dynamic>;
+      // New queue entries carry ownership so another signed-in user's local
+      // transactions are never exposed in this report or its export.
+      if (payload['ownerUserId'] != userId) continue;
+      final operation = _pendingActivityOperation(pending, payload);
+      if (operation == null || knownIdempotencyKeys.contains(operation.idempotencyKey)) continue;
+      if (type != null && operation.type != type) continue;
+      if (filters.monthKey != null && operation.monthKey != filters.monthKey) continue;
+      if (filters.isDateRange &&
+          (operation.occurredAt.isBefore(filters.startAt!) ||
+              !operation.occurredAt.isBefore(filters.endAtExclusive!))) {
+        continue;
+      }
+      if (filters.accountIds.isNotEmpty &&
+          !filters.accountIds.any(
+            (id) =>
+                id == operation.accountId ||
+                id == operation.sourceAccountId ||
+                id == operation.destinationAccountId,
+          )) {
+        continue;
+      }
+      operations.add(operation);
+      knownIdempotencyKeys.add(operation.idempotencyKey);
+    } on Object {
+      // A malformed or legacy queue row is left untouched and omitted safely.
+    }
+  }
+
+  return ActivityReport.fromOperations(operations);
+});
+
+FinancialOperation? _pendingActivityOperation(
+  PendingOperation pending,
+  Map<String, dynamic> payload,
+) {
+  final isTransfer = pending.operationType == 'transfer';
+  final type = isTransfer
+      ? OperationType.transfer
+      : OperationType.values.byName(payload['type'] as String);
+  final occurredAt = DateTime.tryParse(payload['occurredAt'] as String? ?? '');
+  final amountMinor = payload['amountMinor'];
+  if (occurredAt == null || amountMinor is! int) return null;
+  final monthKey =
+      payload['monthKey'] as String? ??
+      '${occurredAt.year.toString().padLeft(4, '0')}-${occurredAt.month.toString().padLeft(2, '0')}';
+  return FinancialOperation(
+    id: 'local-${pending.idempotencyKey}',
+    type: type,
+    amountMinor: amountMinor,
+    currency: payload['currency'] as String? ?? '',
+    monthKey: monthKey,
+    occurredAt: occurredAt,
+    status: OperationStatus.pending,
+    idempotencyKey: pending.idempotencyKey,
+    description: payload['description'] as String? ?? '',
+    accountId: payload['accountId'] as String?,
+    categoryId: payload['categoryId'] as String?,
+    sourceAccountId: payload['sourceAccountId'] as String?,
+    destinationAccountId: payload['destinationAccountId'] as String?,
+  );
+}
 
 class ActivityQueryFilters {
   const ActivityQueryFilters({
@@ -292,6 +411,20 @@ final canonicalBudgetProvider = StreamProvider.family<Budget?, ({String userId, 
   (ref, input) => getIt<CanonicalFinanceRepository>().watchBudget(input.userId, input.budgetId),
 );
 
+final canonicalBudgetItemOperationsProvider =
+    StreamProvider.family<
+      List<FinancialOperation>,
+      ({String userId, String budgetId, String itemId})
+    >(
+      (ref, input) => ref
+          .watch(canonicalFinanceRepositoryProvider)
+          .watchBudgetItemOperations(
+            input.userId,
+            input.budgetId,
+            input.itemId,
+          ),
+    );
+
 final canonicalMonthlySummaryProvider =
     StreamProvider.family<MonthlySummary?, ({String userId, String monthKey, String currency})>(
       (ref, input) => getIt<CanonicalFinanceRepository>().watchMonthlySummary(
@@ -419,7 +552,7 @@ class CanonicalFinanceActions {
     await _sync.enqueue(
       idempotencyKey: draft.idempotencyKey,
       operationType: 'operation',
-      payload: _operationPayload(draft),
+      payload: {..._operationPayload(draft), 'ownerUserId': userId},
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
     final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
@@ -436,7 +569,7 @@ class CanonicalFinanceActions {
     await _sync.enqueue(
       idempotencyKey: draft.idempotencyKey,
       operationType: 'transfer',
-      payload: _transferPayload(draft),
+      payload: {..._transferPayload(draft), 'ownerUserId': userId},
     );
     await _sync.drain((type, payload) => _send(userId, type, payload));
     final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
@@ -447,7 +580,7 @@ class CanonicalFinanceActions {
     );
   }
 
-  Future<void> createBudget(
+  Future<Budget> createBudget(
     String userId, {
     required String categoryId,
     required String flowType,
@@ -463,8 +596,9 @@ class CanonicalFinanceActions {
       currency: currency,
       items: items,
     );
-    result.match((failure) => throw Exception(failure.message), (_) {
+    return result.match((failure) => throw Exception(failure.message), (budget) {
       unawaited(_observability.logEvent('budget_created'));
+      return budget;
     });
   }
 
@@ -492,9 +626,23 @@ class CanonicalFinanceActions {
     }, (_) {});
   }
 
-  Future<void> archiveBudget(String userId, String budgetId) async {
+  Future<Failure?> archiveBudget(String userId, String budgetId) async {
     final result = await _repository.archiveBudget(userId, budgetId);
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    return result.match((failure) {
+      final issue = switch (failure) {
+        NetworkFailure() => 'network',
+        AuthFailure() => 'permission',
+        ConflictFailure() => 'conflict',
+        UnknownFailure() => 'unexpected',
+      };
+      final code = failure.technicalCode;
+      final safeCode = code != null && RegExp(r'^[a-z0-9-]{1,48}$').hasMatch(code) ? code : null;
+      if (kDebugMode) {
+        debugPrint('budget_archive_failure issue=$issue firebaseCode=${safeCode ?? 'none'}');
+      }
+      unawaited(_observability.recordNonFatal(TechnicalErrorCode.firebaseRequest));
+      return failure;
+    }, (_) => null);
   }
 
   Future<void> updateOperation(String userId, FinancialOperation operation) async {
@@ -546,17 +694,53 @@ class CanonicalFinanceActions {
         monthKey: payload['monthKey'] as String?,
         description: payload['description'] as String,
         idempotencyKey: payload['idempotencyKey'] as String,
+        budgetId: payload['budgetId'] as String?,
+        budgetItemId: payload['budgetItemId'] as String?,
       ),
     );
     return result.match(_syncFailureResult, (_) => const SyncAttemptResult.success());
   }
 
-  SyncAttemptResult _syncFailureResult(Failure failure) => switch (failure) {
-    NetworkFailure() => const SyncAttemptResult.retryable(SyncIssueCode.networkUnavailable),
-    AuthFailure() => const SyncAttemptResult.rejected(SyncIssueCode.permissionDenied),
-    ConflictFailure() => const SyncAttemptResult.rejected(SyncIssueCode.invalidOperation),
-    UnknownFailure() => const SyncAttemptResult.rejected(SyncIssueCode.invalidOperation),
-  };
+  SyncAttemptResult _syncFailureResult(Failure failure) {
+    final result = switch (failure) {
+      NetworkFailure() => SyncAttemptResult.retryable(
+        SyncIssueCode.networkUnavailable,
+        technicalCode: failure.technicalCode,
+      ),
+      AuthFailure() => SyncAttemptResult.rejected(
+        SyncIssueCode.permissionDenied,
+        technicalCode: failure.technicalCode,
+      ),
+      ConflictFailure() => SyncAttemptResult.rejected(
+        SyncIssueCode.invalidOperation,
+        technicalCode: failure.technicalCode,
+      ),
+      UnknownFailure() => SyncAttemptResult.rejected(
+        SyncIssueCode.invalidOperation,
+        technicalCode: failure.technicalCode,
+      ),
+    };
+
+    if (kDebugMode) {
+      debugPrint(
+        'operation_sync_failure issue=${result.issueCode?.name} '
+        'firebaseCode=${result.technicalCode ?? 'none'}',
+      );
+    }
+    if (!result.retryable) {
+      unawaited(_recordRejectedSync());
+    }
+    return result;
+  }
+
+  Future<void> _recordRejectedSync() async {
+    try {
+      await _observability.logEvent('sync_rejected');
+    } catch (_) {
+      // Diagnostics must never replace or hide the user's sync failure.
+    }
+    await _observability.recordNonFatal(TechnicalErrorCode.sync);
+  }
 
   Map<String, dynamic> _operationPayload(FinancialOperationDraft draft) => {
     'type': draft.type.name,
@@ -568,6 +752,8 @@ class CanonicalFinanceActions {
     'monthKey': draft.monthKey,
     'description': draft.description,
     'idempotencyKey': draft.idempotencyKey,
+    'budgetId': draft.budgetId,
+    'budgetItemId': draft.budgetItemId,
   };
 
   Map<String, dynamic> _transferPayload(TransferDraft draft) => {

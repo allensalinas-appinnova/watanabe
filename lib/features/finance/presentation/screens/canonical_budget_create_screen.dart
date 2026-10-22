@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -108,12 +109,22 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     }
 
     final drafts = <CanonicalBudgetItemDraft>[];
+    var totalMinor = 0;
+    final lastValidDay = DateTime(_month.year, _month.month + 1, 0).day;
     try {
       for (final item in _items) {
         final description = item.description.text.trim();
         if (description.isEmpty) throw const FormatException('description');
         final amountMinor = MoneyParser.minorUnits(item.amount.text, currency);
-        if (item.day < 1 || item.day > 31) throw const FormatException('day');
+        if (item.day < 1 || item.day > lastValidDay) {
+          setState(() => _errorMessage = l10n.budgetDayInvalidForMonth);
+          return;
+        }
+        if (amountMinor > MoneyParser.maxMinorUnits(currency) - totalMinor) {
+          setState(() => _errorMessage = l10n.amountTooLarge);
+          return;
+        }
+        totalMinor += amountMinor;
         drafts.add(
           CanonicalBudgetItemDraft(
             description: description,
@@ -132,17 +143,23 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
       _errorMessage = null;
     });
     try {
-      await ref
+      final monthKey = DateFormat('yyyy-MM').format(_month);
+      final createdBudget = await ref
           .read(canonicalActionsProvider)
           .createBudget(
             userId,
             categoryId: _categoryId!,
             flowType: _flowType,
-            monthKey: DateFormat('yyyy-MM').format(_month),
+            monthKey: monthKey,
             currency: currency,
             items: drafts,
           );
-      if (mounted) context.pop();
+      if (mounted) {
+        // Return the server-confirmed budget so the still-mounted month list
+        // can render it immediately while its Firestore stream catches up.
+        ref.invalidate(canonicalBudgetsProvider((userId: userId, monthKey: monthKey)));
+        context.pop(createdBudget);
+      }
     } catch (error) {
       if (!mounted) return;
       final message = error.toString().toLowerCase();
@@ -537,14 +554,7 @@ class _BudgetItemEditor extends StatelessWidget {
                   prefixText: '$currency ',
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
-                validator: (value) {
-                  try {
-                    MoneyParser.minorUnits(value ?? '', currency);
-                    return null;
-                  } on FormatException {
-                    return l10n.budgetAmountPositive;
-                  }
-                },
+                validator: (value) => FinanceInputValidators.amount(value, currency, l10n),
               ),
             ),
             const SizedBox(width: 8),

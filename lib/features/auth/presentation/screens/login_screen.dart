@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
 
@@ -96,7 +97,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       validator: (value) =>
-                          value != null && value.contains('@') ? null : l10n.authEmailInvalid,
+                          value != null && FinanceInputValidators.isValidEmail(value)
+                          ? null
+                          : l10n.authEmailInvalid,
                     ),
                     const SizedBox(height: 17),
                     _FieldLabel(l10n.authPasswordLabel.toUpperCase()),
@@ -244,7 +247,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _requestPasswordReset() {
     final email = _emailController.text.trim();
     final l10n = AppLocalizations.of(context);
-    if (!email.contains('@')) {
+    if (!FinanceInputValidators.isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.authResetEmailInvalid)),
       );

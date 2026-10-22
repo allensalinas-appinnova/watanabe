@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -14,10 +15,11 @@ import '../providers/canonical_finance_providers.dart';
 const _availableCurrencies = ['COP', 'MXN', 'BRL'];
 
 class AccountFormScreen extends ConsumerWidget {
-  const AccountFormScreen({super.key, this.accountId, this.initialAccount});
+  const AccountFormScreen({super.key, this.accountId, this.initialAccount, this.initialCurrency});
 
   final String? accountId;
   final FinanceAccount? initialAccount;
+  final String? initialCurrency;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,7 +66,9 @@ class AccountFormScreen extends ConsumerWidget {
     return _AccountForm(
       key: ValueKey('edit_account_form_${account.id}'),
       userId: user.id,
-      defaultCurrency: profileCurrency,
+      defaultCurrency: _availableCurrencies.contains(initialCurrency)
+          ? initialCurrency!
+          : profileCurrency,
       account: account,
     );
   }
@@ -187,9 +191,10 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                             labelText: l10n.accountName,
                             hintText: l10n.accountNameHint,
                           ),
-                          validator: (value) => value == null || value.trim().isEmpty
-                              ? l10n.accountNameRequired
-                              : null,
+                          validator: (value) => FinanceInputValidators.requiredText(
+                            value,
+                            l10n.accountNameRequired,
+                          ),
                         ),
                         const SizedBox(height: 18),
                         if (_isEditing) ...[
@@ -332,21 +337,11 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   }
 
   String? _validateBalance(String? value, AppLocalizations l10n) {
-    final raw = value?.trim() ?? '';
-    if (raw.isEmpty || raw.startsWith('-')) return l10n.invalidInitialBalance;
-    try {
-      _parseBalance(raw, _currency);
-      return null;
-    } on FormatException {
-      return l10n.invalidInitialBalance;
-    }
+    return FinanceInputValidators.amount(value, _currency, l10n, allowZero: true);
   }
 
   int _parseBalance(String raw, String currency) {
-    final normalized = raw.trim().replaceAll(RegExp(r'\s+'), '');
-    if (RegExp(r'^0+(?:[.,]0{1,2})?$').hasMatch(normalized)) return 0;
-    if (normalized.startsWith('-')) throw const FormatException('Negative balance.');
-    return MoneyParser.minorUnits(normalized, currency);
+    return MoneyParser.minorUnits(raw, currency, allowZero: true);
   }
 
   Future<void> _save() async {

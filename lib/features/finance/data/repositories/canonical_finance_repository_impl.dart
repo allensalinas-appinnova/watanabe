@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -149,7 +151,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
 
   @override
   Stream<List<FinancialOperation>> watchOperations(String userId) =>
-      _remoteDataSource.watchOperations(userId).map((records) => records.map(_operation).toList());
+      _remoteDataSource.watchOperations(userId).map(_visibleOperations);
 
   @override
   Future<Either<Failure, OperationPage>> fetchOperationsPage(
@@ -179,14 +181,32 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       );
       return Right(
         OperationPage(
-          items: page.records.map(_operation).toList(growable: false),
+          // A user-initiated removal is represented as a rejected operation
+          // because Firestore rules intentionally disallow hard deletes. It
+          // must not continue to appear in activity or recent activity.
+          items: _visibleOperations(page.records),
           nextCursor: page.nextCursor,
         ),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      // This path intentionally returns a user-safe Failure, so retain a
+      // redacted diagnostic in debug builds instead of silently swallowing
+      // the Firestore error. Never log document contents or the user ID.
+      if (kDebugMode) {
+        final requestCode = error is FirebaseException
+            ? '${error.plugin}/${error.code}'
+            : error.runtimeType.toString();
+        debugPrint('fetchOperationsPage failed ($requestCode)');
+        debugPrintStack(stackTrace: stackTrace);
+      }
       return Left(FirebaseFailureMapper.fromException(error));
     }
   }
+
+  List<FinancialOperation> _visibleOperations(List<Map<String, dynamic>> records) => records
+      .map(_operation)
+      .where((operation) => operation.status != OperationStatus.rejected)
+      .toList(growable: false);
 
   @override
   Stream<List<LedgerEntry>> watchLedgerEntries(String userId, String accountId) => _remoteDataSource
@@ -285,6 +305,15 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       .map(
         (records) => records.map(_budgetItem).toList(),
       );
+
+  @override
+  Stream<List<FinancialOperation>> watchBudgetItemOperations(
+    String userId,
+    String budgetId,
+    String itemId,
+  ) => _remoteDataSource
+      .watchBudgetItemOperations(userId, budgetId, itemId)
+      .map((records) => records.map(_operation).toList());
 
   @override
   Future<Either<Failure, BudgetItem>> addBudgetItem(
@@ -409,6 +438,8 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     accountId: data['accountId'] as String?,
     sourceAccountId: data['sourceAccountId'] as String?,
     destinationAccountId: data['destinationAccountId'] as String?,
+    budgetId: data['budgetId'] as String?,
+    budgetItemId: data['budgetItemId'] as String?,
     description: data['description'] as String? ?? '',
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
@@ -437,7 +468,10 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     description: data['description'] as String? ?? '',
     amountMinor: (data['amountMinor'] as num? ?? 0).toInt(),
     dayOfMonth: (data['dayOfMonth'] as num? ?? 1).toInt(),
+    actualAmountMinor: (data['actualAmountMinor'] as num? ?? 0).toInt(),
+    status: data['status'] as String? ?? 'active',
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
+    archivedAt: FirestoreDateMapper.toDateTime(data['archivedAt']),
   );
 }

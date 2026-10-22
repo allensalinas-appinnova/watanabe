@@ -8,19 +8,25 @@ abstract final class FirebaseFailureMapper {
   static Failure fromException(Object error) {
     if (error is FirebaseAuthException) {
       if (error.code == 'network-request-failed') {
-        return const NetworkFailure('No hay conexión. El movimiento queda pendiente.');
+        return NetworkFailure(
+          'No hay conexión. El movimiento queda pendiente.',
+          technicalCode: error.code,
+        );
       }
-      return AuthFailure(_authMessage(error.code));
+      return AuthFailure(_authMessage(error.code), technicalCode: error.code);
     }
 
     if (error is FirebaseException) {
       return switch (error.code) {
-        'unavailable' || 'deadline-exceeded' || 'network-request-failed' => const NetworkFailure(
+        'unavailable' || 'deadline-exceeded' || 'network-request-failed' => NetworkFailure(
           'No hay conexión. El movimiento queda pendiente.',
+          technicalCode: error.code,
         ),
-        'permission-denied' ||
-        'unauthenticated' => const AuthFailure('La sesión necesita actualizarse.'),
-        _ => const UnknownFailure('No pudimos completar la operación.'),
+        'permission-denied' || 'unauthenticated' => AuthFailure(
+          'La sesión necesita actualizarse.',
+          technicalCode: error.code,
+        ),
+        _ => UnknownFailure('No pudimos completar la operación.', technicalCode: error.code),
       };
     }
     if (error is SocketException) {

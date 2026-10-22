@@ -75,6 +75,59 @@
   "activityFilterAllDates": "Todas las fechas",
   "activityFilterSelectedDetails": "{account} · {range}",
   "@activityFilterSelectedDetails": {"placeholders": {"account": {}, "range": {}}},
+  "activityShare": "Compartir",
+  "activityShareSubject": "Actividad de LumioMoney",
+  "activityShareFailed": "No se pudo preparar o compartir el archivo. Inténtalo de nuevo.",
+  "activityShareEmpty": "No hay movimientos para compartir.",
+  "activityMovements": "Movimientos",
+  "activityMovementCount": "Movimientos · {count}",
+  "@activityMovementCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAction": "Exportar",
+  "activityExportTitle": "Exportar CSV",
+  "activityExportSubtitle": "Revisa la selección antes de continuar.",
+  "activityExportAccount": "Cuenta",
+  "activityExportPeriod": "Periodo",
+  "activityExportType": "Tipo",
+  "activityExportCurrencyFormat": "Moneda · Formato",
+  "activityExportConfirmedCount": "{count, plural, =0{0 movimientos confirmados} one{1 movimiento confirmado} other{{count} movimientos confirmados}}",
+  "@activityExportConfirmedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludedCount": "{count} movimientos incluidos",
+  "@activityExportIncludedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportMoreCount": "y {count} más",
+  "@activityExportMoreCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludePending": "Incluir pendientes",
+  "activityExportPendingExcluded": "{count, plural, one{1 movimiento pendiente excluido. Activa para incluirlo.} other{{count} movimientos pendientes excluidos. Activa para incluirlos.}}",
+  "@activityExportPendingExcluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportPendingIncluded": "{count, plural, one{1 movimiento pendiente se incluirá e identificará como pendiente.} other{{count} movimientos pendientes se incluirán e identificarán como pendientes.}}",
+  "@activityExportPendingIncluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAllResults": "Se exportan todos los resultados de los filtros, no solo los cargados. Se conservan el orden, las fechas y la zona horaria.",
+  "activityExportNoNotes": "No incluye notas. Guardar y compartir usan el mismo CSV.",
+  "activityExportSave": "Guardar archivo",
+  "activityExportShare": "Compartir archivo",
+  "activityExportPreparing": "Preparando {count, plural, one{1 movimiento} other{{count} movimientos}}…",
+  "@activityExportPreparing": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportErrorTitle": "No pudimos generar el archivo",
+  "activityExportErrorMessage": "Ocurrió un problema temporal. Tu selección sigue aquí; puedes intentarlo de nuevo.",
+  "activityExportCloseHint": "Al cerrar, se conservan tus filtros y selección.",
+  "activityTotalsTitle": "Totales confirmados",
+  "activityTotalsIncome": "Ingresos",
+  "activityTotalsExpenses": "Egresos",
+  "activityTotalsNet": "Saldo neto",
+  "activityTotalsPendingNote": "Los totales incluyen solo movimientos confirmados. No incluyen pendientes ni transferencias.",
+  "activityTotalsEmpty": "No hay ingresos ni egresos confirmados para calcular los totales.",
+  "activityCsvDate": "Fecha y hora",
+  "activityCsvType": "Tipo",
+  "activityCsvDescription": "Descripción",
+  "activityCsvAccount": "Cuenta(s)",
+  "activityCsvCategory": "Categoría",
+  "activityCsvAmount": "Importe",
+  "activityCsvCurrency": "Moneda",
+  "activityCsvStatus": "Estado",
+  "activityCsvPending": "Pendiente",
+  "activityCsvConfirmed": "Confirmado",
+  "activityCsvRejected": "Rechazado",
+  "activityCsvUnknownAccount": "Cuenta desconocida",
+  "activityCsvUnknownCategory": "Categoría desconocida",
   "transferOperationLabel": "Transferencia",
   "budget": "Presupuesto",
   "accounts": "Cuentas",
@@ -149,6 +202,15 @@
   "recentActivity": "Actividad reciente",
   "noTransactions": "Aún no tienes movimientos.",
   "amount": "Monto",
+  "amountInvalid": "Ingresa un monto válido mayor que cero.",
+  "amountTooLarge": "El monto no puede superar 1.000.000.000 en esta moneda.",
+  "operationAccountRequired": "Selecciona una cuenta.",
+  "operationCategoryRequired": "Selecciona una categoría.",
+  "transferSourceRequired": "Selecciona la cuenta de origen.",
+  "transferDestinationRequired": "Selecciona la cuenta de destino.",
+  "transferAccountsDifferent": "Elige dos cuentas distintas con la misma moneda.",
+  "budgetDayInvalidForMonth": "Elige un día que exista en el mes seleccionado.",
+  "onboardingAccountRequired": "Escribe el nombre de tu primera cuenta.",
   "type": "Tipo",
   "date": "Fecha",
   "time": "Hora",
@@ -181,6 +243,12 @@
   "retry": "Reintentar",
   "offlinePending": "Sincronización pendiente",
   "offlineRejected": "No se pudo sincronizar. Puedes reintentar.",
+  "syncIssueNetwork": "No hay conexión con el servidor. El movimiento sigue guardado aquí; inténtalo cuando vuelva la conexión.",
+  "syncIssuePermissionDenied": "Firebase rechazó el movimiento. Comprueba tu sesión; si continúa, comparte el código de diagnóstico con soporte.",
+  "syncIssueInvalidOperation": "El movimiento no coincide con los datos actuales. Revisa la cuenta, categoría o presupuesto antes de reintentar.",
+  "syncIssueUnexpected": "No pudimos identificar la causa. Comparte el código de diagnóstico con soporte.",
+  "syncDiagnosticCode": "Código de diagnóstico: {code}",
+  "@syncDiagnosticCode": { "placeholders": { "code": {} } },
   "syncing": "Sincronizando...",
   "synced": "Sincronizado"
   ,"changeMonth": "Cambiar mes"
@@ -287,4 +355,20 @@
   ,"categoryIconEducation": "Educación"
   ,"categoryIconSalary": "Salario"
   ,"categoryIconOther": "Otros"
+  ,"budgetItemActual": "Registrado: {amount}"
+  ,"budgetRecordExpense": "Registrar gasto"
+  ,"budgetRecordIncome": "Registrar ingreso"
+  ,"budgetItemNoCompatibleAccount": "Necesitas una cuenta activa en {currency} para registrar este movimiento."
+  ,"budgetItemMovementContext": "Movimiento para el elemento: {description}"
+  ,"budgetArchivedItems": "Elementos retirados"
+  ,"budgetItemArchived": "Retirado · movimientos conservados"
+  ,"budgetItemLinkedMovements": "Movimientos vinculados"
+  ,"budgetItemNoLinkedMovements": "Aún no hay movimientos vinculados."
+  ,"budgetLinkedMovementConfirmed": "Confirmado"
+  ,"budgetLinkedMovementPending": "Pendiente de sincronizar"
+  ,"budgetLinkedMovementRejected": "Rechazado · no afecta el total"
+  ,"budgetArchiveNetworkFailure": "No pudimos conectar. El presupuesto sigue activo; revisa tu conexión e inténtalo de nuevo. Código: {code}"
+  ,"budgetArchivePermissionFailure": "Firebase no autorizó el cambio. El presupuesto sigue activo; comprueba tu sesión y comparte este código con soporte: {code}"
+  ,"budgetArchiveConflictFailure": "No se pudo validar el presupuesto. Sigue activo; comparte este código con soporte: {code}"
+  ,"budgetArchiveUnexpectedFailure": "No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: {code}"
 }

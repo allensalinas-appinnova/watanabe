@@ -22,6 +22,8 @@ class FinancialOperationDraft {
     required this.description,
     required this.idempotencyKey,
     this.categoryId,
+    this.budgetId,
+    this.budgetItemId,
   });
 
   final OperationType type;
@@ -33,6 +35,8 @@ class FinancialOperationDraft {
   final String description;
   final String idempotencyKey;
   final String? categoryId;
+  final String? budgetId;
+  final String? budgetItemId;
 }
 
 class TransferDraft {
@@ -165,6 +169,12 @@ abstract interface class CanonicalFinanceRepository {
   );
 
   Stream<List<BudgetItem>> watchBudgetItems(String userId, String budgetId);
+
+  Stream<List<FinancialOperation>> watchBudgetItemOperations(
+    String userId,
+    String budgetId,
+    String itemId,
+  );
 
   Future<Either<Failure, BudgetItem>> addBudgetItem(
     String userId,

@@ -221,6 +221,189 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get activityShare => 'Compartilhar';
+
+  @override
+  String get activityShareSubject => 'Atividade do LumioMoney';
+
+  @override
+  String get activityShareFailed =>
+      'Não foi possível preparar ou compartilhar o arquivo. Tente novamente.';
+
+  @override
+  String get activityShareEmpty => 'Não há movimentações para compartilhar.';
+
+  @override
+  String get activityMovements => 'Movimentações';
+
+  @override
+  String activityMovementCount(int count) {
+    return 'Movimentações · $count';
+  }
+
+  @override
+  String get activityExportAction => 'Exportar';
+
+  @override
+  String get activityExportTitle => 'Exportar CSV';
+
+  @override
+  String get activityExportSubtitle => 'Revise a seleção antes de continuar.';
+
+  @override
+  String get activityExportAccount => 'Conta';
+
+  @override
+  String get activityExportPeriod => 'Período';
+
+  @override
+  String get activityExportType => 'Tipo';
+
+  @override
+  String get activityExportCurrencyFormat => 'Moeda · Formato';
+
+  @override
+  String activityExportConfirmedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimentações confirmadas',
+      one: '1 movimentação confirmada',
+      zero: '0 movimentações confirmadas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String activityExportIncludedCount(int count) {
+    return '$count movimentações incluídas';
+  }
+
+  @override
+  String activityExportMoreCount(int count) {
+    return 'e mais $count';
+  }
+
+  @override
+  String get activityExportIncludePending => 'Incluir pendentes';
+
+  @override
+  String activityExportPendingExcluded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimentações pendentes excluídas. Ative para incluí-las.',
+      one: '1 movimentação pendente excluída. Ative para incluí-la.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String activityExportPendingIncluded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimentações pendentes serão incluídas e identificadas como pendentes.',
+      one: '1 movimentação pendente será incluída e identificada como pendente.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityExportAllResults =>
+      'Todas as movimentações filtradas serão exportadas, não apenas as carregadas. Ordem, datas e fuso horário serão preservados.';
+
+  @override
+  String get activityExportNoNotes =>
+      'As notas não são incluídas. Salvar e compartilhar usam o mesmo CSV.';
+
+  @override
+  String get activityExportSave => 'Salvar arquivo';
+
+  @override
+  String get activityExportShare => 'Compartilhar arquivo';
+
+  @override
+  String activityExportPreparing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimentações',
+      one: '1 movimentação',
+    );
+    return 'Preparando $_temp0…';
+  }
+
+  @override
+  String get activityExportErrorTitle => 'Não foi possível gerar o arquivo';
+
+  @override
+  String get activityExportErrorMessage =>
+      'Ocorreu um problema temporário. Sua seleção continua aqui; tente novamente.';
+
+  @override
+  String get activityExportCloseHint => 'Ao fechar, seus filtros e seleção serão mantidos.';
+
+  @override
+  String get activityTotalsTitle => 'Totais confirmados';
+
+  @override
+  String get activityTotalsIncome => 'Receitas';
+
+  @override
+  String get activityTotalsExpenses => 'Despesas';
+
+  @override
+  String get activityTotalsNet => 'Saldo líquido';
+
+  @override
+  String get activityTotalsPendingNote =>
+      'Os totais incluem apenas movimentações confirmadas. Pendentes e transferências não são incluídas.';
+
+  @override
+  String get activityTotalsEmpty =>
+      'Não há receitas ou despesas confirmadas para calcular os totais.';
+
+  @override
+  String get activityCsvDate => 'Data e hora';
+
+  @override
+  String get activityCsvType => 'Tipo';
+
+  @override
+  String get activityCsvDescription => 'Descrição';
+
+  @override
+  String get activityCsvAccount => 'Conta(s)';
+
+  @override
+  String get activityCsvCategory => 'Categoria';
+
+  @override
+  String get activityCsvAmount => 'Valor';
+
+  @override
+  String get activityCsvCurrency => 'Moeda';
+
+  @override
+  String get activityCsvStatus => 'Status';
+
+  @override
+  String get activityCsvPending => 'Pendente';
+
+  @override
+  String get activityCsvConfirmed => 'Confirmada';
+
+  @override
+  String get activityCsvRejected => 'Rejeitada';
+
+  @override
+  String get activityCsvUnknownAccount => 'Conta desconhecida';
+
+  @override
+  String get activityCsvUnknownCategory => 'Categoria desconhecida';
+
+  @override
   String get transferOperationLabel => 'Transferência';
 
   @override
@@ -447,6 +630,33 @@ class AppLocalizationsPt extends AppLocalizations {
   String get amount => 'Valor';
 
   @override
+  String get amountInvalid => 'Informe um valor válido maior que zero.';
+
+  @override
+  String get amountTooLarge => 'O valor não pode exceder 1.000.000.000 nesta moeda.';
+
+  @override
+  String get operationAccountRequired => 'Escolha uma conta.';
+
+  @override
+  String get operationCategoryRequired => 'Escolha uma categoria.';
+
+  @override
+  String get transferSourceRequired => 'Escolha a conta de origem.';
+
+  @override
+  String get transferDestinationRequired => 'Escolha a conta de destino.';
+
+  @override
+  String get transferAccountsDifferent => 'Escolha duas contas diferentes com a mesma moeda.';
+
+  @override
+  String get budgetDayInvalidForMonth => 'Escolha um dia existente no mês selecionado.';
+
+  @override
+  String get onboardingAccountRequired => 'Informe o nome da sua primeira conta.';
+
+  @override
   String get type => 'Tipo';
 
   @override
@@ -553,6 +763,27 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get offlineRejected => 'Não foi possível sincronizar. Você pode tentar novamente.';
+
+  @override
+  String get syncIssueNetwork =>
+      'Não foi possível conectar ao servidor. Este movimento continua salvo no dispositivo; tente novamente quando a conexão voltar.';
+
+  @override
+  String get syncIssuePermissionDenied =>
+      'O Firebase rejeitou este movimento. Verifique sua sessão; se continuar, compartilhe o código de diagnóstico com o suporte.';
+
+  @override
+  String get syncIssueInvalidOperation =>
+      'Este movimento não corresponde mais aos dados atuais. Verifique a conta, categoria ou orçamento antes de tentar novamente.';
+
+  @override
+  String get syncIssueUnexpected =>
+      'Não foi possível identificar a causa. Compartilhe o código de diagnóstico com o suporte.';
+
+  @override
+  String syncDiagnosticCode(Object code) {
+    return 'Código de diagnóstico: $code';
+  }
 
   @override
   String get syncing => 'Sincronizando...';
@@ -901,4 +1132,66 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get categoryIconOther => 'Outros';
+
+  @override
+  String budgetItemActual(Object amount) {
+    return 'Registrado: $amount';
+  }
+
+  @override
+  String get budgetRecordExpense => 'Registrar despesa';
+
+  @override
+  String get budgetRecordIncome => 'Registrar receita';
+
+  @override
+  String budgetItemNoCompatibleAccount(Object currency) {
+    return 'Você precisa de uma conta ativa em $currency para registrar este movimento.';
+  }
+
+  @override
+  String budgetItemMovementContext(Object description) {
+    return 'Movimento para o item: $description';
+  }
+
+  @override
+  String get budgetArchivedItems => 'Itens arquivados';
+
+  @override
+  String get budgetItemArchived => 'Arquivado · movimentos preservados';
+
+  @override
+  String get budgetItemLinkedMovements => 'Movimentos vinculados';
+
+  @override
+  String get budgetItemNoLinkedMovements => 'Ainda não há movimentos vinculados.';
+
+  @override
+  String get budgetLinkedMovementConfirmed => 'Confirmado';
+
+  @override
+  String get budgetLinkedMovementPending => 'Pendente de sincronização';
+
+  @override
+  String get budgetLinkedMovementRejected => 'Rejeitado · não afeta o total';
+
+  @override
+  String budgetArchiveNetworkFailure(Object code) {
+    return 'Não foi possível conectar. O orçamento continua ativo; verifique sua conexão e tente novamente. Código: $code';
+  }
+
+  @override
+  String budgetArchivePermissionFailure(Object code) {
+    return 'O Firebase não autorizou esta alteração. O orçamento continua ativo; verifique sua sessão e compartilhe este código com o suporte: $code';
+  }
+
+  @override
+  String budgetArchiveConflictFailure(Object code) {
+    return 'Não foi possível validar o orçamento. Ele continua ativo; compartilhe este código com o suporte: $code';
+  }
+
+  @override
+  String budgetArchiveUnexpectedFailure(Object code) {
+    return 'Não foi possível excluir o orçamento. Ele continua ativo; tente novamente. Código: $code';
+  }
 }

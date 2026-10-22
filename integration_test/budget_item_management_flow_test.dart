@@ -58,7 +58,7 @@ void main() {
     await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    await tester.tap(find.byKey(const ValueKey('nav_budget')));
+    await tester.tap(find.byKey(const ValueKey('finance_nav_budget')));
     await tester.pumpAndSettle();
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_empty_create')));
     await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
@@ -79,13 +79,72 @@ void main() {
     await tester.tap(find.byKey(ValueKey('budget_card_tap_$budgetId')));
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
 
+    final firstItemQuery = await budgetRef
+        .collection('items')
+        .where('description', isEqualTo: 'Mercado semanal')
+        .get(const GetOptions(source: Source.server));
+    final linkedItemRef = firstItemQuery.docs.single.reference;
+    await tester.tap(find.byKey(ValueKey('budget_item_record_${linkedItemRef.id}')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('operation_save')));
+    final amountField = find.byKey(const ValueKey('operation_amount'));
+    expect(tester.widget<TextFormField>(amountField).controller!.text, '300000');
+    expect(
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byKey(const ValueKey('operation_category_selector')),
+          )
+          .onChanged,
+      isNull,
+    );
+    await tester.enterText(amountField, '100000');
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('operation_description')),
+      'Mercado del presupuesto',
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('operation_save')));
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('operation_save')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
+    await _waitForActualAmount(linkedItemRef, 100000);
+
+    final linkedOperations = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('operations')
+        .where('budgetId', isEqualTo: budgetId)
+        .where('budgetItemId', isEqualTo: linkedItemRef.id)
+        .get(const GetOptions(source: Source.server));
+    expect(linkedOperations.docs, hasLength(1));
+    expect(linkedOperations.docs.single.data()['categoryId'], 'food');
+    expect(
+      (await linkedItemRef.get(
+        const GetOptions(source: Source.server),
+      )).data()?['actualAmountMinor'],
+      100000,
+    );
+    final linkedOperationRef = linkedOperations.docs.single.reference;
+
     final marketCard = find.ancestor(
       of: find.text('Mercado semanal'),
       matching: find.byType(Card),
     );
-    await tester.tap(
-      find.descendant(of: marketCard, matching: find.byKey(const ValueKey('budget_item_edit'))),
+    final marketEdit = find.descendant(
+      of: marketCard,
+      matching: find.byKey(const ValueKey('budget_item_edit')),
     );
+    await tester.ensureVisible(marketEdit);
+    // The detail is restored beneath a root-navigator form route. Explicitly
+    // pump after revealing the action so its hit-test geometry is current.
+    await tester.pumpAndSettle();
+    expect(tester.getRect(marketEdit).left, greaterThanOrEqualTo(0));
+    expect(
+      tester.getRect(marketEdit).right,
+      lessThanOrEqualTo(tester.view.physicalSize.width / tester.view.devicePixelRatio),
+    );
+    await tester.tap(marketEdit);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('budget_item_edit_description')),
@@ -99,9 +158,12 @@ void main() {
     await _pumpUntil(tester, find.text('Frutas'));
 
     final fruitCard = find.ancestor(of: find.text('Frutas'), matching: find.byType(Card));
-    await tester.tap(
-      find.descendant(of: fruitCard, matching: find.byKey(const ValueKey('budget_item_remove'))),
+    final fruitRemove = find.descendant(
+      of: fruitCard,
+      matching: find.byKey(const ValueKey('budget_item_remove')),
     );
+    await tester.ensureVisible(fruitRemove);
+    await tester.tap(fruitRemove);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
     await tester.pumpAndSettle();
@@ -111,17 +173,24 @@ void main() {
     final items = await budgetRef.collection('items').get(const GetOptions(source: Source.server));
     expect(budget.data()?['plannedAmountMinor'], 325000);
     expect(budget.data()?['itemCount'], 1);
-    expect(items.docs, hasLength(1));
-    expect(items.docs.single.data()['description'], 'Mercado quincenal');
+    final activeItems = items.docs.where((doc) => doc.data()['status'] != 'archived').toList();
+    expect(activeItems, hasLength(1));
+    expect(activeItems.single.data()['description'], 'Mercado quincenal');
+    expect(
+      items.docs.where((doc) => doc.data()['status'] == 'archived'),
+      hasLength(1),
+      reason: 'Removed items stay archived so movement history remains associated.',
+    );
 
+    final lastActiveItem = activeItems.single;
     final lastItemResult = await getIt<CanonicalFinanceRepository>().deleteBudgetItem(
       uid,
       budgetId,
-      items.docs.single.id,
+      lastActiveItem.id,
     );
     expect(lastItemResult.match((failure) => failure, (_) => null), isA<ConflictFailure>());
     expect(
-      (await items.docs.single.reference.get(const GetOptions(source: Source.server))).exists,
+      (await lastActiveItem.reference.get(const GetOptions(source: Source.server))).exists,
       isTrue,
     );
     expect(find.byKey(const ValueKey('budget_item_remove')), findsNothing);
@@ -161,15 +230,69 @@ void main() {
       of: find.text('Servicios públicos'),
       matching: find.byType(Card),
     );
-    await tester.tap(
-      find.descendant(of: servicesCard, matching: find.byKey(const ValueKey('budget_item_remove'))),
+    final servicesRemove = find.descendant(
+      of: servicesCard,
+      matching: find.byKey(const ValueKey('budget_item_remove')),
     );
+    await tester.ensureVisible(servicesRemove);
+    await tester.tap(servicesRemove);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
     await tester.pumpAndSettle();
     await _waitForItemCount(budgetRef, 1);
     final afterRemovingAddedItem = await budgetRef.get(const GetOptions(source: Source.server));
     expect(afterRemovingAddedItem.data()?['plannedAmountMinor'], 325000);
+
+    // Keep another active item so the linked item can be safely archived.
+    await tester.ensureVisible(find.byKey(const ValueKey('budget_add_item_detail')));
+    await tester.tap(find.byKey(const ValueKey('budget_add_item_detail')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_item_create_save')));
+    await tester.enterText(find.byKey(const ValueKey('budget_item_create_description')), 'Reserva');
+    await tester.enterText(find.byKey(const ValueKey('budget_item_create_amount')), '25000');
+    await tester.enterText(find.byKey(const ValueKey('budget_item_create_day')), '22');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('budget_item_create_save')));
+    await tester.tap(find.byKey(const ValueKey('budget_item_create_save')));
+    await _pumpUntil(tester, find.text('Reserva'));
+
+    final linkedCard = find.ancestor(
+      of: find.text('Mercado quincenal'),
+      matching: find.byType(Card),
+    );
+    final linkedRemove = find.descendant(
+      of: linkedCard,
+      matching: find.byKey(const ValueKey('budget_item_remove')),
+    );
+    await tester.ensureVisible(linkedRemove);
+    await tester.tap(linkedRemove);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
+    await _pumpUntil(
+      tester,
+      find.byKey(ValueKey('budget_linked_operation_${linkedOperationRef.id}')),
+    );
+    await _waitForItemCount(budgetRef, 1);
+    expect(find.textContaining('Mercado del presupuesto'), findsOneWidget);
+    expect(
+      (await linkedOperationRef.get(const GetOptions(source: Source.server))).exists,
+      isTrue,
+    );
+    expect(
+      (await linkedItemRef.get(const GetOptions(source: Source.server))).data()?['status'],
+      'archived',
+    );
+    expect(
+      (await linkedItemRef.get(
+        const GetOptions(source: Source.server),
+      )).data()?['actualAmountMinor'],
+      100000,
+    );
+    final afterArchivingLinkedItem = await budgetRef.get(const GetOptions(source: Source.server));
+    expect(afterArchivingLinkedItem.data()?['plannedAmountMinor'], 25000);
+
+    await linkedOperationRef.update({'status': 'rejected', 'updatedAt': Timestamp.now()});
+    await _waitForActualAmount(linkedItemRef, 0);
 
     await tester.tap(find.byKey(const ValueKey('budget_archive_button')));
     await tester.pumpAndSettle();
@@ -181,6 +304,37 @@ void main() {
         .watchBudgets(uid, monthKey)
         .first;
     expect(activeBudgets.any((budget) => budget.id == budgetId), isFalse);
+
+    // Archiving removes the budget from active lists but keeps its deterministic
+    // identity for historical item links. Creating the same category/month
+    // again should reactivate it with fresh active items, not fail as a duplicate.
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_empty_create')));
+    await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_save')));
+    await _createBudget(tester, items: const [('Mercado nuevo', '75000')]);
+    await _pumpUntil(tester, find.byKey(ValueKey('budget_card_$budgetId')));
+
+    final reactivated = await budgetRef.get(const GetOptions(source: Source.server));
+    expect(reactivated.data()?['status'], 'active');
+    expect(reactivated.data()?['plannedAmountMinor'], 75000);
+    final itemsAfterReactivation = await budgetRef
+        .collection('items')
+        .get(const GetOptions(source: Source.server));
+    expect(
+      itemsAfterReactivation.docs.any(
+        (item) =>
+            item.data()['description'] == 'Mercado semanal' && item.data()['status'] == 'archived',
+      ),
+      isTrue,
+      reason: 'The previous item and its linked history must remain archived.',
+    );
+    expect(
+      itemsAfterReactivation.docs.where(
+        (item) =>
+            item.data()['description'] == 'Mercado nuevo' && item.data()['status'] == 'active',
+      ),
+      hasLength(1),
+    );
   });
 }
 
@@ -237,4 +391,16 @@ Future<void> _waitForItemCount(
     await Future<void>.delayed(const Duration(milliseconds: 250));
   }
   throw StateError('Budget item count did not reach $expectedCount.');
+}
+
+Future<void> _waitForActualAmount(
+  DocumentReference<Map<String, dynamic>> itemRef,
+  int expectedAmount,
+) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    final snapshot = await itemRef.get(const GetOptions(source: Source.server));
+    if ((snapshot.data()?['actualAmountMinor'] as num? ?? 0).toInt() == expectedAmount) return;
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+  }
+  throw StateError('Budget item actual amount did not reach $expectedAmount.');
 }

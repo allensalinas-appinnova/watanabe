@@ -19,7 +19,15 @@ service cloud.firestore {
     function validIdempotencyKey(value) {
       return value is string && value.matches('^[A-Za-z0-9_-]{8,128}$');
     }
-    function validMoney(value) { return value is int && value > 0; }
+    function maxMinorUnits(currency) {
+      return currency == 'COP' ? 1000000000 : 100000000000;
+    }
+    function validMoney(value, currency) {
+      return value is int && value > 0 && value <= maxMinorUnits(currency);
+    }
+    function validNonNegativeMoney(value, currency) {
+      return value is int && value >= 0 && value <= maxMinorUnits(currency);
+    }
     function required(data, fields) { return data.keys().hasAll(fields); }
     function accountExists(uid, accountId, currency) {
       return accountId is string &&
@@ -31,15 +39,27 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(uid)/categories/$(categoryId)) &&
         get(/databases/$(database)/documents/users/$(uid)/categories/$(categoryId)).data.type == type;
     }
+    function validBudgetItemLink(uid, data) {
+      return (!('budgetId' in data) && !('budgetItemId' in data)) ||
+        (('budgetId' in data) && ('budgetItemId' in data) &&
+          data.budgetId is string && data.budgetId.size() > 0 &&
+          data.budgetItemId is string && data.budgetItemId.size() > 0 &&
+          data.type in ['income', 'expense'] && data.categoryId is string &&
+          exists(/databases/$(database)/documents/users/$(uid)/budgets/$(data.budgetId)) &&
+          exists(/databases/$(database)/documents/users/$(uid)/budgets/$(data.budgetId)/items/$(data.budgetItemId)) &&
+          get(/databases/$(database)/documents/users/$(uid)/budgets/$(data.budgetId)).data.categoryId == data.categoryId &&
+          get(/databases/$(database)/documents/users/$(uid)/budgets/$(data.budgetId)).data.flowType == data.type &&
+          get(/databases/$(database)/documents/users/$(uid)/budgets/$(data.budgetId)).data.currency == data.currency);
+    }
     function validOperation(data) {
       return required(data, ['type', 'amountMinor', 'currency', 'monthKey', 'occurredAt', 'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt']) &&
         data.keys().hasOnly([
           'type', 'amountMinor', 'currency', 'categoryId', 'accountId',
-          'sourceAccountId', 'destinationAccountId', 'monthKey', 'occurredAt',
+          'sourceAccountId', 'destinationAccountId', 'budgetId', 'budgetItemId', 'monthKey', 'occurredAt',
           'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt'
         ]) &&
         data.type in ['income', 'expense', 'transfer'] &&
-        validMoney(data.amountMinor) && validCurrency(data.currency) &&
+        validCurrency(data.currency) && validMoney(data.amountMinor, data.currency) &&
         validMonthKey(data.monthKey) && data.occurredAt is timestamp &&
         data.description is string && data.description.size() <= 500 &&
         data.status == 'confirmed' && validIdempotencyKey(data.idempotencyKey);
@@ -51,16 +71,18 @@ service cloud.firestore {
           'plannedAmountMinor', 'itemCount', 'status', 'createdAt', 'updatedAt'
         ]) && data.categoryId is string && data.categoryId.size() > 0 &&
         data.flowType in ['income', 'expense'] && validMonthKey(data.monthKey) &&
-        validCurrency(data.currency) && data.plannedAmountMinor is int &&
-        data.plannedAmountMinor >= 0 &&
+        validCurrency(data.currency) && validNonNegativeMoney(data.plannedAmountMinor, data.currency) &&
         (!('itemCount' in data) || (data.itemCount is int && data.itemCount >= 1)) &&
         data.status in ['active', 'archived'];
     }
-    function validBudgetItem(data) {
+    function validBudgetItem(data, currency) {
       return data.keys().hasOnly([
-          'description', 'amountMinor', 'dayOfMonth', 'createdAt', 'updatedAt'
+          'description', 'amountMinor', 'dayOfMonth', 'actualAmountMinor', 'status', 'archivedAt', 'createdAt', 'updatedAt'
         ]) && data.description is string && data.description.size() > 0 &&
-        data.description.size() <= 200 && validMoney(data.amountMinor) &&
+        data.description.size() <= 200 && validMoney(data.amountMinor, currency) &&
+        (!('actualAmountMinor' in data) || (data.actualAmountMinor is int && data.actualAmountMinor >= 0 && data.actualAmountMinor <= 9007199254740991)) &&
+        (!('status' in data) || data.status in ['active', 'archived']) &&
+        (!('archivedAt' in data) || data.archivedAt is timestamp) &&
         data.dayOfMonth is int && data.dayOfMonth >= 1 && data.dayOfMonth <= 31;
     }
 
@@ -91,6 +113,8 @@ service cloud.firestore {
           validCurrency(request.resource.data.currency) &&
           request.resource.data.openingBalanceMinor is int &&
           request.resource.data.currentBalanceMinor is int &&
+          validNonNegativeMoney(request.resource.data.openingBalanceMinor, request.resource.data.currency) &&
+          validNonNegativeMoney(request.resource.data.currentBalanceMinor, request.resource.data.currency) &&
           request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
           request.resource.data.status in ['active', 'archived'];
         allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -123,7 +147,8 @@ service cloud.firestore {
               accountExists(uid, request.resource.data.destinationAccountId, request.resource.data.currency) &&
               request.resource.data.sourceAccountId != request.resource.data.destinationAccountId
             : accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
-              categoryExists(uid, request.resource.data.categoryId, request.resource.data.type));
+              categoryExists(uid, request.resource.data.categoryId, request.resource.data.type)) &&
+          validBudgetItemLink(uid, request.resource.data);
         allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'updatedAt'
         ]) && request.resource.data.status in ['confirmed', 'rejected'];
@@ -165,11 +190,21 @@ service cloud.firestore {
         allow delete: if false;
         match /items/{itemId} {
           allow read: if owner(uid);
-          allow create: if owner(uid) && validBudgetItem(request.resource.data) &&
+          allow create: if owner(uid) && validBudgetItem(
+              request.resource.data,
+              getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.currency
+            ) &&
+            (!('actualAmountMinor' in request.resource.data) || request.resource.data.actualAmountMinor == 0) &&
+            (!('status' in request.resource.data) || request.resource.data.status == 'active') &&
             getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
-          allow update: if owner(uid) && validBudgetItem(request.resource.data) &&
+          allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'description', 'amountMinor', 'dayOfMonth', 'status', 'archivedAt', 'updatedAt'
+            ]) && validBudgetItem(
+              request.resource.data,
+              getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.currency
+            ) &&
             getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
-          allow delete: if owner(uid);
+          allow delete: if false;
         }
       }
 

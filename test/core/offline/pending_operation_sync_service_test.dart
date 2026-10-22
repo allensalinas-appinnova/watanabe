@@ -59,6 +59,48 @@ void main() {
     expect(operation?.lastError, isNot(contains('private note')));
   });
 
+  test('persists an allow-listed Firebase code with a rejected operation', () async {
+    await service.enqueue(
+      idempotencyKey: 'denied-operation-key',
+      operationType: 'operation',
+      payload: const {'description': 'private note'},
+    );
+    await service.drain(
+      (_, _) async => const SyncAttemptResult.rejected(
+        SyncIssueCode.permissionDenied,
+        technicalCode: 'permission-denied',
+      ),
+    );
+
+    final operation = await database.findByIdempotencyKey('denied-operation-key');
+    expect(operation?.lastError, 'permissionDenied:permission-denied');
+    expect(operation?.lastError, isNot(contains('private note')));
+    expect(
+      SyncFailureInfo.parse(operation?.lastError),
+      const SyncFailureInfo(
+        issue: SyncIssueCode.permissionDenied,
+        technicalCode: 'permission-denied',
+      ),
+    );
+  });
+
+  test('drops malformed technical details instead of persisting arbitrary text', () async {
+    await service.enqueue(
+      idempotencyKey: 'safe-code-operation-key',
+      operationType: 'operation',
+      payload: const {},
+    );
+    await service.drain(
+      (_, _) async => const SyncAttemptResult.rejected(
+        SyncIssueCode.invalidOperation,
+        technicalCode: 'permission-denied with private payload',
+      ),
+    );
+
+    final operation = await database.findByIdempotencyKey('safe-code-operation-key');
+    expect(operation?.lastError, 'invalidOperation');
+  });
+
   test('does not attempt delivery while offline', () async {
     service = PendingOperationSyncService(
       database,

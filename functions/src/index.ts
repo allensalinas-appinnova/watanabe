@@ -1,5 +1,5 @@
 import {initializeApp} from "firebase-admin/app";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue, getFirestore, type DocumentReference, type DocumentSnapshot} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 initializeApp();
@@ -13,6 +13,8 @@ type Operation = {
   accountId?: string;
   sourceAccountId?: string;
   destinationAccountId?: string;
+  budgetId?: string;
+  budgetItemId?: string;
   status: "pending" | "confirmed" | "rejected";
 };
 
@@ -39,6 +41,28 @@ export const processOperation = onDocumentWritten(
       const summary = await transaction.get(summaryRef);
       const current = summary.exists ? summary.data() ?? {} : {};
       const byCategory = {...((current.byCategory as Record<string, number> | undefined) ?? {})};
+
+      let budgetItemRef: DocumentReference | undefined;
+      let budgetItem: DocumentSnapshot | undefined;
+      if (operation.budgetId !== undefined || operation.budgetItemId !== undefined) {
+        if (!operation.budgetId || !operation.budgetItemId || operation.type === "transfer" || !operation.categoryId) {
+          throw new Error("Budget item operation must include a complete non-transfer reference.");
+        }
+        const budgetRef = db.doc(`users/${userId}/budgets/${operation.budgetId}`);
+        budgetItemRef = budgetRef.collection("items").doc(operation.budgetItemId);
+        const [budget, item] = await Promise.all([
+          transaction.get(budgetRef),
+          transaction.get(budgetItemRef),
+        ]);
+        const budgetData = budget.data();
+        if (!budget.exists || !item.exists || !budgetData ||
+            budgetData.categoryId !== operation.categoryId ||
+            budgetData.flowType !== operation.type ||
+            budgetData.currency !== operation.currency) {
+          throw new Error("Budget item reference does not match the operation.");
+        }
+        budgetItem = item;
+      }
 
       if (operation.type === "transfer") {
         if (!operation.sourceAccountId || !operation.destinationAccountId) {
@@ -75,6 +99,17 @@ export const processOperation = onDocumentWritten(
         calculationVersion: 1,
         updatedAt: FieldValue.serverTimestamp(),
       }, {merge: true});
+      if (budgetItemRef && budgetItem) {
+        const currentItemAmount = Number(budgetItem.data()?.actualAmountMinor ?? 0);
+        const updatedItemAmount = currentItemAmount + sign * operation.amountMinor;
+        if (!Number.isSafeInteger(updatedItemAmount) || updatedItemAmount < 0) {
+          throw new Error("Budget item actual amount would become invalid.");
+        }
+        transaction.update(budgetItemRef, {
+          actualAmountMinor: updatedItemAmount,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
       transaction.set(markerRef, {processedAt: FieldValue.serverTimestamp()});
     });
   },

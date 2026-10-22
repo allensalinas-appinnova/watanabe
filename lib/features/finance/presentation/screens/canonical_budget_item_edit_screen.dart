@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -85,8 +86,14 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
       return;
     }
     final day = int.tryParse(_day.text.trim());
-    if (day == null || day < 1 || day > 31) {
-      setState(() => _error = l10n.budgetDayRange);
+    final monthParts = budget.monthKey.split('-');
+    final lastValidDay = DateTime(
+      int.parse(monthParts[0]),
+      int.parse(monthParts[1]) + 1,
+      0,
+    ).day;
+    if (day == null || day < 1 || day > lastValidDay) {
+      setState(() => _error = l10n.budgetDayInvalidForMonth);
       return;
     }
     setState(() {
@@ -114,8 +121,11 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
             description: _description.text.trim(),
             amountMinor: amountMinor,
             dayOfMonth: day,
+            actualAmountMinor: item.actualAmountMinor,
+            status: item.status,
             createdAt: item.createdAt,
             updatedAt: DateTime.now(),
+            archivedAt: item.archivedAt,
           ),
         );
       }
@@ -261,14 +271,11 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                                 ],
                                 decoration: const InputDecoration(),
-                                validator: (value) {
-                                  try {
-                                    MoneyParser.minorUnits(value ?? '', budget.currency);
-                                    return null;
-                                  } on FormatException {
-                                    return l10n.budgetAmountPositive;
-                                  }
-                                },
+                                validator: (value) => FinanceInputValidators.amount(
+                                  value,
+                                  budget.currency,
+                                  l10n,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -286,8 +293,14 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                                 decoration: const InputDecoration(),
                                 validator: (value) {
                                   final day = int.tryParse(value ?? '');
-                                  return day == null || day < 1 || day > 31
-                                      ? l10n.budgetDayRange
+                                  final monthParts = budget.monthKey.split('-');
+                                  final lastValidDay = DateTime(
+                                    int.parse(monthParts[0]),
+                                    int.parse(monthParts[1]) + 1,
+                                    0,
+                                  ).day;
+                                  return day == null || day < 1 || day > lastValidDay
+                                      ? l10n.budgetDayInvalidForMonth
                                       : null;
                                 },
                               ),

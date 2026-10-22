@@ -75,6 +75,59 @@
   "activityFilterAllDates": "All dates",
   "activityFilterSelectedDetails": "{account} · {range}",
   "@activityFilterSelectedDetails": {"placeholders": {"account": {}, "range": {}}},
+  "activityShare": "Share",
+  "activityShareSubject": "LumioMoney activity",
+  "activityShareFailed": "Couldn't prepare or share the file. Please try again.",
+  "activityShareEmpty": "There are no transactions to share.",
+  "activityMovements": "Movements",
+  "activityMovementCount": "Movements · {count}",
+  "@activityMovementCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAction": "Export",
+  "activityExportTitle": "Export CSV",
+  "activityExportSubtitle": "Review your selection before continuing.",
+  "activityExportAccount": "Account",
+  "activityExportPeriod": "Period",
+  "activityExportType": "Type",
+  "activityExportCurrencyFormat": "Currency · Format",
+  "activityExportConfirmedCount": "{count, plural, =0{0 confirmed movements} one{1 confirmed movement} other{{count} confirmed movements}}",
+  "@activityExportConfirmedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludedCount": "{count} movements included",
+  "@activityExportIncludedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportMoreCount": "and {count} more",
+  "@activityExportMoreCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludePending": "Include pending",
+  "activityExportPendingExcluded": "{count, plural, one{1 pending movement excluded. Turn on to include it.} other{{count} pending movements excluded. Turn on to include them.}}",
+  "@activityExportPendingExcluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportPendingIncluded": "{count, plural, one{1 pending movement will be included and marked as pending.} other{{count} pending movements will be included and marked as pending.}}",
+  "@activityExportPendingIncluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAllResults": "All filtered results are exported, not only the loaded rows. Order, dates, and time zone are preserved.",
+  "activityExportNoNotes": "Notes are not included. Saving and sharing use the same CSV.",
+  "activityExportSave": "Save file",
+  "activityExportShare": "Share file",
+  "activityExportPreparing": "Preparing {count, plural, one{1 movement} other{{count} movements}}…",
+  "@activityExportPreparing": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportErrorTitle": "We couldn't create the file",
+  "activityExportErrorMessage": "A temporary problem occurred. Your selection is still here; please try again.",
+  "activityExportCloseHint": "Your filters and selection are kept when you close.",
+  "activityTotalsTitle": "Confirmed totals",
+  "activityTotalsIncome": "Income",
+  "activityTotalsExpenses": "Expenses",
+  "activityTotalsNet": "Net balance",
+  "activityTotalsPendingNote": "Totals include confirmed transactions only. Pending transactions and transfers are excluded.",
+  "activityTotalsEmpty": "No confirmed income or expenses to calculate totals.",
+  "activityCsvDate": "Date and time",
+  "activityCsvType": "Type",
+  "activityCsvDescription": "Description",
+  "activityCsvAccount": "Account(s)",
+  "activityCsvCategory": "Category",
+  "activityCsvAmount": "Amount",
+  "activityCsvCurrency": "Currency",
+  "activityCsvStatus": "Status",
+  "activityCsvPending": "Pending",
+  "activityCsvConfirmed": "Confirmed",
+  "activityCsvRejected": "Rejected",
+  "activityCsvUnknownAccount": "Unknown account",
+  "activityCsvUnknownCategory": "Unknown category",
   "transferOperationLabel": "Transfer",
   "budget": "Budget",
   "accounts": "Accounts",
@@ -149,6 +202,15 @@
   "recentActivity": "Recent activity",
   "noTransactions": "You have no transactions yet.",
   "amount": "Amount",
+  "amountInvalid": "Enter a valid amount greater than zero.",
+  "amountTooLarge": "Amount cannot exceed 1,000,000,000 in this currency.",
+  "operationAccountRequired": "Choose an account.",
+  "operationCategoryRequired": "Choose a category.",
+  "transferSourceRequired": "Choose a source account.",
+  "transferDestinationRequired": "Choose a destination account.",
+  "transferAccountsDifferent": "Choose two different accounts with the same currency.",
+  "budgetDayInvalidForMonth": "Choose a day that exists in the selected month.",
+  "onboardingAccountRequired": "Enter a name for your first account.",
   "type": "Type",
   "date": "Date",
   "time": "Time",
@@ -181,6 +243,12 @@
   "retry": "Retry",
   "offlinePending": "Pending synchronization",
   "offlineRejected": "Could not synchronize. You can retry.",
+  "syncIssueNetwork": "The server is unreachable. This movement is still saved on this device; try again when the connection returns.",
+  "syncIssuePermissionDenied": "Firebase rejected this movement. Check your session; if it continues, share the diagnostic code with support.",
+  "syncIssueInvalidOperation": "This movement no longer matches the current data. Check the account, category, or budget before retrying.",
+  "syncIssueUnexpected": "We could not identify the cause. Share the diagnostic code with support.",
+  "syncDiagnosticCode": "Diagnostic code: {code}",
+  "@syncDiagnosticCode": { "placeholders": { "code": {} } },
   "syncing": "Synchronizing...",
   "synced": "Synchronized"
   ,"changeMonth": "Change month"
@@ -287,4 +355,20 @@
   ,"categoryIconEducation": "Education"
   ,"categoryIconSalary": "Salary"
   ,"categoryIconOther": "Other"
+  ,"budgetItemActual": "Recorded: {amount}"
+  ,"budgetRecordExpense": "Record expense"
+  ,"budgetRecordIncome": "Record income"
+  ,"budgetItemNoCompatibleAccount": "You need an active {currency} account to record this movement."
+  ,"budgetItemMovementContext": "Movement for item: {description}"
+  ,"budgetArchivedItems": "Archived items"
+  ,"budgetItemArchived": "Archived · movements retained"
+  ,"budgetItemLinkedMovements": "Linked movements"
+  ,"budgetItemNoLinkedMovements": "There are no linked movements yet."
+  ,"budgetLinkedMovementConfirmed": "Confirmed"
+  ,"budgetLinkedMovementPending": "Pending sync"
+  ,"budgetLinkedMovementRejected": "Rejected · excluded from total"
+  ,"budgetArchiveNetworkFailure": "We couldn't connect. The budget is still active; check your connection and try again. Code: {code}"
+  ,"budgetArchivePermissionFailure": "Firebase didn't authorize this change. The budget is still active; check your session and share this code with support: {code}"
+  ,"budgetArchiveConflictFailure": "We couldn't validate the budget. It is still active; share this code with support: {code}"
+  ,"budgetArchiveUnexpectedFailure": "We couldn't delete the budget. It is still active; try again. Code: {code}"
 }

@@ -31,6 +31,27 @@ class CanonicalBudgetsScreen extends ConsumerStatefulWidget {
 class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen> {
   DateTime _selectedMonth = DateTime.now();
   _BudgetFilter _filter = _BudgetFilter.all;
+  final Map<String, Budget> _justCreatedBudgets = {};
+  bool _openingCreateRoute = false;
+
+  Future<void> _createBudget() async {
+    if (_openingCreateRoute) return;
+    _openingCreateRoute = true;
+    try {
+      final created = await context.push<Budget>('/budgets/new');
+      if (!mounted || created == null) return;
+      final parts = created.monthKey.split('-');
+      setState(() {
+        _justCreatedBudgets[created.id] = created;
+        if (parts.length == 2) {
+          _selectedMonth = DateTime(int.parse(parts[0]), int.parse(parts[1]));
+        }
+        _filter = _BudgetFilter.all;
+      });
+    } finally {
+      _openingCreateRoute = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +64,27 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
     final monthKey = DateFormat('yyyy-MM').format(_selectedMonth);
     final budgetProvider = canonicalBudgetsProvider((userId: user.id, monthKey: monthKey));
     final budgetsState = ref.watch(budgetProvider);
+    ref.listen(budgetProvider, (previous, next) {
+      final serverBudgets = next.valueOrNull;
+      if (serverBudgets == null || _justCreatedBudgets.isEmpty) return;
+      final serverIds = serverBudgets.map((budget) => budget.id).toSet();
+      final reconciled = _justCreatedBudgets.keys.where(serverIds.contains).toList();
+      if (reconciled.isEmpty) return;
+      setState(() {
+        for (final id in reconciled) {
+          _justCreatedBudgets.remove(id);
+        }
+      });
+    });
     final categoriesState = ref.watch(canonicalCategoriesProvider(user.id));
-    final budgets = budgetsState.valueOrNull;
-    final currencies = budgets?.map((budget) => budget.currency).toSet() ?? const <String>{};
+    final streamedBudgets = budgetsState.valueOrNull ?? const <Budget>[];
+    final budgets = <Budget>[
+      ...streamedBudgets,
+      for (final budget in _justCreatedBudgets.values)
+        if (budget.monthKey == monthKey && !streamedBudgets.any((item) => item.id == budget.id))
+          budget,
+    ];
+    final currencies = budgets.map((budget) => budget.currency).toSet();
     final summaries = <String, AsyncValue<MonthlySummary?>>{
       for (final currency in currencies)
         currency: ref.watch(
@@ -67,9 +106,6 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
               onRetry: () => ref.invalidate(budgetProvider),
             ),
             data: (allBudgets) {
-              if (summaries.values.any((summary) => summary.isLoading)) {
-                return const Center(child: CircularProgressIndicator());
-              }
               if (summaries.values.any((summary) => summary.hasError)) {
                 return _LoadError(
                   message: l10n.genericError,
@@ -87,7 +123,14 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
               }
 
               final categories = categoriesState.valueOrNull ?? const <FinanceCategory>[];
-              final visibleBudgets = allBudgets
+              final mergedBudgets = <Budget>[
+                ...allBudgets,
+                for (final budget in _justCreatedBudgets.values)
+                  if (budget.monthKey == monthKey &&
+                      !allBudgets.any((item) => item.id == budget.id))
+                    budget,
+              ];
+              final visibleBudgets = mergedBudgets
                   .where(
                     (budget) => switch (_filter) {
                       _BudgetFilter.all => true,
@@ -96,7 +139,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                     },
                   )
                   .toList();
-              final isEmptyForMonth = allBudgets.isEmpty;
+              final isEmptyForMonth = mergedBudgets.isEmpty;
 
               return Stack(
                 children: [
@@ -185,7 +228,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                           title: l10n.budgetEmptyTitle,
                           message: l10n.budgetEmptyMessage,
                           createLabel: l10n.createBudget,
-                          onCreate: () => context.push('/budgets/new'),
+                          onCreate: _createBudget,
                         )
                       else if (visibleBudgets.isEmpty)
                         _FilteredEmpty(
@@ -205,6 +248,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                               category: _categoryName(categories, budget.categoryId),
                               categoryIcon: _categoryIcon(categories, budget.categoryId),
                               summary: summary,
+                              isSummaryLoading: summaries[budget.currency]?.isLoading ?? false,
                               locale: _localeName,
                               l10n: l10n,
                               onTap: () => context.push('/budgets/${budget.id}'),
@@ -217,7 +261,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                           alignment: AlignmentDirectional.centerEnd,
                           child: TextButton.icon(
                             key: const ValueKey('budgets_create_button'),
-                            onPressed: () => context.push('/budgets/new'),
+                            onPressed: _createBudget,
                             icon: const Icon(Icons.add),
                             label: Text(l10n.createBudget),
                           ),
@@ -330,6 +374,7 @@ class _BudgetSummaryCard extends StatelessWidget {
     required this.category,
     required this.categoryIcon,
     required this.summary,
+    required this.isSummaryLoading,
     required this.locale,
     required this.l10n,
     required this.onTap,
@@ -339,6 +384,7 @@ class _BudgetSummaryCard extends StatelessWidget {
   final String category;
   final String? categoryIcon;
   final MonthlySummary? summary;
+  final bool isSummaryLoading;
   final String locale;
   final AppLocalizations l10n;
   final VoidCallback onTap;
@@ -410,33 +456,38 @@ class _BudgetSummaryCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Text(
-                '$actualLabel · ${formatAmount(tracking.actualMinor)}',
-                key: ValueKey('budget_card_actual_${budget.id}'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
-              ),
-              Text(
-                remainingLabel,
-                key: ValueKey('budget_card_remaining_${budget.id}'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.w600,
+              if (isSummaryLoading) ...[
+                const SizedBox(height: 8),
+                const SizedBox(height: 7, child: LinearProgressIndicator()),
+              ] else ...[
+                Text(
+                  '$actualLabel · ${formatAmount(tracking.actualMinor)}',
+                  key: ValueKey('budget_card_actual_${budget.id}'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
-              ),
-              const SizedBox(height: 7),
-              Semantics(
-                key: ValueKey('budget_card_progress_${budget.id}'),
-                label:
-                    '$typeLabel · ${l10n.actual(formatAmount(tracking.actualMinor))} · ${l10n.planned(formatAmount(tracking.plannedMinor))}',
-                value: '${(ratio * 100).round()}%',
-                child: LinearProgressIndicator(
-                  value: ratio,
-                  minHeight: 7,
-                  backgroundColor: AppColors.blueSoft,
-                  color: tracking.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
-                  borderRadius: BorderRadius.circular(4),
+                Text(
+                  remainingLabel,
+                  key: ValueKey('budget_card_remaining_${budget.id}'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 7),
+                Semantics(
+                  key: ValueKey('budget_card_progress_${budget.id}'),
+                  label:
+                      '$typeLabel · ${l10n.actual(formatAmount(tracking.actualMinor))} · ${l10n.planned(formatAmount(tracking.plannedMinor))}',
+                  value: '${(ratio * 100).round()}%',
+                  child: LinearProgressIndicator(
+                    value: ratio,
+                    minHeight: 7,
+                    backgroundColor: AppColors.blueSoft,
+                    color: tracking.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

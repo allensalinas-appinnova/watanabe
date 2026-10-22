@@ -75,6 +75,59 @@
   "activityFilterAllDates": "Todas as datas",
   "activityFilterSelectedDetails": "{account} · {range}",
   "@activityFilterSelectedDetails": {"placeholders": {"account": {}, "range": {}}},
+  "activityShare": "Compartilhar",
+  "activityShareSubject": "Atividade do LumioMoney",
+  "activityShareFailed": "Não foi possível preparar ou compartilhar o arquivo. Tente novamente.",
+  "activityShareEmpty": "Não há movimentações para compartilhar.",
+  "activityMovements": "Movimentações",
+  "activityMovementCount": "Movimentações · {count}",
+  "@activityMovementCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAction": "Exportar",
+  "activityExportTitle": "Exportar CSV",
+  "activityExportSubtitle": "Revise a seleção antes de continuar.",
+  "activityExportAccount": "Conta",
+  "activityExportPeriod": "Período",
+  "activityExportType": "Tipo",
+  "activityExportCurrencyFormat": "Moeda · Formato",
+  "activityExportConfirmedCount": "{count, plural, =0{0 movimentações confirmadas} one{1 movimentação confirmada} other{{count} movimentações confirmadas}}",
+  "@activityExportConfirmedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludedCount": "{count} movimentações incluídas",
+  "@activityExportIncludedCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportMoreCount": "e mais {count}",
+  "@activityExportMoreCount": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportIncludePending": "Incluir pendentes",
+  "activityExportPendingExcluded": "{count, plural, one{1 movimentação pendente excluída. Ative para incluí-la.} other{{count} movimentações pendentes excluídas. Ative para incluí-las.}}",
+  "@activityExportPendingExcluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportPendingIncluded": "{count, plural, one{1 movimentação pendente será incluída e identificada como pendente.} other{{count} movimentações pendentes serão incluídas e identificadas como pendentes.}}",
+  "@activityExportPendingIncluded": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportAllResults": "Todas as movimentações filtradas serão exportadas, não apenas as carregadas. Ordem, datas e fuso horário serão preservados.",
+  "activityExportNoNotes": "As notas não são incluídas. Salvar e compartilhar usam o mesmo CSV.",
+  "activityExportSave": "Salvar arquivo",
+  "activityExportShare": "Compartilhar arquivo",
+  "activityExportPreparing": "Preparando {count, plural, one{1 movimentação} other{{count} movimentações}}…",
+  "@activityExportPreparing": {"placeholders": {"count": {"type": "int"}}},
+  "activityExportErrorTitle": "Não foi possível gerar o arquivo",
+  "activityExportErrorMessage": "Ocorreu um problema temporário. Sua seleção continua aqui; tente novamente.",
+  "activityExportCloseHint": "Ao fechar, seus filtros e seleção serão mantidos.",
+  "activityTotalsTitle": "Totais confirmados",
+  "activityTotalsIncome": "Receitas",
+  "activityTotalsExpenses": "Despesas",
+  "activityTotalsNet": "Saldo líquido",
+  "activityTotalsPendingNote": "Os totais incluem apenas movimentações confirmadas. Pendentes e transferências não são incluídas.",
+  "activityTotalsEmpty": "Não há receitas ou despesas confirmadas para calcular os totais.",
+  "activityCsvDate": "Data e hora",
+  "activityCsvType": "Tipo",
+  "activityCsvDescription": "Descrição",
+  "activityCsvAccount": "Conta(s)",
+  "activityCsvCategory": "Categoria",
+  "activityCsvAmount": "Valor",
+  "activityCsvCurrency": "Moeda",
+  "activityCsvStatus": "Status",
+  "activityCsvPending": "Pendente",
+  "activityCsvConfirmed": "Confirmada",
+  "activityCsvRejected": "Rejeitada",
+  "activityCsvUnknownAccount": "Conta desconhecida",
+  "activityCsvUnknownCategory": "Categoria desconhecida",
   "transferOperationLabel": "Transferência",
   "budget": "Orçamento",
   "accounts": "Contas",
@@ -149,6 +202,15 @@
   "recentActivity": "Atividade recente",
   "noTransactions": "Você ainda não tem movimentações.",
   "amount": "Valor",
+  "amountInvalid": "Informe um valor válido maior que zero.",
+  "amountTooLarge": "O valor não pode exceder 1.000.000.000 nesta moeda.",
+  "operationAccountRequired": "Escolha uma conta.",
+  "operationCategoryRequired": "Escolha uma categoria.",
+  "transferSourceRequired": "Escolha a conta de origem.",
+  "transferDestinationRequired": "Escolha a conta de destino.",
+  "transferAccountsDifferent": "Escolha duas contas diferentes com a mesma moeda.",
+  "budgetDayInvalidForMonth": "Escolha um dia existente no mês selecionado.",
+  "onboardingAccountRequired": "Informe o nome da sua primeira conta.",
   "type": "Tipo",
   "date": "Data",
   "time": "Horário",
@@ -181,6 +243,12 @@
   "retry": "Tentar novamente",
   "offlinePending": "Sincronização pendente",
   "offlineRejected": "Não foi possível sincronizar. Você pode tentar novamente.",
+  "syncIssueNetwork": "Não foi possível conectar ao servidor. Este movimento continua salvo no dispositivo; tente novamente quando a conexão voltar.",
+  "syncIssuePermissionDenied": "O Firebase rejeitou este movimento. Verifique sua sessão; se continuar, compartilhe o código de diagnóstico com o suporte.",
+  "syncIssueInvalidOperation": "Este movimento não corresponde mais aos dados atuais. Verifique a conta, categoria ou orçamento antes de tentar novamente.",
+  "syncIssueUnexpected": "Não foi possível identificar a causa. Compartilhe o código de diagnóstico com o suporte.",
+  "syncDiagnosticCode": "Código de diagnóstico: {code}",
+  "@syncDiagnosticCode": { "placeholders": { "code": {} } },
   "syncing": "Sincronizando...",
   "synced": "Sincronizado"
   ,"changeMonth": "Mudar mês"
@@ -287,4 +355,20 @@
   ,"categoryIconEducation": "Educação"
   ,"categoryIconSalary": "Salário"
   ,"categoryIconOther": "Outros"
+  ,"budgetItemActual": "Registrado: {amount}"
+  ,"budgetRecordExpense": "Registrar despesa"
+  ,"budgetRecordIncome": "Registrar receita"
+  ,"budgetItemNoCompatibleAccount": "Você precisa de uma conta ativa em {currency} para registrar este movimento."
+  ,"budgetItemMovementContext": "Movimento para o item: {description}"
+  ,"budgetArchivedItems": "Itens arquivados"
+  ,"budgetItemArchived": "Arquivado · movimentos preservados"
+  ,"budgetItemLinkedMovements": "Movimentos vinculados"
+  ,"budgetItemNoLinkedMovements": "Ainda não há movimentos vinculados."
+  ,"budgetLinkedMovementConfirmed": "Confirmado"
+  ,"budgetLinkedMovementPending": "Pendente de sincronização"
+  ,"budgetLinkedMovementRejected": "Rejeitado · não afeta o total"
+  ,"budgetArchiveNetworkFailure": "Não foi possível conectar. O orçamento continua ativo; verifique sua conexão e tente novamente. Código: {code}"
+  ,"budgetArchivePermissionFailure": "O Firebase não autorizou esta alteração. O orçamento continua ativo; verifique sua sessão e compartilhe este código com o suporte: {code}"
+  ,"budgetArchiveConflictFailure": "Não foi possível validar o orçamento. Ele continua ativo; compartilhe este código com o suporte: {code}"
+  ,"budgetArchiveUnexpectedFailure": "Não foi possível excluir o orçamento. Ele continua ativo; tente novamente. Código: {code}"
 }

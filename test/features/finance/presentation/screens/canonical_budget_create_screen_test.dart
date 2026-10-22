@@ -7,6 +7,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
+import 'package:personal_finance/features/finance/domain/entities/budget.dart';
+import 'package:personal_finance/features/finance/domain/entities/budget_flow_type.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
@@ -29,7 +31,17 @@ void main() {
         currency: any(named: 'currency'),
         items: any(named: 'items'),
       ),
-    ).thenAnswer((_) async {});
+    ).thenAnswer(
+      (_) async => Budget(
+        id: 'created-budget',
+        categoryId: 'food',
+        flowType: BudgetFlowType.expense,
+        monthKey: DateFormat('yyyy-MM').format(DateTime.now()),
+        currency: 'COP',
+        plannedAmountMinor: 100,
+        status: 'active',
+      ),
+    );
   });
 
   Widget subject({

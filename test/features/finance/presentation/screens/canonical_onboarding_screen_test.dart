@@ -26,7 +26,7 @@ void main() {
     ),
   );
 
-  testWidgets('uses the selected language and enables continue after account entry', (
+  testWidgets('validates the first account name inline before continuing', (
     tester,
   ) async {
     await tester.pumpWidget(buildSubject());
@@ -37,7 +37,10 @@ void main() {
     final continueButton = tester.widget<FilledButton>(
       find.byKey(const ValueKey('onboarding_continue')),
     );
-    expect(continueButton.onPressed, isNull);
+    expect(continueButton.onPressed, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
+    await tester.pump();
+    expect(find.text('Escribe el nombre de tu primera cuenta.'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('onboarding_account_name')),

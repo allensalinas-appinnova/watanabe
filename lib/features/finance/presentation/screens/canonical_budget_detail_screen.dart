@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -12,8 +13,10 @@ import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_category.dart';
+import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
+import '../models/budget_item_movement_preset.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_category_icon.dart';
 
@@ -109,6 +112,8 @@ class _BudgetDetailContent extends ConsumerWidget {
     final locale = Localizations.localeOf(context).toLanguageTag();
     final month = DateFormat.yMMMM(locale).format(DateTime.parse('${budget.monthKey}-01'));
     final isIncome = budget.flowType == BudgetFlowType.income;
+    final activeItems = items.where((item) => item.isActive).toList(growable: false);
+    final archivedItems = items.where((item) => !item.isActive).toList(growable: false);
     const calculator = CalculateBudgetTracking();
     final tracking = calculator(budget, const [], summary: summary);
     final actualLabel = isIncome ? l10n.budgetReceived : l10n.budgetSpent;
@@ -184,33 +189,46 @@ class _BudgetDetailContent extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                l10n.budgetItemsHeading(items.length),
+                l10n.budgetItemsHeading(activeItems.length),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.navy,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
-              if (items.isEmpty)
+              if (activeItems.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(l10n.genericError),
                 ),
-              for (final item in items) ...[
+              for (final item in activeItems) ...[
                 _BudgetItemCard(
                   item: item,
                   currency: budget.currency,
                   locale: locale,
-                  canRemove: items.length > 1,
+                  canRemove: activeItems.length > 1,
                   onEdit: () => context.push(
                     '/budgets/${budget.id}/items/${item.id}/edit',
                     extra: item,
                   ),
                   onRemove: () => _confirmRemoveItem(context, ref, item),
+                  onRecord: () => context.push(
+                    '/budgets/${budget.id}/items/${item.id}/record',
+                    extra: BudgetItemMovementPreset(
+                      budgetId: budget.id,
+                      itemId: item.id,
+                      type: isIncome ? OperationType.income : OperationType.expense,
+                      categoryId: budget.categoryId,
+                      currency: budget.currency,
+                      description: item.description,
+                      amountMinor: item.amountMinor,
+                    ),
+                  ),
+                  recordLabel: isIncome ? l10n.budgetRecordIncome : l10n.budgetRecordExpense,
                 ),
                 const SizedBox(height: 10),
               ],
-              if (items.length == 1)
+              if (activeItems.length == 1)
                 Padding(
                   padding: const EdgeInsets.only(top: 2, bottom: 8),
                   child: Text(
@@ -230,6 +248,28 @@ class _BudgetDetailContent extends ConsumerWidget {
                 ),
                 child: Text(l10n.budgetAddItem),
               ),
+              if (archivedItems.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                Text(
+                  l10n.budgetArchivedItems,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final item in archivedItems) ...[
+                  _BudgetItemCard(
+                    item: item,
+                    currency: budget.currency,
+                    locale: locale,
+                    archived: true,
+                    userId: userId,
+                    budgetId: budget.id,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
               const SizedBox(height: 16),
               OutlinedButton(
                 key: const ValueKey('budget_archive_button'),
@@ -282,7 +322,10 @@ class _BudgetDetailContent extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await ref.read(canonicalActionsProvider).deleteBudgetItem(userId, budget.id, item.id);
-      ref.invalidate(canonicalBudgetsProvider((userId: userId, monthKey: budget.monthKey)));
+      ref
+        ..invalidate(canonicalFinanceRepositoryItemsProvider((userId: userId, budgetId: budget.id)))
+        ..invalidate(canonicalBudgetProvider((userId: userId, budgetId: budget.id)))
+        ..invalidate(canonicalBudgetsProvider((userId: userId, monthKey: budget.monthKey)));
     } catch (error) {
       if (!context.mounted) return;
       final isLastItem = error.toString().contains('budget-last-item');
@@ -317,17 +360,37 @@ class _BudgetDetailContent extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     try {
-      await ref.read(canonicalActionsProvider).archiveBudget(userId, budget.id);
+      final failure = await ref.read(canonicalActionsProvider).archiveBudget(userId, budget.id);
       if (!context.mounted) return;
-      context.pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.budgetArchiveSuccess)));
+      if (failure != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_budgetArchiveFailureMessage(l10n, failure))),
+        );
+        return;
+      }
+      final messenger = ScaffoldMessenger.of(context);
+      context.goNamed('budgets');
+      messenger.showSnackBar(SnackBar(content: Text(l10n.budgetArchiveSuccess)));
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.budgetDeleteFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.budgetArchiveUnexpectedFailure('unavailable'))));
     }
   }
+}
+
+String _budgetArchiveFailureMessage(AppLocalizations l10n, Failure failure) {
+  final code =
+      failure.technicalCode != null && RegExp(r'^[a-z0-9-]{1,48}$').hasMatch(failure.technicalCode!)
+      ? failure.technicalCode!
+      : 'unavailable';
+  return switch (failure) {
+    NetworkFailure() => l10n.budgetArchiveNetworkFailure(code),
+    AuthFailure() => l10n.budgetArchivePermissionFailure(code),
+    ConflictFailure() => l10n.budgetArchiveConflictFailure(code),
+    UnknownFailure() => l10n.budgetArchiveUnexpectedFailure(code),
+  };
 }
 
 class _BudgetSummaryCard extends StatelessWidget {
@@ -426,17 +489,27 @@ class _BudgetItemCard extends StatelessWidget {
     required this.item,
     required this.currency,
     required this.locale,
-    required this.canRemove,
-    required this.onEdit,
-    required this.onRemove,
+    this.canRemove = false,
+    this.onEdit,
+    this.onRemove,
+    this.onRecord,
+    this.recordLabel,
+    this.archived = false,
+    this.userId,
+    this.budgetId,
   });
 
   final BudgetItem item;
   final String currency;
   final String locale;
   final bool canRemove;
-  final VoidCallback onEdit;
-  final VoidCallback onRemove;
+  final VoidCallback? onEdit;
+  final VoidCallback? onRemove;
+  final VoidCallback? onRecord;
+  final String? recordLabel;
+  final bool archived;
+  final String? userId;
+  final String? budgetId;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -448,37 +521,84 @@ class _BudgetItemCard extends StatelessWidget {
       side: const BorderSide(color: AppColors.line),
     ),
     child: Padding(
-      padding: const EdgeInsets.all(10),
-      child: Row(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${CurrencyFormatter.formatMinor(item.amountMinor, currency, locale: locale)} · ${AppLocalizations.of(context).day.toLowerCase()} ${item.dayOfMonth}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          Text(
+            item.description,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${CurrencyFormatter.formatMinor(item.amountMinor, currency, locale: locale)} · ${AppLocalizations.of(context).day.toLowerCase()} ${item.dayOfMonth}',
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.muted, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            AppLocalizations.of(context).budgetItemActual(
+              CurrencyFormatter.formatMinor(item.actualAmountMinor, currency, locale: locale),
+            ),
+            key: ValueKey('budget_item_actual_${item.id}'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: item.actualAmountMinor > item.amountMinor
+                  ? Theme.of(context).colorScheme.error
+                  : AppColors.green,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(width: 8),
-          _ItemAction(label: AppLocalizations.of(context).budgetEditAction, onPressed: onEdit),
-          const SizedBox(width: 4),
-          if (canRemove)
-            _ItemAction(
-              label: AppLocalizations.of(context).budgetRemoveItem,
-              destructive: true,
-              onPressed: onRemove,
+          if (archived) ...[
+            const SizedBox(height: 4),
+            Text(
+              AppLocalizations.of(context).budgetItemArchived,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.muted),
             ),
+            if (userId != null && budgetId != null) ...[
+              const SizedBox(height: 8),
+              _ArchivedBudgetItemMovements(
+                userId: userId!,
+                budgetId: budgetId!,
+                itemId: item.id,
+                currency: currency,
+                locale: locale,
+              ),
+            ],
+          ] else ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                _ItemAction(
+                  label: AppLocalizations.of(context).budgetEditAction,
+                  onPressed: onEdit!,
+                ),
+                if (canRemove)
+                  _ItemAction(
+                    label: AppLocalizations.of(context).budgetRemoveItem,
+                    destructive: true,
+                    onPressed: onRemove!,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 48,
+              child: FilledButton.tonalIcon(
+                key: ValueKey('budget_item_record_${item.id}'),
+                onPressed: onRecord,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(recordLabel ?? AppLocalizations.of(context).budgetRecordExpense),
+                style: FilledButton.styleFrom(
+                  foregroundColor: AppColors.blueDark,
+                  backgroundColor: AppColors.blueSoft,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     ),
@@ -508,6 +628,66 @@ class _ItemAction extends StatelessWidget {
       child: Text(label),
     ),
   );
+}
+
+class _ArchivedBudgetItemMovements extends ConsumerWidget {
+  const _ArchivedBudgetItemMovements({
+    required this.userId,
+    required this.budgetId,
+    required this.itemId,
+    required this.currency,
+    required this.locale,
+  });
+
+  final String userId;
+  final String budgetId;
+  final String itemId;
+  final String currency;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final movements = ref.watch(
+      canonicalBudgetItemOperationsProvider((
+        userId: userId,
+        budgetId: budgetId,
+        itemId: itemId,
+      )),
+    );
+    return movements.when(
+      loading: () => const LinearProgressIndicator(minHeight: 2),
+      error: (_, _) => Text(l10n.genericError),
+      data: (items) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.budgetItemLinkedMovements,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (items.isEmpty)
+            Text(l10n.budgetItemNoLinkedMovements)
+          else
+            for (final operation in items)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${operation.description} · ${CurrencyFormatter.formatMinor(operation.amountMinor, currency, locale: locale)} · ${switch (operation.status) {
+                    OperationStatus.confirmed => l10n.budgetLinkedMovementConfirmed,
+                    OperationStatus.pending => l10n.budgetLinkedMovementPending,
+                    OperationStatus.rejected => l10n.budgetLinkedMovementRejected,
+                  }}',
+                  key: ValueKey('budget_linked_operation_${operation.id}'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BudgetDetailError extends StatelessWidget {

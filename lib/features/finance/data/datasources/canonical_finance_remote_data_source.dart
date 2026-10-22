@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../core/utils/money_parser.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
@@ -101,6 +102,12 @@ abstract interface class CanonicalFinanceRemoteDataSource {
   );
 
   Stream<List<Map<String, dynamic>>> watchBudgetItems(String userId, String budgetId);
+
+  Stream<List<Map<String, dynamic>>> watchBudgetItemOperations(
+    String userId,
+    String budgetId,
+    String itemId,
+  );
 
   Future<Map<String, dynamic>> addBudgetItem(
     String userId,
@@ -250,7 +257,11 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     }
     query = query
         .orderBy('occurredAt', descending: true)
-        .orderBy(FieldPath.documentId)
+        // Keep the document key direction aligned with the implicit __name__
+        // direction in Firestore's occurredAt DESCENDING index. Without this,
+        // the default ascending key order requires an undeclared composite
+        // index and makes even unfiltered activity queries fail precondition.
+        .orderBy(FieldPath.documentId, descending: true)
         .limit(pageSize);
     if (cursor != null) {
       query = query.startAfter([
@@ -341,7 +352,10 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required String currency,
     required int openingBalanceMinor,
   }) async {
-    if (name.trim().isEmpty || openingBalanceMinor < 0 || !_validCurrency(currency)) {
+    if (name.trim().isEmpty ||
+        openingBalanceMinor < 0 ||
+        openingBalanceMinor > MoneyParser.maxMinorUnits(currency) ||
+        !_validCurrency(currency)) {
       throw ArgumentError('Invalid account data.');
     }
     final ref = _userCollection(userId, 'accounts').doc();
@@ -381,7 +395,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String userId,
     FinancialOperationDraft draft,
   ) async {
-    _validateOperation(draft.type, draft.amountMinor, draft.idempotencyKey);
+    _validateOperation(draft.type, draft.amountMinor, draft.currency, draft.idempotencyKey);
     if (draft.type == OperationType.transfer) {
       throw ArgumentError('Use createTransfer for transfer operations.');
     }
@@ -398,6 +412,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       idempotencyKey: draft.idempotencyKey,
       categoryId: draft.categoryId,
       accountId: draft.accountId,
+      budgetId: draft.budgetId,
+      budgetItemId: draft.budgetItemId,
     );
     await _firestore.runTransaction((transaction) async {
       final existing = await transaction.get(operationRef);
@@ -407,6 +423,27 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       );
       if (!account.exists || account.data()?['currency'] != draft.currency) {
         throw StateError('The account does not exist or uses another currency.');
+      }
+      if (draft.budgetId != null || draft.budgetItemId != null) {
+        if (draft.budgetId == null ||
+            draft.budgetItemId == null ||
+            draft.type == OperationType.transfer ||
+            draft.categoryId == null) {
+          throw ArgumentError('Budget operation references must be supplied as a compatible pair.');
+        }
+        final budgetRef = _userCollection(userId, 'budgets').doc(draft.budgetId);
+        final itemRef = budgetRef.collection('items').doc(draft.budgetItemId);
+        final budget = await transaction.get(budgetRef);
+        final item = await transaction.get(itemRef);
+        final budgetData = budget.data();
+        if (!budget.exists ||
+            !item.exists ||
+            budgetData == null ||
+            budgetData['categoryId'] != draft.categoryId ||
+            budgetData['flowType'] != draft.type.name ||
+            budgetData['currency'] != draft.currency) {
+          throw StateError('Budget item reference is missing or incompatible.');
+        }
       }
       transaction
         ..set(operationRef, data)
@@ -430,7 +467,12 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
 
   @override
   Future<Map<String, dynamic>> createTransfer(String userId, TransferDraft draft) async {
-    _validateOperation(OperationType.transfer, draft.amountMinor, draft.idempotencyKey);
+    _validateOperation(
+      OperationType.transfer,
+      draft.amountMinor,
+      draft.currency,
+      draft.idempotencyKey,
+    );
     if (draft.sourceAccountId == draft.destinationAccountId) {
       throw ArgumentError('Transfer accounts must be different.');
     }
@@ -544,12 +586,22 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       ).doc(budgetId).collection('items').snapshots().map(_records);
 
   @override
+  Stream<List<Map<String, dynamic>>> watchBudgetItemOperations(
+    String userId,
+    String budgetId,
+    String itemId,
+  ) => _userCollection(userId, 'operations')
+      .where('budgetId', isEqualTo: budgetId)
+      .snapshots()
+      .map(_records)
+      .map((records) => records.where((record) => record['budgetItemId'] == itemId).toList());
+
+  @override
   Future<Map<String, dynamic>> addBudgetItem(
     String userId,
     String budgetId,
     CanonicalBudgetItemDraft item,
   ) async {
-    _validateBudgetItem(item);
     final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
     final itemsRef = budgetRef.collection('items');
     final itemRef = budgetRef.collection('items').doc();
@@ -557,18 +609,29 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       final budget = await transaction.get(budgetRef);
       if (!budget.exists) throw StateError('Budget not found.');
       final data = budget.data()!;
+      _validateBudgetItem(
+        item,
+        data['currency'] as String? ?? '',
+        data['monthKey'] as String? ?? '',
+      );
       final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
+      final updatedTotal = total + item.amountMinor;
+      if (updatedTotal > MoneyParser.maxMinorUnits(data['currency'] as String? ?? '')) {
+        throw ArgumentError('Budget total exceeds the maximum amount.');
+      }
       final count = await _budgetItemCount(transaction, budgetRef, itemsRef, data);
       transaction
         ..set(itemRef, {
           'description': item.description.trim(),
           'amountMinor': item.amountMinor,
           'dayOfMonth': item.dayOfMonth,
+          'actualAmountMinor': 0,
+          'status': 'active',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         })
         ..update(budgetRef, {
-          'plannedAmountMinor': total + item.amountMinor,
+          'plannedAmountMinor': updatedTotal,
           'itemCount': count + 1,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -578,26 +641,38 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'description': item.description.trim(),
       'amountMinor': item.amountMinor,
       'dayOfMonth': item.dayOfMonth,
+      'actualAmountMinor': 0,
+      'status': 'active',
     };
   }
 
   @override
   Future<void> updateBudgetItem(String userId, String budgetId, BudgetItem item) async {
-    _validateBudgetItem(
-      CanonicalBudgetItemDraft(
-        description: item.description,
-        amountMinor: item.amountMinor,
-        dayOfMonth: item.dayOfMonth,
-      ),
-    );
     final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
     final itemRef = budgetRef.collection('items').doc(item.id);
     await _firestore.runTransaction((transaction) async {
       final budget = await transaction.get(budgetRef);
       final previous = await transaction.get(itemRef);
       if (!budget.exists || !previous.exists) throw StateError('Budget item not found.');
-      final total = (budget.data()?['plannedAmountMinor'] as num? ?? 0).toInt();
+      if (previous.data()?['status'] == 'archived') throw StateError('Budget item is archived.');
+      final data = budget.data()!;
+      final currency = data['currency'] as String? ?? '';
+      final monthKey = data['monthKey'] as String? ?? '';
+      _validateBudgetItem(
+        CanonicalBudgetItemDraft(
+          description: item.description,
+          amountMinor: item.amountMinor,
+          dayOfMonth: item.dayOfMonth,
+        ),
+        currency,
+        monthKey,
+      );
+      final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
       final oldAmount = (previous.data()?['amountMinor'] as num? ?? 0).toInt();
+      final updatedTotal = total - oldAmount + item.amountMinor;
+      if (updatedTotal > MoneyParser.maxMinorUnits(currency)) {
+        throw ArgumentError('Budget total exceeds the maximum amount.');
+      }
       transaction
         ..update(itemRef, {
           'description': item.description.trim(),
@@ -606,7 +681,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'updatedAt': FieldValue.serverTimestamp(),
         })
         ..update(budgetRef, {
-          'plannedAmountMinor': total - oldAmount + item.amountMinor,
+          'plannedAmountMinor': updatedTotal,
           'updatedAt': FieldValue.serverTimestamp(),
         });
     });
@@ -624,11 +699,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       final data = budget.data()!;
       final count = await _budgetItemCount(transaction, budgetRef, itemsRef, data);
       if (count <= 1) throw StateError('budget-last-item');
+      if (item.data()?['status'] == 'archived') throw StateError('Budget item is archived.');
       final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
       final amount = (item.data()?['amountMinor'] as num? ?? 0).toInt();
       final updatedTotal = total >= amount ? total - amount : 0;
       transaction
-        ..delete(itemRef)
+        ..update(itemRef, {
+          'status': 'archived',
+          'archivedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        })
         ..update(budgetRef, {
           'plannedAmountMinor': updatedTotal,
           'itemCount': count - 1,
@@ -650,10 +730,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     CollectionReference<Map<String, dynamic>> itemsRef,
     Map<String, dynamic> budgetData,
   ) async {
-    final storedCount = budgetData['itemCount'];
-    if (storedCount is num) return storedCount.toInt();
     final itemDocs = await itemsRef.get();
-    final count = itemDocs.docs.length;
+    final count = itemDocs.docs.where((document) => document.data()['status'] != 'archived').length;
     transaction.update(budgetRef, {'itemCount': count});
     return count;
   }
@@ -674,29 +752,76 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     final budgetId = '${monthKey}_${flowType}_${categoryId}_$currency';
     final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
     final total = items.fold<int>(0, (totalSoFar, item) {
-      _validateBudgetItem(item);
-      return totalSoFar + item.amountMinor;
+      _validateBudgetItem(item, currency, monthKey);
+      final updatedTotal = totalSoFar + item.amountMinor;
+      if (updatedTotal > MoneyParser.maxMinorUnits(currency)) {
+        throw ArgumentError('Budget total exceeds the maximum amount.');
+      }
+      return updatedTotal;
     });
+    // Firestore transactions accept document references (not collection
+    // queries); fetch the existing IDs first, then re-read each document in
+    // the transaction before any writes if this budget is being reactivated.
+    final previousItemIds = (await budgetRef.collection('items').get()).docs
+        .map((document) => document.id)
+        .toList(growable: false);
     await _firestore.runTransaction((transaction) async {
       final existing = await transaction.get(budgetRef);
-      if (existing.exists) throw StateError('A budget already exists for this category and month.');
-      transaction.set(budgetRef, {
-        'categoryId': categoryId,
-        'flowType': flowType,
-        'monthKey': monthKey,
-        'currency': currency,
-        'plannedAmountMinor': total,
-        'itemCount': items.length,
-        'status': 'active',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      if (existing.exists) {
+        final existingData = existing.data()!;
+        if (existingData['status'] != 'archived') {
+          throw StateError('A budget already exists for this category and month.');
+        }
+        if (existingData['categoryId'] != categoryId ||
+            existingData['flowType'] != flowType ||
+            existingData['monthKey'] != monthKey ||
+            existingData['currency'] != currency) {
+          throw StateError('An archived budget has conflicting identity data.');
+        }
+        // Preserve old item documents and operation links, but archive any
+        // items left active by the previous budget archive. The recreated
+        // budget then starts with only its newly submitted items.
+        final previousItems = <DocumentSnapshot<Map<String, dynamic>>>[];
+        for (final itemId in previousItemIds) {
+          final previousItem = await transaction.get(budgetRef.collection('items').doc(itemId));
+          if (previousItem.exists && previousItem.data()?['status'] != 'archived') {
+            previousItems.add(previousItem);
+          }
+        }
+        for (final previousItem in previousItems) {
+          transaction.update(previousItem.reference, {
+            'status': 'archived',
+            'archivedAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        transaction.update(budgetRef, {
+          'plannedAmountMinor': total,
+          'itemCount': items.length,
+          'status': 'active',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        transaction.set(budgetRef, {
+          'categoryId': categoryId,
+          'flowType': flowType,
+          'monthKey': monthKey,
+          'currency': currency,
+          'plannedAmountMinor': total,
+          'itemCount': items.length,
+          'status': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
       for (final item in items) {
         final itemRef = budgetRef.collection('items').doc();
         transaction.set(itemRef, {
           'description': item.description.trim(),
           'amountMinor': item.amountMinor,
           'dayOfMonth': item.dayOfMonth,
+          'actualAmountMinor': 0,
+          'status': 'active',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -741,6 +866,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String? accountId,
     String? sourceAccountId,
     String? destinationAccountId,
+    String? budgetId,
+    String? budgetItemId,
   }) => {
     'type': type.name,
     'amountMinor': amountMinor,
@@ -749,6 +876,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     'accountId': ?accountId,
     'sourceAccountId': ?sourceAccountId,
     'destinationAccountId': ?destinationAccountId,
+    'budgetId': ?budgetId,
+    'budgetItemId': ?budgetItemId,
     'monthKey': monthKey ?? _monthKey(occurredAt),
     'occurredAt': Timestamp.fromDate(occurredAt),
     'description': description.trim(),
@@ -758,8 +887,15 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     'updatedAt': FieldValue.serverTimestamp(),
   };
 
-  void _validateOperation(OperationType type, int amountMinor, String idempotencyKey) {
-    if (amountMinor <= 0 || !RegExp(r'^[A-Za-z0-9_-]{8,128}$').hasMatch(idempotencyKey)) {
+  void _validateOperation(
+    OperationType type,
+    int amountMinor,
+    String currency,
+    String idempotencyKey,
+  ) {
+    if (amountMinor <= 0 ||
+        amountMinor > MoneyParser.maxMinorUnits(currency) ||
+        !RegExp(r'^[A-Za-z0-9_-]{8,128}$').hasMatch(idempotencyKey)) {
       throw ArgumentError('Invalid amount or idempotency key.');
     }
     if (type != OperationType.transfer &&
@@ -771,12 +907,19 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
 
   bool _validCurrency(String currency) => RegExp(r'^[A-Z]{3}$').hasMatch(currency);
 
-  void _validateBudgetItem(CanonicalBudgetItemDraft item) {
+  void _validateBudgetItem(CanonicalBudgetItemDraft item, String currency, String monthKey) {
+    final monthParts = monthKey.split('-');
+    final year = monthParts.length == 2 ? int.tryParse(monthParts[0]) : null;
+    final month = monthParts.length == 2 ? int.tryParse(monthParts[1]) : null;
+    final daysInMonth = year == null || month == null || month < 1 || month > 12
+        ? 0
+        : DateTime(year, month + 1, 0).day;
     if (item.description.trim().isEmpty ||
         item.amountMinor <= 0 ||
+        item.amountMinor > MoneyParser.maxMinorUnits(currency) ||
         item.dayOfMonth < 1 ||
-        item.dayOfMonth > 31) {
-      throw ArgumentError('Budget items require a description, positive amount and day 1-31.');
+        item.dayOfMonth > daysInMonth) {
+      throw ArgumentError('Budget item has invalid description, amount or day for its month.');
     }
   }
 

@@ -16,6 +16,8 @@ class FinancialOperation {
     this.accountId,
     this.sourceAccountId,
     this.destinationAccountId,
+    this.budgetId,
+    this.budgetItemId,
     this.description = '',
     this.createdAt,
     this.updatedAt,
@@ -33,6 +35,8 @@ class FinancialOperation {
   final String? accountId;
   final String? sourceAccountId;
   final String? destinationAccountId;
+  final String? budgetId;
+  final String? budgetItemId;
   final String description;
   final DateTime? createdAt;
   final DateTime? updatedAt;

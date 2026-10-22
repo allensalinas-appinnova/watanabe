@@ -9,6 +9,7 @@ import 'package:personal_finance/features/auth/presentation/providers/auth_provi
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
+import 'package:personal_finance/features/finance/presentation/models/budget_item_movement_preset.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_transfer_screen.dart';
@@ -109,6 +110,18 @@ void main() {
     expect(selector.initialValue, 'cash');
   });
 
+  testWidgets('shows inline validation for an amount above the currency limit', (tester) async {
+    await _pumpOperationForm(tester, const [
+      FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash'),
+    ]);
+    await tester.enterText(find.byKey(const ValueKey('operation_amount')), '1000000001');
+    final save = find.byKey(const ValueKey('operation_save'));
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Amount cannot exceed 1,000,000,000 in this currency.'), findsOneWidget);
+  });
+
   testWidgets('preselects the only active account for a new income', (tester) async {
     await _pumpOperationForm(
       tester,
@@ -160,6 +173,104 @@ void main() {
       find.byKey(const ValueKey('operation_account_selector_bank')),
     );
     expect(selector.initialValue, 'bank');
+  });
+
+  testWidgets('budget item form preloads editable values and limits accounts to its currency', (
+    tester,
+  ) async {
+    const preset = BudgetItemMovementPreset(
+      budgetId: '2026-10_expense_food_COP',
+      itemId: 'item-1',
+      type: OperationType.expense,
+      categoryId: 'food',
+      currency: 'COP',
+      description: 'Mercado semanal',
+      amountMinor: 300000,
+    );
+    await _pumpOperationForm(
+      tester,
+      const [
+        FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash', currency: 'COP'),
+        FinanceAccount(id: 'bank', name: 'Banco', type: 'checking', currency: 'COP'),
+        FinanceAccount(id: 'mxn', name: 'Cuenta MX', type: 'checking', currency: 'MXN'),
+      ],
+      preset: preset,
+      categories: const [
+        FinanceCategory(
+          id: 'food',
+          type: CategoryType.expense,
+          icon: 'food',
+          sortOrder: 1,
+          isSystem: true,
+          isArchived: false,
+          customName: 'Comida',
+        ),
+      ],
+    );
+
+    expect(
+      tester.widget<TextFormField>(find.byKey(const ValueKey('operation_amount'))).controller!.text,
+      '300000',
+    );
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('operation_description')))
+          .controller!
+          .text,
+      'Mercado semanal',
+    );
+    final accountDropdown = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('operation_account_selector_none')),
+    );
+    expect(accountDropdown.onChanged, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('operation_account_selector_none')));
+    await tester.pumpAndSettle();
+    expect(find.text('Efectivo (COP)'), findsOneWidget);
+    expect(find.text('Banco (COP)'), findsOneWidget);
+    expect(find.text('Cuenta MX (MXN)'), findsNothing);
+    expect(
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byKey(const ValueKey('operation_category_selector')),
+          )
+          .onChanged,
+      isNull,
+    );
+    expect(find.byKey(const ValueKey('budget_item_movement_context')), findsOneWidget);
+  });
+
+  testWidgets('budget item form explains when no active account uses the budget currency', (
+    tester,
+  ) async {
+    const preset = BudgetItemMovementPreset(
+      budgetId: '2026-10_expense_food_COP',
+      itemId: 'item-1',
+      type: OperationType.expense,
+      categoryId: 'food',
+      currency: 'COP',
+      description: 'Mercado semanal',
+      amountMinor: 300000,
+    );
+    await _pumpOperationForm(
+      tester,
+      const [FinanceAccount(id: 'mxn', name: 'Cuenta MX', type: 'checking', currency: 'MXN')],
+      preset: preset,
+      categories: const [
+        FinanceCategory(
+          id: 'food',
+          type: CategoryType.expense,
+          icon: 'food',
+          sortOrder: 1,
+          isSystem: true,
+          isArchived: false,
+        ),
+      ],
+    );
+    expect(find.byKey(const ValueKey('budget_item_add_compatible_account')), findsOneWidget);
+    expect(find.text('Add account'), findsOneWidget);
+    expect(find.byKey(const ValueKey('operation_save')), findsOneWidget);
   });
 
   testWidgets('opens category management without losing the operation draft', (tester) async {
@@ -231,7 +342,7 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(amountField).controller!.text, '250');
+    expect(tester.widget<TextFormField>(amountField).controller!.text, '250');
     expect(find.byKey(const ValueKey('operation_manage_categories')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -243,6 +354,8 @@ Future<void> _pumpOperationForm(
   OperationType initialType = OperationType.expense,
   String? initialAccountId,
   FinancialOperation? initialOperation,
+  BudgetItemMovementPreset? preset,
+  List<FinanceCategory> categories = const [],
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -258,6 +371,7 @@ Future<void> _pumpOperationForm(
           initialType: initialType,
           initialAccountId: initialAccountId,
           initialOperation: initialOperation,
+          initialBudgetItemPreset: preset,
         ),
       ),
     ],
@@ -271,7 +385,7 @@ Future<void> _pumpOperationForm(
         ),
         canonicalAccountsProvider('user-1').overrideWith((ref) => Stream.value(accounts)),
         canonicalCategoriesProvider('user-1').overrideWith(
-          (ref) => const Stream<List<FinanceCategory>>.empty(),
+          (ref) => Stream.value(categories),
         ),
       ],
       child: MaterialApp.router(

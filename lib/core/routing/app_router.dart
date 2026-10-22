@@ -9,6 +9,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
+import '../../features/finance/presentation/models/budget_item_movement_preset.dart';
 import '../../features/finance/presentation/screens/account_form_screen.dart';
 import '../../features/finance/presentation/screens/activity_filters_screen.dart';
 import '../../features/finance/presentation/screens/canonical_accounts_screen.dart';
@@ -146,6 +147,19 @@ GoRouter _buildAppRouter() => GoRouter(
                         initialItem: state.extra is BudgetItem ? state.extra! as BudgetItem : null,
                       ),
                     ),
+                    GoRoute(
+                      path: 'items/:itemId/record',
+                      name: 'record-budget-item-movement',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => CanonicalOperationFormScreen(
+                        initialType: state.extra is BudgetItemMovementPreset
+                            ? (state.extra! as BudgetItemMovementPreset).type
+                            : OperationType.expense,
+                        initialBudgetItemPreset: state.extra is BudgetItemMovementPreset
+                            ? state.extra! as BudgetItemMovementPreset
+                            : null,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -166,7 +180,9 @@ GoRouter _buildAppRouter() => GoRouter(
     GoRoute(
       path: '/accounts/new',
       name: 'new-account',
-      builder: (context, state) => const AccountFormScreen(),
+      builder: (context, state) => AccountFormScreen(
+        initialCurrency: state.uri.queryParameters['currency'],
+      ),
     ),
     GoRoute(
       path: '/accounts/:id/edit',

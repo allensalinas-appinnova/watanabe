@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/offline/pending_operation_queue.dart';
+import '../../../../core/offline/sync_state.dart';
 import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
@@ -22,6 +23,7 @@ import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
+import '../widgets/sync_issue_localization.dart';
 
 class CanonicalHomeScreen extends ConsumerWidget {
   const CanonicalHomeScreen({super.key});
@@ -664,7 +666,20 @@ class _PendingOperationsCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final operation in pending.take(3))
-                Text(_pendingDescription(operation.operationType, operation.payload, l10n)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_pendingDescription(operation.operationType, operation.payload, l10n)),
+                      if (SyncFailureInfo.parse(operation.lastError) case final issue?) ...[
+                        Text(syncIssueMessage(l10n, issue)),
+                        if (issue.technicalCode case final code?)
+                          SelectableText(l10n.syncDiagnosticCode(code)),
+                      ],
+                    ],
+                  ),
+                ),
               if (pending.length > 3) Text('+${pending.length - 3}'),
             ],
           ),

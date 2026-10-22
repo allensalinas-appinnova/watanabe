@@ -19,6 +19,15 @@ import 'package:personal_finance/features/finance/presentation/screens/canonical
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 final _month = DateFormat('yyyy-MM').format(DateTime.now());
+final _createdBudget = Budget(
+  id: 'created-budget',
+  categoryId: 'food',
+  flowType: BudgetFlowType.expense,
+  monthKey: _month,
+  currency: 'COP',
+  plannedAmountMinor: 60000,
+  status: 'active',
+);
 const _budgets = [
   Budget(
     id: 'food-budget',
@@ -95,6 +104,7 @@ void main() {
     Locale locale = const Locale('es'),
     double textScale = 1,
     bool budgetError = false,
+    Widget? createRoute,
   }) {
     final router = GoRouter(
       initialLocation: '/budgets',
@@ -111,7 +121,10 @@ void main() {
             ),
           ],
         ),
-        GoRoute(path: '/budgets/new', builder: (context, state) => const Text('Create route')),
+        GoRoute(
+          path: '/budgets/new',
+          builder: (context, state) => createRoute ?? const Text('Create route'),
+        ),
         GoRoute(
           path: '/budgets/:id',
           builder: (context, state) => Text('Detail ${state.pathParameters['id']}'),
@@ -188,6 +201,37 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
     await tester.pumpAndSettle();
     expect(find.text('Create route'), findsOneWidget);
+  });
+
+  testWidgets('shows a server-confirmed budget immediately on return from creation', (
+    tester,
+  ) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(
+      subject(
+        budgets: const [],
+        createRoute: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                key: const ValueKey('return_created_budget'),
+                onPressed: () => context.pop(_createdBudget),
+                child: const Text('Return budget'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('return_created_budget')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('budget_card_created-budget')), findsOneWidget);
+    expect(find.text('Comida'), findsOneWidget);
   });
 
   testWidgets('renders independent currency cards with calculated actual and remaining', (

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:personal_finance/core/error/failure.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
@@ -75,7 +76,7 @@ void main() {
   setUp(() {
     actions = _MockActions();
     when(() => actions.deleteBudgetItem(any(), any(), any())).thenAnswer((_) async {});
-    when(() => actions.archiveBudget(any(), any())).thenAnswer((_) async {});
+    when(() => actions.archiveBudget(any(), any())).thenAnswer((_) async => null);
     when(() => actions.updateBudgetItem(any(), any(), any())).thenAnswer((_) async {});
     when(() => actions.addBudgetItem(any(), any(), any())).thenAnswer((_) async {});
   });
@@ -93,7 +94,11 @@ void main() {
     final router = GoRouter(
       initialLocation: '/budgets/budget-1',
       routes: [
-        GoRoute(path: '/budgets', builder: (context, state) => const Text('Budgets list')),
+        GoRoute(
+          path: '/budgets',
+          name: 'budgets',
+          builder: (context, state) => const Scaffold(body: Text('Budgets list')),
+        ),
         GoRoute(
           path: '/budgets/:id',
           builder: (context, state) => initial,
@@ -171,6 +176,10 @@ void main() {
     await tester.pumpWidget(subject());
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budget_add_item_detail')),
+      300,
+    );
     await tester.tap(find.byKey(const ValueKey('budget_add_item_detail')));
     await tester.pumpAndSettle();
     expect(find.text('Agregar elemento'), findsNWidgets(2));
@@ -198,6 +207,14 @@ void main() {
         ),
       ),
     ).called(1);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budget_detail_category')),
+      -300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('budget_detail_scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     expect(find.byKey(const ValueKey('budget_detail_category')), findsOneWidget);
   });
 
@@ -273,6 +290,29 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirm_budget_archive')));
     await tester.pumpAndSettle();
     verify(() => actions.archiveBudget('user-1', 'budget-1')).called(1);
+    expect(find.text('Budgets list'), findsOneWidget);
+    expect(find.text('Presupuesto eliminado de la lista activa.'), findsOneWidget);
+  });
+
+  testWidgets('shows actionable safe diagnostics when archiving is rejected', (tester) async {
+    when(() => actions.archiveBudget('user-1', 'budget-1')).thenAnswer(
+      (_) async => const AuthFailure(
+        'internal message must not be shown',
+        technicalCode: 'permission-denied',
+      ),
+    );
+    await tester.pumpWidget(subject());
+    await tester.pumpAndSettle();
+    await tester.drag(find.byKey(const ValueKey('budget_detail_scroll')), const Offset(0, -900));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_archive_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm_budget_archive')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Firebase no autorizó el cambio'), findsOneWidget);
+    expect(find.textContaining('permission-denied'), findsOneWidget);
+    expect(find.textContaining('internal message must not be shown'), findsNothing);
   });
 
   testWidgets('edits a budget item and keeps values visible after a recoverable error', (
@@ -366,7 +406,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.pumpAndSettle();
     expect(find.text('Informe uma descrição.'), findsOneWidget);
-    expect(find.text('Escolha um dia entre 1 e 31.'), findsWidgets);
+    expect(find.text('Escolha um dia existente no mês selecionado.'), findsWidgets);
     verifyNever(() => actions.updateBudgetItem(any(), any(), any()));
   });
 }

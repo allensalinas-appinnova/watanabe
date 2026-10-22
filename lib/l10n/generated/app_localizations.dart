@@ -478,6 +478,282 @@ abstract class AppLocalizations {
   /// **'{account} · {range}'**
   String activityFilterSelectedDetails(Object account, Object range);
 
+  /// No description provided for @activityShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir'**
+  String get activityShare;
+
+  /// No description provided for @activityShareSubject.
+  ///
+  /// In es, this message translates to:
+  /// **'Actividad de LumioMoney'**
+  String get activityShareSubject;
+
+  /// No description provided for @activityShareFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo preparar o compartir el archivo. Inténtalo de nuevo.'**
+  String get activityShareFailed;
+
+  /// No description provided for @activityShareEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay movimientos para compartir.'**
+  String get activityShareEmpty;
+
+  /// No description provided for @activityMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos'**
+  String get activityMovements;
+
+  /// No description provided for @activityMovementCount.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos · {count}'**
+  String activityMovementCount(int count);
+
+  /// No description provided for @activityExportAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar'**
+  String get activityExportAction;
+
+  /// No description provided for @activityExportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar CSV'**
+  String get activityExportTitle;
+
+  /// No description provided for @activityExportSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la selección antes de continuar.'**
+  String get activityExportSubtitle;
+
+  /// No description provided for @activityExportAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta'**
+  String get activityExportAccount;
+
+  /// No description provided for @activityExportPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'Periodo'**
+  String get activityExportPeriod;
+
+  /// No description provided for @activityExportType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo'**
+  String get activityExportType;
+
+  /// No description provided for @activityExportCurrencyFormat.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda · Formato'**
+  String get activityExportCurrencyFormat;
+
+  /// No description provided for @activityExportConfirmedCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =0{0 movimientos confirmados} one{1 movimiento confirmado} other{{count} movimientos confirmados}}'**
+  String activityExportConfirmedCount(int count);
+
+  /// No description provided for @activityExportIncludedCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} movimientos incluidos'**
+  String activityExportIncludedCount(int count);
+
+  /// No description provided for @activityExportMoreCount.
+  ///
+  /// In es, this message translates to:
+  /// **'y {count} más'**
+  String activityExportMoreCount(int count);
+
+  /// No description provided for @activityExportIncludePending.
+  ///
+  /// In es, this message translates to:
+  /// **'Incluir pendientes'**
+  String get activityExportIncludePending;
+
+  /// No description provided for @activityExportPendingExcluded.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, one{1 movimiento pendiente excluido. Activa para incluirlo.} other{{count} movimientos pendientes excluidos. Activa para incluirlos.}}'**
+  String activityExportPendingExcluded(int count);
+
+  /// No description provided for @activityExportPendingIncluded.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, one{1 movimiento pendiente se incluirá e identificará como pendiente.} other{{count} movimientos pendientes se incluirán e identificarán como pendientes.}}'**
+  String activityExportPendingIncluded(int count);
+
+  /// No description provided for @activityExportAllResults.
+  ///
+  /// In es, this message translates to:
+  /// **'Se exportan todos los resultados de los filtros, no solo los cargados. Se conservan el orden, las fechas y la zona horaria.'**
+  String get activityExportAllResults;
+
+  /// No description provided for @activityExportNoNotes.
+  ///
+  /// In es, this message translates to:
+  /// **'No incluye notas. Guardar y compartir usan el mismo CSV.'**
+  String get activityExportNoNotes;
+
+  /// No description provided for @activityExportSave.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar archivo'**
+  String get activityExportSave;
+
+  /// No description provided for @activityExportShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir archivo'**
+  String get activityExportShare;
+
+  /// No description provided for @activityExportPreparing.
+  ///
+  /// In es, this message translates to:
+  /// **'Preparando {count, plural, one{1 movimiento} other{{count} movimientos}}…'**
+  String activityExportPreparing(int count);
+
+  /// No description provided for @activityExportErrorTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos generar el archivo'**
+  String get activityExportErrorTitle;
+
+  /// No description provided for @activityExportErrorMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocurrió un problema temporal. Tu selección sigue aquí; puedes intentarlo de nuevo.'**
+  String get activityExportErrorMessage;
+
+  /// No description provided for @activityExportCloseHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Al cerrar, se conservan tus filtros y selección.'**
+  String get activityExportCloseHint;
+
+  /// No description provided for @activityTotalsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Totales confirmados'**
+  String get activityTotalsTitle;
+
+  /// No description provided for @activityTotalsIncome.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresos'**
+  String get activityTotalsIncome;
+
+  /// No description provided for @activityTotalsExpenses.
+  ///
+  /// In es, this message translates to:
+  /// **'Egresos'**
+  String get activityTotalsExpenses;
+
+  /// No description provided for @activityTotalsNet.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo neto'**
+  String get activityTotalsNet;
+
+  /// No description provided for @activityTotalsPendingNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Los totales incluyen solo movimientos confirmados. No incluyen pendientes ni transferencias.'**
+  String get activityTotalsPendingNote;
+
+  /// No description provided for @activityTotalsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay ingresos ni egresos confirmados para calcular los totales.'**
+  String get activityTotalsEmpty;
+
+  /// No description provided for @activityCsvDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha y hora'**
+  String get activityCsvDate;
+
+  /// No description provided for @activityCsvType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo'**
+  String get activityCsvType;
+
+  /// No description provided for @activityCsvDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción'**
+  String get activityCsvDescription;
+
+  /// No description provided for @activityCsvAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta(s)'**
+  String get activityCsvAccount;
+
+  /// No description provided for @activityCsvCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Categoría'**
+  String get activityCsvCategory;
+
+  /// No description provided for @activityCsvAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Importe'**
+  String get activityCsvAmount;
+
+  /// No description provided for @activityCsvCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda'**
+  String get activityCsvCurrency;
+
+  /// No description provided for @activityCsvStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado'**
+  String get activityCsvStatus;
+
+  /// No description provided for @activityCsvPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get activityCsvPending;
+
+  /// No description provided for @activityCsvConfirmed.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmado'**
+  String get activityCsvConfirmed;
+
+  /// No description provided for @activityCsvRejected.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazado'**
+  String get activityCsvRejected;
+
+  /// No description provided for @activityCsvUnknownAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta desconocida'**
+  String get activityCsvUnknownAccount;
+
+  /// No description provided for @activityCsvUnknownCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Categoría desconocida'**
+  String get activityCsvUnknownCategory;
+
   /// No description provided for @transferOperationLabel.
   ///
   /// In es, this message translates to:
@@ -910,6 +1186,60 @@ abstract class AppLocalizations {
   /// **'Monto'**
   String get amount;
 
+  /// No description provided for @amountInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa un monto válido mayor que cero.'**
+  String get amountInvalid;
+
+  /// No description provided for @amountTooLarge.
+  ///
+  /// In es, this message translates to:
+  /// **'El monto no puede superar 1.000.000.000 en esta moneda.'**
+  String get amountTooLarge;
+
+  /// No description provided for @operationAccountRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona una cuenta.'**
+  String get operationAccountRequired;
+
+  /// No description provided for @operationCategoryRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona una categoría.'**
+  String get operationCategoryRequired;
+
+  /// No description provided for @transferSourceRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona la cuenta de origen.'**
+  String get transferSourceRequired;
+
+  /// No description provided for @transferDestinationRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona la cuenta de destino.'**
+  String get transferDestinationRequired;
+
+  /// No description provided for @transferAccountsDifferent.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige dos cuentas distintas con la misma moneda.'**
+  String get transferAccountsDifferent;
+
+  /// No description provided for @budgetDayInvalidForMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un día que exista en el mes seleccionado.'**
+  String get budgetDayInvalidForMonth;
+
+  /// No description provided for @onboardingAccountRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el nombre de tu primera cuenta.'**
+  String get onboardingAccountRequired;
+
   /// No description provided for @type.
   ///
   /// In es, this message translates to:
@@ -1101,6 +1431,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo sincronizar. Puedes reintentar.'**
   String get offlineRejected;
+
+  /// No description provided for @syncIssueNetwork.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay conexión con el servidor. El movimiento sigue guardado aquí; inténtalo cuando vuelva la conexión.'**
+  String get syncIssueNetwork;
+
+  /// No description provided for @syncIssuePermissionDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'Firebase rechazó el movimiento. Comprueba tu sesión; si continúa, comparte el código de diagnóstico con soporte.'**
+  String get syncIssuePermissionDenied;
+
+  /// No description provided for @syncIssueInvalidOperation.
+  ///
+  /// In es, this message translates to:
+  /// **'El movimiento no coincide con los datos actuales. Revisa la cuenta, categoría o presupuesto antes de reintentar.'**
+  String get syncIssueInvalidOperation;
+
+  /// No description provided for @syncIssueUnexpected.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos identificar la causa. Comparte el código de diagnóstico con soporte.'**
+  String get syncIssueUnexpected;
+
+  /// No description provided for @syncDiagnosticCode.
+  ///
+  /// In es, this message translates to:
+  /// **'Código de diagnóstico: {code}'**
+  String syncDiagnosticCode(Object code);
 
   /// No description provided for @syncing.
   ///
@@ -1731,6 +2091,102 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Otros'**
   String get categoryIconOther;
+
+  /// No description provided for @budgetItemActual.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrado: {amount}'**
+  String budgetItemActual(Object amount);
+
+  /// No description provided for @budgetRecordExpense.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar gasto'**
+  String get budgetRecordExpense;
+
+  /// No description provided for @budgetRecordIncome.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar ingreso'**
+  String get budgetRecordIncome;
+
+  /// No description provided for @budgetItemNoCompatibleAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas una cuenta activa en {currency} para registrar este movimiento.'**
+  String budgetItemNoCompatibleAccount(Object currency);
+
+  /// No description provided for @budgetItemMovementContext.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimiento para el elemento: {description}'**
+  String budgetItemMovementContext(Object description);
+
+  /// No description provided for @budgetArchivedItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Elementos retirados'**
+  String get budgetArchivedItems;
+
+  /// No description provided for @budgetItemArchived.
+  ///
+  /// In es, this message translates to:
+  /// **'Retirado · movimientos conservados'**
+  String get budgetItemArchived;
+
+  /// No description provided for @budgetItemLinkedMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos vinculados'**
+  String get budgetItemLinkedMovements;
+
+  /// No description provided for @budgetItemNoLinkedMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay movimientos vinculados.'**
+  String get budgetItemNoLinkedMovements;
+
+  /// No description provided for @budgetLinkedMovementConfirmed.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmado'**
+  String get budgetLinkedMovementConfirmed;
+
+  /// No description provided for @budgetLinkedMovementPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente de sincronizar'**
+  String get budgetLinkedMovementPending;
+
+  /// No description provided for @budgetLinkedMovementRejected.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazado · no afecta el total'**
+  String get budgetLinkedMovementRejected;
+
+  /// No description provided for @budgetArchiveNetworkFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos conectar. El presupuesto sigue activo; revisa tu conexión e inténtalo de nuevo. Código: {code}'**
+  String budgetArchiveNetworkFailure(Object code);
+
+  /// No description provided for @budgetArchivePermissionFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'Firebase no autorizó el cambio. El presupuesto sigue activo; comprueba tu sesión y comparte este código con soporte: {code}'**
+  String budgetArchivePermissionFailure(Object code);
+
+  /// No description provided for @budgetArchiveConflictFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo validar el presupuesto. Sigue activo; comparte este código con soporte: {code}'**
+  String budgetArchiveConflictFailure(Object code);
+
+  /// No description provided for @budgetArchiveUnexpectedFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: {code}'**
+  String budgetArchiveUnexpectedFailure(Object code);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

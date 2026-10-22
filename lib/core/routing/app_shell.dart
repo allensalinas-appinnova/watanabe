@@ -154,24 +154,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _refreshActivityPages() {
     final user = ref.read(authSessionProvider).valueOrNull;
     if (user == null) return;
-    ref.invalidate(
-      canonicalOperationsPageProvider((
-        userId: user.id,
-        cursor: null,
-        monthKey: null,
-        currency: null,
-        type: null,
-        accountIds: null,
-        pageSize: 10,
-      )),
-    );
-    for (final type in const <OperationType?>[
-      null,
-      OperationType.income,
-      OperationType.expense,
-    ]) {
-      ref.invalidate(operationsPagerProvider((userId: user.id, type: type)));
-    }
+    invalidateOperationLists(ref, user.id);
   }
 
   void _showSaveFeedback(MovementSaveResult result) {

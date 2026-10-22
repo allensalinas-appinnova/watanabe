@@ -211,6 +211,7 @@ class FinanceOperationTypeSelector extends StatelessWidget {
     required this.incomeLabel,
     required this.isIncomeSelected,
     required this.onChanged,
+    this.enabled = true,
     super.key,
   });
 
@@ -218,6 +219,7 @@ class FinanceOperationTypeSelector extends StatelessWidget {
   final String incomeLabel;
   final bool isIncomeSelected;
   final ValueChanged<bool> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -229,12 +231,12 @@ class FinanceOperationTypeSelector extends StatelessWidget {
           _OperationTypeOption(
             label: expenseLabel,
             selected: !isIncomeSelected,
-            onPressed: () => onChanged(false),
+            onPressed: enabled ? () => onChanged(false) : null,
           ),
           _OperationTypeOption(
             label: incomeLabel,
             selected: isIncomeSelected,
-            onPressed: () => onChanged(true),
+            onPressed: enabled ? () => onChanged(true) : null,
           ),
         ],
       ),
@@ -251,12 +253,13 @@ class _OperationTypeOption extends StatelessWidget {
 
   final String label;
   final bool selected;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Semantics(
       button: true,
+      enabled: onPressed != null,
       selected: selected,
       label: label,
       child: Material(

@@ -14,15 +14,18 @@ typedef PendingOperationSender =
 typedef ConnectivityProbe = Future<bool> Function();
 
 class SyncAttemptResult {
-  const SyncAttemptResult._(this.succeeded, this.retryable, this.issueCode);
+  const SyncAttemptResult._(this.succeeded, this.retryable, this.issueCode, this.technicalCode);
 
-  const SyncAttemptResult.success() : this._(true, false, null);
-  const SyncAttemptResult.retryable(SyncIssueCode code) : this._(false, true, code);
-  const SyncAttemptResult.rejected(SyncIssueCode code) : this._(false, false, code);
+  const SyncAttemptResult.success() : this._(true, false, null, null);
+  const SyncAttemptResult.retryable(SyncIssueCode code, {String? technicalCode})
+    : this._(false, true, code, technicalCode);
+  const SyncAttemptResult.rejected(SyncIssueCode code, {String? technicalCode})
+    : this._(false, false, code, technicalCode);
 
   final bool succeeded;
   final bool retryable;
   final SyncIssueCode? issueCode;
+  final String? technicalCode;
 }
 
 class PendingOperationSyncService {
@@ -98,10 +101,18 @@ class PendingOperationSyncService {
         if (result.succeeded) {
           await _database.markConfirmed(operation.id);
         } else if (result.retryable) {
-          await _database.markPending(operation.id, result.issueCode!);
+          await _database.markPending(
+            operation.id,
+            result.issueCode!,
+            technicalCode: result.technicalCode,
+          );
           break;
         } else {
-          await _database.markRejected(operation.id, result.issueCode!);
+          await _database.markRejected(
+            operation.id,
+            result.issueCode!,
+            technicalCode: result.technicalCode,
+          );
         }
       } catch (_) {
         await _database.markRejected(operation.id, SyncIssueCode.unexpected);

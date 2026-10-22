@@ -83,6 +83,52 @@ test('invalid operation amounts and cross-account transfers are rejected', async
   }));
 });
 
+test('amount cap is enforced for operations, account opening balances and budgets', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const user = alice.collection('users').doc('alice');
+  await assertSucceeds(user.set(userProfile()));
+  const accounts = user.collection('accounts');
+  const accountData = (name, amount) => ({
+    name, type: 'cash', currency: 'COP', openingBalanceMinor: amount,
+    currentBalanceMinor: amount, includeInDashboard: true, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  await assertSucceeds(accounts.doc('max-cash').set(accountData('Max cash', 1000000000)));
+  await assertFails(accounts.doc('too-much-cash').set(accountData('Too much', 1000000001)));
+  await assertSucceeds(user.collection('categories').doc('food').set({
+    type: 'expense', name: 'Food', icon: 'food', sortOrder: 1,
+    isSystem: false, isArchived: false, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  const operation = (id, amount) => user.collection('operations').doc(id).set({
+    type: 'expense', amountMinor: amount, currency: 'COP', categoryId: 'food',
+    accountId: 'max-cash', monthKey: '2026-10', occurredAt: Timestamp.now(),
+    description: 'Expense', status: 'confirmed', idempotencyKey: id,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  await assertSucceeds(operation('valid-amount', 1000000000));
+  await assertFails(operation('large-amount', 1000000001));
+
+  const budget = user.collection('budgets').doc('max-budget');
+  await assertSucceeds(budget.set({
+    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
+    plannedAmountMinor: 1000000000, itemCount: 1, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertFails(user.collection('budgets').doc('large-budget').set({
+    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
+    plannedAmountMinor: 1000000001, itemCount: 1, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertSucceeds(budget.collection('items').doc('within-limit').set({
+    description: 'Within limit', amountMinor: 1000000000, dayOfMonth: 31,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertFails(budget.collection('items').doc('over-limit').set({
+    description: 'Over limit', amountMinor: 1000000001, dayOfMonth: 31,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+});
+
 test('itemized budgets can create the parent and items atomically', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
   const user = alice.collection('users').doc('alice');
@@ -111,10 +157,69 @@ test('itemized budgets can create the parent and items atomically', async () => 
   });
   await assertSucceeds(batch.commit());
 
-  const removeItem = alice.batch();
-  removeItem.update(budget, {
+  const archiveItem = alice.batch();
+  archiveItem.update(budget, {
     plannedAmountMinor: 100000, itemCount: 1, updatedAt: Timestamp.now(),
   });
-  removeItem.delete(budget.collection('items').doc('item-2'));
-  await assertSucceeds(removeItem.commit());
+  archiveItem.update(budget.collection('items').doc('item-2'), {
+    status: 'archived', archivedAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  await assertSucceeds(archiveItem.commit());
+  await assertFails(budget.collection('items').doc('item-2').delete());
+  const archivedItem = await budget.collection('items').doc('item-2').get();
+  assert.equal(archivedItem.data().status, 'archived');
+});
+
+test('budget-linked operations require a complete matching item, including archived history', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const user = alice.collection('users').doc('alice');
+  const category = user.collection('categories').doc('food');
+  const budget = user.collection('budgets').doc('2026-10_expense_food_COP');
+  const item = budget.collection('items').doc('item-1');
+  const account = user.collection('accounts').doc('cash');
+  await assertSucceeds(user.set(userProfile()));
+  await assertSucceeds(category.set({
+    type: 'expense', name: 'Comida', icon: 'food', sortOrder: 1,
+    isSystem: false, isArchived: false, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertSucceeds(account.set({
+    name: 'Cash', type: 'cash', currency: 'COP', openingBalanceMinor: 0,
+    currentBalanceMinor: 0, includeInDashboard: true, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  const setup = alice.batch();
+  setup.set(budget, {
+    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
+    plannedAmountMinor: 10000, itemCount: 1, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  setup.set(item, {
+    description: 'Comida', amountMinor: 10000, dayOfMonth: 20,
+    actualAmountMinor: 0, status: 'active', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+  await assertSucceeds(setup.commit());
+
+  const operation = (id, overrides = {}) => user.collection('operations').doc(id).set({
+    type: 'expense', amountMinor: 1000, currency: 'COP', categoryId: 'food', accountId: 'cash',
+    budgetId: budget.id, budgetItemId: item.id, monthKey: '2026-10', occurredAt: Timestamp.now(),
+    description: 'Lunch', status: 'confirmed', idempotencyKey: id,
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(), ...overrides,
+  });
+  await assertSucceeds(operation('linked-valid'));
+  await assertFails(operation('linked-partial', {budgetItemId: null}));
+  await assertFails(operation('linked-wrong-category', {categoryId: 'other'}));
+  await assertFails(operation('linked-wrong-type', {type: 'income'}));
+  await assertFails(operation('linked-wrong-currency', {currency: 'MXN'}));
+
+  const legacyItem = user.collection('budgets').doc(budget.id).collection('items').doc('legacy-item');
+  await assertSucceeds(legacyItem.set({
+    description: 'Elemento heredado', amountMinor: 5000, dayOfMonth: 15,
+    actualAmountMinor: 0, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  }));
+  await assertSucceeds(operation('linked-legacy-item', {budgetItemId: legacyItem.id}));
+
+  await item.update({status: 'archived', archivedAt: Timestamp.now(), updatedAt: Timestamp.now()});
+  await assertSucceeds(operation('linked-archived-item'));
+  await budget.update({status: 'archived', updatedAt: Timestamp.now()});
+  await assertSucceeds(operation('linked-archived-budget', {budgetItemId: legacyItem.id}));
 });

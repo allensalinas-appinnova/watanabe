@@ -24,5 +24,6 @@ void main() {
 
     expect(failure, isA<AuthFailure>());
     expect(failure.message, isNot(contains('permission-denied')));
+    expect(failure.technicalCode, 'permission-denied');
   });
 }

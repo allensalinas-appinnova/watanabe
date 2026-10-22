@@ -221,6 +221,187 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get activityShare => 'Share';
+
+  @override
+  String get activityShareSubject => 'LumioMoney activity';
+
+  @override
+  String get activityShareFailed => 'Couldn\'t prepare or share the file. Please try again.';
+
+  @override
+  String get activityShareEmpty => 'There are no transactions to share.';
+
+  @override
+  String get activityMovements => 'Movements';
+
+  @override
+  String activityMovementCount(int count) {
+    return 'Movements · $count';
+  }
+
+  @override
+  String get activityExportAction => 'Export';
+
+  @override
+  String get activityExportTitle => 'Export CSV';
+
+  @override
+  String get activityExportSubtitle => 'Review your selection before continuing.';
+
+  @override
+  String get activityExportAccount => 'Account';
+
+  @override
+  String get activityExportPeriod => 'Period';
+
+  @override
+  String get activityExportType => 'Type';
+
+  @override
+  String get activityExportCurrencyFormat => 'Currency · Format';
+
+  @override
+  String activityExportConfirmedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count confirmed movements',
+      one: '1 confirmed movement',
+      zero: '0 confirmed movements',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String activityExportIncludedCount(int count) {
+    return '$count movements included';
+  }
+
+  @override
+  String activityExportMoreCount(int count) {
+    return 'and $count more';
+  }
+
+  @override
+  String get activityExportIncludePending => 'Include pending';
+
+  @override
+  String activityExportPendingExcluded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pending movements excluded. Turn on to include them.',
+      one: '1 pending movement excluded. Turn on to include it.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String activityExportPendingIncluded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pending movements will be included and marked as pending.',
+      one: '1 pending movement will be included and marked as pending.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityExportAllResults =>
+      'All filtered results are exported, not only the loaded rows. Order, dates, and time zone are preserved.';
+
+  @override
+  String get activityExportNoNotes =>
+      'Notes are not included. Saving and sharing use the same CSV.';
+
+  @override
+  String get activityExportSave => 'Save file';
+
+  @override
+  String get activityExportShare => 'Share file';
+
+  @override
+  String activityExportPreparing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movements',
+      one: '1 movement',
+    );
+    return 'Preparing $_temp0…';
+  }
+
+  @override
+  String get activityExportErrorTitle => 'We couldn\'t create the file';
+
+  @override
+  String get activityExportErrorMessage =>
+      'A temporary problem occurred. Your selection is still here; please try again.';
+
+  @override
+  String get activityExportCloseHint => 'Your filters and selection are kept when you close.';
+
+  @override
+  String get activityTotalsTitle => 'Confirmed totals';
+
+  @override
+  String get activityTotalsIncome => 'Income';
+
+  @override
+  String get activityTotalsExpenses => 'Expenses';
+
+  @override
+  String get activityTotalsNet => 'Net balance';
+
+  @override
+  String get activityTotalsPendingNote =>
+      'Totals include confirmed transactions only. Pending transactions and transfers are excluded.';
+
+  @override
+  String get activityTotalsEmpty => 'No confirmed income or expenses to calculate totals.';
+
+  @override
+  String get activityCsvDate => 'Date and time';
+
+  @override
+  String get activityCsvType => 'Type';
+
+  @override
+  String get activityCsvDescription => 'Description';
+
+  @override
+  String get activityCsvAccount => 'Account(s)';
+
+  @override
+  String get activityCsvCategory => 'Category';
+
+  @override
+  String get activityCsvAmount => 'Amount';
+
+  @override
+  String get activityCsvCurrency => 'Currency';
+
+  @override
+  String get activityCsvStatus => 'Status';
+
+  @override
+  String get activityCsvPending => 'Pending';
+
+  @override
+  String get activityCsvConfirmed => 'Confirmed';
+
+  @override
+  String get activityCsvRejected => 'Rejected';
+
+  @override
+  String get activityCsvUnknownAccount => 'Unknown account';
+
+  @override
+  String get activityCsvUnknownCategory => 'Unknown category';
+
+  @override
   String get transferOperationLabel => 'Transfer';
 
   @override
@@ -447,6 +628,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amount => 'Amount';
 
   @override
+  String get amountInvalid => 'Enter a valid amount greater than zero.';
+
+  @override
+  String get amountTooLarge => 'Amount cannot exceed 1,000,000,000 in this currency.';
+
+  @override
+  String get operationAccountRequired => 'Choose an account.';
+
+  @override
+  String get operationCategoryRequired => 'Choose a category.';
+
+  @override
+  String get transferSourceRequired => 'Choose a source account.';
+
+  @override
+  String get transferDestinationRequired => 'Choose a destination account.';
+
+  @override
+  String get transferAccountsDifferent => 'Choose two different accounts with the same currency.';
+
+  @override
+  String get budgetDayInvalidForMonth => 'Choose a day that exists in the selected month.';
+
+  @override
+  String get onboardingAccountRequired => 'Enter a name for your first account.';
+
+  @override
   String get type => 'Type';
 
   @override
@@ -554,6 +762,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineRejected => 'Could not synchronize. You can retry.';
+
+  @override
+  String get syncIssueNetwork =>
+      'The server is unreachable. This movement is still saved on this device; try again when the connection returns.';
+
+  @override
+  String get syncIssuePermissionDenied =>
+      'Firebase rejected this movement. Check your session; if it continues, share the diagnostic code with support.';
+
+  @override
+  String get syncIssueInvalidOperation =>
+      'This movement no longer matches the current data. Check the account, category, or budget before retrying.';
+
+  @override
+  String get syncIssueUnexpected =>
+      'We could not identify the cause. Share the diagnostic code with support.';
+
+  @override
+  String syncDiagnosticCode(Object code) {
+    return 'Diagnostic code: $code';
+  }
 
   @override
   String get syncing => 'Synchronizing...';
@@ -901,4 +1130,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryIconOther => 'Other';
+
+  @override
+  String budgetItemActual(Object amount) {
+    return 'Recorded: $amount';
+  }
+
+  @override
+  String get budgetRecordExpense => 'Record expense';
+
+  @override
+  String get budgetRecordIncome => 'Record income';
+
+  @override
+  String budgetItemNoCompatibleAccount(Object currency) {
+    return 'You need an active $currency account to record this movement.';
+  }
+
+  @override
+  String budgetItemMovementContext(Object description) {
+    return 'Movement for item: $description';
+  }
+
+  @override
+  String get budgetArchivedItems => 'Archived items';
+
+  @override
+  String get budgetItemArchived => 'Archived · movements retained';
+
+  @override
+  String get budgetItemLinkedMovements => 'Linked movements';
+
+  @override
+  String get budgetItemNoLinkedMovements => 'There are no linked movements yet.';
+
+  @override
+  String get budgetLinkedMovementConfirmed => 'Confirmed';
+
+  @override
+  String get budgetLinkedMovementPending => 'Pending sync';
+
+  @override
+  String get budgetLinkedMovementRejected => 'Rejected · excluded from total';
+
+  @override
+  String budgetArchiveNetworkFailure(Object code) {
+    return 'We couldn\'t connect. The budget is still active; check your connection and try again. Code: $code';
+  }
+
+  @override
+  String budgetArchivePermissionFailure(Object code) {
+    return 'Firebase didn\'t authorize this change. The budget is still active; check your session and share this code with support: $code';
+  }
+
+  @override
+  String budgetArchiveConflictFailure(Object code) {
+    return 'We couldn\'t validate the budget. It is still active; share this code with support: $code';
+  }
+
+  @override
+  String budgetArchiveUnexpectedFailure(Object code) {
+    return 'We couldn\'t delete the budget. It is still active; try again. Code: $code';
+  }
 }

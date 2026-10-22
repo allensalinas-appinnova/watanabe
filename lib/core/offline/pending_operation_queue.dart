@@ -83,14 +83,14 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
         ),
       );
 
-  Future<void> markPending(int id, SyncIssueCode code) async {
+  Future<void> markPending(int id, SyncIssueCode code, {String? technicalCode}) async {
     final operation = await (select(
       pendingOperations,
     )..where((row) => row.id.equals(id))).getSingle();
     await (update(pendingOperations)..where((row) => row.id.equals(id))).write(
       PendingOperationsCompanion(
         status: const Value('pending'),
-        lastError: Value(code.name),
+        lastError: Value(SyncFailureInfo(issue: code, technicalCode: technicalCode).encode()),
         retryCount: Value(operation.retryCount + 1),
         updatedAt: Value(DateTime.now().toUtc()),
       ),
@@ -106,11 +106,11 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
         ),
       );
 
-  Future<void> markRejected(int id, SyncIssueCode code) =>
+  Future<void> markRejected(int id, SyncIssueCode code, {String? technicalCode}) =>
       (update(pendingOperations)..where((row) => row.id.equals(id))).write(
         PendingOperationsCompanion(
           status: const Value('rejected'),
-          lastError: Value(code.name),
+          lastError: Value(SyncFailureInfo(issue: code, technicalCode: technicalCode).encode()),
           retryCount: const Value(0),
           updatedAt: Value(DateTime.now().toUtc()),
         ),

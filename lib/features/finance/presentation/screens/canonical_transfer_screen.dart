@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/offline/sync_state.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -25,6 +26,7 @@ class CanonicalTransferScreen extends ConsumerStatefulWidget {
 }
 
 class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScreen> {
+  final formKey = GlobalKey<FormState>();
   final amount = TextEditingController();
   final note = TextEditingController();
   String? source;
@@ -58,100 +60,137 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          FinanceLabeledField(
-            label: l10n.sourceAccount,
-            child: DropdownButtonFormField<String>(
-              initialValue: source,
-              decoration: const InputDecoration(),
-              items: accounts
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.id,
-                      child: Text('${item.name} (${item.currency})'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => source = value),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.destinationAccount,
-            child: DropdownButtonFormField<String>(
-              initialValue: destination,
-              decoration: const InputDecoration(),
-              items: accounts
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.id,
-                      child: Text('${item.name} (${item.currency})'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => destination = value),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.amount,
-            child: TextField(
-              key: const ValueKey('transfer_amount'),
-              controller: amount,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(prefixText: _sourceCurrency(accounts)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.date,
-            child: Semantics(
-              button: true,
-              label:
-                  '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(occurredAt)}',
-              child: InkWell(
-                key: const ValueKey('transfer_date_selector'),
-                borderRadius: BorderRadius.circular(14),
-                onTap: _selectDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
-                  ),
-                  child: Text(
-                    DateFormat.yMMMd(
-                      Localizations.localeOf(context).toString(),
-                    ).format(occurredAt),
+          Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FinanceLabeledField(
+                  label: l10n.sourceAccount,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: source,
+                    decoration: const InputDecoration(),
+                    validator: (value) => value == null ? l10n.transferSourceRequired : null,
+                    items: accounts
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text('${item.name} (${item.currency})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => source = value),
                   ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.time,
-            child: Semantics(
-              button: true,
-              label: '${l10n.time}, ${TimeOfDay.fromDateTime(occurredAt).format(context)}',
-              child: InkWell(
-                key: const ValueKey('transfer_time_selector'),
-                borderRadius: BorderRadius.circular(14),
-                onTap: _selectTime,
-                child: InputDecorator(
-                  decoration: const InputDecoration(suffixIcon: Icon(Icons.schedule_outlined)),
-                  child: Text(TimeOfDay.fromDateTime(occurredAt).format(context)),
+                const SizedBox(height: 12),
+                FinanceLabeledField(
+                  label: l10n.destinationAccount,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: destination,
+                    decoration: const InputDecoration(),
+                    validator: (value) {
+                      if (value == null) return l10n.transferDestinationRequired;
+                      FinanceAccount? sourceAccount;
+                      FinanceAccount? destinationAccount;
+                      for (final account in accounts) {
+                        if (account.id == source) sourceAccount = account;
+                        if (account.id == value) destinationAccount = account;
+                      }
+                      if (value == source ||
+                          sourceAccount == null ||
+                          destinationAccount == null ||
+                          sourceAccount.currency != destinationAccount.currency) {
+                        return l10n.transferAccountsDifferent;
+                      }
+                      return null;
+                    },
+                    items: accounts
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text('${item.name} (${item.currency})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => destination = value),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                FinanceLabeledField(
+                  label: l10n.amount,
+                  child: TextFormField(
+                    key: const ValueKey('transfer_amount'),
+                    controller: amount,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      prefixText: _sourceCurrency(accounts) == null
+                          ? null
+                          : CurrencyFormatter.inputPrefix(_sourceCurrency(accounts)!),
+                    ),
+                    validator: (value) {
+                      final currency = _sourceCurrency(accounts);
+                      return currency == null
+                          ? l10n.transferSourceRequired
+                          : FinanceInputValidators.amount(value, currency, l10n);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FinanceLabeledField(
+                  label: l10n.date,
+                  child: Semantics(
+                    button: true,
+                    label:
+                        '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(occurredAt)}',
+                    child: InkWell(
+                      key: const ValueKey('transfer_date_selector'),
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: _selectDate,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        child: Text(
+                          DateFormat.yMMMd(
+                            Localizations.localeOf(context).toString(),
+                          ).format(occurredAt),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FinanceLabeledField(
+                  label: l10n.time,
+                  child: Semantics(
+                    button: true,
+                    label: '${l10n.time}, ${TimeOfDay.fromDateTime(occurredAt).format(context)}',
+                    child: InkWell(
+                      key: const ValueKey('transfer_time_selector'),
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: _selectTime,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          suffixIcon: Icon(Icons.schedule_outlined),
+                        ),
+                        child: Text(TimeOfDay.fromDateTime(occurredAt).format(context)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FinanceLabeledField(
+                  label: l10n.optionalNote,
+                  child: TextField(controller: note, decoration: const InputDecoration()),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  key: const ValueKey('transfer_confirm'),
+                  onPressed: saving ? null : () => _reviewAndSave(user.id, accounts),
+                  child: saving ? const CircularProgressIndicator() : Text(l10n.reviewTransfer),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          FinanceLabeledField(
-            label: l10n.optionalNote,
-            child: TextField(controller: note, decoration: const InputDecoration()),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            key: const ValueKey('transfer_confirm'),
-            onPressed: saving ? null : () => _reviewAndSave(user.id, accounts),
-            child: saving ? const CircularProgressIndicator() : Text(l10n.reviewTransfer),
           ),
         ],
       ),
@@ -166,6 +205,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   }
 
   Future<void> _reviewAndSave(String userId, List<FinanceAccount> accounts) async {
+    if (!formKey.currentState!.validate()) return;
     FinanceAccount? from;
     FinanceAccount? to;
     for (final account in accounts) {
@@ -178,16 +218,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
     } on FormatException {
       amountMinor = null;
     }
-    if (amountMinor == null ||
-        from == null ||
-        to == null ||
-        source == destination ||
-        from.currency != to.currency) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).invalidTransfer)),
-      );
-      return;
-    }
+    if (amountMinor == null || from == null || to == null) return;
     final transferAmountMinor = amountMinor;
     final sourceAccount = from;
     final destinationAccount = to;
