@@ -24,10 +24,18 @@ class GlobalFabScrollObserver extends StatelessWidget {
   Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
     onNotification: (notification) {
       final container = ProviderScope.containerOf(context, listen: false);
+      void updateVisibility(bool visible) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            container.read(globalFabVisibleProvider.notifier).setVisible(visible);
+          }
+        });
+      }
+
       if (notification is ScrollStartNotification || notification is ScrollUpdateNotification) {
-        container.read(globalFabVisibleProvider.notifier).setVisible(false);
+        updateVisibility(false);
       } else if (notification is ScrollEndNotification) {
-        container.read(globalFabVisibleProvider.notifier).setVisible(true);
+        updateVisibility(true);
       }
       return false;
     },

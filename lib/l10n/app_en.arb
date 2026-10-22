@@ -34,6 +34,11 @@
   "homeMenu": "More options",
   "homeTotalBalance": "Total balance",
   "homeBudgetTitle": "Monthly budget",
+  "homeExpenseVsBudget": "Expense vs. budget",
+  "homeIncomeVsBudget": "Income vs. budget",
+  "homeBudgetComparisonDetails": "Actual · {actual} / Plan · {planned}",
+  "@homeBudgetComparisonDetails": {"placeholders": {"actual": {}, "planned": {}}},
+  "homeNoBudgetForFlow": "No budget this month",
   "homeMonthlySummary": "{month} summary · {currency}",
   "@homeMonthlySummary": {
     "placeholders": {
@@ -425,4 +430,20 @@
   ,"discardChangesMessage": "Your changes have not been saved yet."
   ,"keepEditing": "Keep editing"
   ,"discardChanges": "Discard"
+  ,"accountIncludeInHomeBalance": "Include in Home balance"
+  ,"accountIncludeInHomeBalanceHint": "This account will be included in the combined Home balance."
+  ,"homeNoAccountsIncluded": "No active accounts are included in the Home balance."
+  ,"homeCustomizeTitle": "Customize Home"
+  ,"homeCustomizeSubtitle": "Choose what you want to see on Home. Sync notices will always remain visible."
+  ,"homeWidgetsSection": "Home cards"
+  ,"homeBudgetCardsSection": "Budgets by category"
+  ,"homeWidgetTotalBalance": "Total balance"
+  ,"homeWidgetIncome": "Income summary"
+  ,"homeWidgetExpense": "Expense summary"
+  ,"homeWidgetExpenseBudget": "Expense vs. budget"
+  ,"homeWidgetIncomeBudget": "Income vs. budget"
+  ,"homeWidgetRecentActivity": "Recent activity"
+  ,"homeNoBudgetCards": "There are no active budgets to customize."
+  ,"homePreferencesSaving": "Saving preference…"
+  ,"homePreferencesSaveFailed": "Could not save. Your selection is preserved; try again."
 }

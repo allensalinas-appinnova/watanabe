@@ -18,6 +18,7 @@ import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
+import '../../domain/entities/home_dashboard_preferences.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
@@ -42,6 +43,9 @@ class CanonicalHomeScreen extends ConsumerWidget {
 
         final accounts = ref.watch(canonicalAccountsProvider(user.id));
         final categories = ref.watch(canonicalCategoriesProvider(user.id));
+        final profile = ref.watch(canonicalUserProfileProvider(user.id)).valueOrNull;
+        final homePreferences =
+            profile?.homeDashboardPreferences ?? const HomeDashboardPreferences();
         final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
         final operationsInput = (
           userId: user.id,
@@ -117,91 +121,131 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                   ],
-                  accounts.when(
-                    loading: () => const _HomeSkeleton(height: 116),
-                    error: (_, _) => _ErrorCard(
-                      message: l10n.genericError,
-                      onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                  if (homePreferences.shows(HomeDashboardWidget.totalBalance))
+                    accounts.when(
+                      loading: () => const _HomeSkeleton(height: 116),
+                      error: (_, _) => _ErrorCard(
+                        message: l10n.genericError,
+                        onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                      ),
+                      data: (items) => _BalanceCard(
+                        accounts: items,
+                        amountsHidden: amountsHidden,
+                        onToggleVisibility: () => ref
+                            .read(dashboardAmountsHiddenProvider.notifier)
+                            .setHidden(!amountsHidden),
+                      ),
                     ),
-                    data: (items) => _BalanceCard(
-                      accounts: items,
-                      amountsHidden: amountsHidden,
-                      onToggleVisibility: () => ref
-                          .read(dashboardAmountsHiddenProvider.notifier)
-                          .setHidden(!amountsHidden),
+                  if (homePreferences.shows(HomeDashboardWidget.incomeSummary) ||
+                      homePreferences.shows(HomeDashboardWidget.expenseSummary)) ...[
+                    const SizedBox(height: 16),
+                    summary.when(
+                      loading: () => const _HomeSkeleton(height: 92, lines: 2),
+                      error: (_, _) => _ErrorCard(
+                        message: l10n.genericError,
+                        onRetry: () =>
+                            ref.invalidate(canonicalMonthlySummaryProvider(summaryInput)),
+                      ),
+                      data: (value) => _MonthlySummaryCards(
+                        incomeMinor: value?.incomeMinor ?? 0,
+                        expenseMinor: value?.expenseMinor ?? 0,
+                        currency: primaryCurrency,
+                        amountsHidden: amountsHidden,
+                        showIncome: homePreferences.shows(HomeDashboardWidget.incomeSummary),
+                        showExpense: homePreferences.shows(HomeDashboardWidget.expenseSummary),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  summary.when(
-                    loading: () => const _HomeSkeleton(height: 92, lines: 2),
-                    error: (_, _) => _ErrorCard(
-                      message: l10n.genericError,
-                      onRetry: () => ref.invalidate(canonicalMonthlySummaryProvider(summaryInput)),
-                    ),
-                    data: (value) => _MonthlySummaryCards(
-                      incomeMinor: value?.incomeMinor ?? 0,
-                      expenseMinor: value?.expenseMinor ?? 0,
-                      currency: primaryCurrency,
-                      amountsHidden: amountsHidden,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FinanceSectionHeading(title: l10n.homeBudgetTitle),
-                  const SizedBox(height: 8),
-                  budgets.when(
-                    loading: () => const _HomeSkeleton(height: 96, lines: 2),
-                    error: (_, _) => _ErrorCard(
-                      message: l10n.genericError,
-                      onRetry: () => ref.invalidate(canonicalBudgetsProvider(budgetInput)),
-                    ),
-                    data: (items) {
-                      final matching = items
-                          .where((item) => item.currency == primaryCurrency)
-                          .toList(growable: false);
-                      if (matching.isEmpty) {
-                        return _EmptyBudgetPreview(
-                          message: l10n.budgetEmptyTitle,
-                          onTap: () => context.go('/budgets'),
-                        );
-                      }
-                      return summary.when(
-                        loading: () => const LinearProgressIndicator(),
-                        error: (_, _) => _ErrorCard(
-                          message: l10n.genericError,
-                          onRetry: () =>
-                              ref.invalidate(canonicalMonthlySummaryProvider(summaryInput)),
-                        ),
-                        data: (value) => Column(
-                          children: [
-                            for (final budget in matching) ...[
-                              _BudgetPreview(
-                                key: ValueKey('home_budget_preview_${budget.id}'),
-                                budget: budget,
-                                category: _categoryName(
-                                  categories.valueOrNull ?? const [],
-                                  budget.categoryId,
+                  ],
+                  if (homePreferences.shows(HomeDashboardWidget.expenseBudgetRatio) ||
+                      homePreferences.shows(HomeDashboardWidget.incomeBudgetRatio) ||
+                      (budgets.valueOrNull?.any(
+                            (budget) => homePreferences.showsBudget(budget.categoryId),
+                          ) ??
+                          true)) ...[
+                    const SizedBox(height: 24),
+                    FinanceSectionHeading(title: l10n.homeBudgetTitle),
+                    const SizedBox(height: 8),
+                    budgets.when(
+                      loading: () => const _HomeSkeleton(height: 96, lines: 2),
+                      error: (_, _) => _ErrorCard(
+                        message: l10n.genericError,
+                        onRetry: () => ref.invalidate(canonicalBudgetsProvider(budgetInput)),
+                      ),
+                      data: (items) {
+                        final matching = items
+                            .where((item) => item.currency == primaryCurrency)
+                            .toList(growable: false);
+                        final visibleBudgets = matching
+                            .where((budget) => homePreferences.showsBudget(budget.categoryId))
+                            .toList(growable: false);
+                        final hasComparisons =
+                            homePreferences.shows(
+                              HomeDashboardWidget.expenseBudgetRatio,
+                            ) ||
+                            homePreferences.shows(HomeDashboardWidget.incomeBudgetRatio);
+                        if (matching.isEmpty || (visibleBudgets.isEmpty && !hasComparisons)) {
+                          return _EmptyBudgetPreview(
+                            message: l10n.budgetEmptyTitle,
+                            onTap: () => context.go('/budgets'),
+                          );
+                        }
+                        return summary.when(
+                          loading: () => const LinearProgressIndicator(),
+                          error: (_, _) => _ErrorCard(
+                            message: l10n.genericError,
+                            onRetry: () =>
+                                ref.invalidate(canonicalMonthlySummaryProvider(summaryInput)),
+                          ),
+                          data: (value) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (hasComparisons)
+                                _BudgetComparisonCards(
+                                  budgets: matching,
+                                  incomeMinor: value?.incomeMinor ?? 0,
+                                  expenseMinor: value?.expenseMinor ?? 0,
+                                  currency: primaryCurrency,
+                                  amountsHidden: amountsHidden,
+                                  showExpense: homePreferences.shows(
+                                    HomeDashboardWidget.expenseBudgetRatio,
+                                  ),
+                                  showIncome: homePreferences.shows(
+                                    HomeDashboardWidget.incomeBudgetRatio,
+                                  ),
                                 ),
-                                summary: value,
-                                onTap: () => context.push('/budgets/${budget.id}'),
-                                amountsHidden: amountsHidden,
-                              ),
-                              if (budget != matching.last) const SizedBox(height: 8),
+                              if (visibleBudgets.isNotEmpty) const SizedBox(height: 8),
+                              for (final budget in visibleBudgets) ...[
+                                _BudgetPreview(
+                                  key: ValueKey('home_budget_preview_${budget.id}'),
+                                  budget: budget,
+                                  category: _categoryName(
+                                    categories.valueOrNull ?? const [],
+                                    budget.categoryId,
+                                  ),
+                                  summary: value,
+                                  onTap: () => context.push('/budgets/${budget.id}'),
+                                  amountsHidden: amountsHidden,
+                                ),
+                                if (budget != visibleBudgets.last) const SizedBox(height: 8),
+                              ],
                             ],
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  FinanceSectionHeading(
-                    title: l10n.recentActivity,
-                    action: TextButton(
-                      key: const ValueKey('home_view_all_activity'),
-                      onPressed: () => context.go('/activity'),
-                      style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-                      child: Text(l10n.seeAll),
+                          ),
+                        );
+                      },
                     ),
-                  ),
+                  ],
+                  if (homePreferences.shows(HomeDashboardWidget.recentActivity)) ...[
+                    const SizedBox(height: 24),
+                    FinanceSectionHeading(
+                      title: l10n.recentActivity,
+                      action: TextButton(
+                        key: const ValueKey('home_view_all_activity'),
+                        onPressed: () => context.go('/activity'),
+                        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                        child: Text(l10n.seeAll),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   if (categories.hasError)
                     _ErrorCard(
@@ -263,13 +307,10 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = <String, List<FinanceAccount>>{};
-    for (final account in accounts.where((item) => item.includeInDashboard)) {
+    for (final account in accounts.where(
+      (item) => item.status == 'active' && item.includeInDashboard,
+    )) {
       groups.putIfAbsent(account.currency, () => []).add(account);
-    }
-    if (groups.isEmpty) {
-      for (final account in accounts) {
-        groups.putIfAbsent(account.currency, () => []).add(account);
-      }
     }
     return Container(
       key: const ValueKey('home_balance_card'),
@@ -305,6 +346,11 @@ class _BalanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
+          if (groups.isEmpty)
+            Text(
+              AppLocalizations.of(context).homeNoAccountsIncluded,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
           for (final entry in groups.entries) ...[
             Text(
               amountsHidden
@@ -345,33 +391,39 @@ class _MonthlySummaryCards extends StatelessWidget {
     required this.expenseMinor,
     required this.currency,
     required this.amountsHidden,
+    required this.showIncome,
+    required this.showExpense,
   });
 
   final int incomeMinor;
   final int expenseMinor;
   final String currency;
   final bool amountsHidden;
+  final bool showIncome;
+  final bool showExpense;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Expanded(
-        child: _SummaryCard(
-          label: AppLocalizations.of(context).income,
-          value: amountsHidden ? '••••••' : _money(incomeMinor, currency),
-          color: AppColors.green,
-          key: const ValueKey('home_income_summary'),
+      if (showIncome)
+        Expanded(
+          child: _SummaryCard(
+            label: AppLocalizations.of(context).income,
+            value: amountsHidden ? '••••••' : _money(incomeMinor, currency),
+            color: AppColors.green,
+            key: const ValueKey('home_income_summary'),
+          ),
         ),
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: _SummaryCard(
-          label: AppLocalizations.of(context).expense,
-          value: amountsHidden ? '••••••' : _money(expenseMinor, currency),
-          color: const Color(0xFFC62828),
-          key: const ValueKey('home_expense_summary'),
+      if (showIncome && showExpense) const SizedBox(width: 14),
+      if (showExpense)
+        Expanded(
+          child: _SummaryCard(
+            label: AppLocalizations.of(context).expense,
+            value: amountsHidden ? '••••••' : _money(expenseMinor, currency),
+            color: const Color(0xFFC62828),
+            key: const ValueKey('home_expense_summary'),
+          ),
         ),
-      ),
     ],
   );
 }
@@ -496,6 +548,161 @@ class _BudgetPreview extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BudgetComparisonCards extends StatelessWidget {
+  const _BudgetComparisonCards({
+    required this.budgets,
+    required this.incomeMinor,
+    required this.expenseMinor,
+    required this.currency,
+    required this.amountsHidden,
+    required this.showExpense,
+    required this.showIncome,
+  });
+
+  final List<Budget> budgets;
+  final int incomeMinor;
+  final int expenseMinor;
+  final String currency;
+  final bool amountsHidden;
+  final bool showExpense;
+  final bool showIncome;
+
+  @override
+  Widget build(BuildContext context) {
+    final plannedIncome = budgets
+        .where((budget) => budget.flowType == BudgetFlowType.income)
+        .fold<int>(0, (total, budget) => total + budget.plannedAmountMinor);
+    final plannedExpense = budgets
+        .where((budget) => budget.flowType == BudgetFlowType.expense)
+        .fold<int>(0, (total, budget) => total + budget.plannedAmountMinor);
+    final cards = <Widget>[
+      if (showExpense)
+        _BudgetComparisonCard(
+          title: AppLocalizations.of(context).homeExpenseVsBudget,
+          actualMinor: expenseMinor,
+          plannedMinor: plannedExpense,
+          currency: currency,
+          amountsHidden: amountsHidden,
+          isExpense: true,
+        ),
+      if (showIncome)
+        _BudgetComparisonCard(
+          title: AppLocalizations.of(context).homeIncomeVsBudget,
+          actualMinor: incomeMinor,
+          plannedMinor: plannedIncome,
+          currency: currency,
+          amountsHidden: amountsHidden,
+          isExpense: false,
+        ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (cards.length == 1) return cards.single;
+        if (constraints.maxWidth >= 560) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+            ],
+          );
+        }
+        return Column(
+          children: [cards[0], const SizedBox(height: 8), cards[1]],
+        );
+      },
+    );
+  }
+}
+
+class _BudgetComparisonCard extends StatelessWidget {
+  const _BudgetComparisonCard({
+    required this.title,
+    required this.actualMinor,
+    required this.plannedMinor,
+    required this.currency,
+    required this.amountsHidden,
+    required this.isExpense,
+  });
+
+  final String title;
+  final int actualMinor;
+  final int plannedMinor;
+  final String currency;
+  final bool amountsHidden;
+  final bool isExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final hasBudget = plannedMinor > 0;
+    final ratio = hasBudget ? actualMinor / plannedMinor : 0.0;
+    final isOverBudget = isExpense && ratio > 1;
+    final statusColor = isOverBudget
+        ? const Color(0xFFC73338)
+        : (!isExpense && ratio >= 1 ? AppColors.green : AppColors.blueDark);
+    final locale = Localizations.localeOf(context).toString();
+    final percentage = NumberFormat.percentPattern(locale).format(ratio);
+
+    return Container(
+      key: ValueKey(isExpense ? 'home_expense_budget_ratio' : 'home_income_budget_ratio'),
+      constraints: const BoxConstraints(minHeight: 132),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            amountsHidden
+                ? '••%'
+                : hasBudget
+                ? percentage
+                : '—',
+            key: ValueKey(isExpense ? 'home_expense_budget_percent' : 'home_income_budget_percent'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hasBudget
+                ? l10n.homeBudgetComparisonDetails(
+                    amountsHidden ? '••••••' : _money(actualMinor, currency),
+                    amountsHidden ? '••••••' : _money(plannedMinor, currency),
+                  )
+                : l10n.homeNoBudgetForFlow,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: LinearProgressIndicator(
+              value: hasBudget ? ratio.clamp(0.0, 1.0) : 0,
+              minHeight: 6,
+              backgroundColor: AppColors.blueSoft,
+              color: statusColor,
+            ),
+          ),
+        ],
       ),
     );
   }

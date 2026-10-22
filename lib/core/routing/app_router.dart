@@ -26,6 +26,7 @@ import '../../features/finance/presentation/screens/canonical_more_screen.dart';
 import '../../features/finance/presentation/screens/canonical_onboarding_screen.dart';
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
+import '../../features/finance/presentation/screens/home_dashboard_preferences_screen.dart';
 import '../di/injection.dart';
 import '../firebase/firebase_bootstrap.dart';
 import 'app_shell.dart';
@@ -225,6 +226,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/categories',
       name: 'categories',
       builder: (context, state) => const CanonicalCategoriesScreen(),
+    ),
+    GoRoute(
+      path: '/home-preferences',
+      name: 'home-preferences',
+      builder: (context, state) => const HomeDashboardPreferencesScreen(),
     ),
     GoRoute(
       path: '/budget-tracking',

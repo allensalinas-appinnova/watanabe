@@ -42,6 +42,38 @@ test('user data is isolated and authenticated catalog reads are allowed', async 
   await assertFails(bob.collection('users').doc('alice').get());
 });
 
+test('home preferences are owner-updatable, typed, bounded, and cannot add profile fields', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const bob = environment.authenticatedContext('bob').firestore();
+  const profile = alice.collection('users').doc('alice');
+  await assertSucceeds(profile.set(userProfile()));
+  const validPreferences = {
+    widgets: {
+      totalBalance: false,
+      incomeSummary: true,
+      expenseSummary: true,
+      expenseBudgetRatio: true,
+      incomeBudgetRatio: true,
+      recentActivity: false,
+    },
+    hiddenBudgetCategoryIds: ['food', 'transport'],
+  };
+  await assertSucceeds(profile.update({homePreferences: validPreferences}));
+  await assertSucceeds(profile.update({homePreferences: deleteField()}));
+  await assertFails(profile.update({homePreferences: {...validPreferences, admin: true}}));
+  await assertFails(profile.update({homePreferences: {...validPreferences, widgets: {
+    ...validPreferences.widgets, unknown: true,
+  }}}));
+  await assertFails(profile.update({homePreferences: {...validPreferences, widgets: {
+    ...validPreferences.widgets, totalBalance: 'false',
+  }}}));
+  await assertFails(profile.update({homePreferences: {
+    ...validPreferences, hiddenBudgetCategoryIds: Array(101).fill('category'),
+  }}));
+  await assertFails(profile.update({unauthorizedProfileField: true}));
+  await assertFails(bob.doc('users/alice').update({homePreferences: validPreferences}));
+});
+
 test('category colors accept valid ARGB values and reject malformed values without widening access', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
   const bob = environment.authenticatedContext('bob').firestore();
@@ -71,6 +103,11 @@ test('clients cannot write calculated balances or monthly summaries', async () =
     currentBalanceMinor: 0, includeInDashboard: true, status: 'active',
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   }));
+  await assertSucceeds(account.update({includeInDashboard: false}));
+  await assertSucceeds(account.update({includeInDashboard: true}));
+  await assertFails(account.update({includeInDashboard: 'false'}));
+  await assertFails(bob.collection('users').doc('alice').collection('accounts').doc('cash')
+    .update({includeInDashboard: false}));
   await assertFails(account.update({currentBalanceMinor: 100}));
   await assertFails(
     alice.collection('users').doc('alice').collection('monthlySummaries').doc('2026-10_COP')

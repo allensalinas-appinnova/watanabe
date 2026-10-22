@@ -116,6 +116,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeBudgetTitle => 'Monthly budget';
 
   @override
+  String get homeExpenseVsBudget => 'Expense vs. budget';
+
+  @override
+  String get homeIncomeVsBudget => 'Income vs. budget';
+
+  @override
+  String homeBudgetComparisonDetails(Object actual, Object planned) {
+    return 'Actual · $actual / Plan · $planned';
+  }
+
+  @override
+  String get homeNoBudgetForFlow => 'No budget this month';
+
+  @override
   String homeMonthlySummary(Object month, Object currency) {
     return '$month summary · $currency';
   }
@@ -1361,4 +1375,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get discardChanges => 'Discard';
+
+  @override
+  String get accountIncludeInHomeBalance => 'Include in Home balance';
+
+  @override
+  String get accountIncludeInHomeBalanceHint =>
+      'This account will be included in the combined Home balance.';
+
+  @override
+  String get homeNoAccountsIncluded => 'No active accounts are included in the Home balance.';
+
+  @override
+  String get homeCustomizeTitle => 'Customize Home';
+
+  @override
+  String get homeCustomizeSubtitle =>
+      'Choose what you want to see on Home. Sync notices will always remain visible.';
+
+  @override
+  String get homeWidgetsSection => 'Home cards';
+
+  @override
+  String get homeBudgetCardsSection => 'Budgets by category';
+
+  @override
+  String get homeWidgetTotalBalance => 'Total balance';
+
+  @override
+  String get homeWidgetIncome => 'Income summary';
+
+  @override
+  String get homeWidgetExpense => 'Expense summary';
+
+  @override
+  String get homeWidgetExpenseBudget => 'Expense vs. budget';
+
+  @override
+  String get homeWidgetIncomeBudget => 'Income vs. budget';
+
+  @override
+  String get homeWidgetRecentActivity => 'Recent activity';
+
+  @override
+  String get homeNoBudgetCards => 'There are no active budgets to customize.';
+
+  @override
+  String get homePreferencesSaving => 'Saving preference…';
+
+  @override
+  String get homePreferencesSaveFailed => 'Could not save. Your selection is preserved; try again.';
 }

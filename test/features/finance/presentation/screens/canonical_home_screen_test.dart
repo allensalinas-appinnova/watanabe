@@ -11,6 +11,7 @@ import 'package:personal_finance/features/finance/domain/entities/finance_catego
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/domain/entities/monthly_summary.dart';
 import 'package:personal_finance/features/finance/domain/entities/operation_page.dart';
+import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_home_screen.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
@@ -33,6 +34,19 @@ void main() {
         ),
         pendingOperationAutoSyncProvider.overrideWith((ref) {}),
         pendingOperationsProvider.overrideWith((ref) => Stream.value(const [])),
+        canonicalUserProfileProvider('u1').overrideWith(
+          (ref) => Stream.value(
+            const UserProfile(
+              id: 'u1',
+              locale: 'es',
+              countryCode: 'CO',
+              timeZone: 'UTC',
+              defaultCurrency: 'COP',
+              onboardingStatus: 'complete',
+              categoryCatalogVersion: 1,
+            ),
+          ),
+        ),
         canonicalAccountsProvider('u1').overrideWith(
           (ref) => Stream.value([
             const FinanceAccount(
@@ -41,6 +55,22 @@ void main() {
               type: 'savings',
               currency: 'COP',
               currentBalanceMinor: 2000,
+            ),
+            const FinanceAccount(
+              id: 'excluded',
+              name: 'Oculta',
+              type: 'savings',
+              currency: 'COP',
+              currentBalanceMinor: 9000,
+              includeInDashboard: false,
+            ),
+            const FinanceAccount(
+              id: 'archived',
+              name: 'Archivada',
+              type: 'savings',
+              currency: 'COP',
+              currentBalanceMinor: 4000,
+              status: 'archived',
             ),
           ]),
         ),
@@ -112,6 +142,15 @@ void main() {
               plannedAmountMinor: 4000,
               status: 'active',
             ),
+            Budget(
+              id: 'income-budget',
+              categoryId: 'salary',
+              flowType: BudgetFlowType.income,
+              monthKey: monthKey,
+              currency: 'COP',
+              plannedAmountMinor: 20000,
+              status: 'active',
+            ),
           ]),
         ),
         canonicalOperationsPageProvider((
@@ -164,8 +203,22 @@ void main() {
 
     expect(find.byKey(const ValueKey('home_dashboard_title')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_balance_card')), findsOneWidget);
+    expect(find.textContaining('Banco1:'), findsOneWidget);
+    expect(find.textContaining('Oculta:'), findsNothing);
+    expect(find.textContaining('Archivada:'), findsNothing);
     expect(find.byKey(const ValueKey('home_income_summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_expense_summary')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('home_expense_budget_ratio')));
+    expect(find.byKey(const ValueKey('home_expense_budget_ratio')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_income_budget_ratio')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('home_expense_budget_percent'))).data,
+      '89\u00a0%',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('home_income_budget_percent'))).data,
+      '50\u00a0%',
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('home_budget_preview_food-budget')));
     expect(find.byKey(const ValueKey('home_budget_preview_food-budget')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_budget_preview_housing-budget')), findsOneWidget);
@@ -203,7 +256,7 @@ void main() {
 
     await tester.drag(
       find.byKey(const ValueKey('home_dashboard_content')),
-      const Offset(0, 500),
+      const Offset(0, 1800),
     );
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('home_toggle_amount_visibility')));

@@ -7,6 +7,7 @@ import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
+import '../../domain/entities/home_dashboard_preferences.dart';
 import '../../domain/entities/operation_page.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import 'balance_adjustment_service.dart';
@@ -21,6 +22,11 @@ class RemoteOperationPage {
 
 abstract interface class CanonicalFinanceRemoteDataSource {
   Stream<Map<String, dynamic>?> watchUserProfile(String userId);
+
+  Future<void> updateHomeDashboardPreferences(
+    String userId,
+    HomeDashboardPreferences preferences,
+  );
 
   Future<void> ensureDefaultCategories(
     String userId, {
@@ -164,6 +170,15 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   @override
   Stream<Map<String, dynamic>?> watchUserProfile(String userId) =>
       _userDocument(userId).snapshots().map((snapshot) => snapshot.exists ? snapshot.data() : null);
+
+  @override
+  Future<void> updateHomeDashboardPreferences(
+    String userId,
+    HomeDashboardPreferences preferences,
+  ) => _userDocument(userId).update({
+    'homePreferences': preferences.toMap(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
 
   @override
   Future<void> ensureDefaultCategories(

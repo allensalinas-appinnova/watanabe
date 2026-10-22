@@ -34,6 +34,11 @@
   "homeMenu": "Más opciones",
   "homeTotalBalance": "Saldo total",
   "homeBudgetTitle": "Presupuesto del mes",
+  "homeExpenseVsBudget": "Gasto vs. presupuesto",
+  "homeIncomeVsBudget": "Ingreso vs. presupuesto",
+  "homeBudgetComparisonDetails": "Real · {actual} / Plan · {planned}",
+  "@homeBudgetComparisonDetails": {"placeholders": {"actual": {}, "planned": {}}},
+  "homeNoBudgetForFlow": "Sin presupuesto este mes",
   "homeMonthlySummary": "Resumen de {month} · {currency}",
   "@homeMonthlySummary": {
     "placeholders": {
@@ -425,4 +430,20 @@
   ,"discardChangesMessage": "Los cambios que hiciste todavía no se han guardado."
   ,"keepEditing": "Seguir editando"
   ,"discardChanges": "Descartar"
+  ,"accountIncludeInHomeBalance": "Incluir en el saldo de Inicio"
+  ,"accountIncludeInHomeBalanceHint": "Esta cuenta se sumará al saldo consolidado de Inicio."
+  ,"homeNoAccountsIncluded": "No hay cuentas activas incluidas en el saldo de Inicio."
+  ,"homeCustomizeTitle": "Personalizar Inicio"
+  ,"homeCustomizeSubtitle": "Elige qué información quieres ver en Inicio. Los avisos de sincronización siempre estarán visibles."
+  ,"homeWidgetsSection": "Tarjetas de Inicio"
+  ,"homeBudgetCardsSection": "Presupuestos por categoría"
+  ,"homeWidgetTotalBalance": "Saldo total"
+  ,"homeWidgetIncome": "Resumen de ingresos"
+  ,"homeWidgetExpense": "Resumen de gastos"
+  ,"homeWidgetExpenseBudget": "Gasto vs. presupuesto"
+  ,"homeWidgetIncomeBudget": "Ingreso vs. presupuesto"
+  ,"homeWidgetRecentActivity": "Actividad reciente"
+  ,"homeNoBudgetCards": "No hay presupuestos activos para personalizar."
+  ,"homePreferencesSaving": "Guardando preferencia…"
+  ,"homePreferencesSaveFailed": "No se pudo guardar. Tu selección se conserva; inténtalo de nuevo."
 }

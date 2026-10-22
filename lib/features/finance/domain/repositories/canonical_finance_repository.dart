@@ -7,6 +7,7 @@ import '../entities/budget_item.dart';
 import '../entities/finance_account.dart';
 import '../entities/finance_category.dart';
 import '../entities/financial_operation.dart';
+import '../entities/home_dashboard_preferences.dart';
 import '../entities/ledger_entry.dart';
 import '../entities/monthly_summary.dart';
 import '../entities/operation_page.dart';
@@ -76,6 +77,11 @@ class CanonicalBudgetItemDraft {
 
 abstract interface class CanonicalFinanceRepository {
   Stream<UserProfile?> watchUserProfile(String userId);
+
+  Future<Either<Failure, Unit>> updateHomeDashboardPreferences(
+    String userId,
+    HomeDashboardPreferences preferences,
+  );
 
   Future<Either<Failure, Unit>> ensureDefaultCategories(
     String userId, {

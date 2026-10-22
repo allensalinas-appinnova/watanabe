@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
@@ -10,6 +11,10 @@ import 'package:personal_finance/features/finance/domain/entities/user_profile.d
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
+
+class _MockActions extends Mock implements CanonicalFinanceActions {}
+
+class _FakeAccount extends Fake implements FinanceAccount {}
 
 const _profile = UserProfile(
   id: 'user-1',
@@ -22,16 +27,20 @@ const _profile = UserProfile(
 );
 
 void main() {
+  setUpAll(() => registerFallbackValue(_FakeAccount()));
+
   Widget buildSubject({
     Locale locale = const Locale('es'),
     double textScale = 1,
     FinanceAccount? account,
+    _MockActions? actions,
   }) => ProviderScope(
     overrides: [
       authSessionProvider.overrideWith(
         (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: false)),
       ),
       canonicalUserProfileProvider.overrideWith((ref, userId) => Stream.value(_profile)),
+      if (actions != null) canonicalActionsProvider.overrideWithValue(actions),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -145,5 +154,62 @@ void main() {
     expect(find.byKey(const ValueKey('account_save')), findsOneWidget);
     final layoutException = tester.takeException();
     expect(layoutException, isNull, reason: '$layoutException');
+  });
+
+  testWidgets('shows the Home balance preference only when editing an account', (tester) async {
+    const account = FinanceAccount(
+      id: 'cash',
+      name: 'Efectivo',
+      type: 'cash',
+      includeInDashboard: false,
+    );
+    await tester.pumpWidget(buildSubject(account: account));
+    await tester.pumpAndSettle();
+
+    final control = tester.widget<SwitchListTile>(
+      find.byKey(const ValueKey('account_include_in_home')),
+    );
+    expect(control.value, isFalse);
+    expect(find.text('Incluir en el saldo de Inicio'), findsOneWidget);
+    expect(find.byKey(const ValueKey('account_initial_balance_field')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saves the selected Home balance inclusion value', (tester) async {
+    const account = FinanceAccount(
+      id: 'cash',
+      name: 'Efectivo',
+      type: 'cash',
+      includeInDashboard: false,
+    );
+    final actions = _MockActions();
+    when(
+      () => actions.updateAccount(
+        any(),
+        any(),
+        name: any(named: 'name'),
+        includeInDashboard: any(named: 'includeInDashboard'),
+      ),
+    ).thenThrow(Exception('simulated failure'));
+    await tester.pumpWidget(buildSubject(account: account, actions: actions));
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -240));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('account_include_in_home')));
+    await tester.tap(find.byKey(const ValueKey('account_include_in_home')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('account_save')));
+    await tester.tap(find.byKey(const ValueKey('account_save')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => actions.updateAccount(
+        'user-1',
+        account,
+        name: 'Efectivo',
+        includeInDashboard: true,
+      ),
+    ).called(1);
   });
 }

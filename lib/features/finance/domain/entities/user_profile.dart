@@ -1,3 +1,5 @@
+import 'home_dashboard_preferences.dart';
+
 class UserProfile {
   const UserProfile({
     required this.id,
@@ -7,6 +9,7 @@ class UserProfile {
     required this.defaultCurrency,
     required this.onboardingStatus,
     required this.categoryCatalogVersion,
+    this.homeDashboardPreferences = const HomeDashboardPreferences(),
   });
 
   final String id;
@@ -16,4 +19,5 @@ class UserProfile {
   final String defaultCurrency;
   final String onboardingStatus;
   final int categoryCatalogVersion;
+  final HomeDashboardPreferences homeDashboardPreferences;
 }

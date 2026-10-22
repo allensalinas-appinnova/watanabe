@@ -630,7 +630,12 @@ class CanonicalFinanceActions {
     });
   }
 
-  Future<void> updateAccount(String userId, FinanceAccount account, {required String name}) async {
+  Future<void> updateAccount(
+    String userId,
+    FinanceAccount account, {
+    required String name,
+    required bool includeInDashboard,
+  }) async {
     final result = await _repository.updateAccount(
       userId,
       FinanceAccount(
@@ -640,7 +645,7 @@ class CanonicalFinanceActions {
         currency: account.currency,
         openingBalanceMinor: account.openingBalanceMinor,
         currentBalanceMinor: account.currentBalanceMinor,
-        includeInDashboard: account.includeInDashboard,
+        includeInDashboard: includeInDashboard,
         status: account.status,
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,

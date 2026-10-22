@@ -68,6 +68,31 @@ service cloud.firestore {
       return !('colorValue' in data) ||
         (data.colorValue is int && data.colorValue >= 0 && data.colorValue <= 4294967295);
     }
+    function validHomePreferences(data) {
+      return !('homePreferences' in data) ||
+        (data.homePreferences is map &&
+          data.homePreferences.keys().hasOnly(['widgets', 'hiddenBudgetCategoryIds']) &&
+          required(data.homePreferences, ['widgets', 'hiddenBudgetCategoryIds']) &&
+          data.homePreferences.widgets is map &&
+          data.homePreferences.widgets.keys().hasOnly([
+            'totalBalance', 'incomeSummary', 'expenseSummary',
+            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity'
+          ]) &&
+          required(data.homePreferences.widgets, [
+            'totalBalance', 'incomeSummary', 'expenseSummary',
+            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity'
+          ]) &&
+          data.homePreferences.widgets.totalBalance is bool &&
+          data.homePreferences.widgets.incomeSummary is bool &&
+          data.homePreferences.widgets.expenseSummary is bool &&
+          data.homePreferences.widgets.expenseBudgetRatio is bool &&
+          data.homePreferences.widgets.incomeBudgetRatio is bool &&
+          data.homePreferences.widgets.recentActivity is bool &&
+          data.homePreferences.hiddenBudgetCategoryIds is list &&
+          data.homePreferences.hiddenBudgetCategoryIds.size() <= 100 &&
+          data.homePreferences.hiddenBudgetCategoryIds.toSet().size() ==
+            data.homePreferences.hiddenBudgetCategoryIds.size());
+    }
 
     match /categoryCatalog/{categoryId} {
       allow read: if authenticated();
@@ -82,8 +107,8 @@ service cloud.firestore {
       ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']);
       allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
-        'onboardingStatus', 'categoryCatalogVersion', 'updatedAt'
-      ]);
+        'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'updatedAt'
+      ]) && validHomePreferences(request.resource.data);
       allow delete: if false;
 
       match /accounts/{accountId} {
@@ -102,7 +127,8 @@ service cloud.firestore {
           request.resource.data.status in ['active', 'archived'];
         allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'includeInDashboard', 'status', 'updatedAt', 'archivedAt'
-        ]);
+        ]) && (!('includeInDashboard' in request.resource.data) ||
+          request.resource.data.includeInDashboard is bool);
         allow delete: if false;
       }
 

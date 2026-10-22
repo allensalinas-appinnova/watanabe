@@ -233,7 +233,7 @@ void main() {
       tester.getCenter(find.byKey(const ValueKey('scrollable_home_fixture'))),
     );
     await gesture.moveBy(const Offset(0, -180));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fabVisibility).opacity, 0);
 
     await gesture.up();

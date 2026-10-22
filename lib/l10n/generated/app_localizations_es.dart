@@ -118,6 +118,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeBudgetTitle => 'Presupuesto del mes';
 
   @override
+  String get homeExpenseVsBudget => 'Gasto vs. presupuesto';
+
+  @override
+  String get homeIncomeVsBudget => 'Ingreso vs. presupuesto';
+
+  @override
+  String homeBudgetComparisonDetails(Object actual, Object planned) {
+    return 'Real · $actual / Plan · $planned';
+  }
+
+  @override
+  String get homeNoBudgetForFlow => 'Sin presupuesto este mes';
+
+  @override
   String homeMonthlySummary(Object month, Object currency) {
     return 'Resumen de $month · $currency';
   }
@@ -1368,4 +1382,55 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get discardChanges => 'Descartar';
+
+  @override
+  String get accountIncludeInHomeBalance => 'Incluir en el saldo de Inicio';
+
+  @override
+  String get accountIncludeInHomeBalanceHint =>
+      'Esta cuenta se sumará al saldo consolidado de Inicio.';
+
+  @override
+  String get homeNoAccountsIncluded => 'No hay cuentas activas incluidas en el saldo de Inicio.';
+
+  @override
+  String get homeCustomizeTitle => 'Personalizar Inicio';
+
+  @override
+  String get homeCustomizeSubtitle =>
+      'Elige qué información quieres ver en Inicio. Los avisos de sincronización siempre estarán visibles.';
+
+  @override
+  String get homeWidgetsSection => 'Tarjetas de Inicio';
+
+  @override
+  String get homeBudgetCardsSection => 'Presupuestos por categoría';
+
+  @override
+  String get homeWidgetTotalBalance => 'Saldo total';
+
+  @override
+  String get homeWidgetIncome => 'Resumen de ingresos';
+
+  @override
+  String get homeWidgetExpense => 'Resumen de gastos';
+
+  @override
+  String get homeWidgetExpenseBudget => 'Gasto vs. presupuesto';
+
+  @override
+  String get homeWidgetIncomeBudget => 'Ingreso vs. presupuesto';
+
+  @override
+  String get homeWidgetRecentActivity => 'Actividad reciente';
+
+  @override
+  String get homeNoBudgetCards => 'No hay presupuestos activos para personalizar.';
+
+  @override
+  String get homePreferencesSaving => 'Guardando preferencia…';
+
+  @override
+  String get homePreferencesSaveFailed =>
+      'No se pudo guardar. Tu selección se conserva; inténtalo de nuevo.';
 }

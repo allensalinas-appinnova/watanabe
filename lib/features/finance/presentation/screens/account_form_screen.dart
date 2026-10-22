@@ -98,6 +98,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   late final TextEditingController _balanceController;
   late String _type;
   late String _currency;
+  late bool _includeInDashboard;
   bool _saving = false;
   bool _hasUnsavedChanges = false;
   String? _error;
@@ -111,6 +112,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     _balanceController = TextEditingController(text: '0');
     _type = widget.account?.type ?? 'cash';
     _currency = widget.account?.currency ?? widget.defaultCurrency;
+    _includeInDashboard = widget.account?.includeInDashboard ?? true;
     _nameController.addListener(_markChanged);
     _balanceController.addListener(_markChanged);
   }
@@ -235,6 +237,20 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.muted,
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            SwitchListTile.adaptive(
+                              key: const ValueKey('account_include_in_home'),
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(l10n.accountIncludeInHomeBalance),
+                              subtitle: Text(l10n.accountIncludeInHomeBalanceHint),
+                              value: _includeInDashboard,
+                              onChanged: _saving
+                                  ? null
+                                  : (value) => setState(() {
+                                      _includeInDashboard = value;
+                                      _hasUnsavedChanges = true;
+                                    }),
                             ),
                           ] else ...[
                             DropdownButtonFormField<String>(
@@ -384,6 +400,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
               widget.userId,
               widget.account!,
               name: name,
+              includeInDashboard: _includeInDashboard,
             );
       } else {
         await ref

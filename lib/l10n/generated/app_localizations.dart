@@ -298,6 +298,30 @@ abstract class AppLocalizations {
   /// **'Presupuesto del mes'**
   String get homeBudgetTitle;
 
+  /// No description provided for @homeExpenseVsBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Gasto vs. presupuesto'**
+  String get homeExpenseVsBudget;
+
+  /// No description provided for @homeIncomeVsBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingreso vs. presupuesto'**
+  String get homeIncomeVsBudget;
+
+  /// No description provided for @homeBudgetComparisonDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Real · {actual} / Plan · {planned}'**
+  String homeBudgetComparisonDetails(Object actual, Object planned);
+
+  /// No description provided for @homeNoBudgetForFlow.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin presupuesto este mes'**
+  String get homeNoBudgetForFlow;
+
   /// No description provided for @homeMonthlySummary.
   ///
   /// In es, this message translates to:
@@ -2481,6 +2505,102 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Descartar'**
   String get discardChanges;
+
+  /// No description provided for @accountIncludeInHomeBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Incluir en el saldo de Inicio'**
+  String get accountIncludeInHomeBalance;
+
+  /// No description provided for @accountIncludeInHomeBalanceHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta cuenta se sumará al saldo consolidado de Inicio.'**
+  String get accountIncludeInHomeBalanceHint;
+
+  /// No description provided for @homeNoAccountsIncluded.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay cuentas activas incluidas en el saldo de Inicio.'**
+  String get homeNoAccountsIncluded;
+
+  /// No description provided for @homeCustomizeTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Personalizar Inicio'**
+  String get homeCustomizeTitle;
+
+  /// No description provided for @homeCustomizeSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige qué información quieres ver en Inicio. Los avisos de sincronización siempre estarán visibles.'**
+  String get homeCustomizeSubtitle;
+
+  /// No description provided for @homeWidgetsSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjetas de Inicio'**
+  String get homeWidgetsSection;
+
+  /// No description provided for @homeBudgetCardsSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuestos por categoría'**
+  String get homeBudgetCardsSection;
+
+  /// No description provided for @homeWidgetTotalBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo total'**
+  String get homeWidgetTotalBalance;
+
+  /// No description provided for @homeWidgetIncome.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen de ingresos'**
+  String get homeWidgetIncome;
+
+  /// No description provided for @homeWidgetExpense.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen de gastos'**
+  String get homeWidgetExpense;
+
+  /// No description provided for @homeWidgetExpenseBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Gasto vs. presupuesto'**
+  String get homeWidgetExpenseBudget;
+
+  /// No description provided for @homeWidgetIncomeBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingreso vs. presupuesto'**
+  String get homeWidgetIncomeBudget;
+
+  /// No description provided for @homeWidgetRecentActivity.
+  ///
+  /// In es, this message translates to:
+  /// **'Actividad reciente'**
+  String get homeWidgetRecentActivity;
+
+  /// No description provided for @homeNoBudgetCards.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay presupuestos activos para personalizar.'**
+  String get homeNoBudgetCards;
+
+  /// No description provided for @homePreferencesSaving.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardando preferencia…'**
+  String get homePreferencesSaving;
+
+  /// No description provided for @homePreferencesSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar. Tu selección se conserva; inténtalo de nuevo.'**
+  String get homePreferencesSaveFailed;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

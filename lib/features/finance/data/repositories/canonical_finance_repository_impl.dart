@@ -11,6 +11,7 @@ import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
+import '../../domain/entities/home_dashboard_preferences.dart';
 import '../../domain/entities/ledger_entry.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/entities/operation_page.dart';
@@ -30,6 +31,19 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   Stream<UserProfile?> watchUserProfile(String userId) => _remoteDataSource
       .watchUserProfile(userId)
       .map((record) => record == null ? null : _profile(record, userId));
+
+  @override
+  Future<Either<Failure, Unit>> updateHomeDashboardPreferences(
+    String userId,
+    HomeDashboardPreferences preferences,
+  ) async {
+    try {
+      await _remoteDataSource.updateHomeDashboardPreferences(userId, preferences);
+      return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
 
   @override
   Future<Either<Failure, Unit>> ensureDefaultCategories(
@@ -479,6 +493,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     defaultCurrency: data['defaultCurrency'] as String? ?? 'COP',
     onboardingStatus: data['onboardingStatus'] as String? ?? 'not_started',
     categoryCatalogVersion: (data['categoryCatalogVersion'] as num? ?? 1).toInt(),
+    homeDashboardPreferences: HomeDashboardPreferences.fromMap(data['homePreferences']),
   );
 
   FinanceCategory _category(Map<String, dynamic> data) => FinanceCategory(
