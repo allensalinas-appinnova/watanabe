@@ -22,8 +22,13 @@ Future<void> main() async {
       defaultValue: '127.0.0.1',
     ),
   );
-  FirebaseObservability(environment).installErrorHandlers();
-  await configureDependencies();
+  final observability = FirebaseObservability(
+    environment,
+    useEmulators: useEmulators,
+  );
+  await observability.configureCrashlyticsCollection();
+  observability.installErrorHandlers();
+  await configureDependencies(useEmulators: useEmulators);
 
   runApp(const ProviderScope(child: PersonalFinanceApp()));
 }

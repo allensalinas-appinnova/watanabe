@@ -94,9 +94,10 @@ perfil pasa `USE_FIREBASE_EMULATORS=false`; por tanto, opera contra el proyecto
 Firebase real. En un teléfono físico habilita USB debugging, conecta y acepta
 el diálogo de autorización. En un emulador Android, inicia primero el AVD.
 
-La inicialización usa Dart defines, por lo que no necesita `google-services.json`
-ni el Gradle plugin Google Services para proporcionar `FirebaseOptions`. Para
-Google Sign-In en Android, registra SHA-1/SHA-256 del certificado debug y
+La inicialización de Firebase usa Dart defines, así que no depende de
+`google-services.json` para proporcionar `FirebaseOptions`. Crashlytics sí
+requiere el archivo nativo y los plugins Gradle de Google Services y Crashlytics;
+el archivo local se excluye de Git. Para Google Sign-In en Android, registra SHA-1/SHA-256 del certificado debug y
 verifica que el proveedor Google esté habilitado en Firebase Authentication;
 esto no es requisito para abrir la app o usar otro proveedor ya habilitado.
 
@@ -129,6 +130,14 @@ contra ese proyecto; las pruebas automatizadas deben permanecer aisladas en
 `demo-clearbudget`.
 
 Para CI, cada entorno debe tener su propio grupo de secretos y su propio bundle/application ID cuando la distribución lo requiera. La configuración nativa `google-services.json` y `GoogleService-Info.plist` debe gestionarse fuera del repositorio o mediante perfiles seguros del pipeline.
+
+Crashlytics usa `android/app/google-services.json` y
+`ios/Runner/GoogleService-Info.plist` localmente, ambos excluidos de Git. El
+registro iOS de Firebase debe coincidir con `com.appinnova.lumiomoney.app`.
+La recolección queda deshabilitada por defecto en metadatos nativos y solo se
+activa explícitamente en `staging` o `prod`, nunca con Emulator. Consulta
+`docs/observability.md` para la política de privacidad, simbolicación y estado
+de validación remota.
 
 ## Google Sign-In nativo
 

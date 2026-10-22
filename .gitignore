@@ -11,6 +11,8 @@ config/firebase.dev.json
 config/firebase.dev.*.json
 config/firebase.staging.json
 config/firebase.prod.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 
 # IDEs
 .idea/

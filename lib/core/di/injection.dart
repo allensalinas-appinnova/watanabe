@@ -22,7 +22,7 @@ import '../offline/pending_operation_sync_service.dart';
 final getIt = GetIt.instance;
 
 @injectableInit
-Future<void> configureDependencies() async {
+Future<void> configureDependencies({bool useEmulators = false}) async {
   final preferences = await SharedPreferences.getInstance();
 
   if (!getIt.isRegistered<SharedPreferences>()) {
@@ -30,7 +30,10 @@ Future<void> configureDependencies() async {
   }
   if (!getIt.isRegistered<FirebaseObservability>()) {
     getIt.registerLazySingleton<FirebaseObservability>(
-      () => FirebaseObservability(AppEnvironment.fromDartDefine()),
+      () => FirebaseObservability(
+        AppEnvironment.fromDartDefine(),
+        useEmulators: useEmulators,
+      ),
     );
   }
   if (!getIt.isRegistered<PendingOperationDatabase>()) {
