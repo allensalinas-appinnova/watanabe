@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/entities/activity_report.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -60,7 +61,7 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
   Future<void> _export(ActivityExportAction action) async {
     if (_busyAction != null) return;
     final operations = _includedOperations;
-    if (operations.isEmpty) return;
+    if (operations.isEmpty && widget.report.adjustments.isEmpty) return;
     setState(() {
       _busyAction = action;
       _retryAction = action;
@@ -84,8 +85,10 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
     final pendingCount = widget.report.pendingOperationCount;
     final included = _includedOperations;
     final confirmedCount = widget.report.confirmedOperationCount;
-    final currencies =
-        widget.report.operations.map((operation) => operation.currency).toSet().toList()..sort();
+    final currencies = {
+      ...widget.report.operations.map((operation) => operation.currency),
+      ...widget.report.adjustments.map((entry) => entry.adjustment.currency),
+    }.toList()..sort();
     final currencySummary = currencies.isEmpty ? '—' : currencies.join(' · ');
     final maxHeight = MediaQuery.sizeOf(context).height * .9;
 
@@ -140,8 +143,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                   typeLabel: widget.typeLabel,
                   currencySummary: currencySummary,
                   confirmedCount: confirmedCount,
-                  includedCount: included.length,
+                  includedCount: included.length + widget.report.adjustments.length,
                   operations: included.take(3).toList(growable: false),
+                  adjustments: widget.report.adjustments.take(3).toList(growable: false),
                   accounts: widget.accounts,
                   categories: widget.categories,
                   locale: widget.locale,
@@ -215,7 +219,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                   height: 52,
                   child: FilledButton(
                     key: const ValueKey('activity_export_save'),
-                    onPressed: included.isEmpty || _busyAction != null
+                    onPressed:
+                        (included.isEmpty && widget.report.adjustments.isEmpty) ||
+                            _busyAction != null
                         ? null
                         : () => _export(ActivityExportAction.save),
                     child: _busyAction == ActivityExportAction.save
@@ -232,7 +238,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                   height: 52,
                   child: OutlinedButton(
                     key: const ValueKey('activity_export_share'),
-                    onPressed: included.isEmpty || _busyAction != null
+                    onPressed:
+                        (included.isEmpty && widget.report.adjustments.isEmpty) ||
+                            _busyAction != null
                         ? null
                         : () => _export(ActivityExportAction.share),
                     child: _busyAction == ActivityExportAction.share
@@ -288,6 +296,7 @@ class _ExportDetailsCard extends StatelessWidget {
     required this.confirmedCount,
     required this.includedCount,
     required this.operations,
+    required this.adjustments,
     required this.accounts,
     required this.categories,
     required this.locale,
@@ -300,6 +309,7 @@ class _ExportDetailsCard extends StatelessWidget {
   final int confirmedCount;
   final int includedCount;
   final List<FinancialOperation> operations;
+  final List<BalanceAdjustmentActivityEntry> adjustments;
   final List<FinanceAccount> accounts;
   final List<FinanceCategory> categories;
   final String locale;
@@ -353,13 +363,25 @@ class _ExportDetailsCard extends StatelessWidget {
                 l10n: l10n,
               ),
             ),
-          if (includedCount > operations.length)
+          for (final entry in adjustments)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: _AdjustmentPreview(
+                entry: entry,
+                accounts: accounts,
+                locale: locale,
+                l10n: l10n,
+              ),
+            ),
+          if (includedCount > operations.length + adjustments.length)
             Align(
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  l10n.activityExportMoreCount(includedCount - operations.length),
+                  l10n.activityExportMoreCount(
+                    includedCount - operations.length - adjustments.length,
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
               ),
@@ -475,6 +497,39 @@ class _OperationPreview extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _AdjustmentPreview extends StatelessWidget {
+  const _AdjustmentPreview({
+    required this.entry,
+    required this.accounts,
+    required this.locale,
+    required this.l10n,
+  });
+
+  final BalanceAdjustmentActivityEntry entry;
+  final List<FinanceAccount> accounts;
+  final String locale;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = entry.adjustment;
+    var name = l10n.activityCsvUnknownAccount;
+    for (final account in accounts) {
+      if (account.id == row.accountId) name = account.name;
+    }
+    String amount(int value) => CurrencyFormatter.formatMinor(value, row.currency, locale: locale);
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(
+        '${l10n.activityBalanceAdjustmentType} · $name\n${DateFormat.yMMMd(locale).add_Hm().format(entry.adjustedAt.toLocal())}\n${l10n.activityBalanceAdjustmentEntry(amount(row.previousBalanceMinor), amount(row.targetBalanceMinor), amount(row.deltaMinor))}',
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
     );
   }
 }

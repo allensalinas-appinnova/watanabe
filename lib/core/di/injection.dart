@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -11,10 +12,13 @@ import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/finance/data/datasources/balance_adjustment_service.dart';
+import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
 import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
+import '../firebase/firebase_bootstrap.dart';
 import '../firebase/firebase_observability.dart';
 import '../offline/pending_operation_queue.dart';
 import '../offline/pending_operation_sync_service.dart';
@@ -22,19 +26,26 @@ import '../offline/pending_operation_sync_service.dart';
 final getIt = GetIt.instance;
 
 @injectableInit
-Future<void> configureDependencies({bool useEmulators = false}) async {
+Future<void> configureDependencies({
+  bool useEmulators = false,
+  FirebaseObservability? observability,
+}) async {
   final preferences = await SharedPreferences.getInstance();
 
   if (!getIt.isRegistered<SharedPreferences>()) {
     getIt.registerSingleton<SharedPreferences>(preferences);
   }
   if (!getIt.isRegistered<FirebaseObservability>()) {
-    getIt.registerLazySingleton<FirebaseObservability>(
-      () => FirebaseObservability(
-        AppEnvironment.fromDartDefine(),
-        useEmulators: useEmulators,
-      ),
-    );
+    if (observability != null) {
+      getIt.registerSingleton<FirebaseObservability>(observability);
+    } else {
+      getIt.registerLazySingleton<FirebaseObservability>(
+        () => FirebaseObservability(
+          AppEnvironment.fromDartDefine(),
+          useEmulators: useEmulators,
+        ),
+      );
+    }
   }
   if (!getIt.isRegistered<PendingOperationDatabase>()) {
     getIt.registerSingleton<PendingOperationDatabase>(await openPendingOperationDatabase());
@@ -45,15 +56,19 @@ Future<void> configureDependencies({bool useEmulators = false}) async {
     );
   }
   if (!getIt.isRegistered<FirebaseAuth>()) {
-    getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+    getIt.registerLazySingleton<FirebaseAuth>(
+      () => FirebaseAuth.instanceFor(app: FirebaseBootstrap.app),
+    );
   }
   if (!getIt.isRegistered<FirebaseFirestore>()) {
     getIt.registerLazySingleton<FirebaseFirestore>(
-      () => FirebaseFirestore.instance,
+      () => FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app),
     );
   }
   if (!getIt.isRegistered<FirebaseStorage>()) {
-    getIt.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
+    getIt.registerLazySingleton<FirebaseStorage>(
+      () => FirebaseStorage.instanceFor(app: FirebaseBootstrap.app),
+    );
   }
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -74,8 +89,33 @@ Future<void> configureDependencies({bool useEmulators = false}) async {
     );
   }
   if (!getIt.isRegistered<CanonicalFinanceRemoteDataSource>()) {
+    if (!getIt.isRegistered<BudgetCommandService>()) {
+      getIt.registerLazySingleton<BudgetCommandService>(
+        () => FirebaseBudgetCommandService(
+          functions: FirebaseFunctions.instanceFor(
+            app: FirebaseBootstrap.app,
+            region: 'us-central1',
+          ),
+          auth: getIt(),
+        ),
+      );
+    }
+    if (!getIt.isRegistered<BalanceAdjustmentService>()) {
+      getIt.registerLazySingleton<BalanceAdjustmentService>(
+        () => FirebaseBalanceAdjustmentService(
+          functions: FirebaseFunctions.instanceFor(
+            app: FirebaseBootstrap.app,
+            region: 'us-central1',
+          ),
+        ),
+      );
+    }
     getIt.registerLazySingleton<CanonicalFinanceRemoteDataSource>(
-      () => FirestoreCanonicalFinanceRemoteDataSource(firestore: getIt()),
+      () => FirestoreCanonicalFinanceRemoteDataSource(
+        firestore: getIt(),
+        budgetCommands: getIt(),
+        balanceAdjustments: getIt(),
+      ),
     );
   }
   if (!getIt.isRegistered<CanonicalFinanceRepository>()) {

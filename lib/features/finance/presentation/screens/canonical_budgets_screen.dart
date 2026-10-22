@@ -145,16 +145,8 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                 children: [
                   ListView(
                     key: const ValueKey('budget_monthly_list'),
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 104),
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 104),
                     children: [
-                      Text(
-                        l10n.appTitle,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.blueDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       Text(
                         l10n.budgetsTitle,
                         key: const ValueKey('budgets_title'),

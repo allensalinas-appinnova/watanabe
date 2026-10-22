@@ -1,12 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/utils/money_parser.dart';
+import '../../../../core/utils/request_id.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/operation_page.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import 'balance_adjustment_service.dart';
+import 'budget_command_service.dart';
 
 class RemoteOperationPage {
   const RemoteOperationPage({required this.records, this.nextCursor});
@@ -54,6 +58,15 @@ abstract interface class CanonicalFinanceRemoteDataSource {
 
   Future<void> archiveAccount(String userId, String accountId);
 
+  Stream<List<Map<String, dynamic>>> watchBalanceAdjustments(String userId);
+
+  Future<Map<String, Object?>> adjustAccountBalances({
+    required String userId,
+    required String requestId,
+    required List<BalanceAdjustmentDraft> adjustments,
+    String? reason,
+  });
+
   Stream<List<Map<String, dynamic>>> watchOperations(String userId);
 
   Future<RemoteOperationPage> fetchOperationsPage(
@@ -93,6 +106,7 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     required String monthKey,
     required String currency,
     required List<CanonicalBudgetItemDraft> items,
+    String? requestId,
   });
 
   Stream<Map<String, dynamic>?> watchMonthlySummary(
@@ -112,21 +126,34 @@ abstract interface class CanonicalFinanceRemoteDataSource {
   Future<Map<String, dynamic>> addBudgetItem(
     String userId,
     String budgetId,
-    CanonicalBudgetItemDraft item,
-  );
+    CanonicalBudgetItemDraft item, {
+    String? requestId,
+  });
 
-  Future<void> updateBudgetItem(String userId, String budgetId, BudgetItem item);
+  Future<void> updateBudgetItem(
+    String userId,
+    String budgetId,
+    BudgetItem item, {
+    String? requestId,
+  });
 
-  Future<void> deleteBudgetItem(String userId, String budgetId, String itemId);
+  Future<void> deleteBudgetItem(String userId, String budgetId, String itemId, {String? requestId});
 
-  Future<void> archiveBudget(String userId, String budgetId);
+  Future<void> archiveBudget(String userId, String budgetId, {String? requestId});
 }
 
 class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemoteDataSource {
-  const FirestoreCanonicalFinanceRemoteDataSource({required FirebaseFirestore firestore})
-    : _firestore = firestore;
+  const FirestoreCanonicalFinanceRemoteDataSource({
+    required FirebaseFirestore firestore,
+    required BudgetCommandService budgetCommands,
+    BalanceAdjustmentService? balanceAdjustments,
+  }) : _firestore = firestore,
+       _budgetCommands = budgetCommands,
+       _balanceAdjustments = balanceAdjustments;
 
   final FirebaseFirestore _firestore;
+  final BudgetCommandService _budgetCommands;
+  final BalanceAdjustmentService? _balanceAdjustments;
 
   CollectionReference<Map<String, dynamic>> _userCollection(String userId, String name) =>
       _firestore.collection('users').doc(userId).collection(name);
@@ -345,6 +372,12 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   ).where('status', isEqualTo: 'active').snapshots().map(_records);
 
   @override
+  Stream<List<Map<String, dynamic>>> watchBalanceAdjustments(String userId) => _userCollection(
+    userId,
+    'balanceAdjustments',
+  ).orderBy('adjustedAt', descending: true).snapshots().map(_records);
+
+  @override
   Future<Map<String, dynamic>> createAccount(
     String userId, {
     required String name,
@@ -389,6 +422,20 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         'archivedAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+  @override
+  Future<Map<String, Object?>> adjustAccountBalances({
+    required String userId,
+    required String requestId,
+    required List<BalanceAdjustmentDraft> adjustments,
+    String? reason,
+  }) {
+    final service = _balanceAdjustments;
+    if (service == null) {
+      return Future.error(StateError('Balance adjustment service is unavailable'));
+    }
+    return service.adjust(requestId: requestId, adjustments: adjustments, reason: reason);
+  }
 
   @override
   Future<Map<String, dynamic>> createOperation(
@@ -596,144 +643,73 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       .map(_records)
       .map((records) => records.where((record) => record['budgetItemId'] == itemId).toList());
 
+  Map<String, dynamic> _itemPayload(CanonicalBudgetItemDraft item) => {
+    'description': item.description.trim(),
+    'amountMinor': item.amountMinor,
+    'dayOfMonth': item.dayOfMonth,
+  };
+
+  Future<Map<String, dynamic>> _budgetCommand(
+    String userId,
+    String action,
+    Map<String, dynamic> payload,
+    String? requestId,
+  ) => _budgetCommands.execute(userId, {
+    'action': action,
+    'requestId': requestId ?? newRequestId(),
+    ...payload,
+  });
+
   @override
   Future<Map<String, dynamic>> addBudgetItem(
     String userId,
     String budgetId,
-    CanonicalBudgetItemDraft item,
-  ) async {
-    final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
-    final itemsRef = budgetRef.collection('items');
-    final itemRef = budgetRef.collection('items').doc();
-    await _firestore.runTransaction((transaction) async {
-      final budget = await transaction.get(budgetRef);
-      if (!budget.exists) throw StateError('Budget not found.');
-      final data = budget.data()!;
-      _validateBudgetItem(
-        item,
-        data['currency'] as String? ?? '',
-        data['monthKey'] as String? ?? '',
-      );
-      final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
-      final updatedTotal = total + item.amountMinor;
-      if (updatedTotal > MoneyParser.maxMinorUnits(data['currency'] as String? ?? '')) {
-        throw ArgumentError('Budget total exceeds the maximum amount.');
-      }
-      final count = await _budgetItemCount(transaction, budgetRef, itemsRef, data);
-      transaction
-        ..set(itemRef, {
-          'description': item.description.trim(),
-          'amountMinor': item.amountMinor,
-          'dayOfMonth': item.dayOfMonth,
-          'actualAmountMinor': 0,
-          'status': 'active',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        })
-        ..update(budgetRef, {
-          'plannedAmountMinor': updatedTotal,
-          'itemCount': count + 1,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-    });
-    return {
-      'id': itemRef.id,
-      'description': item.description.trim(),
-      'amountMinor': item.amountMinor,
-      'dayOfMonth': item.dayOfMonth,
-      'actualAmountMinor': 0,
-      'status': 'active',
-    };
+    CanonicalBudgetItemDraft item, {
+    String? requestId,
+  }) async {
+    final result = await _budgetCommand(userId, 'addItem', {
+      'budgetId': budgetId,
+      'item': _itemPayload(item),
+    }, requestId);
+    return Map<String, dynamic>.from(result['item'] as Map);
   }
 
   @override
-  Future<void> updateBudgetItem(String userId, String budgetId, BudgetItem item) async {
-    final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
-    final itemRef = budgetRef.collection('items').doc(item.id);
-    await _firestore.runTransaction((transaction) async {
-      final budget = await transaction.get(budgetRef);
-      final previous = await transaction.get(itemRef);
-      if (!budget.exists || !previous.exists) throw StateError('Budget item not found.');
-      if (previous.data()?['status'] == 'archived') throw StateError('Budget item is archived.');
-      final data = budget.data()!;
-      final currency = data['currency'] as String? ?? '';
-      final monthKey = data['monthKey'] as String? ?? '';
-      _validateBudgetItem(
+  Future<void> updateBudgetItem(
+    String userId,
+    String budgetId,
+    BudgetItem item, {
+    String? requestId,
+  }) async {
+    await _budgetCommand(userId, 'updateItem', {
+      'budgetId': budgetId,
+      'itemId': item.id,
+      'item': _itemPayload(
         CanonicalBudgetItemDraft(
           description: item.description,
           amountMinor: item.amountMinor,
           dayOfMonth: item.dayOfMonth,
         ),
-        currency,
-        monthKey,
-      );
-      final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
-      final oldAmount = (previous.data()?['amountMinor'] as num? ?? 0).toInt();
-      final updatedTotal = total - oldAmount + item.amountMinor;
-      if (updatedTotal > MoneyParser.maxMinorUnits(currency)) {
-        throw ArgumentError('Budget total exceeds the maximum amount.');
-      }
-      transaction
-        ..update(itemRef, {
-          'description': item.description.trim(),
-          'amountMinor': item.amountMinor,
-          'dayOfMonth': item.dayOfMonth,
-          'updatedAt': FieldValue.serverTimestamp(),
-        })
-        ..update(budgetRef, {
-          'plannedAmountMinor': updatedTotal,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-    });
+      ),
+    }, requestId);
   }
 
   @override
-  Future<void> deleteBudgetItem(String userId, String budgetId, String itemId) async {
-    final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
-    final itemsRef = budgetRef.collection('items');
-    final itemRef = budgetRef.collection('items').doc(itemId);
-    await _firestore.runTransaction((transaction) async {
-      final budget = await transaction.get(budgetRef);
-      final item = await transaction.get(itemRef);
-      if (!budget.exists || !item.exists) throw StateError('Budget item not found.');
-      final data = budget.data()!;
-      final count = await _budgetItemCount(transaction, budgetRef, itemsRef, data);
-      if (count <= 1) throw StateError('budget-last-item');
-      if (item.data()?['status'] == 'archived') throw StateError('Budget item is archived.');
-      final total = (data['plannedAmountMinor'] as num? ?? 0).toInt();
-      final amount = (item.data()?['amountMinor'] as num? ?? 0).toInt();
-      final updatedTotal = total >= amount ? total - amount : 0;
-      transaction
-        ..update(itemRef, {
-          'status': 'archived',
-          'archivedAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        })
-        ..update(budgetRef, {
-          'plannedAmountMinor': updatedTotal,
-          'itemCount': count - 1,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-    });
+  Future<void> deleteBudgetItem(
+    String userId,
+    String budgetId,
+    String itemId, {
+    String? requestId,
+  }) async {
+    await _budgetCommand(userId, 'archiveItem', {
+      'budgetId': budgetId,
+      'itemId': itemId,
+    }, requestId);
   }
 
   @override
-  Future<void> archiveBudget(String userId, String budgetId) =>
-      _userCollection(userId, 'budgets').doc(budgetId).update({
-        'status': 'archived',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-  Future<int> _budgetItemCount(
-    Transaction transaction,
-    DocumentReference<Map<String, dynamic>> budgetRef,
-    CollectionReference<Map<String, dynamic>> itemsRef,
-    Map<String, dynamic> budgetData,
-  ) async {
-    final itemDocs = await itemsRef.get();
-    final count = itemDocs.docs.where((document) => document.data()['status'] != 'archived').length;
-    transaction.update(budgetRef, {'itemCount': count});
-    return count;
+  Future<void> archiveBudget(String userId, String budgetId, {String? requestId}) async {
+    await _budgetCommand(userId, 'archiveBudget', {'budgetId': budgetId}, requestId);
   }
 
   @override
@@ -744,99 +720,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required String monthKey,
     required String currency,
     required List<CanonicalBudgetItemDraft> items,
+    String? requestId,
   }) async {
-    if (items.isEmpty) throw ArgumentError('A budget requires at least one item.');
-    if (flowType != 'income' && flowType != 'expense') {
-      throw ArgumentError('Invalid budget flow type.');
-    }
-    final budgetId = '${monthKey}_${flowType}_${categoryId}_$currency';
-    final budgetRef = _userCollection(userId, 'budgets').doc(budgetId);
-    final total = items.fold<int>(0, (totalSoFar, item) {
-      _validateBudgetItem(item, currency, monthKey);
-      final updatedTotal = totalSoFar + item.amountMinor;
-      if (updatedTotal > MoneyParser.maxMinorUnits(currency)) {
-        throw ArgumentError('Budget total exceeds the maximum amount.');
-      }
-      return updatedTotal;
-    });
-    // Firestore transactions accept document references (not collection
-    // queries); fetch the existing IDs first, then re-read each document in
-    // the transaction before any writes if this budget is being reactivated.
-    final previousItemIds = (await budgetRef.collection('items').get()).docs
-        .map((document) => document.id)
-        .toList(growable: false);
-    await _firestore.runTransaction((transaction) async {
-      final existing = await transaction.get(budgetRef);
-      if (existing.exists) {
-        final existingData = existing.data()!;
-        if (existingData['status'] != 'archived') {
-          throw StateError('A budget already exists for this category and month.');
-        }
-        if (existingData['categoryId'] != categoryId ||
-            existingData['flowType'] != flowType ||
-            existingData['monthKey'] != monthKey ||
-            existingData['currency'] != currency) {
-          throw StateError('An archived budget has conflicting identity data.');
-        }
-        // Preserve old item documents and operation links, but archive any
-        // items left active by the previous budget archive. The recreated
-        // budget then starts with only its newly submitted items.
-        final previousItems = <DocumentSnapshot<Map<String, dynamic>>>[];
-        for (final itemId in previousItemIds) {
-          final previousItem = await transaction.get(budgetRef.collection('items').doc(itemId));
-          if (previousItem.exists && previousItem.data()?['status'] != 'archived') {
-            previousItems.add(previousItem);
-          }
-        }
-        for (final previousItem in previousItems) {
-          transaction.update(previousItem.reference, {
-            'status': 'archived',
-            'archivedAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-        transaction.update(budgetRef, {
-          'plannedAmountMinor': total,
-          'itemCount': items.length,
-          'status': 'active',
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        transaction.set(budgetRef, {
-          'categoryId': categoryId,
-          'flowType': flowType,
-          'monthKey': monthKey,
-          'currency': currency,
-          'plannedAmountMinor': total,
-          'itemCount': items.length,
-          'status': 'active',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      for (final item in items) {
-        final itemRef = budgetRef.collection('items').doc();
-        transaction.set(itemRef, {
-          'description': item.description.trim(),
-          'amountMinor': item.amountMinor,
-          'dayOfMonth': item.dayOfMonth,
-          'actualAmountMinor': 0,
-          'status': 'active',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    });
-    return {
-      'id': budgetId,
+    final result = await _budgetCommand(userId, 'create', {
       'categoryId': categoryId,
       'flowType': flowType,
       'monthKey': monthKey,
       'currency': currency,
-      'plannedAmountMinor': total,
-      'status': 'active',
-      'items': items,
-    };
+      'items': items.map(_itemPayload).toList(),
+    }, requestId);
+    return Map<String, dynamic>.from(result['budget'] as Map);
   }
 
   @override
@@ -906,22 +799,6 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   }
 
   bool _validCurrency(String currency) => RegExp(r'^[A-Z]{3}$').hasMatch(currency);
-
-  void _validateBudgetItem(CanonicalBudgetItemDraft item, String currency, String monthKey) {
-    final monthParts = monthKey.split('-');
-    final year = monthParts.length == 2 ? int.tryParse(monthParts[0]) : null;
-    final month = monthParts.length == 2 ? int.tryParse(monthParts[1]) : null;
-    final daysInMonth = year == null || month == null || month < 1 || month > 12
-        ? 0
-        : DateTime(year, month + 1, 0).day;
-    if (item.description.trim().isEmpty ||
-        item.amountMinor <= 0 ||
-        item.amountMinor > MoneyParser.maxMinorUnits(currency) ||
-        item.dayOfMonth < 1 ||
-        item.dayOfMonth > daysInMonth) {
-      throw ArgumentError('Budget item has invalid description, amount or day for its month.');
-    }
-  }
 
   String _monthKey(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';

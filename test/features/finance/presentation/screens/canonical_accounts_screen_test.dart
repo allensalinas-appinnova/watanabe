@@ -63,7 +63,7 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    expect(find.text('LumioMoney'), findsOneWidget);
+    expect(find.text('LumioMoney'), findsNothing);
     expect(find.text('Tus cuentas'), findsOneWidget);
     expect(find.text('Saldos organizados por moneda'), findsOneWidget);
     expect(find.text('COP · Cuenta de ahorros'), findsOneWidget);

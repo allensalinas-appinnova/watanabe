@@ -22,10 +22,12 @@ import '../../features/finance/presentation/screens/canonical_budget_tracking_sc
 import '../../features/finance/presentation/screens/canonical_budgets_screen.dart';
 import '../../features/finance/presentation/screens/canonical_categories_screen.dart';
 import '../../features/finance/presentation/screens/canonical_home_screen.dart';
+import '../../features/finance/presentation/screens/canonical_more_screen.dart';
 import '../../features/finance/presentation/screens/canonical_onboarding_screen.dart';
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
 import '../di/injection.dart';
+import '../firebase/firebase_bootstrap.dart';
 import 'app_shell.dart';
 import 'authenticated_route_resolver.dart';
 
@@ -51,9 +53,11 @@ GoRouter get appRouter => _router ??= _buildAppRouter();
 GoRouter _buildAppRouter() => GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/login',
-  refreshListenable: AuthRefreshListenable(FirebaseAuth.instance.authStateChanges()),
+  refreshListenable: AuthRefreshListenable(
+    FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).authStateChanges(),
+  ),
   redirect: (context, state) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser;
     return resolveAuthenticatedRoute(
       authenticated: user != null,
       matchedLocation: state.matchedLocation,
@@ -75,7 +79,10 @@ GoRouter _buildAppRouter() => GoRouter(
       builder: (context, state) => const SessionRecoveryScreen(),
     ),
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) => AppShell(
+        navigationShell: navigationShell,
+        currentLocation: state.uri.path,
+      ),
       branches: [
         StatefulShellBranch(
           routes: [
@@ -126,7 +133,6 @@ GoRouter _buildAppRouter() => GoRouter(
                 GoRoute(
                   path: ':id',
                   name: 'budget-detail',
-                  parentNavigatorKey: _rootNavigatorKey,
                   builder: (context, state) => CanonicalBudgetDetailScreen(
                     budgetId: state.pathParameters['id']!,
                   ),
@@ -209,6 +215,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/onboarding',
       name: 'onboarding',
       builder: (context, state) => const CanonicalOnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/more',
+      name: 'more',
+      builder: (context, state) => const CanonicalMoreScreen(),
     ),
     GoRoute(
       path: '/categories',

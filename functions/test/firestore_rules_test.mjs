@@ -63,6 +63,7 @@ test('category colors accept valid ARGB values and reject malformed values witho
 
 test('clients cannot write calculated balances or monthly summaries', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
+  const bob = environment.authenticatedContext('bob').firestore();
   const account = alice.collection('users').doc('alice').collection('accounts').doc('cash');
   await assertSucceeds(alice.collection('users').doc('alice').set(userProfile()));
   await assertSucceeds(account.set({
@@ -75,6 +76,17 @@ test('clients cannot write calculated balances or monthly summaries', async () =
     alice.collection('users').doc('alice').collection('monthlySummaries').doc('2026-10_COP')
       .set({monthKey: '2026-10', currency: 'COP'}),
   );
+  const event = alice.collection('users').doc('alice').collection('balanceAdjustments').doc('request-12345678');
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('users/alice/balanceAdjustments/request-12345678').set({
+      adjustedAt: Timestamp.now(), adjustments: [], digest: 'private',
+    });
+  });
+  await assertSucceeds(event.get());
+  await assertFails(event.set({adjustments: []}));
+  await assertFails(event.update({adjustments: []}));
+  await assertFails(event.delete());
+  await assertFails(bob.collection('users').doc('alice').collection('balanceAdjustments').doc('request-12345678').get());
 });
 
 test('invalid operation amounts and cross-account transfers are rejected', async () => {
@@ -127,66 +139,42 @@ test('amount cap is enforced for operations, account opening balances and budget
   await assertSucceeds(operation('valid-amount', 1000000000));
   await assertFails(operation('large-amount', 1000000001));
 
-  const budget = user.collection('budgets').doc('max-budget');
-  await assertSucceeds(budget.set({
+  await assertFails(user.collection('budgets').doc('max-budget').set({
     categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
     plannedAmountMinor: 1000000000, itemCount: 1, status: 'active',
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   }));
-  await assertFails(user.collection('budgets').doc('large-budget').set({
-    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
-    plannedAmountMinor: 1000000001, itemCount: 1, status: 'active',
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  }));
-  await assertSucceeds(budget.collection('items').doc('within-limit').set({
-    description: 'Within limit', amountMinor: 1000000000, dayOfMonth: 31,
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  }));
-  await assertFails(budget.collection('items').doc('over-limit').set({
-    description: 'Over limit', amountMinor: 1000000001, dayOfMonth: 31,
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  }));
 });
 
-test('itemized budgets can create the parent and items atomically', async () => {
+test('budgets and items are owner-readable but all direct writes are denied', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
-  const user = alice.collection('users').doc('alice');
-  const budget = user.collection('budgets').doc('2026-10_expense_food_COP');
-  const category = user.collection('categories').doc('food');
-  await assertSucceeds(user.set(userProfile()));
-  await assertSucceeds(category.set({
-    type: 'expense', name: 'Comida', icon: 'restaurant', sortOrder: 1,
-    isSystem: false, isArchived: false,
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  }));
-
+  const bob = environment.authenticatedContext('bob').firestore();
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const budget = context.firestore().doc('users/alice/budgets/budget');
+    await budget.set({categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
+      plannedAmountMinor: 1000, itemCount: 1, status: 'active'});
+    await budget.collection('items').doc('item').set({description: 'Item', amountMinor: 1000, dayOfMonth: 1, actualAmountMinor: 0});
+  });
+  const budget = alice.doc('users/alice/budgets/budget');
+  const item = budget.collection('items').doc('item');
+  await assertSucceeds(budget.get());
+  await assertSucceeds(alice.collection('users/alice/budgets').where('monthKey', '==', '2026-10').get());
+  await assertSucceeds(budget.collection('items').orderBy('dayOfMonth').get());
+  await assertFails(bob.doc('users/alice/budgets/budget').get());
+  await assertFails(bob.doc('users/alice/budgets/budget/items/item').get());
+  await assertFails(environment.unauthenticatedContext().firestore().collection('users/alice/budgets').get());
+  await assertFails(budget.update({plannedAmountMinor: 1001}));
+  await assertFails(budget.update({status: 'archived'}));
+  await assertFails(budget.delete());
+  await assertFails(item.update({amountMinor: 1001}));
+  await assertFails(item.update({description: 'x'.repeat(1000000)}));
+  await assertFails(item.update({actualAmountMinor: 100}));
+  await assertFails(item.delete());
+  await assertFails(budget.collection('items').doc('new').set({description: 'Valid', amountMinor: 1, dayOfMonth: 1}));
   const batch = alice.batch();
-  batch.set(budget, {
-    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
-    plannedAmountMinor: 150000, itemCount: 2, status: 'active',
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  });
-  batch.set(budget.collection('items').doc('item-1'), {
-    description: 'Comidas', amountMinor: 100000, dayOfMonth: 15,
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  });
-  batch.set(budget.collection('items').doc('item-2'), {
-    description: 'Bebidas', amountMinor: 50000, dayOfMonth: 16,
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  });
-  await assertSucceeds(batch.commit());
-
-  const archiveItem = alice.batch();
-  archiveItem.update(budget, {
-    plannedAmountMinor: 100000, itemCount: 1, updatedAt: Timestamp.now(),
-  });
-  archiveItem.update(budget.collection('items').doc('item-2'), {
-    status: 'archived', archivedAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  });
-  await assertSucceeds(archiveItem.commit());
-  await assertFails(budget.collection('items').doc('item-2').delete());
-  const archivedItem = await budget.collection('items').doc('item-2').get();
-  assert.equal(archivedItem.data().status, 'archived');
+  batch.update(budget, {plannedAmountMinor: 2000, itemCount: 2});
+  batch.set(budget.collection('items').doc('batch-item'), {description: 'Valid', amountMinor: 1000, dayOfMonth: 1});
+  await assertFails(batch.commit());
 });
 
 test('budget-linked operations require a complete matching item, including archived history', async () => {
@@ -206,17 +194,13 @@ test('budget-linked operations require a complete matching item, including archi
     currentBalanceMinor: 0, includeInDashboard: true, status: 'active',
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   }));
-  const setup = alice.batch();
-  setup.set(budget, {
-    categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP',
-    plannedAmountMinor: 10000, itemCount: 1, status: 'active',
-    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const adminBudget = context.firestore().doc(budget.path);
+    await adminBudget.set({categoryId: 'food', flowType: 'expense', monthKey: '2026-10',
+      currency: 'COP', plannedAmountMinor: 10000, itemCount: 1, status: 'active'});
+    await adminBudget.collection('items').doc(item.id).set({description: 'Comida',
+      amountMinor: 10000, dayOfMonth: 20, actualAmountMinor: 0, status: 'active'});
   });
-  setup.set(item, {
-    description: 'Comida', amountMinor: 10000, dayOfMonth: 20,
-    actualAmountMinor: 0, status: 'active', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  });
-  await assertSucceeds(setup.commit());
 
   const operation = (id, overrides = {}) => user.collection('operations').doc(id).set({
     type: 'expense', amountMinor: 1000, currency: 'COP', categoryId: 'food', accountId: 'cash',
@@ -231,14 +215,28 @@ test('budget-linked operations require a complete matching item, including archi
   await assertFails(operation('linked-wrong-currency', {currency: 'MXN'}));
 
   const legacyItem = user.collection('budgets').doc(budget.id).collection('items').doc('legacy-item');
-  await assertSucceeds(legacyItem.set({
-    description: 'Elemento heredado', amountMinor: 5000, dayOfMonth: 15,
-    actualAmountMinor: 0, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
-  }));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc(legacyItem.path).set({
+      description: 'Elemento heredado', amountMinor: 5000, dayOfMonth: 15, actualAmountMinor: 0,
+    });
+  });
   await assertSucceeds(operation('linked-legacy-item', {budgetItemId: legacyItem.id}));
 
-  await item.update({status: 'archived', archivedAt: Timestamp.now(), updatedAt: Timestamp.now()});
+  await environment.withSecurityRulesDisabled(async (context) => context.firestore().doc(item.path).update({status: 'archived'}));
   await assertSucceeds(operation('linked-archived-item'));
-  await budget.update({status: 'archived', updatedAt: Timestamp.now()});
+  await environment.withSecurityRulesDisabled(async (context) => context.firestore().doc(budget.path).update({status: 'archived'}));
   await assertSucceeds(operation('linked-archived-budget', {budgetItemId: legacyItem.id}));
+});
+
+test('command receipts cannot be read or changed by any client', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('users/alice/budgetCommands/request-1').set({digest: 'server-only', result: {}});
+  });
+  for (const context of [environment.authenticatedContext('alice'), environment.authenticatedContext('bob'), environment.unauthenticatedContext()]) {
+    const receipt = context.firestore().doc('users/alice/budgetCommands/request-1');
+    await assertFails(receipt.get());
+    await assertFails(receipt.set({digest: 'forged', result: {}}));
+    await assertFails(receipt.update({digest: 'forged'}));
+    await assertFails(receipt.delete());
+  }
 });

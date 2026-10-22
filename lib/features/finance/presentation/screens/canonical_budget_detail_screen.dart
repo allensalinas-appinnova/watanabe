@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_category.dart';
@@ -18,6 +20,7 @@ import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../models/budget_item_movement_preset.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/budget_command_message.dart';
 import '../widgets/finance_category_icon.dart';
 
 class CanonicalBudgetDetailScreen extends ConsumerWidget {
@@ -36,6 +39,12 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
     final itemsState = ref.watch(canonicalFinanceRepositoryItemsProvider(budgetKey));
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: FinanceRouteHeader(
+        title: l10n.budgetDetailTitle,
+        backLabel: l10n.budgetBackToBudgets,
+        backButtonKey: const ValueKey('budget_detail_back'),
+        onBack: () => popOrGo(context, '/budgets'),
+      ),
       body: SafeArea(
         child: budgetState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -145,23 +154,6 @@ class _BudgetDetailContent extends ConsumerWidget {
             key: const ValueKey('budget_detail_scroll'),
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
             children: [
-              Text(
-                l10n.appTitle,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.blueDark,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              TextButton.icon(
-                key: const ValueKey('budget_detail_back'),
-                onPressed: () => context.pop(),
-                style: TextButton.styleFrom(
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.zero,
-                ),
-                icon: const Icon(Icons.chevron_left, size: 20),
-                label: Text(l10n.budgetBackToBudgets),
-              ),
               const SizedBox(height: 8),
               Text(
                 categoryName,
@@ -327,6 +319,11 @@ class _BudgetDetailContent extends ConsumerWidget {
         ..invalidate(canonicalFinanceRepositoryItemsProvider((userId: userId, budgetId: budget.id)))
         ..invalidate(canonicalBudgetProvider((userId: userId, budgetId: budget.id)))
         ..invalidate(canonicalBudgetsProvider((userId: userId, monthKey: budget.monthKey)));
+    } on BudgetCommandException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(budgetCommandMessage(l10n, error.issue))));
     } catch (error) {
       if (!context.mounted) return;
       final isLastItem = error.toString().contains('budget-last-item');
@@ -382,6 +379,9 @@ class _BudgetDetailContent extends ConsumerWidget {
 }
 
 String _budgetArchiveFailureMessage(AppLocalizations l10n, Failure failure) {
+  if (failure.technicalCode?.startsWith('budget-') == true) {
+    return budgetCommandMessage(l10n, BudgetCommandException.fromFailure(failure).issue);
+  }
   final code =
       failure.technicalCode != null && RegExp(r'^[a-z0-9-]{1,48}$').hasMatch(failure.technicalCode!)
       ? failure.technicalCode!

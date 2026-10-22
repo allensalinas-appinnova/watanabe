@@ -1,6 +1,11 @@
+---
+title: Architecture hardening follow-up
+summary: Implemented architecture improvements and remaining verification and release gates.
+---
+
 # Architecture hardening follow-up
 
-Updated: 2026-10-21. This records implementation and remaining release work; it
+Updated: 2026-10-22. This records implementation and remaining release work; it
 does not imply that unavailable staging/device checks have passed.
 
 ## Delivered in this slice
@@ -16,24 +21,36 @@ does not imply that unavailable staging/device checks have passed.
   trigger enables automatic retry.
 - Pull requests and `main` pushes run Flutter analysis/tests, Functions build,
   and Firestore Rules tests against the `demo-clearbudget` emulator project.
-- This checkout currently passes `flutter analyze`, **158 Flutter tests**, the
-  Functions build plus **3 projection-delta tests**, and **8 Firestore Rules
-  Emulator tests**. The full device E2E has not been run in this environment.
+- The current checkout passes `flutter analyze`, **165 Flutter tests**, the
+  Functions build, **3 projection-delta tests**, **17 projection persistence/audit
+  tests**, **1 real-trigger test**, **8 budget transaction tests**, **1 authenticated
+  callable test**, and **9 Firestore Rules Emulator tests**. Device/rollout
+  qualification is recorded separately in [budget commands](budget-commands.md).
+
+The follow-up separates calculation and transactional persistence from the
+trigger, completes summary metadata, and adds a read-only projection audit plus
+Firestore transaction and Functions trigger emulator coverage. See
+[projection integrity and diagnosis](projection-audit.md) for execution,
+exit codes, privacy and concurrency limits.
 
 ## Remaining architectural actions
 
-1. **Budget aggregate authority (high).** Firestore Rules can validate the
-   `plannedAmountMinor` and `itemCount` field shapes but cannot sum a dynamic
-   subcollection. The client currently updates parent aggregates atomically with
-   item writes. Decide whether to keep that as an explicitly trusted-client
-   invariant or move aggregate maintenance behind a trusted server command.
-   Before changing it, add emulator tests proving inconsistent parent/item
-   totals are rejected and preserve immediate budget-list feedback.
-2. **Projection reconciliation (high).** Automatic retries now recover transient
-   Function failures, but there is no scheduled repair for historical missed
-   events or manual corruption. Add a dry-run-first reconciliation command,
-   drift metrics and an operator alert; validate against staging before enabling
-   writes. No real project was touched by this change.
+1. **Budget aggregate authority: implemented and deployed.** The authenticated
+   `mutateBudget` callable now recalculates totals/counts from active items in
+   the same transaction as item writes and an idempotent command receipt.
+   Rules deny direct client mutations, including coherent-looking aggregates.
+   The callable access check, physical iPhone startup and coordinated rules
+   deployment passed on 2026-10-22. See [budget commands](budget-commands.md)
+   for evidence, compatibility limits and rollback. Production financial
+   mutations were not used as test fixtures; hosted CI and Android release
+   signing remain separate qualification gaps.
+2. **Projection reconciliation (high).** The read-only audit now diagnoses
+   differences; historical repair, drift metrics and operator alerts remain
+   pending. Validate a future repair design against staging before enabling
+   writes. The projection trigger follow-up was separately deployed to
+   `lumiomoney` on 2026-10-22 and verified active with retries enabled; see
+   [projection deployment evidence](projection-audit.md). No historical
+   repair or real-user diagnostic run was performed.
 3. **Layering (medium).** `canonical_finance_providers.dart`, the Firestore
    datasource and the largest screens remain oversized. Extract report and
    budget orchestration into feature use cases/controllers in small vertical

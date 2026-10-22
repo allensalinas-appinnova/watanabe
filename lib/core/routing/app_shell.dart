@@ -15,9 +15,10 @@ import '../../features/finance/presentation/widgets/movement_action_sheet.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({required this.navigationShell, super.key});
+  const AppShell({required this.navigationShell, this.currentLocation = '/home', super.key});
 
   final StatefulNavigationShell navigationShell;
+  final String currentLocation;
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -43,14 +44,24 @@ class _AppShellState extends ConsumerState<AppShell> {
         .where((operation) => operation.status == 'pending' || operation.status == 'syncing')
         .length;
     final rejected = pendingOperations.any((operation) => operation.status == 'rejected');
+    final hasSyncNotice = activePending > 0 || rejected;
+    final isSectionRoot = const {
+      '/home',
+      '/activity',
+      '/budgets',
+      '/accounts',
+    }.contains(widget.currentLocation);
+    final hideFabForConsultation =
+        widget.currentLocation == '/budgets/tracking' ||
+        RegExp(r'^/budgets/[^/]+$').hasMatch(widget.currentLocation);
     return Scaffold(
-      body: Column(
-        children: [
-          if (activePending > 0 || rejected)
-            Material(
-              color: rejected ? const Color(0xFFFFF1F0) : AppColors.blueSoft,
-              child: SafeArea(
-                bottom: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            if (hasSyncNotice)
+              Material(
+                color: rejected ? const Color(0xFFFFF1F0) : AppColors.blueSoft,
                 child: Padding(
                   padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 8, 8),
                   child: Row(
@@ -78,11 +89,38 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
               ),
-            ),
-          Expanded(child: widget.navigationShell),
-        ],
+            if (isSectionRoot)
+              SizedBox(
+                height: 52,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 8, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).appTitle,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.blueDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        key: const ValueKey('global_more_action'),
+                        tooltip: AppLocalizations.of(context).more,
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                        onPressed: () => context.push('/more'),
+                        icon: const Icon(Icons.more_horiz, size: 26),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Expanded(child: widget.navigationShell),
+          ],
+        ),
       ),
-      floatingActionButton: _showingSheet || _openingForm
+      floatingActionButton: _showingSheet || _openingForm || hideFabForConsultation
           ? null
           : ExcludeSemantics(
               excluding: !showFab,

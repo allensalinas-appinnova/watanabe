@@ -27,6 +27,87 @@ void main() {
     );
   });
 
+  test('Performance collection is enabled only for staging/prod outside Emulator', () async {
+    for (final environment in AppEnvironment.values) {
+      for (final useEmulators in [false, true]) {
+        bool? enabled;
+        final client = _FakePerformanceClient(onCollectionEnabled: (value) => enabled = value);
+        final observability = FirebaseObservability(
+          environment,
+          useEmulators: useEmulators,
+          performanceTraceClient: client,
+        );
+        await observability.configurePerformanceCollection();
+        final expected =
+            !useEmulators &&
+            (environment == AppEnvironment.staging || environment == AppEnvironment.prod);
+        expect(observability.isPerformanceCollectionEnabled, expected);
+        expect(enabled, expected);
+      }
+    }
+  });
+
+  test('disabled Performance policy never starts a trace and preserves operation result', () async {
+    final client = _FakePerformanceClient();
+    final observability = FirebaseObservability(
+      AppEnvironment.dev,
+      performanceTraceClient: client,
+    );
+    await observability.configurePerformanceCollection();
+
+    final result = await observability.tracePerformance(
+      PerformanceTraceName.operationSave,
+      () async => 'saved',
+    );
+
+    expect(result, 'saved');
+    expect(client.startedNames, isEmpty);
+  });
+
+  test('enabled traces stop on both success and failure without changing the outcome', () async {
+    final client = _FakePerformanceClient();
+    final observability = FirebaseObservability(
+      AppEnvironment.staging,
+      performanceTraceClient: client,
+    );
+    await observability.configurePerformanceCollection();
+
+    expect(
+      await observability.tracePerformance(
+        PerformanceTraceName.homeInitialLoad,
+        () async => 42,
+      ),
+      42,
+    );
+    await expectLater(
+      observability.tracePerformance<void>(
+        PerformanceTraceName.budgetSave,
+        () async => throw StateError('private budget data'),
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(client.startedNames, ['home_initial_load', 'budget_save']);
+    expect(client.spans.map((span) => span.stopCount), [1, 1]);
+  });
+
+  test('Performance SDK failures do not mask measured action failures', () async {
+    final client = _FakePerformanceClient(failStart: true, failStop: true);
+    final observability = FirebaseObservability(
+      AppEnvironment.prod,
+      performanceTraceClient: client,
+    );
+    await observability.configurePerformanceCollection();
+
+    expect(
+      await observability.tracePerformance(
+        PerformanceTraceName.operationSave,
+        () async => 'original result',
+      ),
+      'original result',
+    );
+  });
+
   test('Crashlytics collection is enabled only for staging/prod, not Emulator', () async {
     for (final environment in AppEnvironment.values) {
       for (final useEmulators in [false, true]) {
@@ -140,4 +221,43 @@ void main() {
     expect(error.toString(), isNot(contains('COP')));
     expect(error.toString(), isNot(contains('amount')));
   });
+}
+
+class _FakePerformanceClient implements PerformanceTraceClient {
+  _FakePerformanceClient({
+    this.onCollectionEnabled,
+    this.failStart = false,
+    this.failStop = false,
+  });
+
+  final void Function(bool)? onCollectionEnabled;
+  final bool failStart;
+  final bool failStop;
+  final startedNames = <String>[];
+  final spans = <_FakePerformanceSpan>[];
+
+  @override
+  Future<void> setCollectionEnabled(bool enabled) async => onCollectionEnabled?.call(enabled);
+
+  @override
+  Future<PerformanceTraceSpan> startTrace(String name) async {
+    if (failStart) throw StateError('SDK error');
+    startedNames.add(name);
+    final span = _FakePerformanceSpan(failStop: failStop);
+    spans.add(span);
+    return span;
+  }
+}
+
+class _FakePerformanceSpan implements PerformanceTraceSpan {
+  _FakePerformanceSpan({required this.failStop});
+
+  final bool failStop;
+  int stopCount = 0;
+
+  @override
+  Future<void> stop() async {
+    stopCount++;
+    if (failStop) throw StateError('SDK error');
+  }
 }

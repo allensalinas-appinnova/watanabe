@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {calculateProjectionDeltas} from '../lib/index.js';
+import {calculateProjectionDeltas} from '../lib/projection_model.js';
 
 const operation = (overrides = {}) => ({
   type: 'expense', amountMinor: 1200, currency: 'COP', monthKey: '2026-10',

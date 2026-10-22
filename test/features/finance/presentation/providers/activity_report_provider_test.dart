@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/offline/pending_operation_queue.dart';
+import 'package:personal_finance/features/finance/domain/entities/balance_adjustment.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/domain/entities/operation_page.dart';
 import 'package:personal_finance/features/finance/domain/repositories/canonical_finance_repository.dart';
@@ -55,6 +56,9 @@ void main() {
       overrides: [
         canonicalFinanceRepositoryProvider.overrideWithValue(repository),
         pendingOperationsProvider.overrideWith((ref) => Stream.value(const <PendingOperation>[])),
+        balanceAdjustmentsProvider.overrideWith(
+          (ref, userId) => Stream.value(const <BalanceAdjustmentEvent>[]),
+        ),
       ],
     );
     addTearDown(container.dispose);

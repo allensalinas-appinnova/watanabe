@@ -41,16 +41,16 @@ void main() {
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
     await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
   testWidgets('captures the Android P0 screens for visual acceptance', (tester) async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     debugPrint('VQA checkpoint: pump login');
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
     await _waitFor(tester, find.byKey(const ValueKey('auth_guest_button')));
@@ -59,9 +59,13 @@ void main() {
     await _capture(tester, binding, '01_login');
     debugPrint('VQA checkpoint: login captured');
 
-    final credential = await FirebaseAuth.instance.signInAnonymously();
+    final credential = await FirebaseAuth.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).signInAnonymously();
     final userId = credential.user!.uid;
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+    final userRef = FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(userId);
     await userRef.set({
       'locale': 'es',
       'countryCode': 'CO',
@@ -107,17 +111,13 @@ void main() {
     appRouter.go('/home');
     await _waitFor(tester, find.byKey(const ValueKey('global_add_operation')));
     debugPrint('VQA checkpoint: onboarding state seeded and home visible');
-    final accounts = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('accounts')
-        .get();
+    final accounts = await FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(userId).collection('accounts').get();
     final mainAccount = accounts.docs.firstWhere((doc) => doc.id != secondAccount.id);
-    final categories = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('categories')
-        .get();
+    final categories = await FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(userId).collection('categories').get();
     final incomeCategory = categories.docs.firstWhere((doc) => doc.data()['type'] == 'income');
     final expenseCategory = categories.docs.firstWhere((doc) => doc.data()['type'] == 'expense');
     final now = DateTime.now();

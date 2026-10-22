@@ -20,7 +20,10 @@ import 'package:personal_finance/l10n/generated/app_localizations.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() async {
+  Object? initializationError;
+  StackTrace? initializationStack;
+
+  Future<void> initializeEmulators() async {
     const host = String.fromEnvironment('FIREBASE_EMULATOR_HOST', defaultValue: '127.0.0.1');
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
     try {
@@ -34,19 +37,49 @@ void main() {
     } finally {
       client.close(force: true);
     }
-    await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
-    await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseBootstrap.initialize(
+      AppEnvironment.dev,
+      useEmulators: true,
+      emulatorHost: host,
+    ).timeout(
+      const Duration(seconds: 20),
+      onTimeout: () => throw StateError('e2e-firebase-bootstrap-timeout'),
+    );
+    debugPrint('budget_e2e_firebase_ready');
+    await configureDependencies(useEmulators: true).timeout(
+      const Duration(seconds: 20),
+      onTimeout: () => throw StateError('e2e-dependencies-timeout'),
+    );
+    debugPrint('budget_e2e_dependencies_ready');
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut().timeout(
+      const Duration(seconds: 20),
+      onTimeout: () => throw StateError('e2e-auth-signout-timeout'),
+    );
+    debugPrint('budget_e2e_auth_ready');
+  }
+
+  setUpAll(() async {
+    try {
+      await initializeEmulators().timeout(const Duration(seconds: 75));
+    } catch (error, stack) {
+      // Report setup failures from the widget test: integrationDriver does not
+      // reliably count a failing setUpAll as a failed test.
+      initializationError = error;
+      initializationStack = stack;
+    }
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
   testWidgets('registers and creates expense and income budgets with multiple items', (
     tester,
   ) async {
+    if (initializationError != null) {
+      Error.throwWithStackTrace(initializationError!, initializationStack!);
+    }
     final email = 'budget-${DateTime.now().microsecondsSinceEpoch}@example.test';
     const password = 'ClearBudget-E2E-123';
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
@@ -64,8 +97,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    await tester.tap(find.byKey(const ValueKey('nav_budget')));
+    final uid = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser!.uid;
+    await tester.tap(find.byKey(const ValueKey('finance_nav_budget')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_empty_create')));
     await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
@@ -89,7 +122,9 @@ void main() {
     await _pumpUntil(tester, find.byKey(const ValueKey('budgets_create_button')));
     final monthKey = _currentMonthKey();
     final expenseBudgetKey = ValueKey('budget_card_${monthKey}_expense_food_COP');
-    final user = FirebaseFirestore.instance.collection('users').doc(uid);
+    final user = FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(uid);
     final expenseId = '${monthKey}_expense_food_COP';
     await _pumpUntil(tester, find.byKey(expenseBudgetKey));
     expect(find.text('Alimentación'), findsOneWidget);
@@ -156,17 +191,23 @@ void main() {
         .get(const GetOptions(source: Source.server));
     expect(editedExpense.data()?['plannedAmountMinor'], 325000);
     expect(editedExpense.data()?['itemCount'], 1);
-    expect(editedItems.docs, hasLength(1));
-    expect(editedItems.docs.single.data()['description'], 'Mercado quincenal');
+    final activeEditedItems = editedItems.docs
+        .where((doc) => doc.data()['status'] != 'archived')
+        .toList();
+    expect(activeEditedItems, hasLength(1));
+    expect(editedItems.docs, hasLength(2), reason: 'Removed items preserve their history.');
+    expect(activeEditedItems.single.data()['description'], 'Mercado quincenal');
     final lastItemDeletion = await getIt<CanonicalFinanceRepository>().deleteBudgetItem(
       uid,
       expenseId,
-      editedItems.docs.single.id,
+      activeEditedItems.single.id,
     );
     final lastItemFailure = lastItemDeletion.match((failure) => failure, (_) => null);
     expect(lastItemFailure, isA<ConflictFailure>());
     expect(
-      (await editedItems.docs.single.reference.get(const GetOptions(source: Source.server))).exists,
+      (await activeEditedItems.single.reference.get(
+        const GetOptions(source: Source.server),
+      )).exists,
       isTrue,
     );
     expect(find.byKey(const ValueKey('budget_item_remove')), findsNothing);
@@ -193,6 +234,11 @@ void main() {
           .controller!
           .text,
       'Intento duplicado',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budget_create_back')),
+      -400,
+      scrollable: find.descendant(of: find.byType(Form), matching: find.byType(Scrollable)).first,
     );
     await tester.tap(find.byKey(const ValueKey('budget_create_back')));
     await tester.pumpAndSettle();
@@ -247,10 +293,13 @@ void main() {
         .doc(incomeId)
         .collection('items')
         .get(const GetOptions(source: Source.server));
-    expect(expenseItems.docs, hasLength(1));
+    final activeExpenseItems = expenseItems.docs
+        .where((doc) => doc.data()['status'] != 'archived')
+        .toList();
+    expect(activeExpenseItems, hasLength(1));
     expect(incomeItems.docs, hasLength(2));
     expect(
-      expenseItems.docs.fold<int>(
+      activeExpenseItems.fold<int>(
         0,
         (totalMinor, doc) => totalMinor + (doc.data()['amountMinor'] as int),
       ),
@@ -392,7 +441,19 @@ void main() {
     await tester.ensureVisible(expenseCardTap);
     await tester.tap(expenseCardTap);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_archive_button')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budget_archive_button')).hitTestable(),
+      400,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('budget_detail_scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_archive_button')).hitTestable());
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('confirm_budget_archive')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('confirm_budget_archive')));
@@ -418,22 +479,22 @@ Future<void> _createBudget(
 }) async {
   for (var index = 0; index < items.length; index++) {
     if (index > 0) {
-      await tester.ensureVisible(find.byKey(const ValueKey('budget_add_item')));
+      await _revealFormField(tester, find.byKey(const ValueKey('budget_add_item')), -300);
       await tester.tap(find.byKey(const ValueKey('budget_add_item')));
       await tester.pumpAndSettle();
     }
     final description = find.byKey(ValueKey('budget_item_description_$index'));
     final amount = find.byKey(ValueKey('budget_item_amount_$index'));
-    await tester.ensureVisible(description);
+    await _revealFormField(tester, description, 300);
     await tester.enterText(description, items[index].$1);
-    await tester.ensureVisible(amount);
+    await _revealFormField(tester, amount, 300);
     await tester.enterText(amount, items[index].$2);
     await tester.pumpAndSettle();
   }
   tester.binding.focusManager.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
   final category = find.byKey(const ValueKey('budget_category_selector'));
-  await tester.ensureVisible(category);
+  await _revealFormField(tester, category, -300);
   await tester.tap(category);
   await tester.pumpAndSettle();
   final categoryId = switch (categoryLabel) {
@@ -454,6 +515,15 @@ Future<void> _createBudget(
   await tester.ensureVisible(save);
   await tester.tap(save);
   await tester.pumpAndSettle(const Duration(seconds: 2));
+}
+
+Future<void> _revealFormField(WidgetTester tester, Finder finder, double delta) async {
+  await tester.scrollUntilVisible(
+    finder.hitTestable(),
+    delta,
+    scrollable: find.descendant(of: find.byType(Form), matching: find.byType(Scrollable)).first,
+  );
+  await tester.pumpAndSettle();
 }
 
 String _currentMonthKey() {

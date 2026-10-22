@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/firebase/firebase_bootstrap.dart';
 import '../../../../core/routing/authenticated_route_resolver.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
@@ -27,7 +28,9 @@ class SessionRecoveryScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () {
-                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    final userId = FirebaseAuth.instanceFor(
+                      app: FirebaseBootstrap.app,
+                    ).currentUser?.uid;
                     if (userId != null) invalidateCachedUserProfile(userId);
                     context.go('/home');
                   },

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
@@ -12,6 +14,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/account_balance_adjustment_sheet.dart';
 
 class CanonicalAccountsScreen extends ConsumerWidget {
   const CanonicalAccountsScreen({super.key});
@@ -27,18 +30,10 @@ class CanonicalAccountsScreen extends ConsumerWidget {
         bottom: false,
         child: GlobalFabScrollObserver(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 26, 24, 104),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 104),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.appTitle,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.blueDark,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
                 Text(
                   l10n.accountsTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -90,7 +85,12 @@ class CanonicalAccountsScreen extends ConsumerWidget {
                                 ),
                                 editLabel: l10n.editAccount,
                                 archiveLabel: l10n.archive,
+                                adjustBalanceLabel: l10n.adjustAccountBalance,
                                 onEdit: () => _editAccount(context, items[index]),
+                                onAdjustBalance: items[index].status == 'active'
+                                    ? () =>
+                                          _adjustBalance(context, ref, user.id, items[index], items)
+                                    : null,
                                 onArchive: () =>
                                     _archiveAccount(context, ref, user.id, items[index]),
                               ),
@@ -147,6 +147,28 @@ class CanonicalAccountsScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _adjustBalance(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+    FinanceAccount account,
+    List<FinanceAccount> accounts,
+  ) async {
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => AccountBalanceAdjustmentSheet(
+        userId: userId,
+        initialAccount: account,
+        accounts: accounts.where((item) => item.status == 'active').toList(growable: false),
+        repository: ref.read(canonicalFinanceRepositoryProvider),
+        loadActiveOperations: () => getIt<PendingOperationDatabase>().watchActive().first,
+      ),
+    );
+    if (changed == true) ref.invalidate(canonicalAccountsProvider(userId));
+  }
+
   Future<void> _archiveAccount(
     BuildContext context,
     WidgetRef ref,
@@ -199,7 +221,9 @@ class _AccountCard extends StatelessWidget {
     required this.balance,
     required this.editLabel,
     required this.archiveLabel,
+    required this.adjustBalanceLabel,
     required this.onEdit,
+    required this.onAdjustBalance,
     required this.onArchive,
   });
 
@@ -208,7 +232,9 @@ class _AccountCard extends StatelessWidget {
   final String balance;
   final String editLabel;
   final String archiveLabel;
+  final String adjustBalanceLabel;
   final VoidCallback onEdit;
+  final VoidCallback? onAdjustBalance;
   final VoidCallback onArchive;
 
   @override
@@ -272,9 +298,16 @@ class _AccountCard extends StatelessWidget {
               icon: const Icon(Icons.more_vert, color: AppColors.muted),
               onSelected: (action) {
                 if (action == 'edit') onEdit();
+                if (action == 'adjust') onAdjustBalance?.call();
                 if (action == 'archive') onArchive();
               },
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: const ValueKey('account_adjust_balance_action'),
+                  value: 'adjust',
+                  enabled: onAdjustBalance != null,
+                  child: Text(adjustBalanceLabel),
+                ),
                 PopupMenuItem(
                   key: const ValueKey('account_edit_action'),
                   value: 'edit',

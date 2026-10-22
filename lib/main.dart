@@ -26,9 +26,13 @@ Future<void> main() async {
     environment,
     useEmulators: useEmulators,
   );
-  await observability.configureCrashlyticsCollection();
-  observability.installErrorHandlers();
-  await configureDependencies(useEmulators: useEmulators);
+  await observability.configurePerformanceCollection();
+  await observability.tracePerformance(PerformanceTraceName.appStartup, () async {
+    await observability.configureCrashlyticsCollection();
+    observability.installErrorHandlers();
+    await configureDependencies(useEmulators: useEmulators, observability: observability);
 
-  runApp(const ProviderScope(child: PersonalFinanceApp()));
+    runApp(const ProviderScope(child: PersonalFinanceApp()));
+    await WidgetsBinding.instance.endOfFrame;
+  });
 }

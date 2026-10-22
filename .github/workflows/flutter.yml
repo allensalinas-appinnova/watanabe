@@ -11,6 +11,7 @@ permissions:
 jobs:
   flutter:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -33,3 +34,45 @@ jobs:
       - run: npm --prefix functions run build
       - run: npm --prefix functions run test:projections
       - run: ./tool/run_rules_tests.sh
+      - run: bash ./tool/run_projection_tests.sh
+      - run: bash ./tool/run_budget_command_tests.sh
+      - run: bash ./tool/run_balance_adjustment_tests.sh
+
+  budget-e2e:
+    needs: flutter
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: flutter pub get
+      - run: npm ci --prefix functions
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Budget client and authenticated server E2E
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            test ! -e android/app/google-services.json
+            cp config/google-services.emulator.example.json android/app/google-services.json
+            E2E_TEST_FILE=integration_test/budget_creation_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            E2E_TEST_FILE=integration_test/budget_item_management_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554

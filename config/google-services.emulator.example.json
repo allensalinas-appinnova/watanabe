@@ -1,0 +1,16 @@
+{
+  "project_info": {
+    "project_number": "1234567890",
+    "project_id": "demo-clearbudget",
+    "storage_bucket": "demo-clearbudget.appspot.com"
+  },
+  "client": [{
+    "client_info": {
+      "mobilesdk_app_id": "1:1234567890:android:abcdef0123456789abcdef",
+      "android_client_info": {"package_name": "com.appinnova.lumiomoney"}
+    },
+    "api_key": [{"current_key": "A12345678901234567890123456789012345678"}],
+    "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+  }],
+  "configuration_version": "1"
+}

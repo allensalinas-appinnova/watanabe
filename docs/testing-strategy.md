@@ -1,3 +1,8 @@
+---
+title: Automated Testing Strategy
+summary: Local and CI test layers with synthetic Firebase Emulator data and platform checks.
+---
+
 # Automated Testing Strategy
 
 ## Test layers
@@ -15,15 +20,24 @@ All tests must be deterministic, use synthetic data and avoid production Firebas
 
 The checked-in `.firebaserc` selects the reserved `demo-clearbudget` project ID.
 `tool/run_emulator_e2e.sh` explicitly supplies this project and starts Auth,
-Firestore and Storage, then executes the Flutter integration test while those emulators
+Firestore, Storage and Functions, then executes the Flutter integration test while those emulators
 are running. The Flutter bootstrap switches endpoints only when
 `USE_FIREBASE_EMULATORS=true` is set.
+
+Emulator runs use a separate named Firebase app (`demo-clearbudget`) for Auth,
+Firestore, Storage and callable Functions. This avoids reusing the native default
+app initialized by a real local plist/JSON. DI, routing and integration fixtures
+all resolve the same selected app. Non-emulator runs retain the native default.
+The Android CI checkout copies `config/google-services.emulator.example.json`
+only when no native config exists. This synthetic fixture contains no real
+Firebase app values and never replaces a developer's local configuration.
 
 Default emulator endpoints:
 
 - Auth: `127.0.0.1:59199`
 - Firestore: `127.0.0.1:59180`
 - Storage: `127.0.0.1:59191`
+- Functions (`us-central1`): `127.0.0.1:59192`
 - Emulator Suite UI: `127.0.0.1:59100`
 
 The test project ID starts with `demo-`, so Firebase CLI cannot accidentally
@@ -103,10 +117,19 @@ integration tests for Firebase persistence and access rules where applicable.
 
 `.github/workflows/flutter.yml` runs `flutter analyze`, `flutter test`, Functions
 TypeScript compilation/projection tests, and Firestore Rules Emulator tests on
-pull requests and pushes to `main`. The workflow uses only the reserved
+pull requests and pushes to `main`. It also runs transaction/audit tests with
+Firestore alone, then a separate real-trigger test with Firestore + Functions;
+see [projection integrity checks](projection-audit.md). The workflow uses only the reserved
 `demo-clearbudget` project and has no Firebase production credentials. Full
-Auth/Firestore/Functions device E2E remains a separate qualification job; it is
-not currently part of this workflow.
+Auth/Firestore/Functions budget E2E runs in a dependent Android Emulator job
+using synthetic data only. This job is configured here; local runs do not
+certify a hosted CI run. Full cross-feature/device/staging acceptance remains
+separate. `tool/run_budget_command_tests.sh` also
+runs in CI: first direct Firestore transaction tests, then real authenticated
+callable requests against Auth/Firestore/Functions. It checks command replay,
+concurrency, validation, archived history and aggregate recomputation. Rules
+tests deny all client budget/item writes and receipt access. Flutter tests cover
+command forwarding, retry identity and localized recoverable errors.
 
 ## References
 

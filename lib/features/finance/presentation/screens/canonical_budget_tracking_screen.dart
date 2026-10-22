@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -55,6 +56,13 @@ class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetT
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: FinanceRouteHeader(
+        title: l10n.budgetTrackingTitle,
+        backLabel: l10n.budgetBackToBudgets,
+        backButtonKey: const ValueKey('budget_tracking_back'),
+        titleKey: const ValueKey('budget_tracking_title'),
+        onBack: () => popOrGo(context, '/budgets'),
+      ),
       body: SafeArea(
         child: budgetsState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -121,11 +129,6 @@ class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetT
             );
             return Column(
               children: [
-                _TrackingHeader(
-                  title: l10n.budgetTrackingTitle,
-                  onBack: context.pop,
-                  backLabel: l10n.budgetBackToBudgets,
-                ),
                 Expanded(
                   child: budgets.isEmpty && !hasActivity
                       ? _TrackingEmpty(
@@ -186,53 +189,6 @@ DateTime? _parseMonth(String? value) {
   if (value == null || !RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(value)) return null;
   final pieces = value.split('-');
   return DateTime(int.parse(pieces[0]), int.parse(pieces[1]));
-}
-
-class _TrackingHeader extends StatelessWidget {
-  const _TrackingHeader({required this.title, required this.onBack, required this.backLabel});
-
-  final String title;
-  final VoidCallback onBack;
-  final String backLabel;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(24, 12, 16, 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.of(context).appTitle,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.blueDark,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                key: const ValueKey('budget_tracking_title'),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            IconButton(
-              key: const ValueKey('budget_tracking_back'),
-              tooltip: backLabel,
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back, color: AppColors.blueDark),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
 }
 
 class _MonthSelector extends StatelessWidget {

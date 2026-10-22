@@ -9,6 +9,22 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get budgetConnectionRequired =>
+      'Necesitas conexión para guardar este presupuesto. Tus cambios siguen aquí; vuelve a intentarlo.';
+
+  @override
+  String get budgetCommandArchived =>
+      'Este presupuesto o elemento está archivado. Actualiza la lista.';
+
+  @override
+  String get budgetCommandNotFound =>
+      'Este presupuesto o elemento ya no está disponible. Actualiza la lista.';
+
+  @override
+  String get budgetCommandConflict =>
+      'La solicitud entra en conflicto con un cambio anterior. Actualiza el presupuesto antes de reintentar.';
+
+  @override
   String get appTitle => 'LumioMoney';
 
   @override
@@ -144,6 +160,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get activityFilterAll => 'Todos';
+
+  @override
+  String get activityBalanceAdjustmentsFilter => 'Ajustes';
+
+  @override
+  String get activityBalanceAdjustmentType => 'Ajuste de saldo';
+
+  @override
+  String activityBalanceAdjustmentEntry(Object previous, Object target, Object difference) {
+    return 'Saldo $previous → $target · diferencia $difference';
+  }
+
+  @override
+  String get activityBalanceAdjustmentsHeader => 'Ajustes de saldo';
+
+  @override
+  String get activityBalanceAdjustmentsEmpty => 'No hay ajustes para estos filtros.';
 
   @override
   String activityFilterAction(Object account, Object period) {
@@ -551,6 +584,58 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get archive => 'Archivar';
+
+  @override
+  String get adjustAccountBalance => 'Ajustar saldo';
+
+  @override
+  String get balanceAdjustmentTitle => 'Ajustar saldos';
+
+  @override
+  String get balanceAdjustmentSubtitle => 'El saldo inicial y tus movimientos no cambiarán.';
+
+  @override
+  String get balanceAdjustmentTarget => 'Saldo real';
+
+  @override
+  String balanceAdjustmentCurrent(Object balance) {
+    return 'Saldo actual: $balance';
+  }
+
+  @override
+  String get balanceAdjustmentPrevious => 'Saldo anterior';
+
+  @override
+  String get balanceAdjustmentDifferenceLabel => 'Diferencia';
+
+  @override
+  String balanceAdjustmentDifference(Object amount) {
+    return 'Diferencia: $amount';
+  }
+
+  @override
+  String get balanceAdjustmentReason => 'Motivo (opcional)';
+
+  @override
+  String get balanceAdjustmentOtherDevicesHint =>
+      'Sincroniza primero los movimientos pendientes en tus otros dispositivos; podrían cambiar estos saldos después.';
+
+  @override
+  String get balanceAdjustmentPendingHint =>
+      'Resuelve los movimientos pendientes, en sincronización o rechazados de las cuentas seleccionadas antes de ajustar.';
+
+  @override
+  String get balanceAdjustmentSave => 'Guardar ajustes';
+
+  @override
+  String get balanceAdjustmentNoop => 'El saldo objetivo ya coincide con el saldo actual.';
+
+  @override
+  String get balanceAdjustmentInvalidAmount =>
+      'Ingresa un saldo válido dentro del límite permitido.';
+
+  @override
+  String get balanceAdjustmentSuccess => 'Saldos actualizados.';
 
   @override
   String get confirmArchiveCategory =>
@@ -1238,4 +1323,49 @@ class AppLocalizationsEs extends AppLocalizations {
   String budgetArchiveUnexpectedFailure(Object code) {
     return 'No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: $code';
   }
+
+  @override
+  String get more => 'Más';
+
+  @override
+  String get back => 'Volver';
+
+  @override
+  String get moreSubtitle => 'Gestiona tus categorías y tu sesión.';
+
+  @override
+  String get moreManagement => 'Gestión';
+
+  @override
+  String get moreSession => 'Sesión';
+
+  @override
+  String get signOutConfirmTitle => '¿Cerrar sesión?';
+
+  @override
+  String get signOutConfirmMessage =>
+      'Tendrás que volver a iniciar sesión para acceder a tus datos.';
+
+  @override
+  String signOutPendingWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '# movimientos pendientes de sincronizar',
+      one: '# movimiento pendiente de sincronizar',
+    );
+    return 'Tienes $_temp0. Cerrar sesión no los elimina, pero pueden necesitar que vuelvas a iniciar sesión para sincronizar.';
+  }
+
+  @override
+  String get discardChangesTitle => '¿Descartar los cambios?';
+
+  @override
+  String get discardChangesMessage => 'Los cambios que hiciste todavía no se han guardado.';
+
+  @override
+  String get keepEditing => 'Seguir editando';
+
+  @override
+  String get discardChanges => 'Descartar';
 }

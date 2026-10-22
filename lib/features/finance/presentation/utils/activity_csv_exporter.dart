@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -23,6 +24,10 @@ class ActivityCsvLabels {
     required this.rejected,
     required this.unknownAccount,
     required this.unknownCategory,
+    this.balanceAdjustment = 'Balance adjustment',
+    this.previousBalance = 'Previous balance',
+    this.targetBalance = 'Target balance',
+    this.difference = 'Difference',
   });
 
   final String date;
@@ -41,11 +46,16 @@ class ActivityCsvLabels {
   final String rejected;
   final String unknownAccount;
   final String unknownCategory;
+  final String balanceAdjustment;
+  final String previousBalance;
+  final String targetBalance;
+  final String difference;
 }
 
 abstract final class ActivityCsvExporter {
   static String export({
     required Iterable<FinancialOperation> operations,
+    Iterable<BalanceAdjustmentActivityEntry> adjustments = const [],
     required List<FinanceAccount> accounts,
     required List<FinanceCategory> categories,
     required ActivityCsvLabels labels,
@@ -64,6 +74,9 @@ abstract final class ActivityCsvExporter {
         labels.amount,
         labels.currency,
         labels.status,
+        labels.previousBalance,
+        labels.targetBalance,
+        labels.difference,
       ],
       for (final operation in operations)
         if (operation.status != OperationStatus.rejected)
@@ -89,7 +102,24 @@ abstract final class ActivityCsvExporter {
               OperationStatus.confirmed => labels.confirmed,
               OperationStatus.rejected => labels.rejected,
             },
+            '',
+            '',
+            '',
           ],
+      for (final entry in adjustments)
+        [
+          _localDateTimeWithOffset(entry.adjustedAt),
+          labels.balanceAdjustment,
+          '',
+          accountNames[entry.adjustment.accountId] ?? labels.unknownAccount,
+          '',
+          '',
+          entry.adjustment.currency,
+          labels.confirmed,
+          _decimalAmount(entry.adjustment.previousBalanceMinor, entry.adjustment.currency),
+          _decimalAmount(entry.adjustment.targetBalanceMinor, entry.adjustment.currency),
+          _decimalAmount(entry.adjustment.deltaMinor, entry.adjustment.currency),
+        ],
     ];
     return '\uFEFF${rows.map((row) => row.map(_cell).join(',')).join('\r\n')}\r\n';
   }

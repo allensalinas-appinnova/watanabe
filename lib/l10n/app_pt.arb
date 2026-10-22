@@ -1,4 +1,8 @@
 {
+  "budgetConnectionRequired": "É necessário ter conexão para salvar este orçamento. Suas alterações continuam aqui; tente novamente.",
+  "budgetCommandArchived": "Este orçamento ou item foi arquivado. Atualize a lista.",
+  "budgetCommandNotFound": "Este orçamento ou item não está mais disponível. Atualize a lista.",
+  "budgetCommandConflict": "A solicitação entra em conflito com uma alteração anterior. Atualize o orçamento antes de tentar novamente.",
   "@@locale": "pt",
   "appTitle": "LumioMoney",
   "sessionCheckFailed": "Não foi possível verificar seu perfil. Confira a conexão e tente novamente, ou entre na conta outra vez.",
@@ -50,6 +54,12 @@
   "activity": "Atividade",
   "activitySubtitle": "Encontre e revise suas movimentações",
   "activityFilterAll": "Todas",
+  "activityBalanceAdjustmentsFilter": "Ajustes",
+  "activityBalanceAdjustmentType": "Ajuste de saldo",
+  "activityBalanceAdjustmentEntry": "Saldo {previous} → objetivo {target} · diferença {difference}",
+  "@activityBalanceAdjustmentEntry": {"placeholders": {"previous": {}, "target": {}, "difference": {}}},
+  "activityBalanceAdjustmentsHeader": "Ajustes de saldo",
+  "activityBalanceAdjustmentsEmpty": "Não há ajustes para estes filtros.",
   "activityFilterAction": "Filtros · {account} · {period}",
   "@activityFilterAction": {"placeholders": {"account": {}, "period": {}}},
   "activityFilterTitle": "Filtrar atividade",
@@ -177,6 +187,23 @@
   "categorySaved": "Categoria atualizada",
   "newCategory": "Nova categoria",
   "archive": "Arquivar",
+  "adjustAccountBalance": "Ajustar saldo",
+  "balanceAdjustmentTitle": "Ajustar saldos",
+  "balanceAdjustmentSubtitle": "O saldo inicial e as movimentações não serão alterados.",
+  "balanceAdjustmentTarget": "Saldo real",
+  "balanceAdjustmentCurrent": "Saldo atual: {balance}",
+  "balanceAdjustmentPrevious": "Saldo anterior",
+  "balanceAdjustmentDifferenceLabel": "Diferença",
+  "balanceAdjustmentDifference": "Diferença: {amount}",
+  "@balanceAdjustmentCurrent": {"placeholders": {"balance": {}}},
+  "@balanceAdjustmentDifference": {"placeholders": {"amount": {}}},
+  "balanceAdjustmentReason": "Motivo (opcional)",
+  "balanceAdjustmentOtherDevicesHint": "Sincronize primeiro as movimentações pendentes nos outros dispositivos; elas podem alterar estes saldos depois.",
+  "balanceAdjustmentPendingHint": "Resolva as movimentações pendentes, em sincronização ou rejeitadas das contas selecionadas antes de ajustar.",
+  "balanceAdjustmentSave": "Salvar ajustes",
+  "balanceAdjustmentNoop": "O saldo desejado já corresponde ao saldo atual.",
+  "balanceAdjustmentInvalidAmount": "Informe um saldo válido dentro do limite permitido.",
+  "balanceAdjustmentSuccess": "Saldos atualizados.",
   "confirmArchiveCategory": "A categoria será arquivada e mantida nos seus lançamentos anteriores.",
   "expenseCategories": "Despesas",
   "incomeCategories": "Receitas",
@@ -385,4 +412,17 @@
   ,"budgetArchivePermissionFailure": "O Firebase não autorizou esta alteração. O orçamento continua ativo; verifique sua sessão e compartilhe este código com o suporte: {code}"
   ,"budgetArchiveConflictFailure": "Não foi possível validar o orçamento. Ele continua ativo; compartilhe este código com o suporte: {code}"
   ,"budgetArchiveUnexpectedFailure": "Não foi possível excluir o orçamento. Ele continua ativo; tente novamente. Código: {code}"
+  ,"more": "Mais"
+  ,"back": "Voltar"
+  ,"moreSubtitle": "Gerencie suas categorias e sua sessão."
+  ,"moreManagement": "Gestão"
+  ,"moreSession": "Sessão"
+  ,"signOutConfirmTitle": "Sair da conta?"
+  ,"signOutConfirmMessage": "Você precisará entrar novamente para acessar seus dados."
+  ,"signOutPendingWarning": "Você tem {count, plural, one{# movimentação aguardando sincronização} other{# movimentações aguardando sincronização}}. Sair não as exclui, mas talvez seja necessário entrar novamente para sincronizar."
+  ,"@signOutPendingWarning": {"placeholders": {"count": {"type": "int"}}}
+  ,"discardChangesTitle": "Descartar as alterações?"
+  ,"discardChangesMessage": "As alterações ainda não foram salvas."
+  ,"keepEditing": "Continuar editando"
+  ,"discardChanges": "Descartar"
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -31,7 +32,11 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
 
     final categories = ref.watch(canonicalCategoriesProvider(user.id));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.categories)),
+      appBar: FinanceRouteHeader(
+        title: l10n.categories,
+        backLabel: l10n.back,
+        onBack: () => popOrGo(context, '/home'),
+      ),
       body: categories.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => _CategoriesError(

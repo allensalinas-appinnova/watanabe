@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -25,20 +24,20 @@ void main() {
       client.close(force: true);
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
-  tearDownAll(() => FirebaseAuth.instance.signOut());
+  tearDownAll(() => FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut());
 
   testWidgets('Android client authorization reaches each canonical Firestore boundary', (
     tester,
   ) async {
-    final auth = FirebaseAuth.instance;
-    final firestore = FirebaseFirestore.instance;
+    final auth = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app);
+    final firestore = FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app);
     final credential = await auth.signInAnonymously();
     final user = credential.user!;
     final token = await user.getIdToken(true);
-    final app = Firebase.app();
+    final app = FirebaseBootstrap.app;
 
     debugPrint('AUTH_DIAGNOSTIC uid=${user.uid} tokenPresent=${token?.isNotEmpty == true}');
     debugPrint('AUTH_DIAGNOSTIC projectId=${app.options.projectId} appId=${app.options.appId}');

@@ -33,16 +33,16 @@ void main() {
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
     await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
   testWidgets('fresh user completes localized onboarding in the UI', (tester) async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -67,9 +67,11 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       if (find.byKey(const ValueKey('global_add_operation')).evaluate().isNotEmpty) break;
     }
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser?.uid;
     if (currentUid != null) {
-      final diagnosticUser = FirebaseFirestore.instance.collection('users').doc(currentUid);
+      final diagnosticUser = FirebaseFirestore.instanceFor(
+        app: FirebaseBootstrap.app,
+      ).collection('users').doc(currentUid);
       final profile = await diagnosticUser.get();
       final accounts = await diagnosticUser.collection('accounts').get();
       final categories = await diagnosticUser.collection('categories').get();
@@ -90,15 +92,16 @@ void main() {
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     final email = 'canonical-${DateTime.now().microsecondsSinceEpoch}@example.test';
-    final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email,
-      password: 'ClearBudget-E2E-123',
-    );
+    final credential = await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app)
+        .createUserWithEmailAndPassword(
+          email: email,
+          password: 'ClearBudget-E2E-123',
+        );
     await credential.user!.getIdToken(true);
     final uid = credential.user!.uid;
-    final firestore = FirebaseFirestore.instance;
+    final firestore = FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app);
     final user = firestore.collection('users').doc(uid);
     await user.set({
       'locale': 'es',

@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/firebase_failure_mapper.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/budget_item.dart';
@@ -15,6 +16,7 @@ import '../../domain/entities/monthly_summary.dart';
 import '../../domain/entities/operation_page.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import '../datasources/budget_command_failure_mapper.dart';
 import '../datasources/canonical_finance_remote_data_source.dart';
 import '../mappers/firestore_date_mapper.dart';
 
@@ -105,6 +107,37 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       _remoteDataSource.watchAccounts(userId).map((records) => records.map(_account).toList());
 
   @override
+  Stream<List<BalanceAdjustmentEvent>> watchBalanceAdjustments(String userId) => _remoteDataSource
+      .watchBalanceAdjustments(userId)
+      .map(
+        (records) => records
+            .map((record) {
+              final adjustedAt =
+                  FirestoreDateMapper.toDateTime(record['adjustedAt']) ??
+                  DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+              final rows = (record['adjustments'] as List<dynamic>? ?? const [])
+                  .whereType<Map<dynamic, dynamic>>();
+              return BalanceAdjustmentEvent(
+                requestId: record['requestId'] as String? ?? '',
+                adjustedAt: adjustedAt,
+                reason: record['reason'] as String?,
+                adjustments: rows
+                    .map(
+                      (row) => BalanceAdjustmentRecord(
+                        accountId: row['accountId'] as String? ?? '',
+                        currency: row['currency'] as String? ?? '',
+                        previousBalanceMinor: row['previousBalanceMinor'] as int? ?? 0,
+                        targetBalanceMinor: row['targetBalanceMinor'] as int? ?? 0,
+                        deltaMinor: row['deltaMinor'] as int? ?? 0,
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            })
+            .toList(growable: false),
+      );
+
+  @override
   Future<Either<Failure, FinanceAccount>> createAccount(
     String userId, {
     required String name,
@@ -144,6 +177,44 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     try {
       await _remoteDataSource.archiveAccount(userId, accountId);
       return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, BalanceAdjustmentResult>> adjustAccountBalances(
+    String userId, {
+    required String requestId,
+    required List<BalanceAdjustmentDraft> adjustments,
+    String? reason,
+  }) async {
+    try {
+      final response = await _remoteDataSource.adjustAccountBalances(
+        userId: userId,
+        requestId: requestId,
+        adjustments: adjustments,
+        reason: reason,
+      );
+      final records = (response['adjustments'] as List<dynamic>? ?? const [])
+          .whereType<Map<dynamic, dynamic>>()
+          .map(
+            (row) => BalanceAdjustmentRecord(
+              accountId: row['accountId'] as String,
+              currency: row['currency'] as String,
+              previousBalanceMinor: row['previousBalanceMinor'] as int,
+              targetBalanceMinor: row['targetBalanceMinor'] as int,
+              deltaMinor: row['deltaMinor'] as int,
+            ),
+          )
+          .toList(growable: false);
+      return Right(
+        BalanceAdjustmentResult(
+          requestId: response['requestId'] as String,
+          adjustments: records,
+          adjustedAt: DateTime.parse(response['adjustedAt'] as String),
+        ),
+      );
     } catch (error) {
       return Left(FirebaseFailureMapper.fromException(error));
     }
@@ -280,6 +351,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     required String monthKey,
     required String currency,
     required List<CanonicalBudgetItemDraft> items,
+    String? requestId,
   }) async {
     try {
       final record = await _remoteDataSource.createBudgetWithItems(
@@ -289,13 +361,14 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         monthKey: monthKey,
         currency: currency,
         items: items,
+        requestId: requestId,
       );
       return Right(_budget(record));
     } catch (error) {
       if (error is StateError && error.message.contains('A budget already exists')) {
         return const Left(ConflictFailure('budget-already-exists'));
       }
-      return Left(FirebaseFailureMapper.fromException(error));
+      return Left(BudgetCommandFailureMapper.fromException(error));
     }
   }
 
@@ -319,12 +392,17 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   Future<Either<Failure, BudgetItem>> addBudgetItem(
     String userId,
     String budgetId,
-    CanonicalBudgetItemDraft item,
-  ) async {
+    CanonicalBudgetItemDraft item, {
+    String? requestId,
+  }) async {
     try {
-      return Right(_budgetItem(await _remoteDataSource.addBudgetItem(userId, budgetId, item)));
+      return Right(
+        _budgetItem(
+          await _remoteDataSource.addBudgetItem(userId, budgetId, item, requestId: requestId),
+        ),
+      );
     } catch (error) {
-      return Left(FirebaseFailureMapper.fromException(error));
+      return Left(BudgetCommandFailureMapper.fromException(error));
     }
   }
 
@@ -332,13 +410,14 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> updateBudgetItem(
     String userId,
     String budgetId,
-    BudgetItem item,
-  ) async {
+    BudgetItem item, {
+    String? requestId,
+  }) async {
     try {
-      await _remoteDataSource.updateBudgetItem(userId, budgetId, item);
+      await _remoteDataSource.updateBudgetItem(userId, budgetId, item, requestId: requestId);
       return const Right(unit);
     } catch (error) {
-      return Left(FirebaseFailureMapper.fromException(error));
+      return Left(BudgetCommandFailureMapper.fromException(error));
     }
   }
 
@@ -346,26 +425,31 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> deleteBudgetItem(
     String userId,
     String budgetId,
-    String itemId,
-  ) async {
+    String itemId, {
+    String? requestId,
+  }) async {
     try {
-      await _remoteDataSource.deleteBudgetItem(userId, budgetId, itemId);
+      await _remoteDataSource.deleteBudgetItem(userId, budgetId, itemId, requestId: requestId);
       return const Right(unit);
     } catch (error) {
       if (error is StateError && error.message == 'budget-last-item') {
         return const Left(ConflictFailure('budget-last-item'));
       }
-      return Left(FirebaseFailureMapper.fromException(error));
+      return Left(BudgetCommandFailureMapper.fromException(error));
     }
   }
 
   @override
-  Future<Either<Failure, Unit>> archiveBudget(String userId, String budgetId) async {
+  Future<Either<Failure, Unit>> archiveBudget(
+    String userId,
+    String budgetId, {
+    String? requestId,
+  }) async {
     try {
-      await _remoteDataSource.archiveBudget(userId, budgetId);
+      await _remoteDataSource.archiveBudget(userId, budgetId, requestId: requestId);
       return const Right(unit);
     } catch (error) {
-      return Left(FirebaseFailureMapper.fromException(error));
+      return Left(BudgetCommandFailureMapper.fromException(error));
     }
   }
 

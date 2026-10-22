@@ -9,6 +9,7 @@ import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget.dart';
+import 'package:personal_finance/features/finance/domain/entities/budget_command_failure.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget_flow_type.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget_item.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
@@ -225,7 +226,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    when(() => actions.addBudgetItem(any(), any(), any())).thenThrow(Exception('offline'));
+    when(() => actions.addBudgetItem(any(), any(), any())).thenThrow(
+      const BudgetCommandException(BudgetCommandIssue.network),
+    );
 
     await tester.pumpWidget(
       subject(
@@ -253,7 +256,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Não foi possível adicionar o item. Seus dados continuam aqui; tente novamente.'),
+      find.text('É necessário ter conexão para salvar este orçamento. Suas alterações continuam aqui; tente novamente.'),
       findsOneWidget,
     );
     expect(

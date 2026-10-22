@@ -35,11 +35,11 @@ void main() {
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
     await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
@@ -67,7 +67,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser?.uid;
     expect(uid, isNotNull, reason: 'The registration flow must leave an authenticated user.');
 
     await tester.tap(find.byKey(const ValueKey('finance_nav_accounts')));
@@ -190,12 +190,9 @@ Future<String> _waitForAccountBalance(
   required String name,
   required int expectedBalanceMinor,
 }) async {
-  final query = FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('accounts')
-      .where('name', isEqualTo: name)
-      .limit(1);
+  final query = FirebaseFirestore.instanceFor(
+    app: FirebaseBootstrap.app,
+  ).collection('users').doc(userId).collection('accounts').where('name', isEqualTo: name).limit(1);
   for (var attempt = 0; attempt < 30; attempt++) {
     final snapshot = await query.get(const GetOptions(source: Source.server));
     if (snapshot.docs.isNotEmpty) {
@@ -206,7 +203,7 @@ Future<String> _waitForAccountBalance(
   }
   final snapshot = await query.get(const GetOptions(source: Source.server));
   final actual = snapshot.docs.isEmpty ? null : snapshot.docs.single.data()['currentBalanceMinor'];
-  final operations = await FirebaseFirestore.instance
+  final operations = await FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app)
       .collection('users')
       .doc(userId)
       .collection('operations')

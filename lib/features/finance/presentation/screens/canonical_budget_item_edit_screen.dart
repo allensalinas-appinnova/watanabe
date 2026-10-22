@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/routing/discard_changes_scope.dart';
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -12,10 +13,12 @@ import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/budget_command_message.dart';
 import 'canonical_budget_detail_screen.dart';
 
 class CanonicalBudgetItemEditScreen extends ConsumerStatefulWidget {
@@ -45,10 +48,15 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
   BudgetItem? _loadedItem;
   String? _error;
   bool _saving = false;
+  bool _hasUnsavedChanges = false;
+  bool _isPopulating = false;
 
   @override
   void initState() {
     super.initState();
+    _description.addListener(_markChanged);
+    _amount.addListener(_markChanged);
+    _day.addListener(_markChanged);
   }
 
   @override
@@ -62,9 +70,11 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
   void _populate(BudgetItem item, String currency) {
     if (_loadedItem?.id == item.id) return;
     _loadedItem = item;
+    _isPopulating = true;
     _description.text = item.description;
     _amount.text = _minorToInput(item.amountMinor, CurrencyFormatter.decimalDigits(currency));
     _day.text = item.dayOfMonth.toString();
+    _isPopulating = false;
   }
 
   String _minorToInput(int amountMinor, int decimals) {
@@ -138,8 +148,10 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
       if (mounted) {
         // Returning to the refreshed detail is the success feedback. A snackbar
         // here survives the pop and can cover the next screen's fixed action.
-        context.pop();
+        await _popAfterSave();
       }
+    } on BudgetCommandException catch (error) {
+      if (mounted) setState(() => _error = budgetCommandMessage(l10n, error.issue));
     } catch (_) {
       if (mounted) {
         setState(
@@ -159,221 +171,242 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
     final budgetKey = (userId: user.id, budgetId: widget.budgetId);
     final budgetState = ref.watch(canonicalBudgetProvider(budgetKey));
     final itemsState = ref.watch(canonicalFinanceRepositoryItemsProvider(budgetKey));
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: budgetState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => _EditLoadError(message: l10n.genericError),
-          data: (budget) {
-            if (budget == null) return _EditLoadError(message: l10n.genericError);
-            return itemsState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => _EditLoadError(message: l10n.genericError),
-              data: (items) {
-                BudgetItem? item = widget.initialItem;
-                if (!widget.isCreating) {
-                  item ??= items.cast<BudgetItem?>().firstWhere(
-                    (candidate) => candidate?.id == widget.itemId,
-                    orElse: () => null,
-                  );
-                  if (item == null) return _EditLoadError(message: l10n.genericError);
-                  _populate(item, budget.currency);
-                }
-                final loadedItem = item;
-                final locale = Localizations.localeOf(context).toLanguageTag();
-                final month = DateFormatLocal.monthLabel(budget, locale);
-                final decimals = CurrencyFormatter.decimalDigits(budget.currency);
-                return Column(
-                  children: [
-                    Expanded(
-                      child: Form(
-                        key: _formKey,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-                          children: [
-                            Text(
-                              l10n.appTitle,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: AppColors.blueDark,
-                                fontWeight: FontWeight.w600,
+    return DiscardChangesScope(
+      isDirty: _hasUnsavedChanges,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: budgetState.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _EditLoadError(message: l10n.genericError),
+            data: (budget) {
+              if (budget == null) return _EditLoadError(message: l10n.genericError);
+              return itemsState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => _EditLoadError(message: l10n.genericError),
+                data: (items) {
+                  BudgetItem? item = widget.initialItem;
+                  if (!widget.isCreating) {
+                    item ??= items.cast<BudgetItem?>().firstWhere(
+                      (candidate) => candidate?.id == widget.itemId,
+                      orElse: () => null,
+                    );
+                    if (item == null) return _EditLoadError(message: l10n.genericError);
+                    _populate(item, budget.currency);
+                  }
+                  final loadedItem = item;
+                  final locale = Localizations.localeOf(context).toLanguageTag();
+                  final month = DateFormatLocal.monthLabel(budget, locale);
+                  final decimals = CurrencyFormatter.decimalDigits(budget.currency);
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: Form(
+                          key: _formKey,
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+                            children: [
+                              Text(
+                                l10n.appTitle,
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: AppColors.blueDark,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            TextButton.icon(
-                              key: ValueKey(
+                              TextButton.icon(
+                                key: ValueKey(
+                                  widget.isCreating
+                                      ? 'budget_item_add_back'
+                                      : 'budget_item_edit_back',
+                                ),
+                                onPressed: _saving
+                                    ? null
+                                    : () => popOrGo(context, '/budgets/${widget.budgetId}'),
+                                style: TextButton.styleFrom(
+                                  alignment: Alignment.centerLeft,
+                                  padding: EdgeInsets.zero,
+                                ),
+                                icon: const Icon(Icons.chevron_left),
+                                label: Text(l10n.budgetDetailTitle),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                '${(budget.flowType == BudgetFlowType.income ? l10n.income : l10n.expense).toUpperCase()} · ${month.toUpperCase()}',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.isCreating ? l10n.budgetAddItem : l10n.budgetEditItemTitle,
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: AppColors.navy,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
                                 widget.isCreating
-                                    ? 'budget_item_add_back'
-                                    : 'budget_item_edit_back',
-                              ),
-                              onPressed: _saving ? null : () => context.pop(),
-                              style: TextButton.styleFrom(
-                                alignment: Alignment.centerLeft,
-                                padding: EdgeInsets.zero,
-                              ),
-                              icon: const Icon(Icons.chevron_left),
-                              label: Text(l10n.budgetDetailTitle),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              '${(budget.flowType == BudgetFlowType.income ? l10n.income : l10n.expense).toUpperCase()} · ${month.toUpperCase()}',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.muted,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.isCreating ? l10n.budgetAddItem : l10n.budgetEditItemTitle,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: AppColors.navy,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.isCreating
-                                  ? l10n.budgetAddItemSubtitle
-                                  : l10n.budgetEditItemSubtitle,
-                              style: const TextStyle(color: AppColors.muted),
-                            ),
-                            const SizedBox(height: 28),
-                            _LabeledInput(
-                              label: l10n.budgetDescription,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  widget.isCreating
-                                      ? 'budget_item_create_description'
-                                      : 'budget_item_edit_description',
-                                ),
-                                controller: _description,
-                                textCapitalization: TextCapitalization.sentences,
-                                decoration: const InputDecoration(),
-                                validator: (value) => value == null || value.trim().isEmpty
-                                    ? l10n.budgetDescriptionRequired
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _LabeledInput(
-                              label: l10n.budgetPlannedAmount(budget.currency),
-                              child: TextFormField(
-                                key: ValueKey(
-                                  widget.isCreating
-                                      ? 'budget_item_create_amount'
-                                      : 'budget_item_edit_amount',
-                                ),
-                                controller: _amount,
-                                keyboardType: TextInputType.numberWithOptions(
-                                  decimal: decimals > 0,
-                                ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                                ],
-                                decoration: const InputDecoration(),
-                                validator: (value) => FinanceInputValidators.amount(
-                                  value,
-                                  budget.currency,
-                                  l10n,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _LabeledInput(
-                              label: l10n.budgetExpectedDay,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  widget.isCreating
-                                      ? 'budget_item_create_day'
-                                      : 'budget_item_edit_day',
-                                ),
-                                controller: _day,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                decoration: const InputDecoration(),
-                                validator: (value) {
-                                  final day = int.tryParse(value ?? '');
-                                  final monthParts = budget.monthKey.split('-');
-                                  final lastValidDay = DateTime(
-                                    int.parse(monthParts[0]),
-                                    int.parse(monthParts[1]) + 1,
-                                    0,
-                                  ).day;
-                                  return day == null || day < 1 || day > lastValidDay
-                                      ? l10n.budgetDayInvalidForMonth
-                                      : null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              l10n.budgetDayRange,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
-                            ),
-                            const SizedBox(height: 24),
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.line),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                l10n.budgetTotalUpdatesHint,
+                                    ? l10n.budgetAddItemSubtitle
+                                    : l10n.budgetEditItemSubtitle,
                                 style: const TextStyle(color: AppColors.muted),
                               ),
-                            ),
-                            if (_error case final error?) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                error,
-                                key: ValueKey(
-                                  widget.isCreating
-                                      ? 'budget_item_create_error'
-                                      : 'budget_item_edit_error',
+                              const SizedBox(height: 28),
+                              _LabeledInput(
+                                label: l10n.budgetDescription,
+                                child: TextFormField(
+                                  key: ValueKey(
+                                    widget.isCreating
+                                        ? 'budget_item_create_description'
+                                        : 'budget_item_edit_description',
+                                  ),
+                                  controller: _description,
+                                  textCapitalization: TextCapitalization.sentences,
+                                  decoration: const InputDecoration(),
+                                  validator: (value) => value == null || value.trim().isEmpty
+                                      ? l10n.budgetDescriptionRequired
+                                      : null,
                                 ),
-                                style: TextStyle(color: Theme.of(context).colorScheme.error),
                               ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton(
-                          key: ValueKey(
-                            widget.isCreating ? 'budget_item_create_save' : 'budget_item_edit_save',
-                          ),
-                          onPressed: _saving ? null : () => _save(user.id, budget, loadedItem),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.blueDark,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: _saving
-                              ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(
-                                  widget.isCreating ? l10n.budgetAddItem : l10n.budgetSaveChanges,
+                              const SizedBox(height: 16),
+                              _LabeledInput(
+                                label: l10n.budgetPlannedAmount(budget.currency),
+                                child: TextFormField(
+                                  key: ValueKey(
+                                    widget.isCreating
+                                        ? 'budget_item_create_amount'
+                                        : 'budget_item_edit_amount',
+                                  ),
+                                  controller: _amount,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: decimals > 0,
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                                  ],
+                                  decoration: const InputDecoration(),
+                                  validator: (value) => FinanceInputValidators.amount(
+                                    value,
+                                    budget.currency,
+                                    l10n,
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(height: 16),
+                              _LabeledInput(
+                                label: l10n.budgetExpectedDay,
+                                child: TextFormField(
+                                  key: ValueKey(
+                                    widget.isCreating
+                                        ? 'budget_item_create_day'
+                                        : 'budget_item_edit_day',
+                                  ),
+                                  controller: _day,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  decoration: const InputDecoration(),
+                                  validator: (value) {
+                                    final day = int.tryParse(value ?? '');
+                                    final monthParts = budget.monthKey.split('-');
+                                    final lastValidDay = DateTime(
+                                      int.parse(monthParts[0]),
+                                      int.parse(monthParts[1]) + 1,
+                                      0,
+                                    ).day;
+                                    return day == null || day < 1 || day > lastValidDay
+                                        ? l10n.budgetDayInvalidForMonth
+                                        : null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                l10n.budgetDayRange,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                              ),
+                              const SizedBox(height: 24),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppColors.line),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  l10n.budgetTotalUpdatesHint,
+                                  style: const TextStyle(color: AppColors.muted),
+                                ),
+                              ),
+                              if (_error case final error?) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  error,
+                                  key: ValueKey(
+                                    widget.isCreating
+                                        ? 'budget_item_create_error'
+                                        : 'budget_item_edit_error',
+                                  ),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: FilledButton(
+                            key: ValueKey(
+                              widget.isCreating
+                                  ? 'budget_item_create_save'
+                                  : 'budget_item_edit_save',
+                            ),
+                            onPressed: _saving ? null : () => _save(user.id, budget, loadedItem),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.blueDark,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: _saving
+                                ? const SizedBox.square(
+                                    dimension: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(
+                                    widget.isCreating ? l10n.budgetAddItem : l10n.budgetSaveChanges,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  void _markChanged() {
+    if (_isPopulating || _hasUnsavedChanges || !mounted) return;
+    setState(() => _hasUnsavedChanges = true);
+  }
+
+  Future<void> _popAfterSave() async {
+    if (!mounted) return;
+    setState(() => _hasUnsavedChanges = false);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) popOrGo(context, '/budgets/${widget.budgetId}');
   }
 }
 

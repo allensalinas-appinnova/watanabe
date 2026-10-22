@@ -11,6 +11,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/activity_report.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -62,6 +63,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
 
     final selectedType = ref.watch(activityTypeFilterProvider);
+    final adjustmentsOnly = ref.watch(activityBalanceAdjustmentsOnlyProvider);
     final queryFilters = ref.watch(activityQueryFiltersProvider);
     final pagerProvider = operationsPagerProvider((userId: user.id, type: selectedType));
     final pager = ref.watch(pagerProvider);
@@ -87,18 +89,10 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          l10n.appTitle,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: AppColors.blueDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
                         Text(
                           l10n.activity,
                           key: const ValueKey('activity_title'),
@@ -117,7 +111,9 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                         const SizedBox(height: 16),
                         _ActivityTypeFilters(
                           selectedType: selectedType,
+                          adjustmentsOnly: adjustmentsOnly,
                           onSelected: (type) {
+                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
                             if (selectedType == type) return;
                             for (final filter in const <OperationType?>[
                               null,
@@ -129,6 +125,12 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                               );
                             }
                             ref.read(activityTypeFilterProvider.notifier).select(type);
+                            if (_scrollController.hasClients) _scrollController.jumpTo(0);
+                          },
+                          onAdjustmentsSelected: (value) {
+                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(value);
+                            if (value) ref.read(activityTypeFilterProvider.notifier).select(null);
+                            ref.invalidate(reportProvider);
                             if (_scrollController.hasClients) _scrollController.jumpTo(0);
                           },
                         ),
@@ -196,7 +198,10 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                     padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
                     child: _ActivityMovementsHeader(
                       report: report,
-                      onExport: report.valueOrNull == null || report.valueOrNull!.operations.isEmpty
+                      onExport:
+                          report.valueOrNull == null ||
+                              (report.valueOrNull!.operations.isEmpty &&
+                                  report.valueOrNull!.adjustments.isEmpty)
                           ? null
                           : () => _showExportReview(
                               userId: user.id,
@@ -205,69 +210,110 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                               report: report.valueOrNull!,
                               queryFilters: queryFilters,
                               selectedType: selectedType,
+                              adjustmentsOnly: adjustmentsOnly,
                               l10n: l10n,
                             ),
                     ),
                   ),
                 ),
-                pager.when(
-                  loading: () => const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, _) => SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _ActivityMessage(
-                      message: l10n.genericError,
-                      actionLabel: l10n.retry,
-                      onAction: () => ref.read(pagerProvider.notifier).refresh(),
+                if (report.valueOrNull?.adjustments.isNotEmpty == true) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+                      child: Text(
+                        l10n.activityBalanceAdjustmentsHeader,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
-                  data: (page) => page.items.isEmpty
-                      ? SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: _ActivityMessage(message: l10n.noTransactions),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 104),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                if (index >= page.items.length) {
-                                  return SizedBox(
-                                    height: 64,
-                                    child: Center(
-                                      child: page.errorMessage == null
-                                          ? const CircularProgressIndicator()
-                                          : TextButton(
-                                              onPressed: () =>
-                                                  ref.read(pagerProvider.notifier).loadMore(),
-                                              child: Text(l10n.retry),
-                                            ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                    sliver: SliverList.builder(
+                      itemCount: report.valueOrNull!.adjustments.length,
+                      itemBuilder: (context, index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _BalanceAdjustmentCard(
+                          key: ValueKey(
+                            'balance_adjustment_${report.valueOrNull!.adjustments[index].requestId}_${report.valueOrNull!.adjustments[index].adjustment.accountId}',
+                          ),
+                          entry: report.valueOrNull!.adjustments[index],
+                          accounts: accounts,
+                          locale: Localizations.localeOf(context).toString(),
+                          l10n: l10n,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (adjustmentsOnly)
+                  if (report.valueOrNull?.adjustments.isEmpty ?? true)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _ActivityMessage(message: l10n.activityBalanceAdjustmentsEmpty),
+                    )
+                  else
+                    const SliverToBoxAdapter(child: SizedBox(height: 96))
+                else
+                  pager.when(
+                    loading: () => const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (_, _) => SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _ActivityMessage(
+                        message: l10n.genericError,
+                        actionLabel: l10n.retry,
+                        onAction: () => ref.read(pagerProvider.notifier).refresh(),
+                      ),
+                    ),
+                    data: (page) => page.items.isEmpty
+                        ? SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _ActivityMessage(message: l10n.noTransactions),
+                          )
+                        : SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 104),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  if (index >= page.items.length) {
+                                    return SizedBox(
+                                      height: 64,
+                                      child: Center(
+                                        child: page.errorMessage == null
+                                            ? const CircularProgressIndicator()
+                                            : TextButton(
+                                                onPressed: () =>
+                                                    ref.read(pagerProvider.notifier).loadMore(),
+                                                child: Text(l10n.retry),
+                                              ),
+                                      ),
+                                    );
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _ActivityOperationCard(
+                                      key: ValueKey('activity_operation_${page.items[index].id}'),
+                                      operation: page.items[index],
+                                      accounts: accounts,
+                                      categories: categories,
+                                      locale: Localizations.localeOf(context).toString(),
+                                      l10n: l10n,
                                     ),
                                   );
-                                }
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _ActivityOperationCard(
-                                    key: ValueKey('activity_operation_${page.items[index].id}'),
-                                    operation: page.items[index],
-                                    accounts: accounts,
-                                    categories: categories,
-                                    locale: Localizations.localeOf(context).toString(),
-                                    l10n: l10n,
-                                  ),
-                                );
-                              },
-                              childCount:
-                                  page.items.length +
-                                  (page.hasMore || page.isLoadingMore || page.errorMessage != null
-                                      ? 1
-                                      : 0),
+                                },
+                                childCount:
+                                    page.items.length +
+                                    (page.hasMore || page.isLoadingMore || page.errorMessage != null
+                                        ? 1
+                                        : 0),
+                              ),
                             ),
                           ),
-                        ),
-                ),
+                  ),
               ],
             ),
           ),
@@ -283,6 +329,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
     required ActivityReport report,
     required ActivityQueryFilters queryFilters,
     required OperationType? selectedType,
+    required bool adjustmentsOnly,
     required AppLocalizations l10n,
   }) async {
     await showModalBottomSheet<void>(
@@ -298,7 +345,9 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
         report: report,
         accountLabel: _activityAccountLabel(accounts, queryFilters.accountIds, l10n),
         periodLabel: _activityPeriodRangeLabel(queryFilters, context),
-        typeLabel: selectedType == null
+        typeLabel: adjustmentsOnly
+            ? l10n.activityBalanceAdjustmentType
+            : selectedType == null
             ? l10n.activityFilterAll
             : selectedType == OperationType.income
             ? l10n.income
@@ -309,6 +358,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
         onExport: ({required operations, required action}) async {
           final content = ActivityCsvExporter.export(
             operations: operations,
+            adjustments: report.adjustments,
             accounts: accounts,
             categories: categories,
             labels: ActivityCsvLabels(
@@ -328,6 +378,10 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
               rejected: l10n.activityCsvRejected,
               unknownAccount: l10n.activityCsvUnknownAccount,
               unknownCategory: l10n.activityCsvUnknownCategory,
+              balanceAdjustment: l10n.activityBalanceAdjustmentType,
+              previousBalance: l10n.balanceAdjustmentPrevious,
+              targetBalance: l10n.balanceAdjustmentTarget,
+              difference: l10n.balanceAdjustmentDifferenceLabel,
             ),
           );
           final now = DateTime.now();
@@ -370,7 +424,9 @@ class _ActivityMovementsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final count = report.valueOrNull?.operations.length;
+    final count = report.valueOrNull == null
+        ? null
+        : report.valueOrNull!.operations.length + report.valueOrNull!.adjustments.length;
     return Row(
       children: [
         Expanded(
@@ -636,68 +692,155 @@ String _activityPeriodRangeLabel(ActivityQueryFilters filters, BuildContext cont
 }
 
 class _ActivityTypeFilters extends StatelessWidget {
-  const _ActivityTypeFilters({required this.selectedType, required this.onSelected});
+  const _ActivityTypeFilters({
+    required this.selectedType,
+    required this.adjustmentsOnly,
+    required this.onSelected,
+    required this.onAdjustmentsSelected,
+  });
 
   final OperationType? selectedType;
+  final bool adjustmentsOnly;
   final ValueChanged<OperationType?> onSelected;
+  final ValueChanged<bool> onAdjustmentsSelected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final options = <({String label, String key, OperationType? type})>[
-      (label: l10n.activityFilterAll, key: 'all', type: null),
-      (label: l10n.income, key: 'income', type: OperationType.income),
-      (label: l10n.expense, key: 'expense', type: OperationType.expense),
+    final options = <({String label, String key, bool selected, VoidCallback onTap})>[
+      (
+        label: l10n.activityFilterAll,
+        key: 'all',
+        selected: !adjustmentsOnly && selectedType == null,
+        onTap: () => onSelected(null),
+      ),
+      (
+        label: l10n.income,
+        key: 'income',
+        selected: !adjustmentsOnly && selectedType == OperationType.income,
+        onTap: () => onSelected(OperationType.income),
+      ),
+      (
+        label: l10n.expense,
+        key: 'expense',
+        selected: !adjustmentsOnly && selectedType == OperationType.expense,
+        onTap: () => onSelected(OperationType.expense),
+      ),
+      (
+        label: l10n.activityBalanceAdjustmentsFilter,
+        key: 'balance_adjustments',
+        selected: adjustmentsOnly,
+        onTap: () => onAdjustmentsSelected(!adjustmentsOnly),
+      ),
     ];
 
-    return Row(
-      children: [
-        for (var index = 0; index < options.length; index++) ...[
-          if (index > 0) const SizedBox(width: 10),
-          Expanded(
-            child: SizedBox(
-              height: 48,
-              child: Center(
-                child: Material(
-                  color: options[index].type == selectedType ? AppColors.blueSoft : Colors.white,
-                  shape: const StadiumBorder(side: BorderSide(color: AppColors.line)),
-                  child: Semantics(
-                    button: true,
-                    selected: options[index].type == selectedType,
-                    label: options[index].label,
-                    child: InkWell(
-                      key: ValueKey('activity_filter_${options[index].key}'),
-                      customBorder: const StadiumBorder(),
-                      onTap: () => onSelected(options[index].type),
-                      child: SizedBox(
-                        height: 36,
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              options[index].label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: options[index].type == selectedType
-                                    ? AppColors.blueDark
-                                    : AppColors.muted,
-                                fontWeight: options[index].type == selectedType
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < options.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            Semantics(
+              button: true,
+              selected: options[index].selected,
+              label: options[index].label,
+              child: ChoiceChip(
+                key: ValueKey('activity_filter_${options[index].key}'),
+                label: Text(options[index].label),
+                selected: options[index].selected,
+                onSelected: (_) => options[index].onTap(),
+                showCheckmark: false,
+                labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: options[index].selected ? AppColors.blueDark : AppColors.muted,
+                  fontWeight: options[index].selected ? FontWeight.w600 : FontWeight.w500,
                 ),
+                side: const BorderSide(color: AppColors.line),
+                backgroundColor: Colors.white,
+                selectedColor: AppColors.blueSoft,
+                materialTapTargetSize: MaterialTapTargetSize.padded,
               ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
+    );
+  }
+}
+
+class _BalanceAdjustmentCard extends StatelessWidget {
+  const _BalanceAdjustmentCard({
+    required this.entry,
+    required this.accounts,
+    required this.locale,
+    required this.l10n,
+    super.key,
+  });
+  final BalanceAdjustmentActivityEntry entry;
+  final List<FinanceAccount> accounts;
+  final String locale;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final adjustment = entry.adjustment;
+    var name = l10n.activityCsvUnknownAccount;
+    for (final account in accounts) {
+      if (account.id == adjustment.accountId) name = account.name;
+    }
+    String format(int value) =>
+        CurrencyFormatter.formatMinor(value, adjustment.currency, locale: locale);
+    final date = DateFormat.yMMMd(locale).add_Hm().format(entry.adjustedAt.toLocal());
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.tune, color: AppColors.blueDark),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  format(adjustment.deltaMinor),
+                  textAlign: TextAlign.end,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.blueDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${l10n.activityBalanceAdjustmentType} · $date',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.activityBalanceAdjustmentEntry(
+                format(adjustment.previousBalanceMinor),
+                format(adjustment.targetBalanceMinor),
+                format(adjustment.deltaMinor),
+              ),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

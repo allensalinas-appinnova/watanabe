@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../entities/balance_adjustment.dart';
 import '../entities/budget.dart';
 import '../entities/budget_item.dart';
 import '../entities/finance_account.dart';
@@ -103,6 +104,8 @@ abstract interface class CanonicalFinanceRepository {
 
   Stream<List<FinanceAccount>> watchAccounts(String userId);
 
+  Stream<List<BalanceAdjustmentEvent>> watchBalanceAdjustments(String userId);
+
   Future<Either<Failure, FinanceAccount>> createAccount(
     String userId, {
     required String name,
@@ -114,6 +117,13 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> updateAccount(String userId, FinanceAccount account);
 
   Future<Either<Failure, Unit>> archiveAccount(String userId, String accountId);
+
+  Future<Either<Failure, BalanceAdjustmentResult>> adjustAccountBalances(
+    String userId, {
+    required String requestId,
+    required List<BalanceAdjustmentDraft> adjustments,
+    String? reason,
+  });
 
   Stream<List<FinancialOperation>> watchOperations(String userId);
 
@@ -160,6 +170,7 @@ abstract interface class CanonicalFinanceRepository {
     required String monthKey,
     required String currency,
     required List<CanonicalBudgetItemDraft> items,
+    String? requestId,
   });
 
   Stream<MonthlySummary?> watchMonthlySummary(
@@ -179,20 +190,23 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, BudgetItem>> addBudgetItem(
     String userId,
     String budgetId,
-    CanonicalBudgetItemDraft item,
-  );
+    CanonicalBudgetItemDraft item, {
+    String? requestId,
+  });
 
   Future<Either<Failure, Unit>> updateBudgetItem(
     String userId,
     String budgetId,
-    BudgetItem item,
-  );
+    BudgetItem item, {
+    String? requestId,
+  });
 
   Future<Either<Failure, Unit>> deleteBudgetItem(
     String userId,
     String budgetId,
-    String itemId,
-  );
+    String itemId, {
+    String? requestId,
+  });
 
-  Future<Either<Failure, Unit>> archiveBudget(String userId, String budgetId);
+  Future<Either<Failure, Unit>> archiveBudget(String userId, String budgetId, {String? requestId});
 }

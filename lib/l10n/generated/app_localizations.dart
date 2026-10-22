@@ -94,6 +94,30 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en'), Locale('es'), Locale('pt')];
 
+  /// No description provided for @budgetConnectionRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas conexión para guardar este presupuesto. Tus cambios siguen aquí; vuelve a intentarlo.'**
+  String get budgetConnectionRequired;
+
+  /// No description provided for @budgetCommandArchived.
+  ///
+  /// In es, this message translates to:
+  /// **'Este presupuesto o elemento está archivado. Actualiza la lista.'**
+  String get budgetCommandArchived;
+
+  /// No description provided for @budgetCommandNotFound.
+  ///
+  /// In es, this message translates to:
+  /// **'Este presupuesto o elemento ya no está disponible. Actualiza la lista.'**
+  String get budgetCommandNotFound;
+
+  /// No description provided for @budgetCommandConflict.
+  ///
+  /// In es, this message translates to:
+  /// **'La solicitud entra en conflicto con un cambio anterior. Actualiza el presupuesto antes de reintentar.'**
+  String get budgetCommandConflict;
+
   /// No description provided for @appTitle.
   ///
   /// In es, this message translates to:
@@ -357,6 +381,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Todos'**
   String get activityFilterAll;
+
+  /// No description provided for @activityBalanceAdjustmentsFilter.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajustes'**
+  String get activityBalanceAdjustmentsFilter;
+
+  /// No description provided for @activityBalanceAdjustmentType.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajuste de saldo'**
+  String get activityBalanceAdjustmentType;
+
+  /// No description provided for @activityBalanceAdjustmentEntry.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo {previous} → {target} · diferencia {difference}'**
+  String activityBalanceAdjustmentEntry(Object previous, Object target, Object difference);
+
+  /// No description provided for @activityBalanceAdjustmentsHeader.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajustes de saldo'**
+  String get activityBalanceAdjustmentsHeader;
+
+  /// No description provided for @activityBalanceAdjustmentsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay ajustes para estos filtros.'**
+  String get activityBalanceAdjustmentsEmpty;
 
   /// No description provided for @activityFilterAction.
   ///
@@ -1035,6 +1089,96 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Archivar'**
   String get archive;
+
+  /// No description provided for @adjustAccountBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajustar saldo'**
+  String get adjustAccountBalance;
+
+  /// No description provided for @balanceAdjustmentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajustar saldos'**
+  String get balanceAdjustmentTitle;
+
+  /// No description provided for @balanceAdjustmentSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'El saldo inicial y tus movimientos no cambiarán.'**
+  String get balanceAdjustmentSubtitle;
+
+  /// No description provided for @balanceAdjustmentTarget.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo real'**
+  String get balanceAdjustmentTarget;
+
+  /// No description provided for @balanceAdjustmentCurrent.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo actual: {balance}'**
+  String balanceAdjustmentCurrent(Object balance);
+
+  /// No description provided for @balanceAdjustmentPrevious.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo anterior'**
+  String get balanceAdjustmentPrevious;
+
+  /// No description provided for @balanceAdjustmentDifferenceLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Diferencia'**
+  String get balanceAdjustmentDifferenceLabel;
+
+  /// No description provided for @balanceAdjustmentDifference.
+  ///
+  /// In es, this message translates to:
+  /// **'Diferencia: {amount}'**
+  String balanceAdjustmentDifference(Object amount);
+
+  /// No description provided for @balanceAdjustmentReason.
+  ///
+  /// In es, this message translates to:
+  /// **'Motivo (opcional)'**
+  String get balanceAdjustmentReason;
+
+  /// No description provided for @balanceAdjustmentOtherDevicesHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Sincroniza primero los movimientos pendientes en tus otros dispositivos; podrían cambiar estos saldos después.'**
+  String get balanceAdjustmentOtherDevicesHint;
+
+  /// No description provided for @balanceAdjustmentPendingHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Resuelve los movimientos pendientes, en sincronización o rechazados de las cuentas seleccionadas antes de ajustar.'**
+  String get balanceAdjustmentPendingHint;
+
+  /// No description provided for @balanceAdjustmentSave.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar ajustes'**
+  String get balanceAdjustmentSave;
+
+  /// No description provided for @balanceAdjustmentNoop.
+  ///
+  /// In es, this message translates to:
+  /// **'El saldo objetivo ya coincide con el saldo actual.'**
+  String get balanceAdjustmentNoop;
+
+  /// No description provided for @balanceAdjustmentInvalidAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa un saldo válido dentro del límite permitido.'**
+  String get balanceAdjustmentInvalidAmount;
+
+  /// No description provided for @balanceAdjustmentSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldos actualizados.'**
+  String get balanceAdjustmentSuccess;
 
   /// No description provided for @confirmArchiveCategory.
   ///
@@ -2265,6 +2409,78 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: {code}'**
   String budgetArchiveUnexpectedFailure(Object code);
+
+  /// No description provided for @more.
+  ///
+  /// In es, this message translates to:
+  /// **'Más'**
+  String get more;
+
+  /// No description provided for @back.
+  ///
+  /// In es, this message translates to:
+  /// **'Volver'**
+  String get back;
+
+  /// No description provided for @moreSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Gestiona tus categorías y tu sesión.'**
+  String get moreSubtitle;
+
+  /// No description provided for @moreManagement.
+  ///
+  /// In es, this message translates to:
+  /// **'Gestión'**
+  String get moreManagement;
+
+  /// No description provided for @moreSession.
+  ///
+  /// In es, this message translates to:
+  /// **'Sesión'**
+  String get moreSession;
+
+  /// No description provided for @signOutConfirmTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cerrar sesión?'**
+  String get signOutConfirmTitle;
+
+  /// No description provided for @signOutConfirmMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Tendrás que volver a iniciar sesión para acceder a tus datos.'**
+  String get signOutConfirmMessage;
+
+  /// No description provided for @signOutPendingWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Tienes {count, plural, one{# movimiento pendiente de sincronizar} other{# movimientos pendientes de sincronizar}}. Cerrar sesión no los elimina, pero pueden necesitar que vuelvas a iniciar sesión para sincronizar.'**
+  String signOutPendingWarning(int count);
+
+  /// No description provided for @discardChangesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Descartar los cambios?'**
+  String get discardChangesTitle;
+
+  /// No description provided for @discardChangesMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Los cambios que hiciste todavía no se han guardado.'**
+  String get discardChangesMessage;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguir editando'**
+  String get keepEditing;
+
+  /// No description provided for @discardChanges.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartar'**
+  String get discardChanges;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

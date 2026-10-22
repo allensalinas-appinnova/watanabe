@@ -1,8 +1,10 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_performance/firebase_performance.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../config/environment/app_environment.dart';
+import 'firebase_bootstrap.dart';
 
 typedef CrashlyticsErrorReporter =
     Future<void> Function(
@@ -15,6 +17,26 @@ typedef CrashlyticsErrorReporter =
 typedef CrashlyticsCollectionSetter = Future<void> Function(bool enabled);
 typedef CrashlyticsUnsentReportsDeleter = Future<void> Function();
 
+abstract interface class PerformanceTraceSpan {
+  Future<void> stop();
+}
+
+abstract interface class PerformanceTraceClient {
+  Future<void> setCollectionEnabled(bool enabled);
+  Future<PerformanceTraceSpan> startTrace(String name);
+}
+
+enum PerformanceTraceName {
+  appStartup('app_startup'),
+  homeInitialLoad('home_initial_load'),
+  activityReportPreparation('activity_report_preparation'),
+  operationSave('operation_save'),
+  budgetSave('budget_save');
+
+  const PerformanceTraceName(this.value);
+  final String value;
+}
+
 class FirebaseObservability {
   FirebaseObservability(
     this.environment, {
@@ -22,9 +44,11 @@ class FirebaseObservability {
     CrashlyticsErrorReporter? errorReporter,
     CrashlyticsCollectionSetter? collectionSetter,
     CrashlyticsUnsentReportsDeleter? unsentReportsDeleter,
+    PerformanceTraceClient? performanceTraceClient,
   }) : _errorReporter = errorReporter ?? _recordCrashlyticsError,
        _collectionSetter = collectionSetter ?? _setCrashlyticsCollectionEnabled,
-       _unsentReportsDeleter = unsentReportsDeleter ?? _deleteUnsentCrashlyticsReports;
+       _unsentReportsDeleter = unsentReportsDeleter ?? _deleteUnsentCrashlyticsReports,
+       _performanceTraceClient = performanceTraceClient ?? _FirebasePerformanceTraceClient();
 
   static const _allowedEvents = <String>{
     'onboarding_completed',
@@ -41,12 +65,59 @@ class FirebaseObservability {
   final CrashlyticsErrorReporter _errorReporter;
   final CrashlyticsCollectionSetter _collectionSetter;
   final CrashlyticsUnsentReportsDeleter _unsentReportsDeleter;
+  final PerformanceTraceClient _performanceTraceClient;
+  bool _performanceConfigured = false;
 
   static const allowedEventNames = _allowedEvents;
 
   bool get isCrashlyticsCollectionEnabled =>
       !useEmulators &&
       (environment == AppEnvironment.staging || environment == AppEnvironment.prod);
+
+  bool get isPerformanceCollectionEnabled => isCrashlyticsCollectionEnabled;
+
+  /// Applies the environment policy before the app starts measuring flows.
+  Future<void> configurePerformanceCollection() async {
+    if (kIsWeb && !isPerformanceCollectionEnabled) {
+      // Do not initialize the web Performance SDK at all in dev/Emulator.
+      _performanceConfigured = true;
+      return;
+    }
+    try {
+      await _performanceTraceClient.setCollectionEnabled(isPerformanceCollectionEnabled);
+      _performanceConfigured = true;
+    } catch (_) {
+      // Performance monitoring is optional and must never block app startup.
+      _performanceConfigured = false;
+      if (environment == AppEnvironment.dev) {
+        debugPrint('Firebase Performance policy could not be applied.');
+      }
+    }
+  }
+
+  /// Runs [action] unchanged if tracing is unavailable; only duration is sent.
+  Future<T> tracePerformance<T>(
+    PerformanceTraceName name,
+    Future<T> Function() action,
+  ) async {
+    if (!isPerformanceCollectionEnabled || !_performanceConfigured) return action();
+    PerformanceTraceSpan? span;
+    try {
+      span = await _performanceTraceClient.startTrace(name.value);
+    } catch (_) {
+      // Tracing failures must not alter the result of the measured operation.
+    }
+    if (span == null) return action();
+    try {
+      return await action();
+    } finally {
+      try {
+        await span.stop();
+      } catch (_) {
+        // Trace shutdown is best-effort as well.
+      }
+    }
+  }
 
   /// Explicitly sets collection before any error handlers can report.
   Future<void> configureCrashlyticsCollection() async {
@@ -138,6 +209,31 @@ class FirebaseObservability {
 
   static Future<void> _deleteUnsentCrashlyticsReports() =>
       FirebaseCrashlytics.instance.deleteUnsentReports();
+}
+
+class _FirebasePerformanceTraceClient implements PerformanceTraceClient {
+  FirebasePerformance get _performance =>
+      FirebasePerformance.instanceFor(app: FirebaseBootstrap.app);
+
+  @override
+  Future<void> setCollectionEnabled(bool enabled) =>
+      _performance.setPerformanceCollectionEnabled(enabled);
+
+  @override
+  Future<PerformanceTraceSpan> startTrace(String name) async {
+    final trace = _performance.newTrace(name);
+    await trace.start();
+    return _FirebasePerformanceTraceSpan(trace);
+  }
+}
+
+class _FirebasePerformanceTraceSpan implements PerformanceTraceSpan {
+  const _FirebasePerformanceTraceSpan(this._trace);
+
+  final Trace _trace;
+
+  @override
+  Future<void> stop() => _trace.stop();
 }
 
 enum TechnicalErrorCode { flutterUi, platform, sync, firebaseRequest, bootstrap }

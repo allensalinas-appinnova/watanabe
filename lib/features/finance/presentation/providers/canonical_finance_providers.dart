@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
@@ -12,9 +13,12 @@ import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/offline/pending_operation_sync_service.dart';
 import '../../../../core/offline/sync_state.dart';
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/request_id.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/activity_report.dart';
+import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
@@ -26,6 +30,10 @@ import '../../domain/repositories/canonical_finance_repository.dart';
 
 final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
   (ref) => getIt<CanonicalFinanceRepository>(),
+);
+
+final firebaseObservabilityProvider = Provider<FirebaseObservability?>(
+  (ref) => getIt.isRegistered<FirebaseObservability>() ? getIt<FirebaseObservability>() : null,
 );
 
 final dashboardAmountsHiddenProvider = NotifierProvider<DashboardAmountsHiddenNotifier, bool>(
@@ -58,6 +66,10 @@ final canonicalCategoriesProvider = StreamProvider.family<List<FinanceCategory>,
 
 final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId),
+);
+
+final balanceAdjustmentsProvider = StreamProvider.family<List<BalanceAdjustmentEvent>, String>(
+  (ref, userId) => getIt<CanonicalFinanceRepository>().watchBalanceAdjustments(userId),
 );
 
 final canonicalOperationsPageProvider =
@@ -122,6 +134,18 @@ final activityTypeFilterProvider = NotifierProvider<ActivityTypeFilterNotifier, 
   ActivityTypeFilterNotifier.new,
 );
 
+final activityBalanceAdjustmentsOnlyProvider =
+    NotifierProvider<BalanceAdjustmentsOnlyNotifier, bool>(
+      BalanceAdjustmentsOnlyNotifier.new,
+    );
+
+class BalanceAdjustmentsOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void select(bool value) => state = value;
+}
+
 final activityQueryFiltersProvider =
     NotifierProvider<ActivityQueryFiltersNotifier, ActivityQueryFilters>(
       ActivityQueryFiltersNotifier.new,
@@ -130,63 +154,103 @@ final activityQueryFiltersProvider =
 /// Loads every non-rejected activity record matching the current filters so
 /// summaries and exports are not limited to the list's currently loaded page.
 final activityReportProvider = FutureProvider.family<ActivityReport, String>((ref, userId) async {
-  final filters = ref.watch(activityQueryFiltersProvider);
-  final type = ref.watch(activityTypeFilterProvider);
-  final localPending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
-  final repository = ref.watch(canonicalFinanceRepositoryProvider);
-  final operations = <FinancialOperation>[];
-  OperationPageCursor? cursor;
+  final observability = ref.watch(firebaseObservabilityProvider);
+  Future<ActivityReport> load() async {
+    final filters = ref.watch(activityQueryFiltersProvider);
+    final type = ref.watch(activityTypeFilterProvider);
+    final adjustmentsOnly = ref.watch(activityBalanceAdjustmentsOnlyProvider);
+    final adjustmentEventsState = ref.watch(balanceAdjustmentsProvider(userId));
+    final localPending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
+    final repository = ref.watch(canonicalFinanceRepositoryProvider);
+    final adjustmentEvents = adjustmentEventsState.valueOrNull ?? const <BalanceAdjustmentEvent>[];
+    final operations = <FinancialOperation>[];
+    OperationPageCursor? cursor;
 
-  while (true) {
-    final result = await repository.fetchOperationsPage(
-      userId,
-      cursor: cursor,
-      monthKey: filters.monthKey,
-      type: type,
-      accountIds: filters.accountIds,
-      startAt: filters.startAt,
-      endAtExclusive: filters.endAtExclusive,
-    );
-    final page = result.match((failure) => throw Exception(failure.message), (value) => value);
-    operations.addAll(page.items);
-    cursor = page.nextCursor;
-    if (cursor == null) break;
-  }
-
-  final knownIdempotencyKeys = operations.map((operation) => operation.idempotencyKey).toSet();
-  for (final pending in localPending) {
-    if (pending.status == 'rejected') continue;
-    try {
-      final payload = jsonDecode(pending.payload) as Map<String, dynamic>;
-      // New queue entries carry ownership so another signed-in user's local
-      // transactions are never exposed in this report or its export.
-      if (payload['ownerUserId'] != userId) continue;
-      final operation = _pendingActivityOperation(pending, payload);
-      if (operation == null || knownIdempotencyKeys.contains(operation.idempotencyKey)) continue;
-      if (type != null && operation.type != type) continue;
-      if (filters.monthKey != null && operation.monthKey != filters.monthKey) continue;
-      if (filters.isDateRange &&
-          (operation.occurredAt.isBefore(filters.startAt!) ||
-              !operation.occurredAt.isBefore(filters.endAtExclusive!))) {
-        continue;
-      }
-      if (filters.accountIds.isNotEmpty &&
-          !filters.accountIds.any(
-            (id) =>
-                id == operation.accountId ||
-                id == operation.sourceAccountId ||
-                id == operation.destinationAccountId,
-          )) {
-        continue;
-      }
-      operations.add(operation);
-      knownIdempotencyKeys.add(operation.idempotencyKey);
-    } on Object {
-      // A malformed or legacy queue row is left untouched and omitted safely.
+    while (true) {
+      final result = await repository.fetchOperationsPage(
+        userId,
+        cursor: cursor,
+        monthKey: filters.monthKey,
+        type: type,
+        accountIds: filters.accountIds,
+        startAt: filters.startAt,
+        endAtExclusive: filters.endAtExclusive,
+      );
+      final page = result.match((failure) => throw Exception(failure.message), (value) => value);
+      operations.addAll(page.items);
+      cursor = page.nextCursor;
+      if (cursor == null) break;
     }
+
+    final knownIdempotencyKeys = operations.map((operation) => operation.idempotencyKey).toSet();
+    for (final pending in localPending) {
+      if (pending.status == 'rejected') continue;
+      try {
+        final payload = jsonDecode(pending.payload) as Map<String, dynamic>;
+        // New queue entries carry ownership so another signed-in user's local
+        // transactions are never exposed in this report or its export.
+        if (payload['ownerUserId'] != userId) continue;
+        final operation = _pendingActivityOperation(pending, payload);
+        if (operation == null || knownIdempotencyKeys.contains(operation.idempotencyKey)) {
+          continue;
+        }
+        if (type != null && operation.type != type) continue;
+        if (filters.monthKey != null && operation.monthKey != filters.monthKey) continue;
+        if (filters.isDateRange &&
+            (operation.occurredAt.isBefore(filters.startAt!) ||
+                !operation.occurredAt.isBefore(filters.endAtExclusive!))) {
+          continue;
+        }
+        if (filters.accountIds.isNotEmpty &&
+            !filters.accountIds.any(
+              (id) =>
+                  id == operation.accountId ||
+                  id == operation.sourceAccountId ||
+                  id == operation.destinationAccountId,
+            )) {
+          continue;
+        }
+        operations.add(operation);
+        knownIdempotencyKeys.add(operation.idempotencyKey);
+      } on Object {
+        // A malformed or legacy queue row is left untouched and omitted safely.
+      }
+    }
+
+    final adjustments = <BalanceAdjustmentActivityEntry>[];
+    if (type == null) {
+      for (final event in adjustmentEvents) {
+        final localDate = event.adjustedAt.toLocal();
+        final monthKey =
+            '${localDate.year.toString().padLeft(4, '0')}-${localDate.month.toString().padLeft(2, '0')}';
+        if (filters.monthKey != null && monthKey != filters.monthKey) continue;
+        if (filters.isDateRange &&
+            (event.adjustedAt.isBefore(filters.startAt!) ||
+                !event.adjustedAt.isBefore(filters.endAtExclusive!))) {
+          continue;
+        }
+        for (final adjustment in event.adjustments) {
+          if (filters.accountIds.isNotEmpty && !filters.accountIds.contains(adjustment.accountId)) {
+            continue;
+          }
+          adjustments.add(
+            BalanceAdjustmentActivityEntry(
+              requestId: event.requestId,
+              adjustedAt: event.adjustedAt,
+              adjustment: adjustment,
+            ),
+          );
+        }
+      }
+    }
+    return ActivityReport.fromOperations(
+      adjustmentsOnly ? const [] : operations,
+      adjustments: adjustments,
+    );
   }
 
-  return ActivityReport.fromOperations(operations);
+  if (observability == null) return load();
+  return observability.tracePerformance(PerformanceTraceName.activityReportPreparation, load);
 });
 
 FinancialOperation? _pendingActivityOperation(
@@ -434,6 +498,47 @@ final canonicalMonthlySummaryProvider =
       ),
     );
 
+final homeInitialLoadProvider =
+    FutureProvider.family<void, ({String userId, String monthKey, String currency})>((
+      ref,
+      input,
+    ) async {
+      final observability = ref.watch(firebaseObservabilityProvider);
+      Future<void> load() async {
+        await Future.wait<Object?>([
+          ref.watch(canonicalAccountsProvider(input.userId).future),
+          ref.watch(canonicalCategoriesProvider(input.userId).future),
+          ref.watch(
+            canonicalOperationsPageProvider((
+              userId: input.userId,
+              cursor: null,
+              monthKey: null,
+              currency: null,
+              type: null,
+              accountIds: null,
+              pageSize: 10,
+            )).future,
+          ),
+          ref.watch(
+            canonicalMonthlySummaryProvider((
+              userId: input.userId,
+              monthKey: input.monthKey,
+              currency: input.currency,
+            )).future,
+          ),
+          ref.watch(
+            canonicalBudgetsProvider((userId: input.userId, monthKey: input.monthKey)).future,
+          ),
+        ]);
+      }
+
+      if (observability == null) {
+        await load();
+      } else {
+        await observability.tracePerformance(PerformanceTraceName.homeInitialLoad, load);
+      }
+    });
+
 final bootstrapCategoriesProvider = Provider<BootstrapCategories>(
   (ref) => BootstrapCategories(
     getIt<CanonicalFinanceRepository>(),
@@ -494,7 +599,7 @@ final canonicalActionsProvider = Provider<CanonicalFinanceActions>(
 );
 
 class CanonicalFinanceActions {
-  const CanonicalFinanceActions(
+  CanonicalFinanceActions(
     this._repository,
     this._sync,
     this._database,
@@ -549,35 +654,61 @@ class CanonicalFinanceActions {
     String userId,
     FinancialOperationDraft draft,
   ) async {
-    await _sync.enqueue(
-      idempotencyKey: draft.idempotencyKey,
-      operationType: 'operation',
-      payload: {..._operationPayload(draft), 'ownerUserId': userId},
-    );
-    await _sync.drain((type, payload) => _send(userId, type, payload));
-    final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
-    if (status == SyncState.confirmed.name) {
-      await _observability.logEvent('${draft.type.name}_created');
-    }
-    return SyncState.values.firstWhere(
-      (value) => value.name == status,
-      orElse: () => SyncState.pending,
-    );
+    return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
+      await _sync.enqueue(
+        idempotencyKey: draft.idempotencyKey,
+        operationType: 'operation',
+        payload: {..._operationPayload(draft), 'ownerUserId': userId},
+      );
+      await _sync.drain((type, payload) => _send(userId, type, payload));
+      final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+      if (status == SyncState.confirmed.name) {
+        await _observability.logEvent('${draft.type.name}_created');
+      }
+      return SyncState.values.firstWhere(
+        (value) => value.name == status,
+        orElse: () => SyncState.pending,
+      );
+    });
   }
 
   Future<SyncState> createTransfer(String userId, TransferDraft draft) async {
-    await _sync.enqueue(
-      idempotencyKey: draft.idempotencyKey,
-      operationType: 'transfer',
-      payload: {..._transferPayload(draft), 'ownerUserId': userId},
-    );
-    await _sync.drain((type, payload) => _send(userId, type, payload));
-    final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
-    if (status == SyncState.confirmed.name) await _observability.logEvent('transfer_created');
-    return SyncState.values.firstWhere(
-      (value) => value.name == status,
-      orElse: () => SyncState.pending,
-    );
+    return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
+      await _sync.enqueue(
+        idempotencyKey: draft.idempotencyKey,
+        operationType: 'transfer',
+        payload: {..._transferPayload(draft), 'ownerUserId': userId},
+      );
+      await _sync.drain((type, payload) => _send(userId, type, payload));
+      final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+      if (status == SyncState.confirmed.name) await _observability.logEvent('transfer_created');
+      return SyncState.values.firstWhere(
+        (value) => value.name == status,
+        orElse: () => SyncState.pending,
+      );
+    });
+  }
+
+  final Map<String, String> _budgetRequestIds = {};
+
+  List<Object> _budgetItemKey(CanonicalBudgetItemDraft item) => [
+    item.description.trim(),
+    item.amountMinor,
+    item.dayOfMonth,
+  ];
+
+  Future<T> _runBudget<T>(String key, Future<Either<Failure, T>> Function(String) send) async {
+    return _observability.tracePerformance(PerformanceTraceName.budgetSave, () async {
+      final requestId = _budgetRequestIds.putIfAbsent(key, newRequestId);
+      final result = await send(requestId);
+      return result.match(
+        (failure) => throw BudgetCommandException.fromFailure(failure),
+        (value) {
+          _budgetRequestIds.remove(key);
+          return value;
+        },
+      );
+    });
   }
 
   Future<Budget> createBudget(
@@ -588,61 +719,82 @@ class CanonicalFinanceActions {
     required String currency,
     required List<CanonicalBudgetItemDraft> items,
   }) async {
-    final result = await _repository.createBudgetWithItems(
+    final key = jsonEncode([
       userId,
-      categoryId: categoryId,
-      flowType: flowType,
-      monthKey: monthKey,
-      currency: currency,
-      items: items,
+      'create',
+      categoryId,
+      flowType,
+      monthKey,
+      currency,
+      items.map(_budgetItemKey).toList(),
+    ]);
+    final budget = await _runBudget(
+      key,
+      (requestId) => _repository.createBudgetWithItems(
+        userId,
+        categoryId: categoryId,
+        flowType: flowType,
+        monthKey: monthKey,
+        currency: currency,
+        items: items,
+        requestId: requestId,
+      ),
     );
-    return result.match((failure) => throw Exception(failure.message), (budget) {
-      unawaited(_observability.logEvent('budget_created'));
-      return budget;
-    });
+    unawaited(_observability.logEvent('budget_created'));
+    return budget;
   }
 
-  Future<void> addBudgetItem(
-    String userId,
-    String budgetId,
-    CanonicalBudgetItemDraft item,
-  ) async {
-    final result = await _repository.addBudgetItem(userId, budgetId, item);
-    result.match((failure) => throw Exception(failure.message), (_) {});
+  Future<void> addBudgetItem(String userId, String budgetId, CanonicalBudgetItemDraft item) async {
+    final key = jsonEncode([userId, 'addItem', budgetId, _budgetItemKey(item)]);
+    await _runBudget(
+      key,
+      (requestId) => _repository.addBudgetItem(userId, budgetId, item, requestId: requestId),
+    );
   }
 
   Future<void> updateBudgetItem(String userId, String budgetId, BudgetItem item) async {
-    final result = await _repository.updateBudgetItem(userId, budgetId, item);
-    result.match((failure) => throw Exception(failure.message), (_) {});
+    final key = jsonEncode([
+      userId,
+      'updateItem',
+      budgetId,
+      item.id,
+      item.description.trim(),
+      item.amountMinor,
+      item.dayOfMonth,
+    ]);
+    await _runBudget(
+      key,
+      (requestId) => _repository.updateBudgetItem(userId, budgetId, item, requestId: requestId),
+    );
   }
 
   Future<void> deleteBudgetItem(String userId, String budgetId, String itemId) async {
-    final result = await _repository.deleteBudgetItem(userId, budgetId, itemId);
-    result.match((failure) {
-      if (failure is ConflictFailure && failure.message == 'budget-last-item') {
-        throw StateError('budget-last-item');
-      }
-      throw Exception(failure.message);
-    }, (_) {});
+    final key = jsonEncode([userId, 'archiveItem', budgetId, itemId]);
+    await _runBudget(
+      key,
+      (requestId) => _repository.deleteBudgetItem(userId, budgetId, itemId, requestId: requestId),
+    );
   }
 
   Future<Failure?> archiveBudget(String userId, String budgetId) async {
-    final result = await _repository.archiveBudget(userId, budgetId);
-    return result.match((failure) {
-      final issue = switch (failure) {
-        NetworkFailure() => 'network',
-        AuthFailure() => 'permission',
-        ConflictFailure() => 'conflict',
-        UnknownFailure() => 'unexpected',
-      };
-      final code = failure.technicalCode;
-      final safeCode = code != null && RegExp(r'^[a-z0-9-]{1,48}$').hasMatch(code) ? code : null;
-      if (kDebugMode) {
-        debugPrint('budget_archive_failure issue=$issue firebaseCode=${safeCode ?? 'none'}');
-      }
-      unawaited(_observability.recordNonFatal(TechnicalErrorCode.firebaseRequest));
-      return failure;
-    }, (_) => null);
+    return _observability.tracePerformance(PerformanceTraceName.budgetSave, () async {
+      final key = jsonEncode([userId, 'archiveBudget', budgetId]);
+      final requestId = _budgetRequestIds.putIfAbsent(key, newRequestId);
+      final result = await _repository.archiveBudget(userId, budgetId, requestId: requestId);
+      return result.match(
+        (failure) {
+          if (kDebugMode) {
+            debugPrint('budget_archive_failure code=${failure.technicalCode ?? 'unexpected'}');
+          }
+          unawaited(_observability.recordNonFatal(TechnicalErrorCode.firebaseRequest));
+          return failure;
+        },
+        (_) {
+          _budgetRequestIds.remove(key);
+          return null;
+        },
+      );
+    });
   }
 
   Future<void> updateOperation(String userId, FinancialOperation operation) async {

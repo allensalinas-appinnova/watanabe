@@ -9,6 +9,21 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get budgetConnectionRequired =>
+      'A connection is required to save this budget. Your changes are still here; try again.';
+
+  @override
+  String get budgetCommandArchived => 'This budget or item has been archived. Refresh the list.';
+
+  @override
+  String get budgetCommandNotFound =>
+      'This budget or item is no longer available. Refresh the list.';
+
+  @override
+  String get budgetCommandConflict =>
+      'The request conflicts with an earlier change. Refresh the budget before trying again.';
+
+  @override
   String get appTitle => 'LumioMoney';
 
   @override
@@ -143,6 +158,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activityFilterAll => 'All';
+
+  @override
+  String get activityBalanceAdjustmentsFilter => 'Adjustments';
+
+  @override
+  String get activityBalanceAdjustmentType => 'Balance adjustment';
+
+  @override
+  String activityBalanceAdjustmentEntry(Object previous, Object target, Object difference) {
+    return 'Balance $previous → $target · difference $difference';
+  }
+
+  @override
+  String get activityBalanceAdjustmentsHeader => 'Balance adjustments';
+
+  @override
+  String get activityBalanceAdjustmentsEmpty => 'There are no adjustments for these filters.';
 
   @override
   String activityFilterAction(Object account, Object period) {
@@ -549,6 +581,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archive => 'Archive';
+
+  @override
+  String get adjustAccountBalance => 'Adjust balance';
+
+  @override
+  String get balanceAdjustmentTitle => 'Adjust balances';
+
+  @override
+  String get balanceAdjustmentSubtitle => 'Your opening balance and transactions will not change.';
+
+  @override
+  String get balanceAdjustmentTarget => 'Actual balance';
+
+  @override
+  String balanceAdjustmentCurrent(Object balance) {
+    return 'Current balance: $balance';
+  }
+
+  @override
+  String get balanceAdjustmentPrevious => 'Previous balance';
+
+  @override
+  String get balanceAdjustmentDifferenceLabel => 'Difference';
+
+  @override
+  String balanceAdjustmentDifference(Object amount) {
+    return 'Difference: $amount';
+  }
+
+  @override
+  String get balanceAdjustmentReason => 'Reason (optional)';
+
+  @override
+  String get balanceAdjustmentOtherDevicesHint =>
+      'Sync pending transactions on your other devices first; they could change these balances afterward.';
+
+  @override
+  String get balanceAdjustmentPendingHint =>
+      'Resolve pending, syncing, or rejected transactions for the selected accounts before adjusting.';
+
+  @override
+  String get balanceAdjustmentSave => 'Save adjustments';
+
+  @override
+  String get balanceAdjustmentNoop => 'The target balance already matches the current balance.';
+
+  @override
+  String get balanceAdjustmentInvalidAmount => 'Enter a valid balance within the allowed limit.';
+
+  @override
+  String get balanceAdjustmentSuccess => 'Balances updated.';
 
   @override
   String get confirmArchiveCategory =>
@@ -1234,4 +1317,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String budgetArchiveUnexpectedFailure(Object code) {
     return 'We couldn\'t delete the budget. It is still active; try again. Code: $code';
   }
+
+  @override
+  String get more => 'More';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get moreSubtitle => 'Manage your categories and account session.';
+
+  @override
+  String get moreManagement => 'Management';
+
+  @override
+  String get moreSession => 'Session';
+
+  @override
+  String get signOutConfirmTitle => 'Sign out?';
+
+  @override
+  String get signOutConfirmMessage => 'You will need to sign in again to access your data.';
+
+  @override
+  String signOutPendingWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '# movements waiting to sync',
+      one: '# movement waiting to sync',
+    );
+    return 'You have $_temp0. Signing out will not delete them, but you may need to sign in again to sync.';
+  }
+
+  @override
+  String get discardChangesTitle => 'Discard your changes?';
+
+  @override
+  String get discardChangesMessage => 'Your changes have not been saved yet.';
+
+  @override
+  String get keepEditing => 'Keep editing';
+
+  @override
+  String get discardChanges => 'Discard';
 }

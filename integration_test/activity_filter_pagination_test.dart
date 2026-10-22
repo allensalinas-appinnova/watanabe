@@ -37,7 +37,7 @@ void main() {
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
@@ -47,13 +47,16 @@ void main() {
       tester,
     ) async {
       final email = 'activity-${DateTime.now().microsecondsSinceEpoch}@example.test';
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: 'ClearBudget-E2E-123',
-      );
+      final credential = await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app)
+          .createUserWithEmailAndPassword(
+            email: email,
+            password: 'ClearBudget-E2E-123',
+          );
       await credential.user!.getIdToken(true);
       final uid = credential.user!.uid;
-      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final userRef = FirebaseFirestore.instanceFor(
+        app: FirebaseBootstrap.app,
+      ).collection('users').doc(uid);
       await userRef.set({
         'locale': 'es',
         'countryCode': 'CO',

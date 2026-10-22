@@ -64,27 +64,6 @@ service cloud.firestore {
         data.description is string && data.description.size() <= 500 &&
         data.status == 'confirmed' && validIdempotencyKey(data.idempotencyKey);
     }
-    function validBudget(data) {
-      return required(data, ['categoryId', 'flowType', 'monthKey', 'currency', 'plannedAmountMinor', 'status', 'createdAt', 'updatedAt']) &&
-        data.keys().hasOnly([
-          'categoryId', 'flowType', 'monthKey', 'currency',
-          'plannedAmountMinor', 'itemCount', 'status', 'createdAt', 'updatedAt'
-        ]) && data.categoryId is string && data.categoryId.size() > 0 &&
-        data.flowType in ['income', 'expense'] && validMonthKey(data.monthKey) &&
-        validCurrency(data.currency) && validNonNegativeMoney(data.plannedAmountMinor, data.currency) &&
-        (!('itemCount' in data) || (data.itemCount is int && data.itemCount >= 1)) &&
-        data.status in ['active', 'archived'];
-    }
-    function validBudgetItem(data, currency) {
-      return data.keys().hasOnly([
-          'description', 'amountMinor', 'dayOfMonth', 'actualAmountMinor', 'status', 'archivedAt', 'createdAt', 'updatedAt'
-        ]) && data.description is string && data.description.size() > 0 &&
-        data.description.size() <= 200 && validMoney(data.amountMinor, currency) &&
-        (!('actualAmountMinor' in data) || (data.actualAmountMinor is int && data.actualAmountMinor >= 0 && data.actualAmountMinor <= 9007199254740991)) &&
-        (!('status' in data) || data.status in ['active', 'archived']) &&
-        (!('archivedAt' in data) || data.archivedAt is timestamp) &&
-        data.dayOfMonth is int && data.dayOfMonth >= 1 && data.dayOfMonth <= 31;
-    }
     function validCategoryColor(data) {
       return !('colorValue' in data) ||
         (data.colorValue is int && data.colorValue >= 0 && data.colorValue <= 4294967295);
@@ -185,35 +164,28 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // Budgets and items are written atomically by the authenticated callable.
       match /budgets/{budgetId} {
         allow read: if owner(uid);
-        allow create: if owner(uid) && validBudget(request.resource.data) &&
-          categoryExists(uid, request.resource.data.categoryId, request.resource.data.flowType);
-        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'plannedAmountMinor', 'itemCount', 'status', 'updatedAt'
-        ]) && validBudget(request.resource.data);
-        allow delete: if false;
+        allow write: if false;
         match /items/{itemId} {
           allow read: if owner(uid);
-          allow create: if owner(uid) && validBudgetItem(
-              request.resource.data,
-              getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.currency
-            ) &&
-            (!('actualAmountMinor' in request.resource.data) || request.resource.data.actualAmountMinor == 0) &&
-            (!('status' in request.resource.data) || request.resource.data.status == 'active') &&
-            getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
-          allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'description', 'amountMinor', 'dayOfMonth', 'status', 'archivedAt', 'updatedAt'
-            ]) && validBudgetItem(
-              request.resource.data,
-              getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.currency
-            ) &&
-            getAfter(/databases/$(database)/documents/users/$(uid)/budgets/$(budgetId)).data.status == 'active';
-          allow delete: if false;
+          allow write: if false;
         }
       }
 
+      // Server-only command receipts: digest + result + createdAt.
+      match /budgetCommands/{requestId} {
+        allow read, write: if false;
+      }
+
       match /monthlySummaries/{summaryId} {
+        allow read: if owner(uid);
+        allow write: if false;
+      }
+
+      // Immutable audit records are written only by adjustAccountBalances.
+      match /balanceAdjustments/{requestId} {
         allow read: if owner(uid);
         allow write: if false;
       }

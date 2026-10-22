@@ -9,6 +9,7 @@ import 'package:personal_finance/core/offline/sync_state.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
+import 'package:personal_finance/features/finance/domain/entities/balance_adjustment.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
@@ -112,6 +113,9 @@ void main() {
           (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
         ),
         canonicalFinanceRepositoryProvider.overrideWithValue(repository),
+        balanceAdjustmentsProvider.overrideWith(
+          (ref, userId) => Stream.value(const <BalanceAdjustmentEvent>[]),
+        ),
         if (shareService != null) activityCsvShareServiceProvider.overrideWithValue(shareService),
         if (saveService != null) activityCsvSaveServiceProvider.overrideWithValue(saveService),
         canonicalAccountsProvider('user-1').overrideWith(
@@ -186,7 +190,11 @@ void main() {
     final dateTime = DateFormat.yMMMd('es').add_Hm().format(DateTime(2026, 10, 7, 9, 30));
     expect(find.text('Ingreso · $dateTime'), findsOneWidget);
     expect(find.text('Gasto · $dateTime'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Transferencia · $dateTime'), 250);
+    await tester.drag(
+      find.byKey(const ValueKey('canonical_activity_scroll_view')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Transferencia · $dateTime'), findsOneWidget);
     expect(find.text('Banco1 Ahorros · Salario'), findsOneWidget);
     expect(find.text('Banco1 Ahorros · Comida'), findsOneWidget);

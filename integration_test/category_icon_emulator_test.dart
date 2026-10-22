@@ -30,17 +30,21 @@ void main() {
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
     await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
   testWidgets('category icon update persists and is returned by the repository', (_) async {
-    final user = (await FirebaseAuth.instance.signInAnonymously()).user!;
-    final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final user = (await FirebaseAuth.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).signInAnonymously()).user!;
+    final userRef = FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(user.uid);
     await userRef.set({
       'locale': 'es',
       'countryCode': 'CO',

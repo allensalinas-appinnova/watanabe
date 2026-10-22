@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -71,7 +71,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                     key: const ValueKey('activity_filters_close'),
                     tooltip: l10n.close,
                     constraints: const BoxConstraints.tightFor(width: 48, height: 48),
-                    onPressed: context.pop,
+                    onPressed: () => popOrGo(context, '/activity'),
                     icon: const Icon(Icons.close, color: AppColors.muted),
                   ),
                 ],
@@ -334,7 +334,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
             hasBeenApplied: true,
           ),
         );
-    context.pop();
+    popOrGo(context, '/activity');
   }
 
   String _accountName(

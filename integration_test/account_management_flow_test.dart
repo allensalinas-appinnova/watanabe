@@ -31,11 +31,11 @@ void main() {
     }
     await FirebaseBootstrap.initialize(AppEnvironment.dev, useEmulators: true, emulatorHost: host);
     await configureDependencies();
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
   });
 
   tearDownAll(() async {
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     await GetIt.I.reset();
   });
 
@@ -56,7 +56,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     await _pumpUntil(tester, find.byKey(const ValueKey('home_add_income')));
 
-    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final userId = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser!.uid;
     await tester.tap(find.byKey(const ValueKey('home_accounts_nav')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -142,7 +142,7 @@ void main() {
       );
     }
 
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app)
         .collection('users')
         .doc(userId)
         .collection('accounts')
@@ -194,12 +194,9 @@ Future<String> _waitForAccount(
   required String expectedCurrency,
   required int expectedBalanceMinor,
 }) async {
-  final query = FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('accounts')
-      .where('name', isEqualTo: name)
-      .limit(2);
+  final query = FirebaseFirestore.instanceFor(
+    app: FirebaseBootstrap.app,
+  ).collection('users').doc(userId).collection('accounts').where('name', isEqualTo: name).limit(2);
   for (var attempt = 0; attempt < 30; attempt++) {
     final snapshot = await query.get(const GetOptions(source: Source.server));
     if (snapshot.docs.isNotEmpty) {

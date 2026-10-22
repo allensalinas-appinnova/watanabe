@@ -64,41 +64,18 @@ class CanonicalHomeScreen extends ConsumerWidget {
         final summary = ref.watch(canonicalMonthlySummaryProvider(summaryInput));
         final budgetInput = (userId: user.id, monthKey: monthKey);
         final budgets = ref.watch(canonicalBudgetsProvider(budgetInput));
+        ref.watch(
+          homeInitialLoadProvider((
+            userId: user.id,
+            monthKey: monthKey,
+            currency: primaryCurrency,
+          )),
+        );
         final pending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
         final amountsHidden = ref.watch(dashboardAmountsHiddenProvider);
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(
-            toolbarHeight: 52,
-            titleSpacing: 24,
-            title: Text(
-              l10n.appTitle,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.blueDark,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            actions: [
-              PopupMenuButton<String>(
-                key: const ValueKey('home_more_menu'),
-                tooltip: l10n.homeMenu,
-                icon: const Icon(Icons.more_horiz, size: 26),
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                onSelected: (value) {
-                  if (value == 'categories') context.push('/categories');
-                  if (value == 'sign_out') {
-                    ref.read(authControllerProvider.notifier).signOut();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(value: 'categories', child: Text(l10n.manageCategories)),
-                  PopupMenuItem(value: 'sign_out', child: Text(l10n.signOut)),
-                ],
-              ),
-              const SizedBox(width: 12),
-            ],
-          ),
           body: RefreshIndicator(
             onRefresh: () async {
               ref

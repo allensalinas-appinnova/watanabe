@@ -158,10 +158,20 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('open_detail')));
     await tester.pumpAndSettle();
     expect(find.text('Budget detail'), findsOneWidget);
+    expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('form_back')));
     await tester.pumpAndSettle();
     expect(find.text('Budget list').hitTestable(), findsOneWidget);
     expect(_selectedTab(tester), 2);
+
+    await tester.tap(find.byKey(const ValueKey('open_tracking')));
+    await tester.pumpAndSettle();
+    expect(find.text('Budget tracking'), findsOneWidget);
+    expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
+    expect(_selectedTab(tester), 2);
+    await tester.tap(find.byKey(const ValueKey('form_back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Budget list').hitTestable(), findsOneWidget);
   });
 
   testWidgets('one global action is available on every tab and opens a modal sheet', (
@@ -184,6 +194,25 @@ void main() {
       expect(find.byKey(const ValueKey('add_movement_transfer')), findsOneWidget);
       expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('add_movement_close')));
+      await tester.pumpAndSettle();
+      expect(_selectedTab(tester), index);
+    }
+  });
+
+  testWidgets('More is available on every section and returns to the originating tab', (
+    tester,
+  ) async {
+    final router = _router(initialLocation: '/home');
+    addTearDown(router.dispose);
+    await tester.pumpWidget(_app(router));
+    await tester.pumpAndSettle();
+
+    for (final index in [1, 2, 3, 0]) {
+      await _selectTab(tester, index);
+      await tester.tap(find.byKey(const ValueKey('global_more_action')));
+      await tester.pumpAndSettle();
+      expect(find.text('More route'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('form_back')));
       await tester.pumpAndSettle();
       expect(_selectedTab(tester), index);
     }
@@ -364,7 +393,10 @@ GoRouter _router({
   initialLocation: initialLocation,
   routes: [
     StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => AppShell(navigationShell: shell),
+      builder: (context, state, shell) => AppShell(
+        navigationShell: shell,
+        currentLocation: state.uri.path,
+      ),
       branches: [
         StatefulShellBranch(
           routes: [
@@ -396,6 +428,10 @@ GoRouter _router({
               path: '/budgets',
               builder: (_, _) => const _BudgetTab(),
               routes: [
+                GoRoute(
+                  path: 'tracking',
+                  builder: (_, _) => const _BackForm('Budget tracking'),
+                ),
                 GoRoute(
                   path: 'new',
                   builder: (_, _) => const _BackForm('Budget create route'),
@@ -430,6 +466,7 @@ GoRouter _router({
           ? _SavingForm(type: OperationType.transfer, pending: pendingReceipts)
           : const _BackForm('transfer route'),
     ),
+    GoRoute(path: '/more', builder: (_, _) => const _BackForm('More route')),
   ],
 );
 
@@ -492,6 +529,11 @@ class _BudgetTab extends StatelessWidget {
           key: const ValueKey('open_detail'),
           onPressed: () => context.push('/budgets/test-budget'),
           child: const Text('Detail'),
+        ),
+        TextButton(
+          key: const ValueKey('open_tracking'),
+          onPressed: () => context.push('/budgets/tracking'),
+          child: const Text('Tracking'),
         ),
       ],
     ),

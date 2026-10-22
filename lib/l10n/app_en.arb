@@ -1,4 +1,8 @@
 {
+  "budgetConnectionRequired": "A connection is required to save this budget. Your changes are still here; try again.",
+  "budgetCommandArchived": "This budget or item has been archived. Refresh the list.",
+  "budgetCommandNotFound": "This budget or item is no longer available. Refresh the list.",
+  "budgetCommandConflict": "The request conflicts with an earlier change. Refresh the budget before trying again.",
   "@@locale": "en",
   "appTitle": "LumioMoney",
   "sessionCheckFailed": "We couldn't verify your profile. Check your connection and try again, or sign in again.",
@@ -50,6 +54,12 @@
   "activity": "Activity",
   "activitySubtitle": "Find and review your transactions",
   "activityFilterAll": "All",
+  "activityBalanceAdjustmentsFilter": "Adjustments",
+  "activityBalanceAdjustmentType": "Balance adjustment",
+  "activityBalanceAdjustmentEntry": "Balance {previous} → {target} · difference {difference}",
+  "@activityBalanceAdjustmentEntry": {"placeholders": {"previous": {}, "target": {}, "difference": {}}},
+  "activityBalanceAdjustmentsHeader": "Balance adjustments",
+  "activityBalanceAdjustmentsEmpty": "There are no adjustments for these filters.",
   "activityFilterAction": "Filters · {account} · {period}",
   "@activityFilterAction": {"placeholders": {"account": {}, "period": {}}},
   "activityFilterTitle": "Filter activity",
@@ -177,6 +187,23 @@
   "categorySaved": "Category updated",
   "newCategory": "New category",
   "archive": "Archive",
+  "adjustAccountBalance": "Adjust balance",
+  "balanceAdjustmentTitle": "Adjust balances",
+  "balanceAdjustmentSubtitle": "Your opening balance and transactions will not change.",
+  "balanceAdjustmentTarget": "Actual balance",
+  "balanceAdjustmentCurrent": "Current balance: {balance}",
+  "balanceAdjustmentPrevious": "Previous balance",
+  "balanceAdjustmentDifferenceLabel": "Difference",
+  "balanceAdjustmentDifference": "Difference: {amount}",
+  "@balanceAdjustmentCurrent": {"placeholders": {"balance": {}}},
+  "@balanceAdjustmentDifference": {"placeholders": {"amount": {}}},
+  "balanceAdjustmentReason": "Reason (optional)",
+  "balanceAdjustmentOtherDevicesHint": "Sync pending transactions on your other devices first; they could change these balances afterward.",
+  "balanceAdjustmentPendingHint": "Resolve pending, syncing, or rejected transactions for the selected accounts before adjusting.",
+  "balanceAdjustmentSave": "Save adjustments",
+  "balanceAdjustmentNoop": "The target balance already matches the current balance.",
+  "balanceAdjustmentInvalidAmount": "Enter a valid balance within the allowed limit.",
+  "balanceAdjustmentSuccess": "Balances updated.",
   "confirmArchiveCategory": "This category will be archived and kept on your past transactions.",
   "expenseCategories": "Expenses",
   "incomeCategories": "Income",
@@ -385,4 +412,17 @@
   ,"budgetArchivePermissionFailure": "Firebase didn't authorize this change. The budget is still active; check your session and share this code with support: {code}"
   ,"budgetArchiveConflictFailure": "We couldn't validate the budget. It is still active; share this code with support: {code}"
   ,"budgetArchiveUnexpectedFailure": "We couldn't delete the budget. It is still active; try again. Code: {code}"
+  ,"more": "More"
+  ,"back": "Back"
+  ,"moreSubtitle": "Manage your categories and account session."
+  ,"moreManagement": "Management"
+  ,"moreSession": "Session"
+  ,"signOutConfirmTitle": "Sign out?"
+  ,"signOutConfirmMessage": "You will need to sign in again to access your data."
+  ,"signOutPendingWarning": "You have {count, plural, one{# movement waiting to sync} other{# movements waiting to sync}}. Signing out will not delete them, but you may need to sign in again to sync."
+  ,"@signOutPendingWarning": {"placeholders": {"count": {"type": "int"}}}
+  ,"discardChangesTitle": "Discard your changes?"
+  ,"discardChangesMessage": "Your changes have not been saved yet."
+  ,"keepEditing": "Keep editing"
+  ,"discardChanges": "Discard"
 }

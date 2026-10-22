@@ -5,10 +5,11 @@
 Analytics conserva su política de eventos allowlisted para `staging` y `prod`.
 Crashlytics se configura explícitamente: la recolección está deshabilitada en
 `dev` y cuando se usa Firebase Emulator, y solo se habilita para `staging` y
-`prod`. Los metadatos Android/iOS también dejan la recolección automática
-desactivada; `FirebaseObservability` aplica la política tras inicializar
-Firebase y antes de instalar los handlers de errores. En `dev`, los errores
-permanecen locales.
+`prod`. La misma política rige Firebase Performance. Los metadatos Android/iOS
+dejan la recolección nativa desactivada por defecto; `FirebaseObservability`
+aplica la política tras inicializar Firebase y antes de registrar providers.
+En web, el SDK de Performance ni siquiera se inicializa en `dev`/Emulator. En
+`dev`, los errores y mediciones permanecen locales.
 
 Los handlers nunca pasan la excepción original a Crashlytics. Envían únicamente
 `SafeTechnicalFailure` con códigos técnicos enumerados y una razón fija; no se
@@ -16,6 +17,20 @@ adjuntan IDs de usuario, claves personalizadas, logs, montos, monedas, cuentas,
 categorías, descripciones, tokens ni texto sin filtrar de Firebase. Los reportes
 no fatales también requieren que la política permita recolección. La instancia
 permite inyectar el setter y el reportero en pruebas sin enviar telemetría real.
+
+Performance contiene únicamente trazas con nombres estáticos para arranque,
+carga inicial de Inicio, preparación del reporte de Actividad y guardado de
+movimientos/presupuestos. Solo se recoge duración: no se agregan atributos ni
+métricas personalizadas. Si el SDK de medición falla, no altera el resultado
+del flujo medido.
+
+Performance puede recopilar automáticamente métricas de ciclo de vida y
+solicitudes HTTP/S, según plataforma y configuración del plugin Android. Las
+solicitudes se agregan por patrones de URL en Firebase Performance. No incluir
+datos personales, financieros ni identificadores en rutas o parámetros de URL;
+revisar los patrones de red en staging antes de considerar validada la
+privacidad de la telemetría. La recepción remota de Performance sigue
+pendiente: hoy no hay configuración Firebase staging en este repositorio.
 
 La configuración nativa es local y está excluida de Git:
 
@@ -55,6 +70,8 @@ Después de configurar un proyecto Firebase staging distinto de producción:
 4. Completar onboarding y una operación sintética.
 5. Confirmar los eventos en Analytics.
 6. Revisar que ningún payload contenga información financiera.
+7. Provocar una carga sintética y confirmar las trazas estáticas en Performance;
+   inspeccionar los patrones de URL HTTP/S antes de habilitarlo en producción.
 
 No se considera verificado hasta contar con evidencia del proyecto staging.
 Actualmente solo existe configuración Firebase para `lumiomoney`; no habilites

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/offline/sync_state.dart';
+import '../../../../core/routing/discard_changes_scope.dart';
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
@@ -48,6 +50,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   String? _categoryId;
   String? _idempotencyKey;
   bool _saving = false;
+  bool _hasUnsavedChanges = false;
   DateTime _occurredAt = DateTime.now();
 
   @override
@@ -72,6 +75,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       _idempotencyKey = operation.idempotencyKey;
       _occurredAt = operation.occurredAt.toLocal();
     }
+    _amount.addListener(_markChanged);
+    _description.addListener(_markChanged);
   }
 
   @override
@@ -107,232 +112,267 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       if (account.id == selectedAccountId) selectedCurrency = account.currency;
     }
     final formCurrency = preset?.currency ?? selectedCurrency;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.initialOperation == null
-              ? (_type == OperationType.income ? l10n.addIncome : l10n.addExpense)
-              : l10n.editOperation,
-        ),
-        actions: [
-          if (widget.initialOperation != null && _type != OperationType.transfer)
-            IconButton(
-              key: const ValueKey('delete_operation'),
-              tooltip: l10n.deleteOperation,
-              onPressed: _saving ? null : () => _delete(user.id),
-              icon: const Icon(Icons.delete_outline),
+    return DiscardChangesScope(
+      isDirty: _hasUnsavedChanges,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: l10n.back,
+            onPressed: () => popOrGo(
+              context,
+              widget.initialBudgetItemPreset != null
+                  ? '/budgets'
+                  : widget.initialOperation != null
+                  ? '/activity'
+                  : '/home',
             ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FinanceOperationTypeSelector(
-                  expenseLabel: l10n.expense,
-                  incomeLabel: l10n.income,
-                  isIncomeSelected: _type == OperationType.income,
-                  enabled: preset == null,
-                  onChanged: (isIncome) => setState(() {
-                    _type = isIncome ? OperationType.income : OperationType.expense;
-                    _categoryId = null;
-                  }),
-                ),
-                if (preset != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.budgetItemMovementContext(preset.description),
-                    key: const ValueKey('budget_item_movement_context'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueGrey),
+            icon: const Icon(Icons.arrow_back),
+          ),
+          title: Text(
+            widget.initialOperation == null
+                ? (_type == OperationType.income ? l10n.addIncome : l10n.addExpense)
+                : l10n.editOperation,
+          ),
+          actions: [
+            if (widget.initialOperation != null && _type != OperationType.transfer)
+              IconButton(
+                key: const ValueKey('delete_operation'),
+                tooltip: l10n.deleteOperation,
+                onPressed: _saving ? null : () => _delete(user.id),
+                icon: const Icon(Icons.delete_outline),
+              ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FinanceOperationTypeSelector(
+                    expenseLabel: l10n.expense,
+                    incomeLabel: l10n.income,
+                    isIncomeSelected: _type == OperationType.income,
+                    enabled: preset == null,
+                    onChanged: (isIncome) => setState(() {
+                      _hasUnsavedChanges = true;
+                      _type = isIncome ? OperationType.income : OperationType.expense;
+                      _categoryId = null;
+                    }),
                   ),
-                ],
-                const SizedBox(height: 16),
-                FinanceLabeledField(
-                  label: l10n.amount,
-                  child: TextFormField(
-                    key: const ValueKey('operation_amount'),
-                    controller: _amount,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      prefixText: formCurrency == null
-                          ? null
-                          : CurrencyFormatter.inputPrefix(formCurrency),
-                    ),
-                    validator: (value) => formCurrency == null
-                        ? l10n.operationAccountRequired
-                        : FinanceInputValidators.amount(value, formCurrency, l10n),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FinanceLabeledField(
-                  label: l10n.account,
-                  child: accounts.when(
-                    loading: () => const LinearProgressIndicator(),
-                    error: (_, _) => Text(l10n.genericError),
-                    data: (items) => availableAccounts.isEmpty && preset != null
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(l10n.budgetItemNoCompatibleAccount(preset.currency)),
-                              const SizedBox(height: 8),
-                              OutlinedButton.icon(
-                                key: const ValueKey('budget_item_add_compatible_account'),
-                                onPressed: () =>
-                                    context.push('/accounts/new?currency=${preset.currency}'),
-                                icon: const Icon(Icons.add),
-                                label: Text(l10n.addAccount),
-                              ),
-                            ],
-                          )
-                        : DropdownButtonFormField<String>(
-                            key: ValueKey(
-                              'operation_account_selector_${selectedAccountId ?? 'none'}',
-                            ),
-                            initialValue: selectedAccountId,
-                            decoration: const InputDecoration(),
-                            validator: (value) =>
-                                value == null ? l10n.operationAccountRequired : null,
-                            items: (preset == null ? items : availableAccounts)
-                                .map(
-                                  (account) => DropdownMenuItem(
-                                    value: account.id,
-                                    child: Text('${account.name} (${account.currency})'),
-                                  ),
-                                )
-                                .toList(),
-                            // The budget item constrains currency, not the user's
-                            // choice of account among compatible active accounts.
-                            onChanged: (value) => setState(() => _accountId = value),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FinanceLabeledField(
-                  label: l10n.category,
-                  child: DropdownButtonFormField<String>(
-                    key: const ValueKey('operation_category_selector'),
-                    initialValue: selectedCategoryId,
-                    decoration: const InputDecoration(),
-                    validator: (value) => value == null ? l10n.operationCategoryRequired : null,
-                    items: filteredCategories
-                        .map(
-                          (category) => DropdownMenuItem(
-                            value: category.id,
-                            child: Row(
-                              children: [
-                                FinanceCategoryIcon(
-                                  iconId: category.icon,
-                                  colorValue: category.colorValue,
-                                  size: 28,
-                                  iconSize: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  category.customName ?? category.id,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: preset == null
-                        ? (value) => setState(() => _categoryId = value)
-                        : null,
-                  ),
-                ),
-                if (preset == null) const SizedBox(height: 8),
-                if (preset == null)
-                  SizedBox(
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      key: const ValueKey('operation_manage_categories'),
-                      onPressed: () => context.push('/categories'),
-                      icon: const Icon(Icons.tune),
-                      label: Text(l10n.manageCategories),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                ExpansionTile(
-                  key: const ValueKey('operation_more_options'),
-                  tilePadding: EdgeInsets.zero,
-                  initiallyExpanded: false,
-                  title: Text(l10n.moreOptions),
-                  childrenPadding: const EdgeInsets.only(bottom: 8),
-                  children: [
-                    FinanceLabeledField(
-                      label: l10n.date,
-                      child: Semantics(
-                        button: true,
-                        label:
-                            '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(_occurredAt)}',
-                        child: InkWell(
-                          key: const ValueKey('operation_date_selector'),
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: _selectDate,
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              suffixIcon: Icon(Icons.calendar_today_outlined),
-                            ),
-                            child: Text(
-                              DateFormat.yMMMd(
-                                Localizations.localeOf(context).toString(),
-                              ).format(_occurredAt),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FinanceLabeledField(
-                      label: l10n.time,
-                      child: Semantics(
-                        button: true,
-                        label:
-                            '${l10n.time}, ${TimeOfDay.fromDateTime(_occurredAt).format(context)}',
-                        child: InkWell(
-                          key: const ValueKey('operation_time_selector'),
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: _selectTime,
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              suffixIcon: Icon(Icons.schedule_outlined),
-                            ),
-                            child: Text(TimeOfDay.fromDateTime(_occurredAt).format(context)),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FinanceLabeledField(
-                      label: l10n.descriptionOptional,
-                      child: TextField(
-                        key: const ValueKey('operation_description'),
-                        controller: _description,
-                        decoration: const InputDecoration(),
-                      ),
+                  if (preset != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.budgetItemMovementContext(preset.description),
+                      key: const ValueKey('budget_item_movement_context'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.blueGrey),
                     ),
                   ],
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  key: const ValueKey('operation_save'),
-                  onPressed: _saving || (preset != null && availableAccounts.isEmpty)
-                      ? null
-                      : () => _save(user.id, accounts.valueOrNull ?? const []),
-                  child: _saving ? const CircularProgressIndicator() : Text(l10n.save),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  FinanceLabeledField(
+                    label: l10n.amount,
+                    child: TextFormField(
+                      key: const ValueKey('operation_amount'),
+                      controller: _amount,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        prefixText: formCurrency == null
+                            ? null
+                            : CurrencyFormatter.inputPrefix(formCurrency),
+                      ),
+                      validator: (value) => formCurrency == null
+                          ? l10n.operationAccountRequired
+                          : FinanceInputValidators.amount(value, formCurrency, l10n),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FinanceLabeledField(
+                    label: l10n.account,
+                    child: accounts.when(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, _) => Text(l10n.genericError),
+                      data: (items) => availableAccounts.isEmpty && preset != null
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(l10n.budgetItemNoCompatibleAccount(preset.currency)),
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  key: const ValueKey('budget_item_add_compatible_account'),
+                                  onPressed: () =>
+                                      context.push('/accounts/new?currency=${preset.currency}'),
+                                  icon: const Icon(Icons.add),
+                                  label: Text(l10n.addAccount),
+                                ),
+                              ],
+                            )
+                          : DropdownButtonFormField<String>(
+                              key: ValueKey(
+                                'operation_account_selector_${selectedAccountId ?? 'none'}',
+                              ),
+                              initialValue: selectedAccountId,
+                              decoration: const InputDecoration(),
+                              validator: (value) =>
+                                  value == null ? l10n.operationAccountRequired : null,
+                              items: (preset == null ? items : availableAccounts)
+                                  .map(
+                                    (account) => DropdownMenuItem(
+                                      value: account.id,
+                                      child: Text('${account.name} (${account.currency})'),
+                                    ),
+                                  )
+                                  .toList(),
+                              // The budget item constrains currency, not the user's
+                              // choice of account among compatible active accounts.
+                              onChanged: (value) => setState(() {
+                                _accountId = value;
+                                _hasUnsavedChanges = true;
+                              }),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FinanceLabeledField(
+                    label: l10n.category,
+                    child: DropdownButtonFormField<String>(
+                      key: const ValueKey('operation_category_selector'),
+                      initialValue: selectedCategoryId,
+                      decoration: const InputDecoration(),
+                      validator: (value) => value == null ? l10n.operationCategoryRequired : null,
+                      items: filteredCategories
+                          .map(
+                            (category) => DropdownMenuItem(
+                              value: category.id,
+                              child: Row(
+                                children: [
+                                  FinanceCategoryIcon(
+                                    iconId: category.icon,
+                                    colorValue: category.colorValue,
+                                    size: 28,
+                                    iconSize: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    category.customName ?? category.id,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: preset == null
+                          ? (value) => setState(() {
+                              _categoryId = value;
+                              _hasUnsavedChanges = true;
+                            })
+                          : null,
+                    ),
+                  ),
+                  if (preset == null) const SizedBox(height: 8),
+                  if (preset == null)
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('operation_manage_categories'),
+                        onPressed: () => context.push('/categories'),
+                        icon: const Icon(Icons.tune),
+                        label: Text(l10n.manageCategories),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    key: const ValueKey('operation_more_options'),
+                    tilePadding: EdgeInsets.zero,
+                    initiallyExpanded: false,
+                    title: Text(l10n.moreOptions),
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    children: [
+                      FinanceLabeledField(
+                        label: l10n.date,
+                        child: Semantics(
+                          button: true,
+                          label:
+                              '${l10n.date}, ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(_occurredAt)}',
+                          child: InkWell(
+                            key: const ValueKey('operation_date_selector'),
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: _selectDate,
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                suffixIcon: Icon(Icons.calendar_today_outlined),
+                              ),
+                              child: Text(
+                                DateFormat.yMMMd(
+                                  Localizations.localeOf(context).toString(),
+                                ).format(_occurredAt),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FinanceLabeledField(
+                        label: l10n.time,
+                        child: Semantics(
+                          button: true,
+                          label:
+                              '${l10n.time}, ${TimeOfDay.fromDateTime(_occurredAt).format(context)}',
+                          child: InkWell(
+                            key: const ValueKey('operation_time_selector'),
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: _selectTime,
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                suffixIcon: Icon(Icons.schedule_outlined),
+                              ),
+                              child: Text(TimeOfDay.fromDateTime(_occurredAt).format(context)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FinanceLabeledField(
+                        label: l10n.descriptionOptional,
+                        child: TextField(
+                          key: const ValueKey('operation_description'),
+                          controller: _description,
+                          decoration: const InputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    key: const ValueKey('operation_save'),
+                    onPressed: _saving || (preset != null && availableAccounts.isEmpty)
+                        ? null
+                        : () => _save(user.id, accounts.valueOrNull ?? const []),
+                    child: _saving ? const CircularProgressIndicator() : Text(l10n.save),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  void _markChanged() {
+    if (!_hasUnsavedChanges && mounted) setState(() => _hasUnsavedChanges = true);
+  }
+
+  Future<void> _popAfterSave([Object? result]) async {
+    if (!mounted) return;
+    setState(() => _hasUnsavedChanges = false);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) context.pop(result);
   }
 
   Future<void> _save(String userId, List<FinanceAccount> accounts) async {
@@ -396,11 +436,11 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                 updatedAt: existing.updatedAt,
               ),
             );
-        if (mounted) context.pop();
+        await _popAfterSave();
       } else {
         final status = await ref.read(canonicalActionsProvider).createOperation(userId, draft);
         if (mounted && (status == SyncState.confirmed || status == SyncState.pending)) {
-          context.pop(
+          await _popAfterSave(
             MovementSaveResult(
               type: draft.type,
               status: status == SyncState.confirmed
@@ -463,7 +503,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     try {
       await ref.read(canonicalActionsProvider).deleteOperation(userId, operation.id);
       invalidateOperationLists(ref, userId);
-      if (mounted) context.pop();
+      await _popAfterSave();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -500,13 +540,16 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     );
     if (selected != null && mounted) {
       setState(
-        () => _occurredAt = DateTime(
-          selected.year,
-          selected.month,
-          selected.day,
-          _occurredAt.hour,
-          _occurredAt.minute,
-        ),
+        () {
+          _hasUnsavedChanges = true;
+          _occurredAt = DateTime(
+            selected.year,
+            selected.month,
+            selected.day,
+            _occurredAt.hour,
+            _occurredAt.minute,
+          );
+        },
       );
     }
   }
@@ -518,13 +561,16 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     );
     if (selected != null && mounted) {
       setState(
-        () => _occurredAt = DateTime(
-          _occurredAt.year,
-          _occurredAt.month,
-          _occurredAt.day,
-          selected.hour,
-          selected.minute,
-        ),
+        () {
+          _hasUnsavedChanges = true;
+          _occurredAt = DateTime(
+            _occurredAt.year,
+            _occurredAt.month,
+            _occurredAt.day,
+            selected.hour,
+            selected.minute,
+          );
+        },
       );
     }
   }

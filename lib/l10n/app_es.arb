@@ -1,4 +1,8 @@
 {
+  "budgetConnectionRequired": "Necesitas conexión para guardar este presupuesto. Tus cambios siguen aquí; vuelve a intentarlo.",
+  "budgetCommandArchived": "Este presupuesto o elemento está archivado. Actualiza la lista.",
+  "budgetCommandNotFound": "Este presupuesto o elemento ya no está disponible. Actualiza la lista.",
+  "budgetCommandConflict": "La solicitud entra en conflicto con un cambio anterior. Actualiza el presupuesto antes de reintentar.",
   "@@locale": "es",
   "appTitle": "LumioMoney",
   "sessionCheckFailed": "No pudimos verificar tu perfil. Revisa tu conexión e inténtalo de nuevo, o vuelve a iniciar sesión.",
@@ -50,6 +54,12 @@
   "activity": "Actividad",
   "activitySubtitle": "Encuentra y revisa tus movimientos",
   "activityFilterAll": "Todos",
+  "activityBalanceAdjustmentsFilter": "Ajustes",
+  "activityBalanceAdjustmentType": "Ajuste de saldo",
+  "activityBalanceAdjustmentEntry": "Saldo {previous} → {target} · diferencia {difference}",
+  "@activityBalanceAdjustmentEntry": {"placeholders": {"previous": {}, "target": {}, "difference": {}}},
+  "activityBalanceAdjustmentsHeader": "Ajustes de saldo",
+  "activityBalanceAdjustmentsEmpty": "No hay ajustes para estos filtros.",
   "activityFilterAction": "Filtros · {account} · {period}",
   "@activityFilterAction": {"placeholders": {"account": {}, "period": {}}},
   "activityFilterTitle": "Filtrar actividad",
@@ -177,6 +187,23 @@
   "categorySaved": "Categoría actualizada",
   "newCategory": "Nueva categoría",
   "archive": "Archivar",
+  "adjustAccountBalance": "Ajustar saldo",
+  "balanceAdjustmentTitle": "Ajustar saldos",
+  "balanceAdjustmentSubtitle": "El saldo inicial y tus movimientos no cambiarán.",
+  "balanceAdjustmentTarget": "Saldo real",
+  "balanceAdjustmentCurrent": "Saldo actual: {balance}",
+  "balanceAdjustmentPrevious": "Saldo anterior",
+  "balanceAdjustmentDifferenceLabel": "Diferencia",
+  "balanceAdjustmentDifference": "Diferencia: {amount}",
+  "@balanceAdjustmentCurrent": {"placeholders": {"balance": {}}},
+  "@balanceAdjustmentDifference": {"placeholders": {"amount": {}}},
+  "balanceAdjustmentReason": "Motivo (opcional)",
+  "balanceAdjustmentOtherDevicesHint": "Sincroniza primero los movimientos pendientes en tus otros dispositivos; podrían cambiar estos saldos después.",
+  "balanceAdjustmentPendingHint": "Resuelve los movimientos pendientes, en sincronización o rechazados de las cuentas seleccionadas antes de ajustar.",
+  "balanceAdjustmentSave": "Guardar ajustes",
+  "balanceAdjustmentNoop": "El saldo objetivo ya coincide con el saldo actual.",
+  "balanceAdjustmentInvalidAmount": "Ingresa un saldo válido dentro del límite permitido.",
+  "balanceAdjustmentSuccess": "Saldos actualizados.",
   "confirmArchiveCategory": "La categoría se archivará y se conservará en tus movimientos anteriores.",
   "expenseCategories": "Gastos",
   "incomeCategories": "Ingresos",
@@ -385,4 +412,17 @@
   ,"budgetArchivePermissionFailure": "Firebase no autorizó el cambio. El presupuesto sigue activo; comprueba tu sesión y comparte este código con soporte: {code}"
   ,"budgetArchiveConflictFailure": "No se pudo validar el presupuesto. Sigue activo; comparte este código con soporte: {code}"
   ,"budgetArchiveUnexpectedFailure": "No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: {code}"
+  ,"more": "Más"
+  ,"back": "Volver"
+  ,"moreSubtitle": "Gestiona tus categorías y tu sesión."
+  ,"moreManagement": "Gestión"
+  ,"moreSession": "Sesión"
+  ,"signOutConfirmTitle": "¿Cerrar sesión?"
+  ,"signOutConfirmMessage": "Tendrás que volver a iniciar sesión para acceder a tus datos."
+  ,"signOutPendingWarning": "Tienes {count, plural, one{# movimiento pendiente de sincronizar} other{# movimientos pendientes de sincronizar}}. Cerrar sesión no los elimina, pero pueden necesitar que vuelvas a iniciar sesión para sincronizar."
+  ,"@signOutPendingWarning": {"placeholders": {"count": {"type": "int"}}}
+  ,"discardChangesTitle": "¿Descartar los cambios?"
+  ,"discardChangesMessage": "Los cambios que hiciste todavía no se han guardado."
+  ,"keepEditing": "Seguir editando"
+  ,"discardChanges": "Descartar"
 }

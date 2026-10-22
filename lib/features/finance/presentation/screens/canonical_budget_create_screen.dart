@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/routing/discard_changes_scope.dart';
+import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -10,9 +12,11 @@ import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/budget_command_message.dart';
 import '../widgets/budget_month_picker.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
@@ -32,6 +36,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   String? _categoryId;
   String? _errorMessage;
   bool _saving = false;
+  bool _hasUnsavedChanges = false;
   int _nextItemId = 0;
 
   @override
@@ -49,7 +54,10 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   }
 
   void _addItem() {
-    setState(() => _items.add(_newItem()));
+    setState(() {
+      _hasUnsavedChanges = true;
+      _items.add(_newItem());
+    });
   }
 
   _BudgetItemDraftControllers _newItem() {
@@ -58,16 +66,20 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
       day: DateTime.now().day,
     );
     item.amount.addListener(_onAmountChanged);
+    item.description.addListener(_onAmountChanged);
     return item;
   }
 
   void _onAmountChanged() {
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _hasUnsavedChanges = true);
   }
 
   void _removeItem(_BudgetItemDraftControllers item) {
     if (_items.length == 1) return;
-    setState(() => _items.remove(item));
+    setState(() {
+      _hasUnsavedChanges = true;
+      _items.remove(item);
+    });
     item.dispose();
   }
 
@@ -87,6 +99,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     final selected = await showBudgetMonthPicker(context, _month);
     if (selected != null && mounted) {
       setState(() {
+        _hasUnsavedChanges = true;
         _month = DateTime(selected.year, selected.month);
         _errorMessage = null;
       });
@@ -158,8 +171,10 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
         // Return the server-confirmed budget so the still-mounted month list
         // can render it immediately while its Firestore stream catches up.
         ref.invalidate(canonicalBudgetsProvider((userId: userId, monthKey: monthKey)));
-        context.pop(createdBudget);
+        await _popAfterSave(createdBudget);
       }
+    } on BudgetCommandException catch (error) {
+      if (mounted) setState(() => _errorMessage = budgetCommandMessage(l10n, error.issue));
     } catch (error) {
       if (!mounted) return;
       final message = error.toString().toLowerCase();
@@ -196,278 +211,296 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     final monthLabel = DateFormat('MMMM yyyy', locale).format(_month);
     final total = CurrencyFormatter.formatMinor(_totalMinor(currency), currency);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.appTitle,
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: AppColors.blueDark,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          key: const ValueKey('budget_create_back'),
-                          tooltip: l10n.cancel,
-                          onPressed: _saving ? null : () => context.pop(),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.budgetCreateTitle,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.navy,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(l10n.budgetCreateSubtitle, style: const TextStyle(color: AppColors.muted)),
-                    const SizedBox(height: 20),
-                    FinanceLabeledField(
-                      label: l10n.budgetMonth,
-                      child: OutlinedButton(
-                        key: const ValueKey('budget_month_selector'),
-                        onPressed: _saving ? null : _selectMonth,
-                        style: _selectorStyle(context),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(monthLabel, textAlign: TextAlign.left)),
-                            const Icon(Icons.keyboard_arrow_down),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FinanceLabeledField(
-                      label: l10n.type,
-                      child: DropdownButtonFormField<String>(
-                        key: const ValueKey('budget_type_selector'),
-                        initialValue: _flowType,
-                        isExpanded: true,
-                        decoration: const InputDecoration(),
-                        items: [
-                          DropdownMenuItem(
-                            key: const ValueKey('budget_type_expense'),
-                            value: 'expense',
-                            child: Text(l10n.expenseCategories),
-                          ),
-                          DropdownMenuItem(
-                            key: const ValueKey('budget_type_income'),
-                            value: 'income',
-                            child: Text(l10n.incomeCategories),
-                          ),
-                        ],
-                        onChanged: _saving
-                            ? null
-                            : (value) => setState(() {
-                                _flowType = value ?? 'expense';
-                                _categoryId = null;
-                                _errorMessage = null;
-                              }),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FinanceLabeledField(
-                      label: l10n.budgetCategory,
-                      child: categoriesAsync.isLoading
-                          ? const LinearProgressIndicator()
-                          : DropdownButtonFormField<String>(
-                              key: const ValueKey('budget_category_selector'),
-                              initialValue: _categoryId,
-                              isExpanded: true,
-                              decoration: const InputDecoration(),
-                              hint: Text(l10n.budgetSelectCategory),
-                              items: availableCategories
-                                  .map(
-                                    (category) => DropdownMenuItem(
-                                      key: ValueKey('budget_category_option_${category.id}'),
-                                      value: category.id,
-                                      child: Row(
-                                        children: [
-                                          FinanceCategoryIcon(
-                                            iconId: category.icon,
-                                            colorValue: category.colorValue,
-                                            size: 28,
-                                            iconSize: 16,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            category.customName ?? category.id,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: _saving || availableCategories.isEmpty
-                                  ? null
-                                  : (value) => setState(() {
-                                      _categoryId = value;
-                                      _errorMessage = null;
-                                    }),
-                              validator: (value) =>
-                                  value == null ? l10n.budgetSelectCategory : null,
-                            ),
-                    ),
-                    if (!categoriesAsync.isLoading && !categoriesAsync.hasError) ...[
-                      if (availableCategories.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 4),
-                          child: Text(
-                            l10n.budgetNoCategories,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 52,
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          key: ValueKey(
-                            availableCategories.isEmpty
-                                ? 'budget_create_category'
-                                : 'budget_manage_categories',
-                          ),
-                          onPressed: () => context.push('/categories'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.navy,
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: AppColors.line),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(
-                            availableCategories.isEmpty
-                                ? l10n.createCategory
-                                : l10n.manageCategories,
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.budgetPlannedItems,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.navy,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          key: const ValueKey('budget_add_item'),
-                          onPressed: _saving ? null : _addItem,
-                          icon: const Icon(Icons.add),
-                          label: Text(l10n.budgetAddItem),
-                        ),
-                      ],
-                    ),
-                    for (var index = 0; index < _items.length; index++) ...[
-                      const SizedBox(height: 8),
-                      _BudgetItemEditor(
-                        key: ValueKey('budget_item_${_items[index].id}'),
-                        item: _items[index],
-                        index: index,
-                        currency: currency,
-                        canRemove: _items.length > 1,
-                        saving: _saving,
-                        onRemove: () => _removeItem(_items[index]),
-                        onDayChanged: (day) => setState(() => _items[index].day = day),
-                        l10n: l10n,
-                      ),
-                    ],
-                    if (categoriesAsync.hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(l10n.genericError, style: const TextStyle(color: Colors.red)),
-                      ),
-                    if (_errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            _errorMessage!,
-                            key: const ValueKey('budget_create_error'),
-                            style: TextStyle(color: Theme.of(context).colorScheme.error),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-            Material(
-              color: Colors.white,
-              elevation: 3,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+    return DiscardChangesScope(
+      isDirty: _hasUnsavedChanges,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
                     children: [
                       Row(
                         children: [
-                          Expanded(child: Text(l10n.plannedAmountLabel)),
-                          Text(
-                            total,
-                            key: const ValueKey('budget_planned_total'),
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.blueDark,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: Text(
+                              l10n.appTitle,
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: AppColors.blueDark,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
+                          ),
+                          IconButton(
+                            key: const ValueKey('budget_create_back'),
+                            tooltip: l10n.cancel,
+                            onPressed: _saving ? null : () => popOrGo(context, '/budgets'),
+                            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          key: const ValueKey('budget_save'),
-                          onPressed: _saving || categoriesAsync.isLoading
-                              ? null
-                              : () => _save(user.id, currency, categories),
-                          child: _saving
-                              ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(l10n.budgetSave),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.budgetCreateTitle,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.budgetCreateSubtitle,
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 20),
+                      FinanceLabeledField(
+                        label: l10n.budgetMonth,
+                        child: OutlinedButton(
+                          key: const ValueKey('budget_month_selector'),
+                          onPressed: _saving ? null : _selectMonth,
+                          style: _selectorStyle(context),
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(monthLabel, textAlign: TextAlign.left)),
+                              const Icon(Icons.keyboard_arrow_down),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FinanceLabeledField(
+                        label: l10n.type,
+                        child: DropdownButtonFormField<String>(
+                          key: const ValueKey('budget_type_selector'),
+                          initialValue: _flowType,
+                          isExpanded: true,
+                          decoration: const InputDecoration(),
+                          items: [
+                            DropdownMenuItem(
+                              key: const ValueKey('budget_type_expense'),
+                              value: 'expense',
+                              child: Text(l10n.expenseCategories),
+                            ),
+                            DropdownMenuItem(
+                              key: const ValueKey('budget_type_income'),
+                              value: 'income',
+                              child: Text(l10n.incomeCategories),
+                            ),
+                          ],
+                          onChanged: _saving
+                              ? null
+                              : (value) => setState(() {
+                                  _hasUnsavedChanges = true;
+                                  _flowType = value ?? 'expense';
+                                  _categoryId = null;
+                                  _errorMessage = null;
+                                }),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FinanceLabeledField(
+                        label: l10n.budgetCategory,
+                        child: categoriesAsync.isLoading
+                            ? const LinearProgressIndicator()
+                            : DropdownButtonFormField<String>(
+                                key: const ValueKey('budget_category_selector'),
+                                initialValue: _categoryId,
+                                isExpanded: true,
+                                decoration: const InputDecoration(),
+                                hint: Text(l10n.budgetSelectCategory),
+                                items: availableCategories
+                                    .map(
+                                      (category) => DropdownMenuItem(
+                                        key: ValueKey('budget_category_option_${category.id}'),
+                                        value: category.id,
+                                        child: Row(
+                                          children: [
+                                            FinanceCategoryIcon(
+                                              iconId: category.icon,
+                                              colorValue: category.colorValue,
+                                              size: 28,
+                                              iconSize: 16,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              category.customName ?? category.id,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: _saving || availableCategories.isEmpty
+                                    ? null
+                                    : (value) => setState(() {
+                                        _hasUnsavedChanges = true;
+                                        _categoryId = value;
+                                        _errorMessage = null;
+                                      }),
+                                validator: (value) =>
+                                    value == null ? l10n.budgetSelectCategory : null,
+                              ),
+                      ),
+                      if (!categoriesAsync.isLoading && !categoriesAsync.hasError) ...[
+                        if (availableCategories.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8, bottom: 4),
+                            child: Text(
+                              l10n.budgetNoCategories,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 52,
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            key: ValueKey(
+                              availableCategories.isEmpty
+                                  ? 'budget_create_category'
+                                  : 'budget_manage_categories',
+                            ),
+                            onPressed: () => context.push('/categories'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.navy,
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: AppColors.line),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Text(
+                              availableCategories.isEmpty
+                                  ? l10n.createCategory
+                                  : l10n.manageCategories,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.budgetPlannedItems,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            key: const ValueKey('budget_add_item'),
+                            onPressed: _saving ? null : _addItem,
+                            icon: const Icon(Icons.add),
+                            label: Text(l10n.budgetAddItem),
+                          ),
+                        ],
+                      ),
+                      for (var index = 0; index < _items.length; index++) ...[
+                        const SizedBox(height: 8),
+                        _BudgetItemEditor(
+                          key: ValueKey('budget_item_${_items[index].id}'),
+                          item: _items[index],
+                          index: index,
+                          currency: currency,
+                          canRemove: _items.length > 1,
+                          saving: _saving,
+                          onRemove: () => _removeItem(_items[index]),
+                          onDayChanged: (day) => setState(() {
+                            _hasUnsavedChanges = true;
+                            _items[index].day = day;
+                          }),
+                          l10n: l10n,
+                        ),
+                      ],
+                      if (categoriesAsync.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(l10n.genericError, style: const TextStyle(color: Colors.red)),
+                        ),
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              _errorMessage!,
+                              key: const ValueKey('budget_create_error'),
+                              style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+              Material(
+                color: Colors.white,
+                elevation: 3,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Text(l10n.plannedAmountLabel)),
+                            Text(
+                              total,
+                              key: const ValueKey('budget_planned_total'),
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.blueDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            key: const ValueKey('budget_save'),
+                            onPressed: _saving || categoriesAsync.isLoading
+                                ? null
+                                : () => _save(user.id, currency, categories),
+                            child: _saving
+                                ? const SizedBox.square(
+                                    dimension: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(l10n.budgetSave),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _popAfterSave(Object result) async {
+    if (!mounted) return;
+    setState(() => _hasUnsavedChanges = false);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) context.pop(result);
   }
 
   ButtonStyle _selectorStyle(BuildContext context) => OutlinedButton.styleFrom(
