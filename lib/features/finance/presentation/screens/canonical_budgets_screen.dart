@@ -95,7 +95,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
     };
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: GlobalFabScrollObserver(
           child: budgetsState.when(
@@ -151,7 +151,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                         l10n.budgetsTitle,
                         key: const ValueKey('budgets_title'),
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -159,14 +159,14 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                       Text(
                         l10n.budgetsSubtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.muted,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         l10n.budgetMonth.toUpperCase(),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -178,9 +178,11 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                           onPressed: _chooseMonth,
                           style: OutlinedButton.styleFrom(
                             alignment: Alignment.centerLeft,
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.navy,
-                            side: const BorderSide(color: AppColors.line),
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            foregroundColor: Theme.of(context).colorScheme.onSurface,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant,
+                            ),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
@@ -189,7 +191,10 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                               Expanded(
                                 child: Text(DateFormat.yMMMM(_localeName).format(_selectedMonth)),
                               ),
-                              const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
                             ],
                           ),
                         ),
@@ -210,7 +215,7 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                       Text(
                         l10n.budgetsForMonth,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -271,9 +276,11 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                           key: const ValueKey('budgets_manage_categories'),
                           onPressed: () => context.push('/categories'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.navy,
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: AppColors.line),
+                            foregroundColor: Theme.of(context).colorScheme.onSurface,
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
@@ -314,9 +321,15 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                 height: 48,
                 child: Material(
                   key: ValueKey('budget_filter_${filter.name}'),
-                  color: selected ? AppColors.blueDark : Colors.white,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surface,
                   shape: StadiumBorder(
-                    side: BorderSide(color: selected ? AppColors.blueDark : AppColors.line),
+                    side: BorderSide(
+                      color: selected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
                   ),
                   child: InkWell(
                     onTap: () => setState(() => _filter = filter),
@@ -326,7 +339,9 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                         labels[filter]!,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: selected ? Colors.white : AppColors.navy,
+                          color: selected
+                              ? Theme.of(context).colorScheme.onPrimary
+                              : Theme.of(context).colorScheme.onSurface,
                           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -407,7 +422,7 @@ class _BudgetSummaryCard extends StatelessWidget {
       locale: locale,
     );
     final isIncome = budget.flowType == BudgetFlowType.income;
-    final statusColor = tracking.isExceeded ? const Color(0xFFC73338) : AppColors.green;
+    final statusColor = tracking.isExceeded ? const Color(0xFFC73338) : context.appColors.income;
     final typeLabel = isIncome ? l10n.income : l10n.expense;
     final actualLabel = isIncome ? l10n.budgetReceived : l10n.budgetSpent;
     final remainingLabel = tracking.isExceeded
@@ -416,11 +431,11 @@ class _BudgetSummaryCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: InkWell(
         key: ValueKey('budget_card_tap_${budget.id}'),
@@ -444,7 +459,7 @@ class _BudgetSummaryCard extends StatelessWidget {
                     child: Text(
                       category,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -455,14 +470,14 @@ class _BudgetSummaryCard extends StatelessWidget {
               Text(
                 typeLabel,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 l10n.planned(formatAmount(tracking.plannedMinor)),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -473,7 +488,9 @@ class _BudgetSummaryCard extends StatelessWidget {
                 Text(
                   '$actualLabel · ${formatAmount(tracking.actualMinor)}',
                   key: ValueKey('budget_card_actual_${budget.id}'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 Text(
                   remainingLabel,
@@ -492,8 +509,10 @@ class _BudgetSummaryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio,
                     minHeight: 7,
-                    backgroundColor: AppColors.blueSoft,
-                    color: tracking.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    color: tracking.isExceeded
+                        ? const Color(0xFFC73338)
+                        : Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -527,8 +546,15 @@ class _EmptyBudgets extends StatelessWidget {
         Container(
           width: 76,
           height: 76,
-          decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-          child: const Icon(Icons.pie_chart_outline, color: AppColors.blueDark, size: 32),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.pie_chart_outline,
+            color: Theme.of(context).colorScheme.primary,
+            size: 32,
+          ),
         ),
         const SizedBox(height: 20),
         Text(
@@ -536,7 +562,7 @@ class _EmptyBudgets extends StatelessWidget {
           key: const ValueKey('budget_empty_title'),
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.navy,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -544,7 +570,7 @@ class _EmptyBudgets extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -553,9 +579,9 @@ class _EmptyBudgets extends StatelessWidget {
             key: const ValueKey('budget_empty_create'),
             onPressed: onCreate,
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.navy,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: AppColors.line),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               minimumSize: const Size.fromHeight(52),
             ),
@@ -585,14 +611,18 @@ class _FilteredEmpty extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 32),
     child: Column(
       children: [
-        const Icon(Icons.filter_list_off, color: AppColors.muted, size: 36),
+        Icon(
+          Icons.filter_list_off,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          size: 36,
+        ),
         const SizedBox(height: 12),
         Text(title, key: const ValueKey('budget_filtered_empty'), textAlign: TextAlign.center),
         const SizedBox(height: 6),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         TextButton(
           key: const ValueKey('budget_filter_reset'),

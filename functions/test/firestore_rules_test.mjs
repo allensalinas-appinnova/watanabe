@@ -282,6 +282,31 @@ test('home preferences are owner-updatable, typed, bounded, and cannot add profi
   await assertFails(bob.doc('users/alice').update({homePreferences: validPreferences}));
 });
 
+test('appearance preferences are owner-updatable with only supported mode and palette values', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const bob = environment.authenticatedContext('bob').firestore();
+  const profile = alice.doc('users/alice');
+  await assertSucceeds(profile.set(userProfile())); // legacy profile without this optional field
+  const valid = {mode: 'system', palette: 'lumio'};
+  await assertSucceeds(profile.update({appearancePreferences: valid}));
+  await assertSucceeds(profile.update({appearancePreferences: {mode: 'dark', palette: 'ocean'}}));
+  await assertSucceeds(profile.update({appearancePreferences: {mode: 'light', palette: 'plum'}}));
+  await assertSucceeds(profile.update({appearancePreferences: deleteField()}));
+  for (const invalid of [
+    null, 'dark', {mode: 'automatic', palette: 'lumio'}, {mode: 'dark'},
+    {mode: 'dark', palette: 'rainbow'}, {mode: true, palette: 'lumio'},
+    {mode: 'system', palette: 'lumio', administrator: true},
+  ]) {
+    await assertFails(profile.update({appearancePreferences: invalid}));
+  }
+  await assertSucceeds(profile.update({appearancePreferences: valid}));
+  await assertFails(profile.update({[`appearancePreferences.mode`]: deleteField()}));
+  await assertFails(bob.doc('users/alice').update({appearancePreferences: valid}));
+  await assertFails(environment.unauthenticatedContext().firestore()
+    .doc('users/alice').update({appearancePreferences: valid}));
+  await assertFails(profile.update({admin: true, appearancePreferences: valid}));
+});
+
 test('category colors accept valid ARGB values and reject malformed values without widening access', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
   const bob = environment.authenticatedContext('bob').firestore();

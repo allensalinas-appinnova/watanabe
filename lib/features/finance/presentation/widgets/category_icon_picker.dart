@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'finance_category_icon.dart';
 
@@ -56,10 +55,12 @@ class _CategoryIconPickerState extends State<_CategoryIconPicker> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(48, 48),
                     side: BorderSide(
-                      color: _selected == iconId ? AppColors.blueDark : AppColors.line,
+                      color: _selected == iconId
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
                       width: _selected == iconId ? 2 : 1,
                     ),
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
@@ -71,7 +72,11 @@ class _CategoryIconPickerState extends State<_CategoryIconPicker> {
                         child: Text(labels[iconId]!, maxLines: 2, textAlign: TextAlign.start),
                       ),
                       if (_selected == iconId)
-                        const Icon(Icons.check_circle, color: AppColors.blueDark, size: 18),
+                        Icon(
+                          Icons.check_circle,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 18,
+                        ),
                     ],
                   ),
                 ),

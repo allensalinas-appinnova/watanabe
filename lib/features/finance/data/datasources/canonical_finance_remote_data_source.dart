@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/utils/money_parser.dart';
 import '../../../../core/utils/request_id.dart';
+import '../../domain/entities/appearance_preferences.dart';
 import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget_item.dart';
 import '../../domain/entities/finance_account.dart';
@@ -27,6 +28,8 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     String userId,
     HomeDashboardPreferences preferences,
   );
+
+  Future<void> updateAppearancePreferences(String userId, AppearancePreferences preferences);
 
   Future<void> ensureDefaultCategories(
     String userId, {
@@ -180,6 +183,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     'homePreferences': preferences.toMap(),
     'updatedAt': FieldValue.serverTimestamp(),
   });
+
+  @override
+  Future<void> updateAppearancePreferences(String userId, AppearancePreferences preferences) =>
+      _userDocument(userId).update({
+        'appearancePreferences': preferences.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
   @override
   Future<void> ensureDefaultCategories(

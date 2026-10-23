@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/routing/discard_changes_scope.dart';
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
@@ -214,7 +213,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     return DiscardChangesScope(
       isDirty: _hasUnsavedChanges,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Column(
@@ -231,7 +230,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                             child: Text(
                               l10n.appTitle,
                               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: AppColors.blueDark,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -248,14 +247,16 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                       Text(
                         l10n.budgetCreateTitle,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         l10n.budgetCreateSubtitle,
-                        style: const TextStyle(color: AppColors.muted),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       FinanceLabeledField(
@@ -355,7 +356,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                             child: Text(
                               l10n.budgetNoCategories,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.muted,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -371,9 +372,11 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                             ),
                             onPressed: () => context.push('/categories'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.navy,
-                              backgroundColor: Colors.white,
-                              side: const BorderSide(color: AppColors.line),
+                              foregroundColor: Theme.of(context).colorScheme.onSurface,
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.outlineVariant,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -393,7 +396,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                             child: Text(
                               l10n.budgetPlannedItems,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppColors.navy,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -446,7 +449,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                 ),
               ),
               Material(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 elevation: 3,
                 child: SafeArea(
                   top: false,
@@ -462,7 +465,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                               total,
                               key: const ValueKey('budget_planned_total'),
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppColors.blueDark,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -504,10 +507,10 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   }
 
   ButtonStyle _selectorStyle(BuildContext context) => OutlinedButton.styleFrom(
-    foregroundColor: AppColors.navy,
+    foregroundColor: Theme.of(context).colorScheme.onSurface,
     alignment: Alignment.centerLeft,
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    side: const BorderSide(color: AppColors.line),
+    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
   );
 }
@@ -538,8 +541,8 @@ class _BudgetItemEditor extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: AppColors.line),
+      color: Theme.of(context).colorScheme.surface,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Column(
@@ -549,7 +552,9 @@ class _BudgetItemEditor extends StatelessWidget {
             Expanded(
               child: Text(
                 '${l10n.budgetItem} ${index + 1}',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             if (canRemove)

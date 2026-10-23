@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/routing/discard_changes_scope.dart';
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
@@ -174,7 +173,7 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
     return DiscardChangesScope(
       isDirty: _hasUnsavedChanges,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: budgetState.when(
@@ -210,7 +209,7 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                               Text(
                                 l10n.appTitle,
                                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.blueDark,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -234,7 +233,7 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                               Text(
                                 '${(budget.flowType == BudgetFlowType.income ? l10n.income : l10n.expense).toUpperCase()} · ${month.toUpperCase()}',
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppColors.muted,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -242,7 +241,7 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                               Text(
                                 widget.isCreating ? l10n.budgetAddItem : l10n.budgetEditItemTitle,
                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: AppColors.navy,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -251,7 +250,9 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                                 widget.isCreating
                                     ? l10n.budgetAddItemSubtitle
                                     : l10n.budgetEditItemSubtitle,
-                                style: const TextStyle(color: AppColors.muted),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
                               ),
                               const SizedBox(height: 28),
                               _LabeledInput(
@@ -324,20 +325,27 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                               const SizedBox(height: 7),
                               Text(
                                 l10n.budgetDayRange,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                                style:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                               const SizedBox(height: 24),
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: AppColors.line),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.outlineVariant,
+                                  ),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
                                   l10n.budgetTotalUpdatesHint,
-                                  style: const TextStyle(color: AppColors.muted),
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                               if (_error case final error?) ...[
@@ -369,8 +377,8 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                             ),
                             onPressed: _saving ? null : () => _save(user.id, budget, loadedItem),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.blueDark,
-                              foregroundColor: Colors.white,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.surface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -424,7 +432,7 @@ class _LabeledInput extends StatelessWidget {
         child: Text(
           label.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.muted,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
             letterSpacing: .5,
           ),

@@ -84,16 +84,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        hintText: 'you@example.com',
-                        contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+                      decoration: InputDecoration(
+                        hintText: l10n.authEmailHint,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Color(0xFFDFE8F1)),
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Color(0xFFDFE8F1)),
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
                         ),
                       ),
                       validator: (value) =>
@@ -115,13 +126,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: InputDecoration(
                         hintText: '••••••••',
                         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
-                        border: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Color(0xFFDFE8F1)),
+                        border: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
-                        enabledBorder: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Color(0xFFDFE8F1)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
                         ),
                         suffixIcon: IconButton(
                           key: const ValueKey('auth_password_visibility'),
@@ -132,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
                             size: 18,
-                            color: AppColors.blueDark,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),
@@ -147,7 +169,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           key: const ValueKey('auth_forgot_password_button'),
                           onPressed: isLoading ? null : _requestPasswordReset,
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.blueDark,
+                            foregroundColor: Theme.of(context).colorScheme.primary,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             visualDensity: VisualDensity.compact,
                           ),
@@ -186,10 +208,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: isLoading
                             ? null
                             : () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
-                        icon: const Text(
+                        icon: Text(
                           'G',
                           style: TextStyle(
-                            color: AppColors.orange,
+                            color: context.appColors.warning,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -204,7 +226,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       key: const ValueKey('auth_guest_button'),
                       onPressed: isLoading ? null : _continueAsGuest,
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.blueDark,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 17),
                       ),
                       child: Text(
@@ -216,7 +238,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       l10n.authPrivacyNote,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -263,19 +288,23 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Container(
-        width: 88,
-        height: 88,
-        decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(24)),
-        child: const Center(
-          child: Text('◆', style: TextStyle(color: AppColors.blue, fontSize: 28)),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Semantics(
+          label: AppLocalizations.of(context).appTitle,
+          child: Image.asset(
+            'assets/images/lumiomoney_logo.png',
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
       const SizedBox(height: 12),
       Text(
         AppLocalizations.of(context).appTitle,
-        style: const TextStyle(
-          color: AppColors.navy,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 26,
           fontWeight: FontWeight.w700,
         ),
@@ -283,7 +312,11 @@ class _BrandHeader extends StatelessWidget {
       const SizedBox(height: 4),
       Text(
         AppLocalizations.of(context).authTagline,
-        style: const TextStyle(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     ],
   );
@@ -304,9 +337,14 @@ class _AuthTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
+    key: const ValueKey('auth_tabs_surface'),
     height: 46,
     padding: const EdgeInsets.all(4),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    ),
     child: Row(
       children: [
         Expanded(
@@ -339,7 +377,7 @@ class _AuthTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: selected ? AppColors.blueSoft : Colors.transparent,
+    color: selected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
     borderRadius: BorderRadius.circular(10),
     child: InkWell(
       onTap: onTap,
@@ -348,7 +386,9 @@ class _AuthTab extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppColors.blueDark : AppColors.muted,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -366,8 +406,8 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: const TextStyle(
-      color: AppColors.muted,
+    style: TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontSize: 11,
       fontWeight: FontWeight.w600,
       letterSpacing: .2,
@@ -381,17 +421,21 @@ class _OrDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const Expanded(child: Divider(color: Color(0xFFDFE8F1))),
+      Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Text(
           AppLocalizations.of(context).authOrContinueWith,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.muted, fontSize: 12),
+          style:
+              Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
         ),
       ),
-      const Expanded(child: Divider(color: Color(0xFFDFE8F1))),
+      Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
     ],
   );
 }

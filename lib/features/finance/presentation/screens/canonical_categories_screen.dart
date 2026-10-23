@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -54,7 +53,9 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
             children: [
               Text(
                 l10n.categoriesSubtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               SegmentedButton<CategoryType>(
@@ -75,7 +76,9 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                     l10n.noCategories,
                     key: const ValueKey('categories_empty'),
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               else
@@ -83,11 +86,11 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                   (category) => Card(
                     key: ValueKey('category_row_${category.id}'),
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: AppColors.line),
+                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -110,9 +113,12 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                                 ),
                                 Text(
                                   category.isSystem ? l10n.systemCategory : l10n.customCategory,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                                  style:
+                                      Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
                                 ),
                               ],
                             ),
@@ -171,8 +177,8 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
             content: Container(
               key: const ValueKey('category_create_dialog_surface'),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.line),
+                color: Theme.of(context).colorScheme.surface,
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(24),
               ),
               padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
@@ -187,7 +193,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         l10n.newCategory,
                         key: const ValueKey('category_create_title'),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 23,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
@@ -197,7 +203,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                       Text(
                         l10n.categorySavedDescription,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.muted,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
                         ),
                       ),
@@ -227,8 +233,8 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         constraints: const BoxConstraints(minHeight: 52),
                         padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.line),
+                          color: Theme.of(context).colorScheme.surface,
+                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -404,8 +410,8 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
             elevation: 0,
             content: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.line),
+                color: Theme.of(context).colorScheme.surface,
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(24),
               ),
               padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
@@ -420,7 +426,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         l10n.editCategory,
                         key: const ValueKey('category_edit_title'),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 23,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
@@ -430,7 +436,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                       Text(
                         l10n.categorySavedDescription,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.muted,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
                         ),
                       ),
@@ -487,8 +493,8 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         constraints: const BoxConstraints(minHeight: 48),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.line),
+                          color: Theme.of(context).colorScheme.surface,
+                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: AlignmentDirectional.centerStart,
@@ -685,7 +691,7 @@ class _EditCategoryFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     label.toUpperCase(),
     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: AppColors.muted,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontSize: 11,
       fontWeight: FontWeight.w600,
       height: 1.2,
@@ -713,8 +719,8 @@ class _EditCategoryIconPreview extends StatelessWidget {
     constraints: const BoxConstraints(minHeight: 64),
     padding: const EdgeInsets.symmetric(horizontal: 16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: AppColors.line),
+      color: Theme.of(context).colorScheme.surface,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Row(
@@ -734,7 +740,7 @@ class _EditCategoryIconPreview extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -772,8 +778,8 @@ class _EditCategoryColorPreview extends StatelessWidget {
     constraints: const BoxConstraints(minHeight: 64),
     padding: const EdgeInsets.symmetric(horizontal: 16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: AppColors.line),
+      color: Theme.of(context).colorScheme.surface,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Row(

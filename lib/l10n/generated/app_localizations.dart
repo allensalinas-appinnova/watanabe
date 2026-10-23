@@ -448,6 +448,12 @@ abstract class AppLocalizations {
   /// **'Correo electrónico'**
   String get authEmailLabel;
 
+  /// No description provided for @authEmailHint.
+  ///
+  /// In es, this message translates to:
+  /// **'nombre@ejemplo.com'**
+  String get authEmailHint;
+
   /// No description provided for @authPasswordLabel.
   ///
   /// In es, this message translates to:
@@ -3285,6 +3291,96 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Editar movimiento'**
   String get operationEditTitle;
+
+  /// No description provided for @appearanceTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Apariencia'**
+  String get appearanceTitle;
+
+  /// No description provided for @appearanceSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Personaliza los colores de LumioMoney en tus dispositivos.'**
+  String get appearanceSubtitle;
+
+  /// No description provided for @appearanceMode.
+  ///
+  /// In es, this message translates to:
+  /// **'Tema'**
+  String get appearanceMode;
+
+  /// No description provided for @appearanceSystem.
+  ///
+  /// In es, this message translates to:
+  /// **'Sistema'**
+  String get appearanceSystem;
+
+  /// No description provided for @appearanceLight.
+  ///
+  /// In es, this message translates to:
+  /// **'Claro'**
+  String get appearanceLight;
+
+  /// No description provided for @appearanceDark.
+  ///
+  /// In es, this message translates to:
+  /// **'Oscuro'**
+  String get appearanceDark;
+
+  /// No description provided for @appearancePalette.
+  ///
+  /// In es, this message translates to:
+  /// **'Paleta de color'**
+  String get appearancePalette;
+
+  /// No description provided for @paletteLumio.
+  ///
+  /// In es, this message translates to:
+  /// **'Lumio'**
+  String get paletteLumio;
+
+  /// No description provided for @paletteClassicBlue.
+  ///
+  /// In es, this message translates to:
+  /// **'Azul clásico'**
+  String get paletteClassicBlue;
+
+  /// No description provided for @paletteOcean.
+  ///
+  /// In es, this message translates to:
+  /// **'Océano'**
+  String get paletteOcean;
+
+  /// No description provided for @palettePlum.
+  ///
+  /// In es, this message translates to:
+  /// **'Ciruela'**
+  String get palettePlum;
+
+  /// No description provided for @appearanceSaving.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardando preferencia…'**
+  String get appearanceSaving;
+
+  /// No description provided for @appearanceSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Apariencia sincronizada'**
+  String get appearanceSaved;
+
+  /// No description provided for @appearanceSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo sincronizar la apariencia. Tu selección sigue aplicada.'**
+  String get appearanceSaveFailed;
+
+  /// No description provided for @appearanceRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'Reintentar'**
+  String get appearanceRetry;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

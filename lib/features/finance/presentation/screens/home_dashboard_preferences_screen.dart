@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -46,7 +45,7 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
     });
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.homeCustomizeTitle,
         backLabel: l10n.back,
@@ -60,13 +59,18 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
           children: [
             Text(
               l10n.homeCustomizeSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             if (_saving) ...[
               const SizedBox(height: 8),
               const LinearProgressIndicator(),
               const SizedBox(height: 8),
-              Text(l10n.homePreferencesSaving, style: const TextStyle(color: AppColors.muted)),
+              Text(
+                l10n.homePreferencesSaving,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
             ],
             if (_saveFailed) ...[
               const SizedBox(height: 12),
@@ -157,7 +161,7 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
     child: Text(
       title,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        color: AppColors.navy,
+        color: Theme.of(context).colorScheme.onSurface,
         fontWeight: FontWeight.w700,
       ),
     ),

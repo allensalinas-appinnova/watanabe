@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -50,7 +49,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
     final monthLabel = DateFormat.yMMMM(locale).format(_month);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -62,7 +61,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                     child: Text(
                       l10n.activityFilterTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -72,7 +71,10 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                     tooltip: l10n.close,
                     constraints: const BoxConstraints.tightFor(width: 48, height: 48),
                     onPressed: () => popOrGo(context, '/activity'),
-                    icon: const Icon(Icons.close, color: AppColors.muted),
+                    icon: Icon(
+                      Icons.close,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -127,7 +129,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                     Text(
                       l10n.activityFilterTimezoneHint,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ] else ...[
@@ -156,7 +158,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                     Text(
                       l10n.activityFilterRangeHint(monthLabel),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -224,7 +226,7 @@ class _ActivityFiltersScreenState extends ConsumerState<ActivityFiltersScreen> {
                   Text(
                     l10n.activityFilterSelectAccount,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.navy,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -378,7 +380,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     label,
     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: AppColors.muted,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w600,
     ),
   );
@@ -391,10 +393,10 @@ class _SelectionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: AppColors.line),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -410,10 +412,15 @@ class _SelectionField extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
+              Icon(
+                Icons.keyboard_arrow_down,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -432,10 +439,16 @@ class _PeriodOption extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: 48,
     child: Material(
-      color: selected ? AppColors.blueDark : Colors.white,
+      color: selected
+          ? Theme.of(context).colorScheme.primary
+          : Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: selected ? AppColors.blueDark : AppColors.line),
+        side: BorderSide(
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       child: Semantics(
         button: true,
@@ -451,7 +464,9 @@ class _PeriodOption extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: selected ? Colors.white : AppColors.navy,
+                color: selected
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -497,7 +512,7 @@ class _ActivityMonthPickerState extends State<_ActivityMonthPicker> {
     final locale = Localizations.localeOf(context).toString();
     return Dialog.fullscreen(
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
@@ -509,7 +524,7 @@ class _ActivityMonthPickerState extends State<_ActivityMonthPicker> {
                       child: Text(
                         l10n.activityFilterSelectMonth,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -518,7 +533,10 @@ class _ActivityMonthPickerState extends State<_ActivityMonthPicker> {
                       tooltip: l10n.close,
                       constraints: const BoxConstraints.tightFor(width: 48, height: 48),
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: AppColors.muted),
+                      icon: Icon(
+                        Icons.close,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -556,9 +574,17 @@ class _ActivityMonthPickerState extends State<_ActivityMonthPicker> {
                       return OutlinedButton(
                         key: ValueKey('activity_month_$month'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: selected ? Colors.white : AppColors.navy,
-                          backgroundColor: selected ? AppColors.blueDark : Colors.white,
-                          side: BorderSide(color: selected ? AppColors.blueDark : AppColors.line),
+                          foregroundColor: selected
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurface,
+                          backgroundColor: selected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.surface,
+                          side: BorderSide(
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.outlineVariant,
+                          ),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () => setState(() => _month = month),

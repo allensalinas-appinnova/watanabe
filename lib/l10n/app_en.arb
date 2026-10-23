@@ -59,6 +59,7 @@
   "continueAsGuest": "Continue as guest",
   "authLoginTab": "Log in",
   "authEmailLabel": "Email",
+  "authEmailHint": "you@example.com",
   "authPasswordLabel": "Password",
   "authEmailInvalid": "Enter a valid email address.",
   "authPasswordTooShort": "Use at least 8 characters.",
@@ -560,4 +561,19 @@
   ,"debtSelectForPayment": "Choose the card or loan you already paid. Recording a payment does not move money for you."
   ,"accountDetailTitle": "Account details"
   ,"operationEditTitle": "Edit transaction"
+  ,"appearanceTitle": "Appearance"
+  ,"appearanceSubtitle": "Personalize LumioMoney colors across your devices."
+  ,"appearanceMode": "Theme"
+  ,"appearanceSystem": "System"
+  ,"appearanceLight": "Light"
+  ,"appearanceDark": "Dark"
+  ,"appearancePalette": "Color palette"
+  ,"paletteLumio": "Lumio"
+  ,"paletteClassicBlue": "Classic blue"
+  ,"paletteOcean": "Ocean"
+  ,"palettePlum": "Plum"
+  ,"appearanceSaving": "Saving preference…"
+  ,"appearanceSaved": "Appearance synced"
+  ,"appearanceSaveFailed": "Appearance could not sync. Your selection is still applied."
+  ,"appearanceRetry": "Retry"
 }

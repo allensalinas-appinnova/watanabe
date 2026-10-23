@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/routing/global_fab_visibility.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -64,7 +63,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                 Text(
                   l10n.accountsTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 25,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
@@ -74,7 +73,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                 Text(
                   l10n.accountsSubtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.muted,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 13,
                   ),
                 ),
@@ -109,7 +108,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                             child: Text(
                               l10n.createFirstAccount,
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.muted,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           )
@@ -118,7 +117,9 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                             padding: const EdgeInsets.symmetric(vertical: 20),
                             child: Text(
                               l10n.accountsSectionEmpty,
-                              style: const TextStyle(color: AppColors.muted),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           )
                         : Column(
@@ -226,9 +227,9 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                     key: const ValueKey('accounts_add_button'),
                     onPressed: () => _showCreate(context),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.navy,
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: AppColors.line),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       minimumSize: const Size.fromHeight(52),
                     ),
@@ -391,7 +392,7 @@ class _AccountCard extends StatelessWidget {
     key: ValueKey('account_row_${account.id}'),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: AppColors.line),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: InkWell(
       onTap: onOpen,
@@ -412,7 +413,7 @@ class _AccountCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -423,7 +424,7 @@ class _AccountCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.muted,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 11,
                       ),
                     ),
@@ -436,7 +437,7 @@ class _AccountCard extends StatelessWidget {
                 key: ValueKey('account_balance_${account.id}'),
                 textAlign: TextAlign.end,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.blueDark,
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -447,7 +448,10 @@ class _AccountCard extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                 iconSize: 19,
-                icon: const Icon(Icons.more_vert, color: AppColors.muted),
+                icon: Icon(
+                  Icons.more_vert,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 onSelected: (action) {
                   if (action == 'edit') onEdit();
                   if (action == 'adjust') onAdjustBalance?.call();

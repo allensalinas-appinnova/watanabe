@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -21,7 +20,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
         .length;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.settingsTitle,
         backLabel: l10n.back,
@@ -32,13 +31,22 @@ class CanonicalMoreScreen extends ConsumerWidget {
         children: [
           Text(
             l10n.moreSubtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const ValueKey('settings_appearance'),
+            onPressed: () => context.push('/settings/appearance'),
+            icon: const Icon(Icons.palette_outlined),
+            label: Text(l10n.appearanceTitle),
           ),
           const SizedBox(height: 32),
           Text(
             l10n.moreManagement,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -70,7 +78,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
           Text(
             l10n.moreSession,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),

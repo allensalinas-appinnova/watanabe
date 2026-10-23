@@ -38,7 +38,7 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
     final budgetState = ref.watch(canonicalBudgetProvider(budgetKey));
     final itemsState = ref.watch(canonicalFinanceRepositoryItemsProvider(budgetKey));
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.budgetDetailTitle,
         backLabel: l10n.budgetBackToBudgets,
@@ -159,14 +159,16 @@ class _BudgetDetailContent extends ConsumerWidget {
                 categoryName,
                 key: const ValueKey('budget_detail_category'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 '$typeLabel · $month · ${budget.currency}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               _BudgetSummaryCard(
@@ -184,7 +186,7 @@ class _BudgetDetailContent extends ConsumerWidget {
               Text(
                 l10n.budgetItemsHeading(activeItems.length),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -227,15 +229,17 @@ class _BudgetDetailContent extends ConsumerWidget {
                   child: Text(
                     l10n.budgetLastItemMessage,
                     key: const ValueKey('budget_last_item_hint'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               FilledButton(
                 key: const ValueKey('budget_add_item_detail'),
                 onPressed: () => context.push('/budgets/${budget.id}/items/new'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.blueDark,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.surface,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
@@ -246,7 +250,7 @@ class _BudgetDetailContent extends ConsumerWidget {
                 Text(
                   l10n.budgetArchivedItems,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -278,7 +282,9 @@ class _BudgetDetailContent extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.budgetDeleteBudgetMessage,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -421,10 +427,10 @@ class _BudgetSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     margin: EdgeInsets.zero,
     elevation: 0,
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: AppColors.line),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Padding(
       padding: const EdgeInsets.all(15),
@@ -444,7 +450,7 @@ class _BudgetSummaryCard extends StatelessWidget {
                 child: Text(
                   category,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -453,24 +459,28 @@ class _BudgetSummaryCard extends StatelessWidget {
           ),
           Text(
             typeAndMonth,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 5),
           Text(
             planned,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),
           Text(
             actual,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           Text(
             status,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: isExceeded ? Theme.of(context).colorScheme.error : AppColors.green,
+              color: isExceeded ? Theme.of(context).colorScheme.error : context.appColors.income,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -481,8 +491,10 @@ class _BudgetSummaryCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 7,
-              backgroundColor: AppColors.blueSoft,
-              color: isExceeded ? Theme.of(context).colorScheme.error : AppColors.blueDark,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              color: isExceeded
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -522,11 +534,11 @@ class _BudgetItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     margin: EdgeInsets.zero,
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     elevation: 0,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: AppColors.line),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Padding(
       padding: const EdgeInsets.all(12),
@@ -535,14 +547,20 @@ class _BudgetItemCard extends StatelessWidget {
         children: [
           Text(
             item.description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 4),
           Text(
             '${CurrencyFormatter.formatMinor(item.amountMinor, currency, locale: locale)} · ${AppLocalizations.of(context).day.toLowerCase()} ${item.dayOfMonth}',
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: AppColors.muted, fontWeight: FontWeight.w600),
+            style:
+                Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -553,7 +571,7 @@ class _BudgetItemCard extends StatelessWidget {
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: item.actualAmountMinor > item.amountMinor
                   ? Theme.of(context).colorScheme.error
-                  : AppColors.green,
+                  : context.appColors.income,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -561,7 +579,9 @@ class _BudgetItemCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               AppLocalizations.of(context).budgetItemArchived,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             if (userId != null && budgetId != null) ...[
               const SizedBox(height: 8),
@@ -600,8 +620,8 @@ class _BudgetItemCard extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(recordLabel ?? AppLocalizations.of(context).budgetRecordExpense),
                 style: FilledButton.styleFrom(
-                  foregroundColor: AppColors.blueDark,
-                  backgroundColor: AppColors.blueSoft,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -628,8 +648,10 @@ class _ItemAction extends StatelessWidget {
       onPressed: onPressed,
       style: TextButton.styleFrom(
         minimumSize: const Size(64, 48),
-        foregroundColor: destructive ? Theme.of(context).colorScheme.error : AppColors.blueDark,
-        backgroundColor: AppColors.background,
+        foregroundColor: destructive
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -672,7 +694,7 @@ class _ArchivedBudgetItemMovements extends ConsumerWidget {
           Text(
             l10n.budgetItemLinkedMovements,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -689,7 +711,9 @@ class _ArchivedBudgetItemMovements extends ConsumerWidget {
                     OperationStatus.rejected => l10n.budgetLinkedMovementRejected,
                   }}',
                   key: ValueKey('budget_linked_operation_${operation.id}'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
         ],

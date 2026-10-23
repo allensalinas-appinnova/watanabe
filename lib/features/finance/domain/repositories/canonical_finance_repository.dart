@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../entities/appearance_preferences.dart';
 import '../entities/balance_adjustment.dart';
 import '../entities/budget.dart';
 import '../entities/budget_item.dart';
@@ -81,6 +82,11 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> updateHomeDashboardPreferences(
     String userId,
     HomeDashboardPreferences preferences,
+  );
+
+  Future<Either<Failure, Unit>> updateAppearancePreferences(
+    String userId,
+    AppearancePreferences preferences,
   );
 
   Future<Either<Failure, Unit>> ensureDefaultCategories(

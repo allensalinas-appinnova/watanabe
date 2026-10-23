@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/finance_route_header.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_extensions.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../features/auth/presentation/providers/auth_providers.dart';
@@ -20,7 +19,7 @@ class DebtPaymentPickerScreen extends ConsumerWidget {
     if (uid == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts = ref.watch(canonicalAccountsProvider(uid));
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.debtPayCard,
         backLabel: l10n.back,
@@ -43,7 +42,7 @@ class DebtPaymentPickerScreen extends ConsumerWidget {
                     minTileHeight: 72,
                     leading: Icon(
                       account.isCreditCard ? Icons.credit_card : Icons.account_balance,
-                      color: AppColors.blueDark,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     title: Text(account.name),
                     subtitle: Text(account.isCreditCard ? l10n.debtCards : l10n.debtLoans),

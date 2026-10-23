@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'finance_category_icon.dart';
 
@@ -79,10 +78,10 @@ class _CategoryColorPickerState extends State<_CategoryColorPicker> {
                     side: BorderSide(
                       color: _selected == colorValue
                           ? FinanceCategoryColors.resolve(colorValue)
-                          : AppColors.line,
+                          : Theme.of(context).colorScheme.outlineVariant,
                       width: _selected == colorValue ? 2 : 1,
                     ),
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),

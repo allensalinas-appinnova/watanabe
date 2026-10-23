@@ -238,7 +238,7 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
                 child: Text(
                   pending ? l10n.coachSavePending : l10n.coachReviewed,
                   key: const ValueKey('coach_reviewed'),
-                  style: const TextStyle(color: AppColors.green),
+                  style: TextStyle(color: context.appColors.income),
                 ),
               ),
             if (matching?.reviewedAt != null)

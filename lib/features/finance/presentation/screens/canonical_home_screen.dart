@@ -81,7 +81,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
         final amountsHidden = ref.watch(dashboardAmountsHiddenProvider);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: RefreshIndicator(
             onRefresh: () async {
               ref
@@ -100,7 +100,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     l10n.dashboardTitle,
                     key: const ValueKey('home_dashboard_title'),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.navy,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
                     ),
@@ -113,7 +113,9 @@ class CanonicalHomeScreen extends ConsumerWidget {
                       ).format(DateTime.now()),
                       primaryCurrency,
                     ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   if (pending.isNotEmpty) ...[
@@ -331,6 +333,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final balanceColors = context.appColors;
     final groups = <String, List<FinanceAccount>>{};
     for (final account in accounts.where(
       (item) => item.status == 'active' && item.includeInDashboard && !item.isDebt,
@@ -341,7 +344,10 @@ class _BalanceCard extends StatelessWidget {
       key: const ValueKey('home_balance_card'),
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-      decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: balanceColors.balanceCardBackground,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -353,8 +359,9 @@ class _BalanceCard extends StatelessWidget {
                           ? AppLocalizations.of(context).debtMoney
                           : AppLocalizations.of(context).homeTotalBalance)
                       .toUpperCase(),
+                  key: const ValueKey('home_balance_label'),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFFD8E7F8),
+                    color: balanceColors.balanceCardMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -368,7 +375,7 @@ class _BalanceCard extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 icon: Icon(
                   amountsHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: Colors.white,
+                  color: balanceColors.balanceCardForeground,
                 ),
               ),
             ],
@@ -377,7 +384,9 @@ class _BalanceCard extends StatelessWidget {
           if (groups.isEmpty)
             Text(
               AppLocalizations.of(context).homeNoAccountsIncluded,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: balanceColors.balanceCardForeground,
+              ),
             ),
           for (final entry in groups.entries) ...[
             Text(
@@ -387,8 +396,9 @@ class _BalanceCard extends StatelessWidget {
                       entry.value.fold<int>(0, (sum, account) => sum + account.currentBalanceMinor),
                       entry.key,
                     ),
+              key: ValueKey('home_balance_amount_${entry.key}'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
+                color: balanceColors.balanceCardForeground,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -403,12 +413,12 @@ class _BalanceCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFFD8E7F8),
+                color: balanceColors.balanceCardMuted,
               ),
             ),
           ],
           if (accounts.any((a) => a.isDebt && a.includeInDashboard)) ...[
-            const Divider(color: Colors.white24),
+            Divider(color: balanceColors.balanceCardForeground.withValues(alpha: 0.24)),
             for (final entry in RecordedPosition.byCurrency(accounts).entries) ...[
               for (final row in [
                 (AppLocalizations.of(context).debtRegistered, entry.value.debtMinor),
@@ -421,10 +431,16 @@ class _BalanceCard extends StatelessWidget {
                     alignment: WrapAlignment.spaceBetween,
                     spacing: 12,
                     children: [
-                      Text('${row.$1} · ${entry.key}', style: const TextStyle(color: Colors.white)),
+                      Text(
+                        '${row.$1} · ${entry.key}',
+                        style: TextStyle(color: balanceColors.balanceCardForeground),
+                      ),
                       Text(
                         amountsHidden ? '••••••' : _money(row.$2, entry.key),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: balanceColors.balanceCardForeground,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -432,7 +448,7 @@ class _BalanceCard extends StatelessWidget {
             ],
             Text(
               AppLocalizations.of(context).debtPositionNote,
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: balanceColors.balanceCardMuted),
             ),
           ],
         ],
@@ -466,7 +482,7 @@ class _MonthlySummaryCards extends StatelessWidget {
           child: _SummaryCard(
             label: AppLocalizations.of(context).income,
             value: amountsHidden ? '••••••' : _money(incomeMinor, currency),
-            color: AppColors.green,
+            color: context.appColors.income,
             key: const ValueKey('home_income_summary'),
           ),
         ),
@@ -476,7 +492,7 @@ class _MonthlySummaryCards extends StatelessWidget {
           child: _SummaryCard(
             label: AppLocalizations.of(context).expense,
             value: amountsHidden ? '••••••' : _money(expenseMinor, currency),
-            color: const Color(0xFFC62828),
+            color: context.appColors.expense,
             key: const ValueKey('home_expense_summary'),
           ),
         ),
@@ -496,15 +512,20 @@ class _SummaryCard extends StatelessWidget {
     constraints: const BoxConstraints(minHeight: 82),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: AppColors.line),
+      color: Theme.of(context).colorScheme.surface,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 8),
         Text(
           value,
@@ -543,7 +564,7 @@ class _BudgetPreview extends StatelessWidget {
     final ratio = budget.plannedAmountMinor == 0
         ? 0.0
         : (tracking.actualMinor / budget.plannedAmountMinor).clamp(0.0, 1.0);
-    final statusColor = tracking.isExceeded ? const Color(0xFFC73338) : AppColors.green;
+    final statusColor = tracking.isExceeded ? const Color(0xFFC73338) : context.appColors.income;
     final actualLabel = budget.flowType == BudgetFlowType.income
         ? l10n.budgetReceived
         : l10n.budgetSpent;
@@ -551,7 +572,7 @@ class _BudgetPreview extends StatelessWidget {
         ? l10n.exceeded(_money(-tracking.remainingMinor, budget.currency))
         : l10n.remaining(_money(tracking.remainingMinor, budget.currency));
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -559,7 +580,7 @@ class _BudgetPreview extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
@@ -574,7 +595,9 @@ class _BudgetPreview extends StatelessWidget {
                 key: ValueKey('home_budget_actual_${budget.id}'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 amountsHidden
@@ -597,8 +620,10 @@ class _BudgetPreview extends StatelessWidget {
                   key: ValueKey('home_budget_progress_${budget.id}'),
                   value: ratio,
                   minHeight: 8,
-                  backgroundColor: AppColors.blueSoft,
-                  color: tracking.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  color: tracking.isExceeded
+                      ? const Color(0xFFC73338)
+                      : Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -702,8 +727,10 @@ class _BudgetComparisonCard extends StatelessWidget {
     final ratio = hasBudget ? actualMinor / plannedMinor : 0.0;
     final isOverBudget = isExpense && ratio > 1;
     final statusColor = isOverBudget
-        ? const Color(0xFFC73338)
-        : (!isExpense && ratio >= 1 ? AppColors.green : AppColors.blueDark);
+        ? context.appColors.expense
+        : (!isExpense && ratio >= 1
+              ? context.appColors.income
+              : Theme.of(context).colorScheme.primary);
     final locale = Localizations.localeOf(context).toString();
     final percentage = NumberFormat.percentPattern(locale).format(ratio);
 
@@ -712,8 +739,8 @@ class _BudgetComparisonCard extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 132),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.line),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -721,7 +748,9 @@ class _BudgetComparisonCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.navy),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
@@ -746,7 +775,9 @@ class _BudgetComparisonCard extends StatelessWidget {
                 : l10n.homeNoBudgetForFlow,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -754,7 +785,7 @@ class _BudgetComparisonCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: hasBudget ? ratio.clamp(0.0, 1.0) : 0,
               minHeight: 6,
-              backgroundColor: AppColors.blueSoft,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               color: statusColor,
             ),
           ),
@@ -772,7 +803,7 @@ class _EmptyBudgetPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(14),
     child: InkWell(
       onTap: onTap,
@@ -780,7 +811,7 @@ class _EmptyBudgetPreview extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(message, style: Theme.of(context).textTheme.bodySmall),
@@ -828,7 +859,7 @@ class _OperationTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Material(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: operation.debtAccountId != null
@@ -841,7 +872,7 @@ class _OperationTile extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 54),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               borderRadius: BorderRadius.circular(14),
             ),
             child: LayoutBuilder(
@@ -850,10 +881,14 @@ class _OperationTile extends StatelessWidget {
                 return Row(
                   children: [
                     if (isTransfer)
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 16,
-                        backgroundColor: AppColors.blueSoft,
-                        child: Icon(Icons.swap_horiz, color: AppColors.blueDark, size: 18),
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.swap_horiz,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 18,
+                        ),
                       )
                     else
                       FinanceCategoryIcon(
@@ -874,7 +909,7 @@ class _OperationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.navy,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -883,7 +918,7 @@ class _OperationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.muted,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -905,7 +940,9 @@ class _OperationTile extends StatelessWidget {
                         textAlign: TextAlign.end,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: isIncome ? AppColors.green : AppColors.navy,
+                          color: isIncome
+                              ? context.appColors.income
+                              : Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1001,7 +1038,7 @@ class _HomeSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surface,
     child: SizedBox(
       height: height,
       child: Padding(
@@ -1016,7 +1053,7 @@ class _HomeSkeleton extends StatelessWidget {
               child: Container(
                 height: 14,
                 decoration: BoxDecoration(
-                  color: AppColors.blueSoft,
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),

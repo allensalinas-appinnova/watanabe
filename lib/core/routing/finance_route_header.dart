@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../theme/app_colors.dart';
-
 class FinanceRouteHeader extends StatelessWidget implements PreferredSizeWidget {
   const FinanceRouteHeader({
     required this.title,
@@ -31,11 +29,11 @@ class FinanceRouteHeader extends StatelessWidget implements PreferredSizeWidget 
       key: backButtonKey,
       tooltip: backLabel,
       onPressed: onBack,
-      icon: const Icon(Icons.arrow_back, color: AppColors.navy),
+      icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
     ),
     title: Text(title, key: titleKey),
     titleSpacing: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     surfaceTintColor: Colors.transparent,
   );
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 Future<DateTime?> showBudgetMonthPicker(BuildContext context, DateTime initialMonth) =>
@@ -31,7 +30,7 @@ class _BudgetMonthPickerState extends State<_BudgetMonthPicker> {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(l10n.budgetSelectMonth),
         leading: IconButton(
@@ -53,7 +52,7 @@ class _BudgetMonthPickerState extends State<_BudgetMonthPicker> {
                 child: Text(
                   '$_year',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -81,7 +80,7 @@ class _BudgetMonthPickerState extends State<_BudgetMonthPicker> {
                   onPressed: () => Navigator.pop(context, DateTime(_year, _month)),
                   style: FilledButton.styleFrom(
                     alignment: Alignment.center,
-                    backgroundColor: AppColors.blueDark,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: Center(
@@ -110,9 +109,17 @@ class _BudgetMonthPickerState extends State<_BudgetMonthPicker> {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(48, 48),
           alignment: Alignment.center,
-          foregroundColor: selected ? Colors.white : AppColors.navy,
-          backgroundColor: selected ? AppColors.blueDark : Colors.white,
-          side: BorderSide(color: selected ? AppColors.blueDark : AppColors.line),
+          foregroundColor: selected
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onSurface,
+          backgroundColor: selected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surface,
+          side: BorderSide(
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.all(4),
         ),

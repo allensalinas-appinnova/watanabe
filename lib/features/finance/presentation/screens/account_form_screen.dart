@@ -158,7 +158,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.blueDark,
+                              color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -169,7 +169,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                     Text(
                       l10n.accounts.toUpperCase(),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.muted,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         letterSpacing: 1.1,
                       ),
                     ),
@@ -177,16 +177,19 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                     Text(
                       _isEditing ? l10n.editAccount : l10n.newAccount,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       _isEditing ? l10n.accountFormEditSubtitle : l10n.accountFormCreateSubtitle,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                      style:
+                          Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                     const SizedBox(height: 24),
                     Form(
@@ -237,7 +240,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                             Text(
                               l10n.accountBalanceReadOnlyHelper,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.muted,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -334,10 +337,15 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.orange.withValues(alpha: 0.14),
+                                  color: context.appColors.warning.withValues(alpha: 0.14),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(_error!, style: const TextStyle(color: AppColors.navy)),
+                                child: Text(
+                                  _error!,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
                               ),
                             ),
                           ],

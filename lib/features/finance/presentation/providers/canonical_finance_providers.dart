@@ -16,6 +16,7 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/request_id.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/activity_report.dart';
+import '../../domain/entities/appearance_preferences.dart';
 import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_command_failure.dart';
@@ -59,6 +60,84 @@ class DashboardAmountsHiddenNotifier extends Notifier<bool> {
 final canonicalUserProfileProvider = StreamProvider.family<UserProfile?, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
 );
+
+final appearancePreferencesControllerProvider =
+    NotifierProvider<AppearancePreferencesController, AppearancePreferencesSaveState>(
+      AppearancePreferencesController.new,
+    );
+
+final effectiveAppearancePreferencesProvider = Provider<AppearancePreferences>((ref) {
+  final userId = ref.watch(authSessionProvider).valueOrNull?.id;
+  if (userId == null) return const AppearancePreferences();
+  final saveState = ref.watch(appearancePreferencesControllerProvider);
+  if (saveState.userId == userId && (saveState.isSaving || saveState.saveFailed)) {
+    return saveState.preferences;
+  }
+  return ref.watch(canonicalUserProfileProvider(userId)).valueOrNull?.appearancePreferences ??
+      const AppearancePreferences();
+});
+
+class AppearancePreferencesSaveState {
+  const AppearancePreferencesSaveState({
+    this.userId,
+    this.preferences = const AppearancePreferences(),
+    this.isSaving = false,
+    this.saveFailed = false,
+    this.hasSaved = false,
+  });
+
+  final String? userId;
+  final AppearancePreferences preferences;
+  final bool isSaving;
+  final bool saveFailed;
+  final bool hasSaved;
+
+  AppearancePreferencesSaveState copyWith({
+    String? userId,
+    AppearancePreferences? preferences,
+    bool? isSaving,
+    bool? saveFailed,
+    bool? hasSaved,
+  }) => AppearancePreferencesSaveState(
+    userId: userId ?? this.userId,
+    preferences: preferences ?? this.preferences,
+    isSaving: isSaving ?? this.isSaving,
+    saveFailed: saveFailed ?? this.saveFailed,
+    hasSaved: hasSaved ?? this.hasSaved,
+  );
+}
+
+class AppearancePreferencesController extends Notifier<AppearancePreferencesSaveState> {
+  Future<void> _saveQueue = Future<void>.value();
+  int _latestRequest = 0;
+
+  @override
+  AppearancePreferencesSaveState build() => const AppearancePreferencesSaveState();
+
+  Future<void> save(String userId, AppearancePreferences preferences) {
+    final request = ++_latestRequest;
+    state = AppearancePreferencesSaveState(
+      userId: userId,
+      preferences: preferences,
+      isSaving: true,
+    );
+    final save = _saveQueue.then((_) async {
+      final result = await ref
+          .read(canonicalFinanceRepositoryProvider)
+          .updateAppearancePreferences(userId, preferences);
+      if (request != _latestRequest) return;
+      result.match(
+        (_) => state = state.copyWith(isSaving: false, saveFailed: true),
+        (_) {
+          state = state.copyWith(isSaving: false, saveFailed: false, hasSaved: true);
+          ref.invalidate(canonicalUserProfileProvider(userId));
+        },
+      );
+    });
+    _saveQueue = save;
+    return save;
+  }
+}
 
 final canonicalCategoriesProvider = StreamProvider.family<List<FinanceCategory>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchCategories(userId),

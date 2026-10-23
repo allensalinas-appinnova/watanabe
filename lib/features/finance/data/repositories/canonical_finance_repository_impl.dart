@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/firebase_failure_mapper.dart';
+import '../../domain/entities/appearance_preferences.dart';
 import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_flow_type.dart';
@@ -39,6 +40,19 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   ) async {
     try {
       await _remoteDataSource.updateHomeDashboardPreferences(userId, preferences);
+      return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updateAppearancePreferences(
+    String userId,
+    AppearancePreferences preferences,
+  ) async {
+    try {
+      await _remoteDataSource.updateAppearancePreferences(userId, preferences);
       return const Right(unit);
     } catch (error) {
       return Left(FirebaseFailureMapper.fromException(error));
@@ -499,6 +513,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     onboardingStatus: data['onboardingStatus'] as String? ?? 'not_started',
     categoryCatalogVersion: (data['categoryCatalogVersion'] as num? ?? 1).toInt(),
     homeDashboardPreferences: HomeDashboardPreferences.fromMap(data['homePreferences']),
+    appearancePreferences: AppearancePreferences.fromMap(data['appearancePreferences']),
   );
 
   FinanceCategory _category(Map<String, dynamic> data) => FinanceCategory(

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/routing/global_fab_visibility.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/utils/async_value_extensions.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
@@ -63,14 +62,18 @@ class _AppShellState extends ConsumerState<AppShell> {
           children: [
             if (hasSyncNotice)
               Material(
-                color: rejected ? const Color(0xFFFFF1F0) : AppColors.blueSoft,
+                color: rejected
+                    ? Theme.of(context).colorScheme.errorContainer
+                    : Theme.of(context).colorScheme.primaryContainer,
                 child: Padding(
                   padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 8, 8),
                   child: Row(
                     children: [
                       Icon(
                         rejected ? Icons.warning_amber_rounded : Icons.sync,
-                        color: rejected ? const Color(0xFFC73338) : AppColors.blueDark,
+                        color: rejected
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -79,7 +82,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                               ? AppLocalizations.of(context).offlineRejected
                               : AppLocalizations.of(context).pendingBalanceNote,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.navy,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -102,7 +105,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         child: Text(
                           AppLocalizations.of(context).appTitle,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.blueDark,
+                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -268,7 +271,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             Text(
               result.type == OperationType.transfer ? l10n.transferMoney : result.description,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.navy,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),

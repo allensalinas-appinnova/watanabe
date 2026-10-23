@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'finance_design_assets.dart';
 
@@ -33,7 +32,7 @@ class FinanceHeader extends StatelessWidget {
             Text(
               eyebrow.toUpperCase(),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppColors.muted,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
                 letterSpacing: .25,
               ),
@@ -42,7 +41,7 @@ class FinanceHeader extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.navy,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 height: 1.1,
               ),
@@ -65,7 +64,7 @@ class FinanceHeader extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   SvgPicture.asset(FinanceDesignAssets.headerAction, width: 28, height: 28),
-                  Icon(actionIcon, size: 16, color: AppColors.blueDark),
+                  Icon(actionIcon, size: 16, color: Theme.of(context).colorScheme.primary),
                 ],
               ),
             ),
@@ -106,13 +105,13 @@ class FinanceBottomNavigation extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final labels = [l10n.home, l10n.activity, l10n.accounts, l10n.plan, l10n.coachTab];
     final selectedLabelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: AppColors.blueDark,
+      color: Theme.of(context).colorScheme.primary,
       fontSize: 11,
       fontWeight: FontWeight.w600,
       height: 18 / 11,
     );
     final unselectedLabelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: AppColors.muted,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontSize: 11,
       fontWeight: FontWeight.w400,
       height: 18 / 11,
@@ -121,8 +120,8 @@ class FinanceBottomNavigation extends StatelessWidget {
     return NavigationBarTheme(
       data: NavigationBarThemeData(
         height: height ?? 76,
-        backgroundColor: backgroundColor ?? Colors.white,
-        indicatorColor: indicatorColor ?? AppColors.blueSoft,
+        backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
+        indicatorColor: indicatorColor ?? Theme.of(context).colorScheme.primaryContainer,
         indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -188,7 +187,7 @@ class FinanceSectionHeading extends StatelessWidget {
         child: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.navy,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -213,7 +212,7 @@ class FinanceLabeledField extends StatelessWidget {
         child: Text(
           label.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.muted,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
             letterSpacing: .7,
           ),
@@ -242,7 +241,10 @@ class FinanceOperationTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(color: AppColors.blueSoft, borderRadius: BorderRadius.circular(24)),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      borderRadius: BorderRadius.circular(24),
+    ),
     child: Padding(
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -282,7 +284,7 @@ class _OperationTypeOption extends StatelessWidget {
       selected: selected,
       label: label,
       child: Material(
-        color: selected ? AppColors.blueDark : Colors.transparent,
+        color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onPressed,
@@ -294,7 +296,9 @@ class _OperationTypeOption extends StatelessWidget {
                 label,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: selected ? Colors.white : AppColors.muted,
+                  color: selected
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -320,7 +324,9 @@ class FinancePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: selected ? AppColors.blueSoft : Colors.white,
+    color: selected
+        ? Theme.of(context).colorScheme.primaryContainer
+        : Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(18),
     child: InkWell(
       onTap: onPressed,
@@ -330,7 +336,9 @@ class FinancePill extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: selected ? AppColors.blueDark : AppColors.navy,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),

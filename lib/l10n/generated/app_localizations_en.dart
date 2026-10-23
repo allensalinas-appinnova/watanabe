@@ -192,6 +192,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authEmailLabel => 'Email';
 
   @override
+  String get authEmailHint => 'you@example.com';
+
+  @override
   String get authPasswordLabel => 'Password';
 
   @override
@@ -1776,4 +1779,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get operationEditTitle => 'Edit transaction';
+
+  @override
+  String get appearanceTitle => 'Appearance';
+
+  @override
+  String get appearanceSubtitle => 'Personalize LumioMoney colors across your devices.';
+
+  @override
+  String get appearanceMode => 'Theme';
+
+  @override
+  String get appearanceSystem => 'System';
+
+  @override
+  String get appearanceLight => 'Light';
+
+  @override
+  String get appearanceDark => 'Dark';
+
+  @override
+  String get appearancePalette => 'Color palette';
+
+  @override
+  String get paletteLumio => 'Lumio';
+
+  @override
+  String get paletteClassicBlue => 'Classic blue';
+
+  @override
+  String get paletteOcean => 'Ocean';
+
+  @override
+  String get palettePlum => 'Plum';
+
+  @override
+  String get appearanceSaving => 'Saving preference…';
+
+  @override
+  String get appearanceSaved => 'Appearance synced';
+
+  @override
+  String get appearanceSaveFailed => 'Appearance could not sync. Your selection is still applied.';
+
+  @override
+  String get appearanceRetry => 'Retry';
 }

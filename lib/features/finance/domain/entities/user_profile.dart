@@ -1,3 +1,4 @@
+import 'appearance_preferences.dart';
 import 'home_dashboard_preferences.dart';
 
 class UserProfile {
@@ -10,6 +11,7 @@ class UserProfile {
     required this.onboardingStatus,
     required this.categoryCatalogVersion,
     this.homeDashboardPreferences = const HomeDashboardPreferences(),
+    this.appearancePreferences = const AppearancePreferences(),
   });
 
   final String id;
@@ -20,4 +22,5 @@ class UserProfile {
   final String onboardingStatus;
   final int categoryCatalogVersion;
   final HomeDashboardPreferences homeDashboardPreferences;
+  final AppearancePreferences appearancePreferences;
 }

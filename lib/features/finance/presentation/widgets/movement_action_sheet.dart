@@ -29,14 +29,14 @@ class MovementActionSheet extends StatelessWidget {
             label: l10n.addIncome,
             icon: Icons.add,
             tint: const Color(0xFFDDF5E9),
-            ink: AppColors.green,
+            ink: context.appColors.income,
           ),
           (
             type: MovementEntryAction.expense,
             label: l10n.addExpense,
             icon: Icons.remove,
-            tint: AppColors.blueSoft,
-            ink: AppColors.blueDark,
+            tint: Theme.of(context).colorScheme.primaryContainer,
+            ink: Theme.of(context).colorScheme.primary,
           ),
           (
             type: MovementEntryAction.transfer,
@@ -49,8 +49,8 @@ class MovementActionSheet extends StatelessWidget {
             type: MovementEntryAction.debtPayment,
             label: l10n.debtPay,
             icon: Icons.credit_score_outlined,
-            tint: const Color(0xFFFBE4E7),
-            ink: const Color(0xFFC73338),
+            tint: Theme.of(context).colorScheme.errorContainer,
+            ink: context.appColors.expense,
           ),
         ];
 
@@ -58,7 +58,7 @@ class MovementActionSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
         key: const ValueKey('movement_action_sheet'),
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -76,7 +76,7 @@ class MovementActionSheet extends StatelessWidget {
                     width: 40,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppColors.line,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -85,7 +85,7 @@ class MovementActionSheet extends StatelessWidget {
                 Text(
                   l10n.appTitle,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.blueDark,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -94,14 +94,16 @@ class MovementActionSheet extends StatelessWidget {
                   l10n.addMovementChoiceTitle,
                   key: const ValueKey('add_movement_title'),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   l10n.addMovementChoiceSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 for (var index = 0; index < actions.length; index++) ...[
@@ -116,20 +118,24 @@ class MovementActionSheet extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E9),
-                    border: Border.all(color: const Color(0xFFFFD27A)),
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                    border: Border.all(color: Theme.of(context).colorScheme.tertiary),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline, color: Color(0xFFA76A00), size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.onTertiaryContainer,
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           l10n.transferExplanation,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.navy,
+                            color: Theme.of(context).colorScheme.onSurface,
                             height: 1.35,
                           ),
                         ),
@@ -146,8 +152,8 @@ class MovementActionSheet extends StatelessWidget {
                       key: const ValueKey('add_movement_close'),
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.navy,
-                        side: const BorderSide(color: AppColors.line),
+                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: Text(l10n.close),
@@ -176,10 +182,10 @@ class _MovementChoiceTile extends StatelessWidget {
     onTap: onPressed,
     child: ExcludeSemantics(
       child: Material(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppColors.line),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -205,7 +211,7 @@ class _MovementChoiceTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

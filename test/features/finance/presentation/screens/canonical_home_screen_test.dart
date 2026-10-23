@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_finance/core/theme/app_colors.dart';
+import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
+import 'package:personal_finance/features/finance/domain/entities/appearance_preferences.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget_flow_type.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
@@ -27,6 +30,8 @@ void main() {
 
     final now = DateTime.now();
     final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    var themeMode = ThemeMode.light;
+    late void Function(ThemeMode mode) setThemeMode;
     final providers = ProviderScope(
       overrides: [
         authSessionProvider.overrideWith(
@@ -181,20 +186,28 @@ void main() {
           ),
         ),
       ],
-      child: MaterialApp(
-        locale: const Locale('es'),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.25)),
-          child: child!,
-        ),
-        home: const CanonicalHomeScreen(),
+      child: StatefulBuilder(
+        builder: (context, updateTheme) {
+          setThemeMode = (mode) => updateTheme(() => themeMode = mode);
+          return MaterialApp(
+            locale: const Locale('es'),
+            theme: AppTheme.forAppearance(AppearancePalette.lumio, Brightness.light),
+            darkTheme: AppTheme.forAppearance(AppearancePalette.lumio, Brightness.dark),
+            themeMode: themeMode,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.25)),
+              child: child!,
+            ),
+            home: const CanonicalHomeScreen(),
+          );
+        },
       ),
     );
 
@@ -270,5 +283,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('••••••'), findsNothing);
     expect(tester.takeException(), isNull);
+
+    setThemeMode(ThemeMode.dark);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('home_balance_card')));
+    final cardFinder = find.byKey(const ValueKey('home_balance_card'));
+    final balanceCard = tester.widget<Container>(cardFinder);
+    final background = (balanceCard.decoration! as BoxDecoration).color!;
+    final darkTheme = Theme.of(tester.element(cardFinder));
+    final balanceColors = darkTheme.extension<AppThemeColors>()!;
+    expect(background, balanceColors.balanceCardBackground);
+    expect(background, isNot(darkTheme.colorScheme.onSurface));
+    for (final key in const ['home_balance_label', 'home_balance_amount_COP']) {
+      final text = tester.widget<Text>(find.byKey(ValueKey(key)));
+      expect(_contrastRatio(text.style!.color!, background), greaterThanOrEqualTo(4.5));
+    }
   });
+}
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter = firstLuminance > secondLuminance ? firstLuminance : secondLuminance;
+  final darker = firstLuminance > secondLuminance ? secondLuminance : firstLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
 }

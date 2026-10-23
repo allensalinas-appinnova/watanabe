@@ -108,6 +108,14 @@ service cloud.firestore {
           data.homePreferences.hiddenBudgetCategoryIds.toSet().size() ==
             data.homePreferences.hiddenBudgetCategoryIds.size());
     }
+    function validAppearancePreferences(data) {
+      return !('appearancePreferences' in data) ||
+        (data.appearancePreferences is map &&
+          data.appearancePreferences.keys().hasOnly(['mode', 'palette']) &&
+          required(data.appearancePreferences, ['mode', 'palette']) &&
+          data.appearancePreferences.mode in ['system', 'light', 'dark'] &&
+          data.appearancePreferences.palette in ['lumio', 'classicBlue', 'ocean', 'plum']);
+    }
 
     function validCoachHour(value) {
       return value is int && value >= 0 && value <= 23;
@@ -169,13 +177,16 @@ service cloud.firestore {
       allow read: if owner(uid);
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
-        'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt', 'coachPreferences'
+        'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt', 'coachPreferences',
+        'appearancePreferences'
       ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']) &&
-        validCoachPreferences(request.resource.data);
+        validCoachPreferences(request.resource.data) && validAppearancePreferences(request.resource.data);
       allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
-        'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'coachPreferences', 'updatedAt'
-      ]) && validHomePreferences(request.resource.data) && validCoachPreferences(request.resource.data);
+        'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'coachPreferences',
+        'appearancePreferences', 'updatedAt'
+      ]) && validHomePreferences(request.resource.data) && validCoachPreferences(request.resource.data) &&
+        validAppearancePreferences(request.resource.data);
       allow delete: if false;
 
       match /coachDailyCheckIns/{periodKey} {

@@ -55,7 +55,7 @@ class _CanonicalBudgetTrackingScreenState extends ConsumerState<CanonicalBudgetT
     final locale = Localizations.localeOf(context).toLanguageTag();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.budgetTrackingTitle,
         backLabel: l10n.budgetBackToBudgets,
@@ -213,7 +213,7 @@ class _MonthSelector extends StatelessWidget {
       Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.muted,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -226,16 +226,20 @@ class _MonthSelector extends StatelessWidget {
           onPressed: onTap,
           style: OutlinedButton.styleFrom(
             alignment: Alignment.centerLeft,
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.navy,
-            side: const BorderSide(color: AppColors.line),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
           child: Row(
             children: [
               Expanded(child: Text(DateFormat.yMMMM(locale).format(month))),
-              Icon(Icons.keyboard_arrow_down, color: AppColors.muted, semanticLabel: changeLabel),
+              Icon(
+                Icons.keyboard_arrow_down,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                semanticLabel: changeLabel,
+              ),
             ],
           ),
         ),
@@ -377,7 +381,7 @@ class _FlowTrackingSection extends StatelessWidget {
             '$currency · $title',
             key: ValueKey('budget_tracking_group_${currency}_${flowType.value}'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -396,7 +400,7 @@ class _FlowTrackingSection extends StatelessWidget {
         Text(
           l10n.byCategory,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: AppColors.navy,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -470,7 +474,7 @@ class _FlowSummaryCard extends StatelessWidget {
     final percent = planned > 0 ? (actual * 100 ~/ planned).clamp(0, 999) : null;
 
     return Card(
-      color: AppColors.blueSoft,
+      color: Theme.of(context).colorScheme.primaryContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -479,14 +483,16 @@ class _FlowSummaryCard extends StatelessWidget {
           children: [
             Text(
               l10n.plannedSummary,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.blueDark),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(height: 4),
             Text(
               l10n.plannedTotal(format(planned)),
               key: ValueKey('budget_tracking_planned_${currency}_${flowType.value}'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.navy,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -515,8 +521,10 @@ class _FlowSummaryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 7,
-                    backgroundColor: Colors.white,
-                    color: remaining < 0 ? const Color(0xFFC73338) : AppColors.blueDark,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    color: remaining < 0
+                        ? const Color(0xFFC73338)
+                        : Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -528,7 +536,7 @@ class _FlowSummaryCard extends StatelessWidget {
                   isIncome ? l10n.budgetReceivedPercent(percent) : l10n.budgetUsedPercent(percent),
                   style: Theme.of(
                     context,
-                  ).textTheme.labelSmall?.copyWith(color: AppColors.blueDark),
+                  ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ],
@@ -575,11 +583,11 @@ class _BudgetTrackingCard extends StatelessWidget {
         : l10n.remaining(format(result.remainingMinor));
 
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: InkWell(
         key: ValueKey('budget_tracking_category_${budget.id}'),
@@ -603,24 +611,29 @@ class _BudgetTrackingCard extends StatelessWidget {
                     child: Text(
                       name,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppColors.muted),
+                  Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ],
               ),
               const SizedBox(height: 5),
               Text(
                 '$actualLabel · ${format(result.actualMinor)}  /  ${l10n.planned(format(result.plannedMinor))}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 remainingLabel,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: result.isExceeded ? const Color(0xFFC73338) : AppColors.green,
+                  color: result.isExceeded ? const Color(0xFFC73338) : context.appColors.income,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -632,8 +645,10 @@ class _BudgetTrackingCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: ratio,
                   minHeight: 7,
-                  backgroundColor: AppColors.blueSoft,
-                  color: result.isExceeded ? const Color(0xFFC73338) : AppColors.blueDark,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  color: result.isExceeded
+                      ? const Color(0xFFC73338)
+                      : Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -670,7 +685,7 @@ class _UnbudgetedNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: AppColors.orange),
+          Icon(Icons.info_outline, color: context.appColors.warning),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -678,15 +693,21 @@ class _UnbudgetedNotice extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.navy),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text(message, style: const TextStyle(color: AppColors.muted)),
+                Text(
+                  message,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
                 Text(
                   amount,
                   key: amountKey,
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -745,14 +766,14 @@ class _TrackingEmpty extends StatelessWidget {
         onTap: onChooseMonth,
       ),
       const SizedBox(height: 56),
-      const Icon(Icons.pie_chart_outline, color: AppColors.blueDark, size: 52),
+      Icon(Icons.pie_chart_outline, color: Theme.of(context).colorScheme.primary, size: 52),
       const SizedBox(height: 16),
       Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),
       Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: AppColors.muted),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       const SizedBox(height: 20),
       FilledButton.icon(
@@ -783,7 +804,11 @@ class _TrackingLoadError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.cloud_off_outlined, color: AppColors.muted, size: 42),
+          Icon(
+            Icons.cloud_off_outlined,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 42,
+          ),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),

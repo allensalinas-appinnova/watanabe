@@ -37,7 +37,7 @@ class CoachHomeScreen extends ConsumerWidget {
     final nextTitle = step == CoachNextStep.weekly ? l10n.coachWeeklyTitle : l10n.coachDailyTitle;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: ListView(
@@ -46,14 +46,16 @@ class CoachHomeScreen extends ConsumerWidget {
             Text(
               l10n.coachHubTitle,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.navy,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.coachHubSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 20),
             Card(
@@ -115,9 +117,13 @@ class CoachHomeScreen extends ConsumerWidget {
             const SizedBox(height: 22),
             Text(
               l10n.coachHistoryTitle,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: AppColors.navy, fontWeight: FontWeight.w700),
+              style:
+                  Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 8),
             if (loading)
@@ -125,12 +131,15 @@ class CoachHomeScreen extends ConsumerWidget {
             else if (failed)
               Text(l10n.coachReadFailure)
             else if (completions.requireValue.isEmpty)
-              Text(l10n.coachHistoryEmpty, style: const TextStyle(color: AppColors.muted))
+              Text(
+                l10n.coachHistoryEmpty,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              )
             else
               for (final item in completions.requireValue.take(8))
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.check_circle_outline, color: AppColors.green),
+                  leading: Icon(Icons.check_circle_outline, color: context.appColors.income),
                   title: Text(
                     item.kind == CoachReviewKind.daily
                         ? l10n.coachDailyTitle
@@ -172,7 +181,7 @@ class _RoutineTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: ListTile(
       minTileHeight: 72,
-      leading: Icon(icon, color: AppColors.blueDark),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(title),
       subtitle: Text(subtitle),
       trailing: const Icon(Icons.chevron_right),

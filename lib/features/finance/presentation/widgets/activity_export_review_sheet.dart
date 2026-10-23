@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/entities/activity_report.dart';
@@ -116,7 +115,7 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.line,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -125,7 +124,7 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                 Text(
                   l10n.appTitle,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.blueDark,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -134,7 +133,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                 const SizedBox(height: 4),
                 Text(
                   l10n.activityExportSubtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _ExportDetailsCard(
@@ -173,7 +174,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                   Text(
                     l10n.activityExportPreparing(included.length),
                     key: const ValueKey('activity_export_preparing'),
-                    style: theme.textTheme.labelLarge?.copyWith(color: AppColors.blueDark),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const LinearProgressIndicator(),
@@ -185,7 +188,7 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF0F0),
+                      color: Theme.of(context).colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
@@ -194,7 +197,7 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                         Text(
                           l10n.activityExportErrorTitle,
                           style: theme.textTheme.labelLarge?.copyWith(
-                            color: const Color(0xFFB3261E),
+                            color: Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -206,7 +209,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                 const SizedBox(height: 8),
                 Text(
                   l10n.activityExportAllResults,
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -275,7 +280,9 @@ class _ActivityExportReviewSheetState extends State<ActivityExportReviewSheet> {
                   child: Text(
                     l10n.activityExportCloseHint,
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -323,8 +330,8 @@ class _ExportDetailsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.line),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -382,7 +389,9 @@ class _ExportDetailsCard extends StatelessWidget {
                   l10n.activityExportMoreCount(
                     includedCount - operations.length - adjustments.length,
                   ),
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -407,7 +416,9 @@ class _ExportDetailLine extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
         const SizedBox(width: 12),
@@ -477,12 +488,16 @@ class _OperationPreview extends StatelessWidget {
           subtitle.isEmpty ? title : '$title\n$subtitle',
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         );
         final amountLabel = Text(
           '$amount · ${operation.currency}',
           textAlign: constraints.maxWidth < 300 ? TextAlign.start : TextAlign.end,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.navy),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurface),
         );
         if (constraints.maxWidth < 300) {
           return Column(

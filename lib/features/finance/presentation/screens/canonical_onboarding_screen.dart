@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/authenticated_route_resolver.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -69,7 +68,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                     Text(
                                       l10n.appTitle,
                                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                        color: AppColors.blueDark,
+                                        color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -77,7 +76,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                     Text(
                                       l10n.personalizeExperience,
                                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        color: AppColors.navy,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -85,7 +84,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                     Text(
                                       l10n.onboardingSubtitle,
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: AppColors.muted,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                     const SizedBox(height: 28),
@@ -240,7 +239,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
     child: Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.muted,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontWeight: FontWeight.w600,
         letterSpacing: .7,
       ),
@@ -249,19 +248,19 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
 
   InputDecoration _inputDecoration() => InputDecoration(
     filled: true,
-    fillColor: Colors.white,
+    fillColor: Theme.of(context).colorScheme.surface,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.line),
+      borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.line),
+      borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.blueDark, width: 1.5),
+      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
     ),
   );
 

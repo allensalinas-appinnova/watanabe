@@ -20,6 +20,7 @@ import '../../features/finance/domain/repositories/canonical_finance_repository.
 import '../../features/finance/presentation/models/budget_item_movement_preset.dart';
 import '../../features/finance/presentation/screens/account_form_screen.dart';
 import '../../features/finance/presentation/screens/activity_filters_screen.dart';
+import '../../features/finance/presentation/screens/appearance_settings_screen.dart';
 import '../../features/finance/presentation/screens/canonical_accounts_screen.dart';
 import '../../features/finance/presentation/screens/canonical_activity_screen.dart';
 import '../../features/finance/presentation/screens/canonical_budget_create_screen.dart';
@@ -292,6 +293,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/settings',
       name: 'settings',
       builder: (context, state) => const CanonicalMoreScreen(),
+    ),
+    GoRoute(
+      path: '/settings/appearance',
+      name: 'settings-appearance',
+      builder: (context, state) => const AppearanceSettingsScreen(),
     ),
     GoRoute(
       path: '/coach/settings',

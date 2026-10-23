@@ -59,6 +59,7 @@
   "continueAsGuest": "Continuar como invitado",
   "authLoginTab": "Iniciar sesión",
   "authEmailLabel": "Correo electrónico",
+  "authEmailHint": "nombre@ejemplo.com",
   "authPasswordLabel": "Contraseña",
   "authEmailInvalid": "Escribe un correo electrónico válido.",
   "authPasswordTooShort": "Usa al menos 8 caracteres.",
@@ -560,4 +561,19 @@
   ,"debtSelectForPayment": "Elige la tarjeta o el préstamo que ya pagaste. Registrar el pago no mueve dinero por ti."
   ,"accountDetailTitle": "Detalle de cuenta"
   ,"operationEditTitle": "Editar movimiento"
+  ,"appearanceTitle": "Apariencia"
+  ,"appearanceSubtitle": "Personaliza los colores de LumioMoney en tus dispositivos."
+  ,"appearanceMode": "Tema"
+  ,"appearanceSystem": "Sistema"
+  ,"appearanceLight": "Claro"
+  ,"appearanceDark": "Oscuro"
+  ,"appearancePalette": "Paleta de color"
+  ,"paletteLumio": "Lumio"
+  ,"paletteClassicBlue": "Azul clásico"
+  ,"paletteOcean": "Océano"
+  ,"palettePlum": "Ciruela"
+  ,"appearanceSaving": "Guardando preferencia…"
+  ,"appearanceSaved": "Apariencia sincronizada"
+  ,"appearanceSaveFailed": "No se pudo sincronizar la apariencia. Tu selección sigue aplicada."
+  ,"appearanceRetry": "Reintentar"
 }

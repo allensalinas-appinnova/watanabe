@@ -44,7 +44,7 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
     final operations = ref.watch(canonicalOperationsPageProvider(pageKey));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: FinanceRouteHeader(
         title: l10n.accountDetailTitle,
         backLabel: l10n.back,
@@ -63,14 +63,14 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
               Text(
                 value.name,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 '${value.currency} · ${_accountTypeLabel(l10n, value.type)}',
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
               Card(
@@ -79,12 +79,17 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l10n.currentBalance, style: const TextStyle(color: AppColors.muted)),
+                      Text(
+                        l10n.currentBalance,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         CurrencyFormatter.formatMinor(value.currentBalanceMinor, value.currency),
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -129,7 +134,7 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
               Text(
                 l10n.recentActivity,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -143,7 +148,12 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
                   ref.invalidate(canonicalOperationsPageProvider(pageKey));
                 }),
                 data: (page) => page.items.isEmpty
-                    ? Text(l10n.noTransactions, style: const TextStyle(color: AppColors.muted))
+                    ? Text(
+                        l10n.noTransactions,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      )
                     : Column(
                         children: [
                           for (final item in page.items)
@@ -156,8 +166,8 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
                                     ? Icons.swap_horiz
                                     : Icons.north_east,
                                 color: item.type == OperationType.income
-                                    ? AppColors.green
-                                    : AppColors.blueDark,
+                                    ? context.appColors.income
+                                    : Theme.of(context).colorScheme.primary,
                               ),
                               title: Text(
                                 item.description.isEmpty

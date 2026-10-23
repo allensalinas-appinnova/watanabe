@@ -78,8 +78,8 @@ void main() {
       ),
     );
     expect(navTheme.data.height, 76);
-    expect(navTheme.data.backgroundColor, Colors.white);
-    expect(navTheme.data.indicatorColor, const Color(0xFFE3F2FD));
+    expect(navTheme.data.backgroundColor, ThemeData().colorScheme.surface);
+    expect(navTheme.data.indicatorColor, ThemeData().colorScheme.primaryContainer);
 
     for (final (index, label) in ['Inicio', 'Actividad', 'Cuentas', 'Plan', 'Coach'].indexed) {
       await tester.tap(find.text(label));

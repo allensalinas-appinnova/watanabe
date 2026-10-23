@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/usecases/coach_routine.dart';
 import '../providers/coach_providers.dart';
@@ -54,7 +53,10 @@ class CoachNextStepCard extends ConsumerWidget {
                   child: Text(l10n.retry),
                 ),
               ] else ...[
-                Text(label, style: const TextStyle(color: AppColors.muted)),
+                Text(
+                  label,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () =>

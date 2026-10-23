@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/offline/pending_operation_queue.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../core/utils/request_id.dart';
@@ -185,7 +184,7 @@ class _AccountBalanceAdjustmentSheetState extends State<AccountBalanceAdjustment
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .92),
         child: Material(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           clipBehavior: Clip.antiAlias,
           child: Form(
@@ -207,7 +206,9 @@ class _AccountBalanceAdjustmentSheetState extends State<AccountBalanceAdjustment
                   const SizedBox(height: 6),
                   Text(
                     l10n.balanceAdjustmentSubtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _Hint(icon: Icons.devices, text: l10n.balanceAdjustmentOtherDevicesHint),
@@ -279,7 +280,9 @@ class _AccountBalanceAdjustmentSheetState extends State<AccountBalanceAdjustment
                                 ),
                               ),
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: difference == 0 ? AppColors.muted : AppColors.blueDark,
+                                color: difference == 0
+                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    : Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           );
@@ -347,13 +350,21 @@ class _Hint extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: error ? const Color(0xFFFFF0F0) : AppColors.blueSoft,
+      color: error
+          ? Theme.of(context).colorScheme.errorContainer
+          : Theme.of(context).colorScheme.primaryContainer,
       borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: error ? const Color(0xFFB3261E) : AppColors.blueDark),
+        Icon(
+          icon,
+          size: 20,
+          color: error
+              ? Theme.of(context).colorScheme.onErrorContainer
+              : Theme.of(context).colorScheme.primary,
+        ),
         const SizedBox(width: 8),
         Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
       ],

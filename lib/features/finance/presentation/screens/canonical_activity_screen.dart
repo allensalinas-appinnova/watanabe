@@ -97,7 +97,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                           l10n.activity,
                           key: const ValueKey('activity_title'),
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppColors.navy,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -105,7 +105,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                         Text(
                           l10n.activitySubtitle,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.muted,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -158,7 +158,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                             ),
                             key: const ValueKey('activity_filter_summary'),
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.muted,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -498,7 +498,7 @@ class _ActivityMovementsHeader extends StatelessWidget {
             count == null ? l10n.activityMovements : l10n.activityMovementCount(count),
             key: const ValueKey('activity_movement_count'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.navy,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -528,10 +528,10 @@ class _ActivityReportSummary extends StatelessWidget {
     final totals = report.totalsByCurrency.values.toList();
     return Card(
       margin: EdgeInsets.zero,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -563,7 +563,7 @@ class _ActivityReportSummary extends StatelessWidget {
                         label: l10n.activityTotalsIncome,
                         amount: total.incomeMinor,
                         currency: total.currency,
-                        color: AppColors.green,
+                        color: context.appColors.income,
                         locale: locale,
                       ),
                       _ActivityTotalLine(
@@ -577,7 +577,7 @@ class _ActivityReportSummary extends StatelessWidget {
                         label: l10n.activityTotalsNet,
                         amount: total.netMinor,
                         currency: total.currency,
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                         locale: locale,
                       ),
                     ];
@@ -594,7 +594,9 @@ class _ActivityReportSummary extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.activityTotalsMethodNote,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],
@@ -701,9 +703,9 @@ class _ActivityQueryFilterButton extends StatelessWidget {
         ),
         style: OutlinedButton.styleFrom(
           alignment: Alignment.centerLeft,
-          foregroundColor: AppColors.navy,
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: AppColors.line),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -830,12 +832,14 @@ class _ActivityTypeFilters extends StatelessWidget {
                 onSelected: (_) => options[index].onTap(),
                 showCheckmark: false,
                 labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: options[index].selected ? AppColors.blueDark : AppColors.muted,
+                  color: options[index].selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: options[index].selected ? FontWeight.w600 : FontWeight.w500,
                 ),
-                side: const BorderSide(color: AppColors.line),
-                backgroundColor: Colors.white,
-                selectedColor: AppColors.blueSoft,
+                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
                 materialTapTargetSize: MaterialTapTargetSize.padded,
               ),
             ),
@@ -871,10 +875,10 @@ class _BalanceAdjustmentCard extends StatelessWidget {
     final date = DateFormat.yMMMd(locale).add_Hm().format(entry.adjustedAt.toLocal());
     return Card(
       margin: EdgeInsets.zero,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -883,7 +887,7 @@ class _BalanceAdjustmentCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.tune, color: AppColors.blueDark),
+                Icon(Icons.tune, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -898,7 +902,7 @@ class _BalanceAdjustmentCard extends StatelessWidget {
                   textAlign: TextAlign.end,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.blueDark,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -906,7 +910,9 @@ class _BalanceAdjustmentCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${l10n.activityBalanceAdjustmentType} · $date',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -994,10 +1000,10 @@ class _ActivityOperationCard extends StatelessWidget {
       button: !isTransfer,
       label: semanticLabel,
       child: Material(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppColors.line),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -1013,9 +1019,9 @@ class _ActivityOperationCard extends StatelessWidget {
               child: Row(
                 children: [
                   if (isTransfer)
-                    const CircleAvatar(
-                      backgroundColor: AppColors.blueSoft,
-                      child: Icon(Icons.swap_horiz, color: AppColors.blueDark),
+                    CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      child: Icon(Icons.swap_horiz, color: Theme.of(context).colorScheme.primary),
                     )
                   else
                     FinanceCategoryIcon(
@@ -1041,7 +1047,7 @@ class _ActivityOperationCard extends StatelessWidget {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                      color: AppColors.navy,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1056,7 +1062,9 @@ class _ActivityOperationCard extends StatelessWidget {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      color: isIncome ? AppColors.green : AppColors.navy,
+                                      color: isIncome
+                                          ? context.appColors.income
+                                          : Theme.of(context).colorScheme.onSurface,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1071,7 +1079,7 @@ class _ActivityOperationCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.muted,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1080,7 +1088,7 @@ class _ActivityOperationCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.muted,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1114,13 +1122,13 @@ class _ActivitySyncBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.blueSoft,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
-          const Icon(Icons.sync, color: AppColors.blueDark),
+          Icon(Icons.sync, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
