@@ -17,7 +17,9 @@ import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../models/movement_save_result.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_account_option.dart';
 import '../widgets/finance_components.dart';
+import '../widgets/finance_popup_selector.dart';
 
 class CanonicalTransferScreen extends ConsumerStatefulWidget {
   const CanonicalTransferScreen({super.key, this.initialSourceAccountId, this.initialOccurredAt});
@@ -85,19 +87,26 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                 children: [
                   FinanceLabeledField(
                     label: l10n.sourceAccount,
-                    child: DropdownButtonFormField<String>(
+                    child: FinancePopupSelector<String>(
+                      key: ValueKey('transfer_source_selector_${source ?? 'none'}'),
+                      controlKey: ValueKey('transfer_source_selector_${source ?? 'none'}_tap'),
+                      title: l10n.sourceAccount,
+                      placeholder: l10n.selectionChoosePrompt,
                       initialValue: source,
-                      decoration: const InputDecoration(),
+                      options: accounts.map((account) => account.id).toList(),
+                      optionLabel: (id) => financeAccountSelectionLabel(
+                        accounts.firstWhere((account) => account.id == id),
+                        l10n,
+                      ),
+                      searchText: (id) => financeAccountSelectionLabel(
+                        accounts.firstWhere((account) => account.id == id),
+                        l10n,
+                      ),
+                      optionBuilder: (context, id) => FinanceAccountOption(
+                        account: accounts.firstWhere((account) => account.id == id),
+                      ),
                       validator: (value) => value == null ? l10n.transferSourceRequired : null,
-                      items: accounts
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item.id,
-                              child: Text('${item.name} (${item.currency})'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) => setState(() {
+                      onSelected: (value) => setState(() {
                         source = value;
                         _hasUnsavedChanges = true;
                       }),
@@ -106,9 +115,26 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                   const SizedBox(height: 12),
                   FinanceLabeledField(
                     label: l10n.destinationAccount,
-                    child: DropdownButtonFormField<String>(
+                    child: FinancePopupSelector<String>(
+                      key: ValueKey('transfer_destination_selector_${destination ?? 'none'}'),
+                      controlKey: ValueKey(
+                        'transfer_destination_selector_${destination ?? 'none'}_tap',
+                      ),
+                      title: l10n.destinationAccount,
+                      placeholder: l10n.selectionChoosePrompt,
                       initialValue: destination,
-                      decoration: const InputDecoration(),
+                      options: accounts.map((account) => account.id).toList(),
+                      optionLabel: (id) => financeAccountSelectionLabel(
+                        accounts.firstWhere((account) => account.id == id),
+                        l10n,
+                      ),
+                      searchText: (id) => financeAccountSelectionLabel(
+                        accounts.firstWhere((account) => account.id == id),
+                        l10n,
+                      ),
+                      optionBuilder: (context, id) => FinanceAccountOption(
+                        account: accounts.firstWhere((account) => account.id == id),
+                      ),
                       validator: (value) {
                         if (value == null) return l10n.transferDestinationRequired;
                         FinanceAccount? sourceAccount;
@@ -125,15 +151,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                         }
                         return null;
                       },
-                      items: accounts
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item.id,
-                              child: Text('${item.name} (${item.currency})'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) => setState(() {
+                      onSelected: (value) => setState(() {
                         destination = value;
                         _hasUnsavedChanges = true;
                       }),

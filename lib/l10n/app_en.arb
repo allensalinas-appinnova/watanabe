@@ -576,4 +576,12 @@
   ,"appearanceSaved": "Appearance synced"
   ,"appearanceSaveFailed": "Appearance could not sync. Your selection is still applied."
   ,"appearanceRetry": "Retry"
+  ,"accountKindMoney": "Money account"
+  ,"accountKindCreditCard": "Credit card"
+  ,"accountKindBankLoan": "Bank loan"
+  ,"accountKindPersonalLoan": "Personal loan received"
+  ,"selectionChoosePrompt": "Select"
+  ,"selectionSearchHint": "Search by name or type"
+  ,"selectionClearSearch": "Clear search"
+  ,"selectionNoResults": "No results"
 }

@@ -13,6 +13,7 @@ import 'package:personal_finance/features/finance/presentation/models/budget_ite
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_transfer_screen.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/finance_popup_selector.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
@@ -99,12 +100,25 @@ void main() {
     expect(find.byType(TimePickerDialog), findsOneWidget);
   });
 
+  testWidgets('transfer account fields open searchable selection sheets', (tester) async {
+    await _pumpTransferForm(tester);
+
+    await tester.tap(find.byKey(const ValueKey('transfer_source_selector_none_tap')));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byKey(const ValueKey('finance_selection_search')), findsOneWidget);
+    expect(find.text('Money account · Efectivo · COP'), findsOneWidget);
+    await tester.tap(find.text('Money account · Efectivo · COP'));
+    await tester.pumpAndSettle();
+    expect(find.text('Money account · Efectivo · COP'), findsOneWidget);
+  });
+
   testWidgets('preselects the only active account for a new expense', (tester) async {
     await _pumpOperationForm(tester, const [
       FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash'),
     ]);
 
-    final selector = tester.widget<DropdownButtonFormField<String>>(
+    final selector = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_cash')),
     );
     expect(selector.initialValue, 'cash');
@@ -129,7 +143,7 @@ void main() {
       initialType: OperationType.income,
     );
 
-    final selector = tester.widget<DropdownButtonFormField<String>>(
+    final selector = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_bank')),
     );
     expect(selector.initialValue, 'bank');
@@ -141,7 +155,7 @@ void main() {
       FinanceAccount(id: 'old', name: 'Old', type: 'checking', status: 'archived'),
     ]);
 
-    final selector = tester.widget<DropdownButtonFormField<String>>(
+    final selector = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_cash')),
     );
     expect(selector.initialValue, 'cash');
@@ -153,7 +167,7 @@ void main() {
       FinanceAccount(id: 'bank', name: 'Banco', type: 'checking'),
     ]);
 
-    final selector = tester.widget<DropdownButtonFormField<String>>(
+    final selector = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_none')),
     );
     expect(selector.initialValue, isNull);
@@ -169,7 +183,7 @@ void main() {
       initialAccountId: 'bank',
     );
 
-    final selector = tester.widget<DropdownButtonFormField<String>>(
+    final selector = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_bank')),
     );
     expect(selector.initialValue, 'bank');
@@ -221,24 +235,89 @@ void main() {
           .text,
       'Mercado semanal',
     );
-    final accountDropdown = tester.widget<DropdownButtonFormField<String>>(
+    final accountDropdown = tester.widget<FinancePopupSelector<String>>(
       find.byKey(const ValueKey('operation_account_selector_none')),
     );
-    expect(accountDropdown.onChanged, isNotNull);
-    await tester.tap(find.byKey(const ValueKey('operation_account_selector_none')));
+    expect(accountDropdown.onSelected, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('operation_account_selector_none_tap')));
     await tester.pumpAndSettle();
-    expect(find.text('Efectivo (COP)'), findsOneWidget);
-    expect(find.text('Banco (COP)'), findsOneWidget);
-    expect(find.text('Cuenta MX (MXN)'), findsNothing);
+    expect(find.text('Money account · Efectivo · COP'), findsOneWidget);
+    expect(find.text('Money account · Banco · COP'), findsOneWidget);
+    expect(find.textContaining('Cuenta MX'), findsNothing);
     expect(
       tester
-          .widget<DropdownButtonFormField<String>>(
+          .widget<FinancePopupSelector<String>>(
             find.byKey(const ValueKey('operation_category_selector')),
           )
-          .onChanged,
+          .onSelected,
       isNull,
     );
     expect(find.byKey(const ValueKey('budget_item_movement_context')), findsOneWidget);
+  });
+
+  testWidgets('disambiguates a money account and credit card with the same name', (tester) async {
+    await _pumpOperationForm(tester, const [
+      FinanceAccount(id: 'money', name: 'Principal', type: 'checking'),
+      FinanceAccount(
+        id: 'card',
+        name: 'Principal',
+        type: 'creditCard',
+        nature: 'debt',
+      ),
+    ]);
+
+    await tester.tap(find.byKey(const ValueKey('operation_account_selector_none_tap')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Money account · Principal · COP'), findsOneWidget);
+    expect(find.text('Credit card · Principal · COP'), findsOneWidget);
+    expect(find.byIcon(Icons.account_balance_wallet_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.credit_card_outlined), findsOneWidget);
+    await tester.tap(find.text('Credit card · Principal · COP'));
+    await tester.pumpAndSettle();
+    expect(find.text('Credit card · Principal · COP'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category field opens a searchable popup and saves the chosen category', (
+    tester,
+  ) async {
+    await _pumpOperationForm(
+      tester,
+      const [FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash')],
+      categories: const [
+        FinanceCategory(
+          id: 'food',
+          type: CategoryType.expense,
+          icon: 'food',
+          sortOrder: 1,
+          isSystem: true,
+          isArchived: false,
+          customName: 'Comida',
+        ),
+        FinanceCategory(
+          id: 'transport',
+          type: CategoryType.expense,
+          icon: 'transport',
+          sortOrder: 2,
+          isSystem: true,
+          isArchived: false,
+          customName: 'Transporte',
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('operation_category_selector_tap')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('finance_selection_search')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('finance_selection_search')), 'Transporte');
+    await tester.pumpAndSettle();
+    expect(find.text('Transporte'), findsNWidgets(2));
+    expect(find.text('Comida'), findsNothing);
+    await tester.tap(find.text('Transporte').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Transporte'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('budget item form explains when no active account uses the budget currency', (

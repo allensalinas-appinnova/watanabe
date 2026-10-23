@@ -576,4 +576,12 @@
   ,"appearanceSaved": "Apariencia sincronizada"
   ,"appearanceSaveFailed": "No se pudo sincronizar la apariencia. Tu selección sigue aplicada."
   ,"appearanceRetry": "Reintentar"
+  ,"accountKindMoney": "Cuenta de dinero"
+  ,"accountKindCreditCard": "Tarjeta de crédito"
+  ,"accountKindBankLoan": "Crédito bancario"
+  ,"accountKindPersonalLoan": "Préstamo personal recibido"
+  ,"selectionChoosePrompt": "Seleccionar"
+  ,"selectionSearchHint": "Buscar por nombre o tipo"
+  ,"selectionClearSearch": "Borrar búsqueda"
+  ,"selectionNoResults": "No hay resultados"
 }

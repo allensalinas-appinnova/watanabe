@@ -1841,4 +1841,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get appearanceRetry => 'Reintentar';
+
+  @override
+  String get accountKindMoney => 'Cuenta de dinero';
+
+  @override
+  String get accountKindCreditCard => 'Tarjeta de crédito';
+
+  @override
+  String get accountKindBankLoan => 'Crédito bancario';
+
+  @override
+  String get accountKindPersonalLoan => 'Préstamo personal recibido';
+
+  @override
+  String get selectionChoosePrompt => 'Seleccionar';
+
+  @override
+  String get selectionSearchHint => 'Buscar por nombre o tipo';
+
+  @override
+  String get selectionClearSearch => 'Borrar búsqueda';
+
+  @override
+  String get selectionNoResults => 'No hay resultados';
 }

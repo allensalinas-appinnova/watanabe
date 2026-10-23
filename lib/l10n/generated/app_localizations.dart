@@ -3381,6 +3381,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Reintentar'**
   String get appearanceRetry;
+
+  /// No description provided for @accountKindMoney.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta de dinero'**
+  String get accountKindMoney;
+
+  /// No description provided for @accountKindCreditCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta de crédito'**
+  String get accountKindCreditCard;
+
+  /// No description provided for @accountKindBankLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Crédito bancario'**
+  String get accountKindBankLoan;
+
+  /// No description provided for @accountKindPersonalLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Préstamo personal recibido'**
+  String get accountKindPersonalLoan;
+
+  /// No description provided for @selectionChoosePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Seleccionar'**
+  String get selectionChoosePrompt;
+
+  /// No description provided for @selectionSearchHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar por nombre o tipo'**
+  String get selectionSearchHint;
+
+  /// No description provided for @selectionClearSearch.
+  ///
+  /// In es, this message translates to:
+  /// **'Borrar búsqueda'**
+  String get selectionClearSearch;
+
+  /// No description provided for @selectionNoResults.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay resultados'**
+  String get selectionNoResults;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

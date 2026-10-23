@@ -22,8 +22,10 @@ import '../../domain/repositories/canonical_finance_repository.dart';
 import '../models/budget_item_movement_preset.dart';
 import '../models/movement_save_result.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/finance_account_option.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
+import '../widgets/finance_popup_selector.dart';
 
 class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
   const CanonicalOperationFormScreen({
@@ -212,7 +214,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                     child: accounts.when(
                       loading: () => const LinearProgressIndicator(),
                       error: (_, _) => Text(l10n.genericError),
-                      data: (items) => availableAccounts.isEmpty && preset != null
+                      data: (_) => availableAccounts.isEmpty && preset != null
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -227,25 +229,34 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                                 ),
                               ],
                             )
-                          : DropdownButtonFormField<String>(
+                          : FinancePopupSelector<String>(
                               key: ValueKey(
                                 'operation_account_selector_${selectedAccountId ?? 'none'}',
                               ),
+                              controlKey: ValueKey(
+                                'operation_account_selector_${selectedAccountId ?? 'none'}_tap',
+                              ),
+                              title: l10n.account,
+                              placeholder: l10n.selectionChoosePrompt,
                               initialValue: selectedAccountId,
-                              decoration: const InputDecoration(),
+                              options: availableAccounts.map((account) => account.id).toList(),
+                              optionLabel: (id) => financeAccountSelectionLabel(
+                                availableAccounts.firstWhere((account) => account.id == id),
+                                l10n,
+                              ),
+                              searchText: (id) => financeAccountSelectionLabel(
+                                availableAccounts.firstWhere((account) => account.id == id),
+                                l10n,
+                              ),
+                              optionBuilder: (context, id) => FinanceAccountOption(
+                                account: availableAccounts.firstWhere(
+                                  (account) => account.id == id,
+                                ),
+                              ),
                               validator: (value) =>
                                   value == null ? l10n.operationAccountRequired : null,
-                              items: (preset == null ? items : availableAccounts)
-                                  .map(
-                                    (account) => DropdownMenuItem(
-                                      value: account.id,
-                                      child: Text('${account.name} (${account.currency})'),
-                                    ),
-                                  )
-                                  .toList(),
-                              // The budget item constrains currency, not the user's
-                              // choice of account among compatible active accounts.
-                              onChanged: (value) => setState(() {
+                              // The budget item constrains currency, not account choice.
+                              onSelected: (value) => setState(() {
                                 _accountId = value;
                                 _hasUnsavedChanges = true;
                               }),
@@ -255,35 +266,44 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                   const SizedBox(height: 12),
                   FinanceLabeledField(
                     label: l10n.category,
-                    child: DropdownButtonFormField<String>(
+                    child: FinancePopupSelector<String>(
                       key: const ValueKey('operation_category_selector'),
+                      controlKey: const ValueKey('operation_category_selector_tap'),
+                      title: l10n.category,
+                      placeholder: l10n.selectionChoosePrompt,
                       initialValue: selectedCategoryId,
-                      decoration: const InputDecoration(),
-                      validator: (value) => value == null ? l10n.operationCategoryRequired : null,
-                      items: filteredCategories
-                          .map(
-                            (category) => DropdownMenuItem(
-                              value: category.id,
-                              child: Row(
-                                children: [
-                                  FinanceCategoryIcon(
-                                    iconId: category.icon,
-                                    colorValue: category.colorValue,
-                                    size: 28,
-                                    iconSize: 16,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    category.customName ?? category.id,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                      options: filteredCategories.map((category) => category.id).toList(),
+                      optionLabel: (id) {
+                        final category = filteredCategories.firstWhere((item) => item.id == id);
+                        return category.customName ?? category.id;
+                      },
+                      searchText: (id) {
+                        final category = filteredCategories.firstWhere((item) => item.id == id);
+                        return '${category.customName ?? category.id} ${category.id}';
+                      },
+                      optionBuilder: (context, id) {
+                        final category = filteredCategories.firstWhere((item) => item.id == id);
+                        return Row(
+                          children: [
+                            FinanceCategoryIcon(
+                              iconId: category.icon,
+                              colorValue: category.colorValue,
+                              size: 28,
+                              iconSize: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                category.customName ?? category.id,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          )
-                          .toList(),
-                      onChanged: preset == null
+                          ],
+                        );
+                      },
+                      validator: (value) => value == null ? l10n.operationCategoryRequired : null,
+                      onSelected: preset == null
                           ? (value) => setState(() {
                               _categoryId = value;
                               _hasUnsavedChanges = true;
