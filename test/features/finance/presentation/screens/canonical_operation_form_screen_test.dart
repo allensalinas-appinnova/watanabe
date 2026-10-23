@@ -113,6 +113,77 @@ void main() {
     expect(find.text('Money account · Efectivo · COP'), findsOneWidget);
   });
 
+  testWidgets('account selection shows localized current balance beneath the account identity', (
+    tester,
+  ) async {
+    await _pumpOperationForm(tester, const [
+      FinanceAccount(
+        id: 'cash',
+        name: 'Efectivo',
+        type: 'cash',
+        currentBalanceMinor: 1234500,
+      ),
+    ]);
+
+    await tester.tap(find.byKey(const ValueKey('operation_account_selector_cash_tap')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('Balance · COP 1,234,500'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows frequent accounts first and search still reaches other accounts', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    await _pumpOperationForm(
+      tester,
+      const [
+        FinanceAccount(id: 'alpha', name: 'Alpha', type: 'checking'),
+        FinanceAccount(id: 'beta', name: 'Beta', type: 'checking'),
+        FinanceAccount(id: 'gamma', name: 'Gamma', type: 'checking'),
+      ],
+      recentOperations: [
+        _operation('b-new', accountId: 'beta', occurredAt: now),
+        _operation(
+          'a-new',
+          accountId: 'alpha',
+          occurredAt: now.subtract(const Duration(minutes: 1)),
+        ),
+        _operation(
+          'b-old',
+          accountId: 'beta',
+          occurredAt: now.subtract(const Duration(minutes: 2)),
+        ),
+        _operation(
+          'a-old',
+          accountId: 'alpha',
+          occurredAt: now.subtract(const Duration(minutes: 3)),
+        ),
+        _operation(
+          'gamma-pending',
+          accountId: 'gamma',
+          status: OperationStatus.pending,
+          occurredAt: now,
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('operation_account_selector_none_tap')));
+    await tester.pumpAndSettle();
+    expect(find.text('Frequent'), findsOneWidget);
+    final beta = find.text('Money account · Beta · COP');
+    final alpha = find.text('Money account · Alpha · COP');
+    expect(tester.getTopLeft(beta).dy, lessThan(tester.getTopLeft(alpha).dy));
+
+    await tester.enterText(find.byKey(const ValueKey('finance_selection_search')), 'Gamma');
+    await tester.pumpAndSettle();
+    expect(find.text('Money account · Gamma · COP'), findsOneWidget);
+    expect(find.text('Frequent'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('preselects the only active account for a new expense', (tester) async {
     await _pumpOperationForm(tester, const [
       FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash'),
@@ -397,6 +468,9 @@ void main() {
               ),
             ]),
           ),
+          canonicalRecentOperationsProvider('user-1').overrideWith(
+            (ref) => Stream.value(const []),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -434,6 +508,7 @@ Future<void> _pumpOperationForm(
   String? initialAccountId,
   FinancialOperation? initialOperation,
   BudgetItemMovementPreset? preset,
+  List<FinancialOperation> recentOperations = const [],
   List<FinanceCategory> categories = const [],
 }) async {
   tester.view.physicalSize = const Size(390, 844);
@@ -465,6 +540,9 @@ Future<void> _pumpOperationForm(
         canonicalAccountsProvider('user-1').overrideWith((ref) => Stream.value(accounts)),
         canonicalCategoriesProvider('user-1').overrideWith(
           (ref) => Stream.value(categories),
+        ),
+        canonicalRecentOperationsProvider('user-1').overrideWith(
+          (ref) => Stream.value(recentOperations),
         ),
       ],
       child: MaterialApp.router(
@@ -500,6 +578,7 @@ Future<void> _pumpTransferForm(WidgetTester tester) async {
             FinanceAccount(id: 'bank', name: 'Banco', type: 'checking'),
           ]),
         ),
+        canonicalRecentOperationsProvider('user-1').overrideWith((ref) => Stream.value(const [])),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
@@ -516,3 +595,21 @@ Future<void> _pumpTransferForm(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
 }
+
+FinancialOperation _operation(
+  String id, {
+  String? accountId,
+  OperationStatus status = OperationStatus.confirmed,
+  DateTime? occurredAt,
+}) => FinancialOperation(
+  id: id,
+  type: OperationType.expense,
+  amountMinor: 100,
+  currency: 'COP',
+  monthKey: '2026-10',
+  occurredAt: occurredAt ?? DateTime(2026, 10, 1),
+  status: status,
+  idempotencyKey: 'key-$id',
+  accountId: accountId,
+  categoryId: 'food',
+);

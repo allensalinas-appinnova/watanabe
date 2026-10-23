@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -154,12 +153,6 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/settings'),
-            icon: const Icon(Icons.settings_outlined),
-            label: Text(l10n.settingsTitle),
-          ),
         ],
       ),
     );

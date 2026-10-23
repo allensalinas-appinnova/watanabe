@@ -16,6 +16,7 @@ import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../models/movement_save_result.dart';
+import '../models/picker_usage_order.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_account_option.dart';
 import '../widgets/finance_components.dart';
@@ -66,6 +67,17 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
         (ref.watch(canonicalAccountsProvider(user.id)).valueOrNull ?? const <FinanceAccount>[])
             .where((a) => !a.isDebt)
             .toList();
+    final recentOperations =
+        ref.watch(canonicalRecentOperationsProvider(user.id)).valueOrNull ??
+        const <FinancialOperation>[];
+    final accountUsageOrder = orderPickerOptionsByUsage(
+      options: accounts,
+      recentOperations: recentOperations,
+      idOf: (account) => account.id,
+      usageIdsOf: accountUsageIds,
+      compareAlphabetically: (left, right) =>
+          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+    );
     return DiscardChangesScope(
       isDirty: _hasUnsavedChanges,
       child: Scaffold(
@@ -93,7 +105,12 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                       title: l10n.sourceAccount,
                       placeholder: l10n.selectionChoosePrompt,
                       initialValue: source,
-                      options: accounts.map((account) => account.id).toList(),
+                      options: accountUsageOrder.ordered
+                          .map((account) => account.id)
+                          .toList(growable: false),
+                      frequentOptions: accountUsageOrder.frequent
+                          .map((account) => account.id)
+                          .toList(growable: false),
                       optionLabel: (id) => financeAccountSelectionLabel(
                         accounts.firstWhere((account) => account.id == id),
                         l10n,
@@ -123,7 +140,12 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
                       title: l10n.destinationAccount,
                       placeholder: l10n.selectionChoosePrompt,
                       initialValue: destination,
-                      options: accounts.map((account) => account.id).toList(),
+                      options: accountUsageOrder.ordered
+                          .map((account) => account.id)
+                          .toList(growable: false),
+                      frequentOptions: accountUsageOrder.frequent
+                          .map((account) => account.id)
+                          .toList(growable: false),
                       optionLabel: (id) => financeAccountSelectionLabel(
                         accounts.firstWhere((account) => account.id == id),
                         l10n,

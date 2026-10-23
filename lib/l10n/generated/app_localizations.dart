@@ -3429,6 +3429,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No hay resultados'**
   String get selectionNoResults;
+
+  /// No description provided for @accountOptionBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo'**
+  String get accountOptionBalance;
+
+  /// No description provided for @accountOptionDebt.
+  ///
+  /// In es, this message translates to:
+  /// **'Deuda'**
+  String get accountOptionDebt;
+
+  /// No description provided for @accountOptionCreditBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo a favor'**
+  String get accountOptionCreditBalance;
+
+  /// No description provided for @selectionFrequent.
+  ///
+  /// In es, this message translates to:
+  /// **'Frecuentes'**
+  String get selectionFrequent;
+
+  /// No description provided for @selectionAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas las opciones'**
+  String get selectionAll;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -143,6 +143,11 @@ final canonicalCategoriesProvider = StreamProvider.family<List<FinanceCategory>,
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchCategories(userId),
 );
 
+/// A bounded, cross-device activity sample used to prioritize picker options.
+final canonicalRecentOperationsProvider = StreamProvider.family<List<FinancialOperation>, String>(
+  (ref, userId) => getIt<CanonicalFinanceRepository>().watchOperations(userId),
+);
+
 final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId).map((items) {
     int group(FinanceAccount account) => account.isCreditCard

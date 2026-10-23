@@ -584,4 +584,9 @@
   ,"selectionSearchHint": "Buscar por nome ou tipo"
   ,"selectionClearSearch": "Limpar busca"
   ,"selectionNoResults": "Nenhum resultado"
+  ,"accountOptionBalance": "Saldo"
+  ,"accountOptionDebt": "Dívida"
+  ,"accountOptionCreditBalance": "Saldo credor"
+  ,"selectionFrequent": "Frequentes"
+  ,"selectionAll": "Todas as opções"
 }

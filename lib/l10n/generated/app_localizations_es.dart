@@ -1865,4 +1865,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get selectionNoResults => 'No hay resultados';
+
+  @override
+  String get accountOptionBalance => 'Saldo';
+
+  @override
+  String get accountOptionDebt => 'Deuda';
+
+  @override
+  String get accountOptionCreditBalance => 'Saldo a favor';
+
+  @override
+  String get selectionFrequent => 'Frecuentes';
+
+  @override
+  String get selectionAll => 'Todas las opciones';
 }

@@ -42,6 +42,7 @@ void main() {
     );
 
     expect(find.text('Apariencia'), findsOneWidget);
+    expect(find.text('Configuración'), findsNothing);
     expect(find.text('Sistema'), findsOneWidget);
     expect(find.text('Claro'), findsOneWidget);
     expect(find.text('Oscuro'), findsOneWidget);

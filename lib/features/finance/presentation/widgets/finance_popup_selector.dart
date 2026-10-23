@@ -11,6 +11,7 @@ class FinancePopupSelector<T> extends FormField<T> {
     required String Function(T) searchText,
     required Widget Function(BuildContext, T) optionBuilder,
     required ValueChanged<T>? onSelected,
+    List<T> frequentOptions = const [],
     String? placeholder,
     super.validator,
     Key? controlKey,
@@ -40,6 +41,7 @@ class FinancePopupSelector<T> extends FormField<T> {
                          builder: (_) => _FinanceSelectionSheet<T>(
                            title: title,
                            options: options,
+                           frequentOptions: frequentOptions,
                            selectedValue: value,
                            searchText: searchText,
                            optionBuilder: optionBuilder,
@@ -75,6 +77,7 @@ class _FinanceSelectionSheet<T> extends StatefulWidget {
   const _FinanceSelectionSheet({
     required this.title,
     required this.options,
+    required this.frequentOptions,
     required this.selectedValue,
     required this.searchText,
     required this.optionBuilder,
@@ -82,6 +85,7 @@ class _FinanceSelectionSheet<T> extends StatefulWidget {
 
   final String title;
   final List<T> options;
+  final List<T> frequentOptions;
   final T? selectedValue;
   final String Function(T) searchText;
   final Widget Function(BuildContext, T) optionBuilder;
@@ -105,6 +109,10 @@ class _FinanceSelectionSheetState<T> extends State<_FinanceSelectionSheet<T>> {
     final query = _searchController.text.trim().toLowerCase();
     final filtered = widget.options
         .where((option) => widget.searchText(option).toLowerCase().contains(query))
+        .toList(growable: false);
+    final frequentOptions = filtered.where(widget.frequentOptions.contains).toList(growable: false);
+    final otherOptions = filtered
+        .where((option) => !widget.frequentOptions.contains(option))
         .toList(growable: false);
 
     return FractionallySizedBox(
@@ -162,24 +170,66 @@ class _FinanceSelectionSheetState<T> extends State<_FinanceSelectionSheet<T>> {
           Expanded(
             child: filtered.isEmpty
                 ? Center(child: Text(l10n.selectionNoResults))
-                : ListView.builder(
+                : ListView(
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final option = filtered[index];
-                      final selected = option == widget.selectedValue;
-                      return ListTile(
-                        key: ValueKey('finance_popup_option_$index'),
-                        selected: selected,
-                        title: widget.optionBuilder(context, option),
-                        trailing: selected ? const Icon(Icons.check) : null,
-                        onTap: () => Navigator.of(context).pop(option),
-                      );
-                    },
+                    children: [
+                      if (frequentOptions.isNotEmpty) ...[
+                        _SectionLabel(label: l10n.selectionFrequent),
+                        for (final option in frequentOptions)
+                          _OptionTile<T>(
+                            option: option,
+                            selected: option == widget.selectedValue,
+                            optionBuilder: widget.optionBuilder,
+                          ),
+                      ],
+                      if (otherOptions.isNotEmpty) ...[
+                        _SectionLabel(label: l10n.selectionAll),
+                        for (final option in otherOptions)
+                          _OptionTile<T>(
+                            option: option,
+                            selected: option == widget.selectedValue,
+                            optionBuilder: widget.optionBuilder,
+                          ),
+                      ],
+                    ],
                   ),
           ),
         ],
       ),
     );
   }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 4),
+    child: Text(
+      label,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
+}
+
+class _OptionTile<T> extends StatelessWidget {
+  const _OptionTile({required this.option, required this.selected, required this.optionBuilder});
+
+  final T option;
+  final bool selected;
+  final Widget Function(BuildContext, T) optionBuilder;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    key: ValueKey('finance_popup_option_$option'),
+    selected: selected,
+    title: optionBuilder(context, option),
+    trailing: selected ? const Icon(Icons.check) : null,
+    onTap: () => Navigator.of(context).pop(option),
+  );
 }

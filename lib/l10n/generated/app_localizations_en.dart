@@ -1848,4 +1848,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectionNoResults => 'No results';
+
+  @override
+  String get accountOptionBalance => 'Balance';
+
+  @override
+  String get accountOptionDebt => 'Debt';
+
+  @override
+  String get accountOptionCreditBalance => 'Credit balance';
+
+  @override
+  String get selectionFrequent => 'Frequent';
+
+  @override
+  String get selectionAll => 'All options';
 }

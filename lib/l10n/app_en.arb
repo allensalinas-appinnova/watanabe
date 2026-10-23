@@ -584,4 +584,9 @@
   ,"selectionSearchHint": "Search by name or type"
   ,"selectionClearSearch": "Clear search"
   ,"selectionNoResults": "No results"
+  ,"accountOptionBalance": "Balance"
+  ,"accountOptionDebt": "Debt"
+  ,"accountOptionCreditBalance": "Credit balance"
+  ,"selectionFrequent": "Frequent"
+  ,"selectionAll": "All options"
 }

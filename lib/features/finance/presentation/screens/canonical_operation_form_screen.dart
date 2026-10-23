@@ -21,6 +21,7 @@ import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../models/budget_item_movement_preset.dart';
 import '../models/movement_save_result.dart';
+import '../models/picker_usage_order.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_account_option.dart';
 import '../widgets/finance_category_icon.dart';
@@ -102,6 +103,9 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts = ref.watch(canonicalAccountsProvider(user.id));
     final categories = ref.watch(canonicalCategoriesProvider(user.id));
+    final recentOperations =
+        ref.watch(canonicalRecentOperationsProvider(user.id)).valueOrNull ??
+        const <FinancialOperation>[];
     final preset = widget.initialBudgetItemPreset;
     final availableAccounts = (accounts.valueOrNull ?? const <FinanceAccount>[])
         .where((account) => account.status == 'active')
@@ -117,12 +121,29 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         )
         .where((account) => preset == null || account.currency == preset.currency)
         .toList(growable: false);
+    final accountUsageOrder = orderPickerOptionsByUsage(
+      options: availableAccounts,
+      recentOperations: recentOperations,
+      idOf: (account) => account.id,
+      usageIdsOf: accountUsageIds,
+      compareAlphabetically: (left, right) =>
+          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+    );
     final selectedAccountId = _effectiveAccountId(availableAccounts);
     final filteredCategories =
         categories.valueOrNull
             ?.where((category) => category.type.name == _type.name && !category.isArchived)
             .toList() ??
         const <FinanceCategory>[];
+    final categoryUsageOrder = orderPickerOptionsByUsage(
+      options: filteredCategories,
+      recentOperations: recentOperations,
+      idOf: (category) => category.id,
+      usageIdsOf: (operation) => categoryUsageIds(operation, _type),
+      compareAlphabetically: (left, right) => (left.customName ?? left.id).toLowerCase().compareTo(
+        (right.customName ?? right.id).toLowerCase(),
+      ),
+    );
     final selectedCategoryId = filteredCategories.any((category) => category.id == _categoryId)
         ? _categoryId
         : null;
@@ -239,7 +260,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                               title: l10n.account,
                               placeholder: l10n.selectionChoosePrompt,
                               initialValue: selectedAccountId,
-                              options: availableAccounts.map((account) => account.id).toList(),
+                              options: accountUsageOrder.ordered
+                                  .map((account) => account.id)
+                                  .toList(growable: false),
+                              frequentOptions: accountUsageOrder.frequent
+                                  .map((account) => account.id)
+                                  .toList(growable: false),
                               optionLabel: (id) => financeAccountSelectionLabel(
                                 availableAccounts.firstWhere((account) => account.id == id),
                                 l10n,
@@ -272,7 +298,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                       title: l10n.category,
                       placeholder: l10n.selectionChoosePrompt,
                       initialValue: selectedCategoryId,
-                      options: filteredCategories.map((category) => category.id).toList(),
+                      options: categoryUsageOrder.ordered
+                          .map((category) => category.id)
+                          .toList(growable: false),
+                      frequentOptions: categoryUsageOrder.frequent
+                          .map((category) => category.id)
+                          .toList(growable: false),
                       optionLabel: (id) {
                         final category = filteredCategories.firstWhere((item) => item.id == id);
                         return category.customName ?? category.id;
