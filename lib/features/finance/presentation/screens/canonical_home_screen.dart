@@ -125,6 +125,27 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   ],
                   if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
                     CoachNextStepCard(userId: user.id, timeZone: profile?.timeZone ?? 'UTC'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          key: const ValueKey('home_credit_cards_shortcut'),
+                          onPressed: () => context.push('/accounts?section=cards'),
+                          icon: const Icon(Icons.credit_card_outlined),
+                          label: Text(l10n.debtCards),
+                        ),
+                        OutlinedButton.icon(
+                          key: const ValueKey('home_loans_shortcut'),
+                          onPressed: () => context.push('/accounts?section=loans'),
+                          icon: const Icon(Icons.account_balance_outlined),
+                          label: Text(l10n.debtLoans),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (homePreferences.shows(HomeDashboardWidget.totalBalance))
                     accounts.when(
                       loading: () => const _HomeSkeleton(height: 116),

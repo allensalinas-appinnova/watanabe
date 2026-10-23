@@ -616,10 +616,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accounts => 'Contas';
 
   @override
-  String get accountsTitle => 'Suas contas';
+  String get accountsTitle => 'Contas e dívidas';
 
   @override
-  String get accountsSubtitle => 'Saldos organizados por moeda';
+  String get accountsSubtitle => 'Dinheiro, cartões e empréstimos em um só lugar';
 
   @override
   String get addAccount => 'Adicionar conta';
@@ -1492,7 +1492,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get back => 'Voltar';
 
   @override
-  String get moreSubtitle => 'Gerencie suas categorias e sua sessão.';
+  String get moreSubtitle => 'Personalize o LumioMoney e gerencie suas preferências.';
 
   @override
   String get moreManagement => 'Gestão';
@@ -1736,4 +1736,54 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get coachNoMovementsUnavailable =>
       'Agora há movimentações registradas ou faltam dados atualizados. Revise o dia antes de confirmar.';
+
+  @override
+  String get plan => 'Plano';
+
+  @override
+  String get coachTab => 'Coach';
+
+  @override
+  String get settingsTitle => 'Configurações';
+
+  @override
+  String get accountsSectionOverview => 'Resumo';
+
+  @override
+  String get accountsSectionMoney => 'Dinheiro';
+
+  @override
+  String get accountsSectionCards => 'Cartões';
+
+  @override
+  String get accountsSectionLoans => 'Empréstimos';
+
+  @override
+  String get accountsSectionEmpty => 'Ainda não há contas nesta seção.';
+
+  @override
+  String get coachHubTitle => 'Seu coach financeiro';
+
+  @override
+  String get coachHubSubtitle =>
+      'Revise suas movimentações e construa uma rotina financeira clara.';
+
+  @override
+  String get coachHistoryTitle => 'Revisões recentes';
+
+  @override
+  String get coachHistoryEmpty => 'Você ainda não concluiu nenhuma revisão.';
+
+  @override
+  String get coachSettingsShortcut => 'Configurar lembretes';
+
+  @override
+  String get debtSelectForPayment =>
+      'Escolha o cartão ou empréstimo que você já pagou. Registrar o pagamento não movimenta dinheiro por você.';
+
+  @override
+  String get accountDetailTitle => 'Detalhes da conta';
+
+  @override
+  String get operationEditTitle => 'Editar movimentação';
 }

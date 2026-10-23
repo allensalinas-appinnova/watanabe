@@ -28,13 +28,16 @@ observability gaps before broader implementation.
 
 ### Navigation
 
-Use a persistent four-destination navigation shell when the P0 screens are
-implemented:
+Use the persistent five-destination navigation shell:
 
 1. Inicio
 2. Actividad
-3. Presupuesto
-4. Cuentas
+3. Cuentas
+4. Plan
+5. Coach
+
+Global preferences live in Configuración, reachable from each destination.
+Do not add a mobile drawer alongside the bottom navigation.
 
 Keep “Agregar movimiento” as the primary action. Use full-screen routes for
 onboarding, operations, transfers, and budget creation. Use bottom sheets only
@@ -134,20 +137,20 @@ baseline snapshot.
 
 ### Canonical bottom navigation
 
-The persistent app shell has four destinations, in this order: **Inicio**
-(`Icons.home_outlined`), **Actividad** (`Icons.list_alt_outlined`),
-**Presupuesto** (`Icons.pie_chart_outline`), and **Cuentas**
-(`Icons.account_balance_wallet_outlined`). Figma represents these with the
-shared `Bottom Navigation` component on `02 Components` (`436:114`) and its
-`Selected=Home|Activity|Budget|Accounts` variants. The same four icons and
-labels must appear on the corresponding frames in `07 P0 Screens`; the
-selected destination uses the same indicator and emphasized icon/label.
+The approved product navigation now has five destinations: **Inicio**,
+**Actividad**, **Cuentas**, **Plan**, and **Coach**. The existing canonical
+Figma bottom-navigation component has only four variants; the five-destination
+proposal is a product decision not yet reconciled in Figma. Do not treat the
+older four-tab component as evidence for the new fifth destination. Keep the
+selected destination indicator and visible localized labels consistent until
+the canonical design is updated.
 The old circle-placeholder component is retained as
 `Bottom Navigation / Legacy — do not use` and is not a source of implementation
 truth.
 
 Use the bar only on routes rendered inside the persistent shell: Inicio,
-Actividad, Cuentas, Presupuesto mensual/empty/success, and Seguimiento.
+Actividad, Cuentas, Plan and Coach roots, plus consultation details that retain
+their owning section.
 Full-screen root routes (for example, onboarding, operation/account forms,
 budget creation and budget detail) do not show it. Category management is a
 secondary route outside the shell and therefore has no bottom bar. Every

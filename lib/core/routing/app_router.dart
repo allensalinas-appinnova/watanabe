@@ -7,10 +7,12 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_recovery_screen.dart';
 import '../../features/coach/domain/entities/coach_models.dart';
+import '../../features/coach/presentation/screens/coach_home_screen.dart';
 import '../../features/coach/presentation/screens/coach_review_screen.dart';
 import '../../features/coach/presentation/screens/coach_settings_screen.dart';
 import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
+import '../../features/debts/presentation/debt_payment_picker_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
@@ -32,6 +34,8 @@ import '../../features/finance/presentation/screens/canonical_onboarding_screen.
 import '../../features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import '../../features/finance/presentation/screens/canonical_transfer_screen.dart';
 import '../../features/finance/presentation/screens/home_dashboard_preferences_screen.dart';
+import '../../features/finance/presentation/screens/money_account_detail_screen.dart';
+import '../../features/finance/presentation/screens/operation_edit_route_screen.dart';
 import '../di/injection.dart';
 import '../firebase/firebase_bootstrap.dart';
 import 'app_shell.dart';
@@ -74,11 +78,6 @@ GoRouter _buildAppRouter() => GoRouter(
     );
   },
   routes: [
-    GoRoute(
-      path: '/coach',
-      name: 'coach-settings',
-      builder: (context, state) => const CoachSettingsScreen(),
-    ),
     GoRoute(
       path: '/coach/daily',
       name: 'coach-daily',
@@ -140,6 +139,36 @@ GoRouter _buildAppRouter() => GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: '/accounts',
+              name: 'accounts',
+              builder: (context, state) => CanonicalAccountsScreen(
+                initialSection: state.uri.queryParameters['section'],
+              ),
+              routes: [
+                GoRoute(
+                  path: ':id/debt',
+                  builder: (context, state) =>
+                      DebtDetailScreen(accountId: state.pathParameters['id']!),
+                ),
+                GoRoute(
+                  path: 'pay-debt',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => const DebtPaymentPickerScreen(),
+                ),
+                GoRoute(
+                  path: ':id',
+                  name: 'money-account-detail',
+                  builder: (context, state) => MoneyAccountDetailScreen(
+                    accountId: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: '/budgets',
               name: 'budgets',
               builder: (context, state) => const CanonicalBudgetsScreen(),
@@ -160,17 +189,15 @@ GoRouter _buildAppRouter() => GoRouter(
                 GoRoute(
                   path: ':id',
                   name: 'budget-detail',
-                  builder: (context, state) => CanonicalBudgetDetailScreen(
-                    budgetId: state.pathParameters['id']!,
-                  ),
+                  builder: (context, state) =>
+                      CanonicalBudgetDetailScreen(budgetId: state.pathParameters['id']!),
                   routes: [
                     GoRoute(
                       path: 'items/new',
                       name: 'new-budget-item',
                       parentNavigatorKey: _rootNavigatorKey,
-                      builder: (context, state) => CanonicalBudgetItemEditScreen(
-                        budgetId: state.pathParameters['id']!,
-                      ),
+                      builder: (context, state) =>
+                          CanonicalBudgetItemEditScreen(budgetId: state.pathParameters['id']!),
                     ),
                     GoRoute(
                       path: 'items/:itemId/edit',
@@ -204,16 +231,9 @@ GoRouter _buildAppRouter() => GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/accounts',
-              name: 'accounts',
-              builder: (context, state) => const CanonicalAccountsScreen(),
-              routes: [
-                GoRoute(
-                  path: ':id/debt',
-                  builder: (context, state) =>
-                      DebtDetailScreen(accountId: state.pathParameters['id']!),
-                ),
-              ],
+              path: '/coach',
+              name: 'coach',
+              builder: (context, state) => const CoachHomeScreen(),
             ),
           ],
         ),
@@ -266,7 +286,17 @@ GoRouter _buildAppRouter() => GoRouter(
     GoRoute(
       path: '/more',
       name: 'more',
+      redirect: (context, state) => state.uri.replace(path: '/settings').toString(),
+    ),
+    GoRoute(
+      path: '/settings',
+      name: 'settings',
       builder: (context, state) => const CanonicalMoreScreen(),
+    ),
+    GoRoute(
+      path: '/coach/settings',
+      name: 'coach-settings',
+      builder: (context, state) => const CoachSettingsScreen(),
     ),
     GoRoute(
       path: '/categories',
@@ -291,12 +321,14 @@ GoRouter _buildAppRouter() => GoRouter(
             : OperationType.expense,
         initialAccountId: state.uri.queryParameters['accountId'],
         initialCategoryId: state.uri.queryParameters['categoryId'],
+        initialOccurredAt: DateTime.tryParse(state.uri.queryParameters['occurredAt'] ?? ''),
       ),
     ),
     GoRoute(
       path: '/operations/:id/edit',
       name: 'edit-operation',
-      builder: (context, state) => CanonicalOperationFormScreen(
+      builder: (context, state) => OperationEditRouteScreen(
+        operationId: state.pathParameters['id']!,
         initialOperation: state.extra is FinancialOperation
             ? state.extra! as FinancialOperation
             : null,

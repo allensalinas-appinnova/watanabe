@@ -613,10 +613,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accounts => 'Accounts';
 
   @override
-  String get accountsTitle => 'Your accounts';
+  String get accountsTitle => 'Accounts and debt';
 
   @override
-  String get accountsSubtitle => 'Balances organized by currency';
+  String get accountsSubtitle => 'Cash, cards, and loans in one place';
 
   @override
   String get addAccount => 'Add account';
@@ -1488,7 +1488,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get back => 'Back';
 
   @override
-  String get moreSubtitle => 'Manage your categories and account session.';
+  String get moreSubtitle => 'Personalize LumioMoney and manage your preferences.';
 
   @override
   String get moreManagement => 'Management';
@@ -1727,4 +1727,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachNoMovementsUnavailable =>
       'Transactions are now recorded or current data is unavailable. Review this day before confirming.';
+
+  @override
+  String get plan => 'Plan';
+
+  @override
+  String get coachTab => 'Coach';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get accountsSectionOverview => 'Overview';
+
+  @override
+  String get accountsSectionMoney => 'Money';
+
+  @override
+  String get accountsSectionCards => 'Cards';
+
+  @override
+  String get accountsSectionLoans => 'Loans';
+
+  @override
+  String get accountsSectionEmpty => 'There are no accounts in this section yet.';
+
+  @override
+  String get coachHubTitle => 'Your financial coach';
+
+  @override
+  String get coachHubSubtitle => 'Review your transactions and build a clear financial routine.';
+
+  @override
+  String get coachHistoryTitle => 'Recent reviews';
+
+  @override
+  String get coachHistoryEmpty => 'You have not completed any reviews yet.';
+
+  @override
+  String get coachSettingsShortcut => 'Set reminders';
+
+  @override
+  String get debtSelectForPayment =>
+      'Choose the card or loan you already paid. Recording a payment does not move money for you.';
+
+  @override
+  String get accountDetailTitle => 'Account details';
+
+  @override
+  String get operationEditTitle => 'Edit transaction';
 }

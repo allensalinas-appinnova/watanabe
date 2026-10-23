@@ -153,7 +153,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('form_back')));
     await tester.pumpAndSettle();
     expect(find.text('Budget list').hitTestable(), findsOneWidget);
-    expect(_selectedTab(tester), 2);
+    expect(_selectedTab(tester), 3);
 
     await tester.tap(find.byKey(const ValueKey('open_detail')));
     await tester.pumpAndSettle();
@@ -162,19 +162,19 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('form_back')));
     await tester.pumpAndSettle();
     expect(find.text('Budget list').hitTestable(), findsOneWidget);
-    expect(_selectedTab(tester), 2);
+    expect(_selectedTab(tester), 3);
 
     await tester.tap(find.byKey(const ValueKey('open_tracking')));
     await tester.pumpAndSettle();
     expect(find.text('Budget tracking'), findsOneWidget);
     expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
-    expect(_selectedTab(tester), 2);
+    expect(_selectedTab(tester), 3);
     await tester.tap(find.byKey(const ValueKey('form_back')));
     await tester.pumpAndSettle();
     expect(find.text('Budget list').hitTestable(), findsOneWidget);
   });
 
-  testWidgets('one global action is available on every tab and opens a modal sheet', (
+  testWidgets('global add action is limited to Home and Activity', (
     tester,
   ) async {
     final router = _router(initialLocation: '/home');
@@ -183,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
-    for (final index in [1, 2, 3, 0]) {
+    for (final index in [1, 0]) {
       await _selectTab(tester, index);
       expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('global_add_operation')));
@@ -192,14 +192,20 @@ void main() {
       expect(find.byKey(const ValueKey('add_movement_income')), findsOneWidget);
       expect(find.byKey(const ValueKey('add_movement_expense')), findsOneWidget);
       expect(find.byKey(const ValueKey('add_movement_transfer')), findsOneWidget);
+      expect(find.byKey(const ValueKey('add_movement_debtPayment')), findsOneWidget);
       expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
+      await tester.ensureVisible(find.byKey(const ValueKey('add_movement_close')));
       await tester.tap(find.byKey(const ValueKey('add_movement_close')));
       await tester.pumpAndSettle();
       expect(_selectedTab(tester), index);
     }
+    for (final index in [2, 3, 4]) {
+      await _selectTab(tester, index);
+      expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
+    }
   });
 
-  testWidgets('More is available on every section and returns to the originating tab', (
+  testWidgets('Settings is available on every section and returns to the originating tab', (
     tester,
   ) async {
     final router = _router(initialLocation: '/home');
@@ -207,11 +213,11 @@ void main() {
     await tester.pumpWidget(_app(router));
     await tester.pumpAndSettle();
 
-    for (final index in [1, 2, 3, 0]) {
+    for (final index in [1, 2, 3, 4, 0]) {
       await _selectTab(tester, index);
-      await tester.tap(find.byKey(const ValueKey('global_more_action')));
+      await tester.tap(find.byKey(const ValueKey('global_settings_action')));
       await tester.pumpAndSettle();
-      expect(find.text('More route'), findsOneWidget);
+      expect(find.text('Settings route'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('form_back')));
       await tester.pumpAndSettle();
       expect(_selectedTab(tester), index);
@@ -245,7 +251,7 @@ void main() {
   testWidgets('each action opens its existing form and back restores the origin tab', (
     tester,
   ) async {
-    final router = _router(initialLocation: '/accounts');
+    final router = _router(initialLocation: '/home');
     addTearDown(router.dispose);
     await tester.pumpWidget(_app(router));
     await tester.pumpAndSettle();
@@ -263,9 +269,18 @@ void main() {
       expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('form_back')));
       await tester.pumpAndSettle();
-      expect(_selectedTab(tester), 3);
-      expect(find.text('Accounts').first.hitTestable(), findsOneWidget);
+      expect(_selectedTab(tester), 0);
+      expect(find.text('Home').first.hitTestable(), findsOneWidget);
     }
+
+    await tester.tap(find.byKey(const ValueKey('global_add_operation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add_movement_debtPayment')));
+    await tester.pumpAndSettle();
+    expect(find.text('Debt payment picker'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('form_back')));
+    await tester.pumpAndSettle();
+    expect(_selectedTab(tester), 0);
   });
 
   testWidgets('sheet fits compact viewport with enlarged Portuguese text', (tester) async {
@@ -323,7 +338,7 @@ void main() {
 
   testWidgets('a durably queued movement returns as pending, not confirmed', (tester) async {
     final router = _router(
-      initialLocation: '/budgets',
+      initialLocation: '/home',
       returnReceipts: true,
       pendingReceipts: true,
     );
@@ -344,8 +359,8 @@ void main() {
     );
     expect(find.text('View pending'), findsOneWidget);
     expect(find.textContaining('Expense registered'), findsNothing);
-    expect(find.text('Budget list').hitTestable(), findsOneWidget);
-    expect(_selectedTab(tester), 2);
+    expect(find.text('Home').first.hitTestable(), findsOneWidget);
+    expect(_selectedTab(tester), 0);
   });
 }
 
@@ -425,27 +440,32 @@ GoRouter _router({
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/budgets',
-              builder: (_, _) => const _BudgetTab(),
+              path: '/accounts',
+              builder: (_, _) => const _Tab('Accounts'),
               routes: [
                 GoRoute(
-                  path: 'tracking',
-                  builder: (_, _) => const _BackForm('Budget tracking'),
-                ),
-                GoRoute(
-                  path: 'new',
-                  builder: (_, _) => const _BackForm('Budget create route'),
-                ),
-                GoRoute(
-                  path: ':id',
-                  builder: (_, _) => const _BackForm('Budget detail'),
+                  path: 'pay-debt',
+                  builder: (_, _) => const _BackForm('Debt payment picker'),
                 ),
               ],
             ),
           ],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: '/accounts', builder: (_, _) => const _Tab('Accounts'))],
+          routes: [
+            GoRoute(
+              path: '/budgets',
+              builder: (_, _) => const _BudgetTab(),
+              routes: [
+                GoRoute(path: 'tracking', builder: (_, _) => const _BackForm('Budget tracking')),
+                GoRoute(path: 'new', builder: (_, _) => const _BackForm('Budget create route')),
+                GoRoute(path: ':id', builder: (_, _) => const _BackForm('Budget detail')),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [GoRoute(path: '/coach', builder: (_, _) => const _Tab('Coach'))],
         ),
       ],
     ),
@@ -466,7 +486,7 @@ GoRouter _router({
           ? _SavingForm(type: OperationType.transfer, pending: pendingReceipts)
           : const _BackForm('transfer route'),
     ),
-    GoRoute(path: '/more', builder: (_, _) => const _BackForm('More route')),
+    GoRoute(path: '/settings', builder: (_, _) => const _BackForm('Settings route')),
   ],
 );
 
@@ -478,8 +498,9 @@ Future<void> _selectTab(WidgetTester tester, int index) async {
   const keys = [
     'finance_nav_home',
     'finance_nav_activity',
-    'finance_nav_budget',
     'finance_nav_accounts',
+    'finance_nav_budget',
+    'finance_nav_coach',
   ];
   await tester.tap(find.byKey(ValueKey(keys[index])).hitTestable());
   await tester.pumpAndSettle();

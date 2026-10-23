@@ -48,8 +48,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final isSectionRoot = const {
       '/home',
       '/activity',
-      '/budgets',
       '/accounts',
+      '/budgets',
+      '/coach',
     }.contains(widget.currentLocation);
     final hideFabForConsultation =
         widget.currentLocation.endsWith('/debt') ||
@@ -107,11 +108,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ),
                       ),
                       IconButton(
-                        key: const ValueKey('global_more_action'),
-                        tooltip: AppLocalizations.of(context).more,
+                        key: const ValueKey('global_settings_action'),
+                        tooltip: AppLocalizations.of(context).settingsTitle,
                         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                        onPressed: () => context.push('/more'),
-                        icon: const Icon(Icons.more_horiz, size: 26),
+                        onPressed: () => context.push('/settings'),
+                        icon: const Icon(Icons.settings_outlined, size: 24),
                       ),
                     ],
                   ),
@@ -121,7 +122,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
-      floatingActionButton: _showingSheet || _openingForm || hideFabForConsultation
+      floatingActionButton:
+          _showingSheet ||
+              _openingForm ||
+              hideFabForConsultation ||
+              widget.navigationShell.currentIndex > 1
           ? null
           : ExcludeSemantics(
               excluding: !showFab,
@@ -174,10 +179,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (action == null) return;
 
     final route = switch (action) {
-      OperationType.income => '/operations/new?type=income',
-      OperationType.expense => '/operations/new?type=expense',
-      OperationType.transfer => '/transfers/new',
-      OperationType.expenseRefund || OperationType.debtAdjustment => '/accounts',
+      MovementEntryAction.income => '/operations/new?type=income',
+      MovementEntryAction.expense => '/operations/new?type=expense',
+      MovementEntryAction.transfer => '/transfers/new',
+      MovementEntryAction.debtPayment => '/accounts/pay-debt',
     };
     setState(() => _openingForm = true);
     try {

@@ -197,8 +197,8 @@
   "transferOperationLabel": "Transferencia",
   "budget": "Presupuesto",
   "accounts": "Cuentas",
-  "accountsTitle": "Tus cuentas",
-  "accountsSubtitle": "Saldos organizados por moneda",
+  "accountsTitle": "Cuentas y deudas",
+  "accountsSubtitle": "Dinero, tarjetas y préstamos en un solo lugar",
   "addAccount": "Agregar cuenta",
   "cashAccountType": "Efectivo",
   "checkingAccountType": "Cuenta corriente",
@@ -468,7 +468,7 @@
   ,"budgetArchiveUnexpectedFailure": "No pudimos eliminar el presupuesto. Sigue activo; inténtalo de nuevo. Código: {code}"
   ,"more": "Más"
   ,"back": "Volver"
-  ,"moreSubtitle": "Gestiona tus categorías y tu sesión."
+  ,"moreSubtitle": "Personaliza LumioMoney y gestiona tus preferencias."
   ,"moreManagement": "Gestión"
   ,"moreSession": "Sesión"
   ,"signOutConfirmTitle": "¿Cerrar sesión?"
@@ -544,4 +544,20 @@
   ,"coachScheduleFailed": "No pudimos programar los avisos. Reintenta la programación."
   ,"coachViewMovements": "Ver movimientos del periodo"
   ,"coachNoMovementsUnavailable": "Ahora hay movimientos registrados o faltan datos actualizados. Revisa el día antes de confirmarlo."
+  ,"plan": "Plan"
+  ,"coachTab": "Coach"
+  ,"settingsTitle": "Configuración"
+  ,"accountsSectionOverview": "Resumen"
+  ,"accountsSectionMoney": "Dinero"
+  ,"accountsSectionCards": "Tarjetas"
+  ,"accountsSectionLoans": "Préstamos"
+  ,"accountsSectionEmpty": "No hay cuentas en esta sección todavía."
+  ,"coachHubTitle": "Tu coach financiero"
+  ,"coachHubSubtitle": "Revisa tus movimientos y construye una rutina financiera clara."
+  ,"coachHistoryTitle": "Revisiones recientes"
+  ,"coachHistoryEmpty": "Todavía no has completado revisiones."
+  ,"coachSettingsShortcut": "Configurar recordatorios"
+  ,"debtSelectForPayment": "Elige la tarjeta o el préstamo que ya pagaste. Registrar el pago no mueve dinero por ti."
+  ,"accountDetailTitle": "Detalle de cuenta"
+  ,"operationEditTitle": "Editar movimiento"
 }

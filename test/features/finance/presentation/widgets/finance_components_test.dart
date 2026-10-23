@@ -7,7 +7,7 @@ import 'package:personal_finance/features/finance/presentation/widgets/finance_d
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
-  testWidgets('bottom navigation uses the approved four vector destinations and styles', (
+  testWidgets('bottom navigation uses the five destinations and approved styles', (
     tester,
   ) async {
     var selectedIndex = 0;
@@ -35,30 +35,39 @@ void main() {
     expect(destinations.map((destination) => destination.label), [
       'Inicio',
       'Actividad',
-      'Presupuesto',
       'Cuentas',
+      'Plan',
+      'Coach',
     ]);
     expect(
       [
         for (var index = 0; index < 4; index++)
-          FinanceDesignAssets.navigation(index: index, selected: true),
+          FinanceDesignAssets.navigation(
+            index: index == 2
+                ? 3
+                : index == 3
+                ? 2
+                : index,
+            selected: true,
+          ),
       ],
       [
         'assets/icons/nav_home_selected.svg',
         'assets/icons/nav_activity_selected.svg',
-        'assets/icons/nav_budget_selected.svg',
         'assets/icons/nav_accounts_selected.svg',
+        'assets/icons/nav_budget_selected.svg',
       ],
     );
-    for (final destination in destinations) {
+    for (final destination in destinations.take(4)) {
       expect(destination.icon, isA<SvgPicture>());
       expect(destination.selectedIcon, isA<SvgPicture>());
     }
     for (final key in const [
       'finance_nav_home',
       'finance_nav_activity',
-      'finance_nav_budget',
       'finance_nav_accounts',
+      'finance_nav_budget',
+      'finance_nav_coach',
     ]) {
       expect(tester.getSize(find.byKey(ValueKey(key))).height, greaterThanOrEqualTo(48));
     }
@@ -72,7 +81,7 @@ void main() {
     expect(navTheme.data.backgroundColor, Colors.white);
     expect(navTheme.data.indicatorColor, const Color(0xFFE3F2FD));
 
-    for (final (index, label) in ['Inicio', 'Actividad', 'Presupuesto', 'Cuentas'].indexed) {
+    for (final (index, label) in ['Inicio', 'Actividad', 'Cuentas', 'Plan', 'Coach'].indexed) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(selectedIndex, index);
@@ -104,8 +113,9 @@ void main() {
 
     expect(find.text('Início'), findsOneWidget);
     expect(find.text('Atividade'), findsOneWidget);
-    expect(find.text('Orçamento'), findsOneWidget);
     expect(find.text('Contas'), findsOneWidget);
+    expect(find.text('Plano'), findsOneWidget);
+    expect(find.text('Coach'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

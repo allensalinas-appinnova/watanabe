@@ -75,6 +75,20 @@ final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, St
   }),
 );
 
+final canonicalOperationByIdProvider =
+    FutureProvider.family<FinancialOperation?, ({String userId, String operationId})>(
+      (ref, request) async {
+        final operations = await ref
+            .watch(canonicalFinanceRepositoryProvider)
+            .watchOperations(request.userId)
+            .first;
+        for (final operation in operations) {
+          if (operation.id == request.operationId) return operation;
+        }
+        return null;
+      },
+    );
+
 final balanceAdjustmentsProvider = StreamProvider.family<List<BalanceAdjustmentEvent>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchBalanceAdjustments(userId),
 );

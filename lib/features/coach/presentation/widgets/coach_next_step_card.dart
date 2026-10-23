@@ -64,7 +64,10 @@ class CoachNextStepCard extends ConsumerWidget {
                   ),
                 ),
               ],
-              TextButton(onPressed: () => context.push('/coach'), child: Text(l10n.coachConfigure)),
+              TextButton(
+                onPressed: () => context.push('/coach/settings'),
+                child: Text(l10n.coachConfigure),
+              ),
             ],
           ),
         ),

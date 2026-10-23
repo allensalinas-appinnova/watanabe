@@ -25,10 +25,22 @@ const _accounts = [
     type: 'cash',
     currency: 'COP',
   ),
+  FinanceAccount(
+    id: 'card',
+    name: 'Tarjeta principal',
+    type: 'creditCard',
+    currency: 'COP',
+    nature: 'debt',
+    currentBalanceMinor: -45000,
+  ),
 ];
 
 void main() {
-  Widget buildSubject({Locale locale = const Locale('es'), double textScale = 1}) => ProviderScope(
+  Widget buildSubject({
+    Locale locale = const Locale('es'),
+    double textScale = 1,
+    String? initialSection,
+  }) => ProviderScope(
     overrides: [
       authSessionProvider.overrideWith(
         (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
@@ -48,7 +60,7 @@ void main() {
       home: Builder(
         builder: (context) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-          child: const CanonicalAccountsScreen(),
+          child: CanonicalAccountsScreen(initialSection: initialSection),
         ),
       ),
     ),
@@ -64,10 +76,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('LumioMoney'), findsNothing);
-    expect(find.text('Tus cuentas'), findsOneWidget);
-    expect(find.text('Saldos organizados por moneda'), findsOneWidget);
+    expect(find.text('Cuentas y deudas'), findsOneWidget);
+    expect(find.text('Dinero, tarjetas y préstamos en un solo lugar'), findsOneWidget);
     expect(find.text('COP · Cuenta de ahorros'), findsOneWidget);
     expect(find.text('COP · Efectivo'), findsOneWidget);
+    expect(find.text('Tarjetas de crédito'), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('account_balance_savings'))).data,
       CurrencyFormatter.formatMinor(20, 'COP'),
@@ -80,7 +93,10 @@ void main() {
     expect(firstCard.left, 24);
     expect(firstCard.width, 342);
     expect(firstCard.height, 82);
-    expect(secondCard.top - firstCard.bottom, 18);
+    expect(secondCard.top - firstCard.bottom, greaterThan(18));
+    expect(find.text('Agregar gasto'), findsWidgets);
+    expect(find.text('Agregar ingreso'), findsWidgets);
+    expect(find.text('Mover dinero'), findsWidgets);
     expect(addButton.left, 24);
     expect(addButton.width, 342);
     expect(addButton.height, 52);
@@ -98,8 +114,18 @@ void main() {
     await tester.pumpWidget(buildSubject(locale: const Locale('pt'), textScale: 1.6));
     await tester.pumpAndSettle();
 
-    expect(find.text('Suas contas'), findsOneWidget);
+    expect(find.text('Contas e dívidas'), findsOneWidget);
     expect(find.text('Adicionar conta'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('opens directly in the requested account group', (tester) async {
+    await tester.pumpWidget(buildSubject(initialSection: 'cards'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tarjeta principal'), findsOneWidget);
+    expect(find.text('Banco1 Ahorros'), findsNothing);
+    expect(find.text('Efectivo'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

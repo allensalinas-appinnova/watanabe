@@ -12,7 +12,11 @@
 
 - Design baseline: 390 × 844 logical pixels, scalable to compact phones and large phones.
 - Respect safe areas, system text scaling and platform back navigation.
-- Use a four-destination bottom navigation for Inicio, Actividad, Presupuesto and Cuentas.
+- Use the five-destination bottom navigation in this order: Inicio, Actividad,
+  Cuentas, Plan and Coach. Use Configuración for global preferences; do not add
+  a mobile drawer alongside the tab bar.
+- Keep the global registration action on Inicio and Actividad only. Use
+  destination-specific actions on Cuentas, Plan and Coach.
 - Keep primary controls reachable with one hand and place destructive actions away from the primary action.
 - Use cards for grouped financial summaries, not as decoration for every isolated field.
 

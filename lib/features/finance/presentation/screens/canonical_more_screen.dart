@@ -23,7 +23,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: FinanceRouteHeader(
-        title: l10n.more,
+        title: l10n.settingsTitle,
         backLabel: l10n.back,
         onBack: () => popOrGo(context, '/home'),
       ),
@@ -57,7 +57,13 @@ class CanonicalMoreScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           OutlinedButton(
             key: const ValueKey('more_coach'),
-            onPressed: () => context.push('/coach'),
+            onPressed: () => context.go('/coach'),
+            child: Text(l10n.coachTab),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            key: const ValueKey('settings_coach_reminders'),
+            onPressed: () => context.push('/coach/settings'),
             child: Text(l10n.coachTitle),
           ),
           const SizedBox(height: 32),

@@ -1,48 +1,58 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../features/finance/domain/entities/financial_operation.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+
+enum MovementEntryAction { income, expense, transfer, debtPayment }
 
 /// The action selected from the shared global movement entry point.
 class MovementActionSheet extends StatelessWidget {
   const MovementActionSheet({super.key});
 
-  static Future<OperationType?> show(BuildContext context) => showModalBottomSheet<OperationType>(
-    context: context,
-    useSafeArea: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => const MovementActionSheet(),
-  );
+  static Future<MovementEntryAction?> show(BuildContext context) =>
+      showModalBottomSheet<MovementEntryAction>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const MovementActionSheet(),
+      );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final actions = <({OperationType type, String label, IconData icon, Color tint, Color ink})>[
-      (
-        type: OperationType.income,
-        label: l10n.addIncome,
-        icon: Icons.add,
-        tint: const Color(0xFFDDF5E9),
-        ink: AppColors.green,
-      ),
-      (
-        type: OperationType.expense,
-        label: l10n.addExpense,
-        icon: Icons.remove,
-        tint: AppColors.blueSoft,
-        ink: AppColors.blueDark,
-      ),
-      (
-        type: OperationType.transfer,
-        label: l10n.moveMoney,
-        icon: Icons.swap_horiz,
-        tint: const Color(0xFFFFF1D6),
-        ink: const Color(0xFFA76A00),
-      ),
-    ];
+    final actions =
+        <({MovementEntryAction type, String label, IconData icon, Color tint, Color ink})>[
+          (
+            type: MovementEntryAction.income,
+            label: l10n.addIncome,
+            icon: Icons.add,
+            tint: const Color(0xFFDDF5E9),
+            ink: AppColors.green,
+          ),
+          (
+            type: MovementEntryAction.expense,
+            label: l10n.addExpense,
+            icon: Icons.remove,
+            tint: AppColors.blueSoft,
+            ink: AppColors.blueDark,
+          ),
+          (
+            type: MovementEntryAction.transfer,
+            label: l10n.moveMoney,
+            icon: Icons.swap_horiz,
+            tint: const Color(0xFFFFF1D6),
+            ink: const Color(0xFFA76A00),
+          ),
+          (
+            type: MovementEntryAction.debtPayment,
+            label: l10n.debtPay,
+            icon: Icons.credit_score_outlined,
+            tint: const Color(0xFFFBE4E7),
+            ink: const Color(0xFFC73338),
+          ),
+        ];
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -156,7 +166,7 @@ class MovementActionSheet extends StatelessWidget {
 class _MovementChoiceTile extends StatelessWidget {
   const _MovementChoiceTile({required this.action, required this.onPressed});
 
-  final ({OperationType type, String label, IconData icon, Color tint, Color ink}) action;
+  final ({MovementEntryAction type, String label, IconData icon, Color tint, Color ink}) action;
   final VoidCallback onPressed;
 
   @override

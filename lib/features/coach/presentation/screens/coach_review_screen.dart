@@ -131,7 +131,7 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
     final header = FinanceRouteHeader(
       title: title,
       backLabel: l10n.back,
-      onBack: () => popOrGo(context, '/home'),
+      onBack: () => popOrGo(context, '/coach'),
     );
     if (uid == null) {
       return Scaffold(

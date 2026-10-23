@@ -92,18 +92,19 @@ class FinanceBottomNavigation extends StatelessWidget {
   final Color? indicatorColor;
   final double? height;
 
-  static const _routes = ['/home', '/activity', '/budgets', '/accounts'];
+  static const _routes = ['/home', '/activity', '/accounts', '/budgets', '/coach'];
   static const _destinationKeys = [
     'finance_nav_home',
     'finance_nav_activity',
-    'finance_nav_budget',
     'finance_nav_accounts',
+    'finance_nav_budget',
+    'finance_nav_coach',
   ];
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final labels = [l10n.home, l10n.activity, l10n.budget, l10n.accounts];
+    final labels = [l10n.home, l10n.activity, l10n.accounts, l10n.plan, l10n.coachTab];
     final selectedLabelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: AppColors.blueDark,
       fontSize: 11,
@@ -136,18 +137,36 @@ class FinanceBottomNavigation extends StatelessWidget {
           for (var index = 0; index < labels.length; index++)
             NavigationDestination(
               key: ValueKey(_destinationKeys[index]),
-              icon: SvgPicture.asset(
-                FinanceDesignAssets.navigation(index: index, selected: false),
-                width: 24,
-                height: 24,
-                excludeFromSemantics: true,
-              ),
-              selectedIcon: SvgPicture.asset(
-                FinanceDesignAssets.navigation(index: index, selected: true),
-                width: 24,
-                height: 24,
-                excludeFromSemantics: true,
-              ),
+              icon: index == 4
+                  ? const Icon(Icons.explore_outlined, size: 24)
+                  : SvgPicture.asset(
+                      FinanceDesignAssets.navigation(
+                        index: index == 2
+                            ? 3
+                            : index == 3
+                            ? 2
+                            : index,
+                        selected: false,
+                      ),
+                      width: 24,
+                      height: 24,
+                      excludeFromSemantics: true,
+                    ),
+              selectedIcon: index == 4
+                  ? const Icon(Icons.explore, size: 24)
+                  : SvgPicture.asset(
+                      FinanceDesignAssets.navigation(
+                        index: index == 2
+                            ? 3
+                            : index == 3
+                            ? 2
+                            : index,
+                        selected: true,
+                      ),
+                      width: 24,
+                      height: 24,
+                      excludeFromSemantics: true,
+                    ),
               label: labels[index],
             ),
         ],

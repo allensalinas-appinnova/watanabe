@@ -197,8 +197,8 @@
   "transferOperationLabel": "Transfer",
   "budget": "Budget",
   "accounts": "Accounts",
-  "accountsTitle": "Your accounts",
-  "accountsSubtitle": "Balances organized by currency",
+  "accountsTitle": "Accounts and debt",
+  "accountsSubtitle": "Cash, cards, and loans in one place",
   "addAccount": "Add account",
   "cashAccountType": "Cash",
   "checkingAccountType": "Checking account",
@@ -468,7 +468,7 @@
   ,"budgetArchiveUnexpectedFailure": "We couldn't delete the budget. It is still active; try again. Code: {code}"
   ,"more": "More"
   ,"back": "Back"
-  ,"moreSubtitle": "Manage your categories and account session."
+  ,"moreSubtitle": "Personalize LumioMoney and manage your preferences."
   ,"moreManagement": "Management"
   ,"moreSession": "Session"
   ,"signOutConfirmTitle": "Sign out?"
@@ -544,4 +544,20 @@
   ,"coachScheduleFailed": "We could not schedule reminders. Retry scheduling."
   ,"coachViewMovements": "View transactions for this period"
   ,"coachNoMovementsUnavailable": "Transactions are now recorded or current data is unavailable. Review this day before confirming."
+  ,"plan": "Plan"
+  ,"coachTab": "Coach"
+  ,"settingsTitle": "Settings"
+  ,"accountsSectionOverview": "Overview"
+  ,"accountsSectionMoney": "Money"
+  ,"accountsSectionCards": "Cards"
+  ,"accountsSectionLoans": "Loans"
+  ,"accountsSectionEmpty": "There are no accounts in this section yet."
+  ,"coachHubTitle": "Your financial coach"
+  ,"coachHubSubtitle": "Review your transactions and build a clear financial routine."
+  ,"coachHistoryTitle": "Recent reviews"
+  ,"coachHistoryEmpty": "You have not completed any reviews yet."
+  ,"coachSettingsShortcut": "Set reminders"
+  ,"debtSelectForPayment": "Choose the card or loan you already paid. Recording a payment does not move money for you."
+  ,"accountDetailTitle": "Account details"
+  ,"operationEditTitle": "Edit transaction"
 }

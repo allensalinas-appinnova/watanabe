@@ -17,8 +17,12 @@ orientan la interfaz, pero no prueban que una capacidad esté desplegada.
 - Autenticación Firebase, recuperación de sesión y rutas protegidas.
 - Onboarding localizado con datos regionales y selección inicial de cuentas y
   categorías.
-- Cuatro secciones persistentes: Inicio, Actividad, Presupuesto y Cuentas; Más
-  reúne configuración y gestión global.
+- Cinco secciones persistentes: Inicio, Actividad, Cuentas, Plan y Coach.
+  Configuración reúne preferencias y gestión global; los enlaces antiguos a
+  Más redirigen a Configuración.
+- Cuentas organiza dinero, tarjetas y préstamos en subsecciones. Coach ofrece
+  un centro para cierre diario, revisión semanal e historial, separado de la
+  configuración de recordatorios.
 - Pantallas de tarea y consulta conservan navegación contextual y estado de
   sección según el contrato de UX.
 

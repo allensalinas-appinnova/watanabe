@@ -16,11 +16,38 @@ import '../../domain/entities/finance_account.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/account_balance_adjustment_sheet.dart';
 
-class CanonicalAccountsScreen extends ConsumerWidget {
-  const CanonicalAccountsScreen({super.key});
+class CanonicalAccountsScreen extends ConsumerStatefulWidget {
+  const CanonicalAccountsScreen({this.initialSection, super.key});
+  final String? initialSection;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CanonicalAccountsScreen> createState() => _CanonicalAccountsScreenState();
+}
+
+class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScreen> {
+  late String _section = _validSection(widget.initialSection);
+
+  @override
+  void didUpdateWidget(CanonicalAccountsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSection != widget.initialSection && widget.initialSection != null) {
+      _section = _validSection(widget.initialSection);
+    }
+  }
+
+  String _validSection(String? value) =>
+      const {'overview', 'money', 'cards', 'loans'}.contains(value) ? value! : 'overview';
+
+  List<FinanceAccount> _visibleAccounts(List<FinanceAccount> items) => switch (_section) {
+    'money' => items.where((item) => !item.isDebt).toList(),
+    'cards' => items.where((item) => item.isCreditCard).toList(),
+    'loans' => items.where((item) => item.isDebt && !item.isCreditCard).toList(),
+    _ => items,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final user = ref.watch(authSessionProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
@@ -52,6 +79,18 @@ class CanonicalAccountsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _sectionChip(l10n.accountsSectionOverview, 'overview'),
+                      _sectionChip(l10n.accountsSectionMoney, 'money'),
+                      _sectionChip(l10n.accountsSectionCards, 'cards'),
+                      _sectionChip(l10n.accountsSectionLoans, 'loans'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 accounts.when(
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
@@ -62,64 +101,113 @@ class CanonicalAccountsScreen extends ConsumerWidget {
                     retryLabel: l10n.retry,
                     onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
                   ),
-                  data: (items) => items.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: Text(
-                            l10n.createFirstAccount,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.muted,
+                  data: (allItems) {
+                    final items = _visibleAccounts(allItems);
+                    return allItems.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Text(
+                              l10n.createFirstAccount,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.muted,
+                              ),
                             ),
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            for (var index = 0; index < items.length; index++) ...[
-                              if (index > 0) const SizedBox(height: 18),
-                              if (index == 0 ||
-                                  items[index].isDebt != items[index - 1].isDebt ||
-                                  items[index].isCreditCard != items[index - 1].isCreditCard)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Align(
-                                    alignment: AlignmentDirectional.centerStart,
-                                    child: Text(
-                                      items[index].isCreditCard
-                                          ? l10n.debtCards
-                                          : items[index].isDebt
-                                          ? l10n.debtLoans
-                                          : l10n.debtMoney,
-                                      style: Theme.of(context).textTheme.titleMedium,
+                          )
+                        : items.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              l10n.accountsSectionEmpty,
+                              style: const TextStyle(color: AppColors.muted),
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              for (var index = 0; index < items.length; index++) ...[
+                                if (index > 0) const SizedBox(height: 18),
+                                if (index == 0 ||
+                                    items[index].isDebt != items[index - 1].isDebt ||
+                                    items[index].isCreditCard != items[index - 1].isCreditCard)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Align(
+                                      alignment: AlignmentDirectional.centerStart,
+                                      child: Text(
+                                        items[index].isCreditCard
+                                            ? l10n.debtCards
+                                            : items[index].isDebt
+                                            ? l10n.debtLoans
+                                            : l10n.debtMoney,
+                                        style: Theme.of(context).textTheme.titleMedium,
+                                      ),
                                     ),
                                   ),
+                                _AccountCard(
+                                  account: items[index],
+                                  subtitle: _accountSubtitle(l10n, items[index]),
+                                  balance: CurrencyFormatter.formatMinor(
+                                    items[index].isDebt
+                                        ? (items[index].creditBalanceMinor > 0
+                                              ? items[index].creditBalanceMinor
+                                              : items[index].debtMinor)
+                                        : items[index].currentBalanceMinor,
+                                    items[index].currency,
+                                  ),
+                                  editLabel: items[index].isDebt
+                                      ? l10n.debtTitle
+                                      : l10n.editAccount,
+                                  archiveLabel: l10n.archive,
+                                  adjustBalanceLabel: l10n.adjustAccountBalance,
+                                  onEdit: () => _editAccount(context, items[index]),
+                                  onOpen: () => _openAccount(context, items[index]),
+                                  onAdjustBalance:
+                                      items[index].status == 'active' && !items[index].isDebt
+                                      ? () => _adjustBalance(
+                                          context,
+                                          ref,
+                                          user.id,
+                                          items[index],
+                                          items,
+                                        )
+                                      : null,
+                                  onArchive: () => items[index].isDebt
+                                      ? context.push('/debts/${items[index].id}/actions/archive')
+                                      : _archiveAccount(context, ref, user.id, items[index]),
                                 ),
-                              _AccountCard(
-                                account: items[index],
-                                subtitle: _accountSubtitle(l10n, items[index]),
-                                balance: CurrencyFormatter.formatMinor(
-                                  items[index].isDebt
-                                      ? (items[index].creditBalanceMinor > 0
-                                            ? items[index].creditBalanceMinor
-                                            : items[index].debtMinor)
-                                      : items[index].currentBalanceMinor,
-                                  items[index].currency,
-                                ),
-                                editLabel: items[index].isDebt ? l10n.debtTitle : l10n.editAccount,
-                                archiveLabel: l10n.archive,
-                                adjustBalanceLabel: l10n.adjustAccountBalance,
-                                onEdit: () => _editAccount(context, items[index]),
-                                onAdjustBalance:
-                                    items[index].status == 'active' && !items[index].isDebt
-                                    ? () =>
-                                          _adjustBalance(context, ref, user.id, items[index], items)
-                                    : null,
-                                onArchive: () => items[index].isDebt
-                                    ? context.push('/debts/${items[index].id}/actions/archive')
-                                    : _archiveAccount(context, ref, user.id, items[index]),
-                              ),
+                                if (!items[index].isDebt)
+                                  Padding(
+                                    padding: const EdgeInsetsDirectional.only(start: 8, top: 4),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () => context.push(
+                                            '/operations/new?type=expense&accountId=${items[index].id}',
+                                          ),
+                                          icon: const Icon(Icons.add_circle_outline),
+                                          label: Text(l10n.addExpense),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () => context.push(
+                                            '/operations/new?type=income&accountId=${items[index].id}',
+                                          ),
+                                          icon: const Icon(Icons.south_west),
+                                          label: Text(l10n.addIncome),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () => context.push(
+                                            '/transfers/new?sourceAccountId=${items[index].id}',
+                                          ),
+                                          icon: const Icon(Icons.swap_horiz),
+                                          label: Text(l10n.moveMoney),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             ],
-                          ],
-                        ),
+                          );
+                  },
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -155,6 +243,15 @@ class CanonicalAccountsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _sectionChip(String label, String section) => Padding(
+    padding: const EdgeInsetsDirectional.only(end: 8),
+    child: ChoiceChip(
+      label: Text(label),
+      selected: _section == section,
+      onSelected: (_) => setState(() => _section = section),
+    ),
+  );
+
   String _accountSubtitle(AppLocalizations l10n, FinanceAccount account) {
     final typeLabel = switch (account.type.toLowerCase()) {
       'cash' || 'wallet' => l10n.cashAccountType,
@@ -185,6 +282,14 @@ class CanonicalAccountsScreen extends ConsumerWidget {
       pathParameters: {'id': account.id},
       extra: account,
     );
+  }
+
+  void _openAccount(BuildContext context, FinanceAccount account) {
+    if (account.isDebt) {
+      context.push('/accounts/${account.id}/debt');
+    } else {
+      context.push('/accounts/${account.id}');
+    }
   }
 
   Future<void> _adjustBalance(
@@ -265,6 +370,7 @@ class _AccountCard extends StatelessWidget {
     required this.archiveLabel,
     required this.adjustBalanceLabel,
     required this.onEdit,
+    required this.onOpen,
     required this.onAdjustBalance,
     required this.onArchive,
   });
@@ -276,6 +382,7 @@ class _AccountCard extends StatelessWidget {
   final String archiveLabel;
   final String adjustBalanceLabel;
   final VoidCallback onEdit;
+  final VoidCallback onOpen;
   final VoidCallback? onAdjustBalance;
   final VoidCallback onArchive;
 
@@ -286,83 +393,87 @@ class _AccountCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       side: const BorderSide(color: AppColors.line),
     ),
-    child: SizedBox(
-      height: 82,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.only(start: 17, end: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    account.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppColors.navy,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+    child: InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        height: 82,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 17, end: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      account.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.navy,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                balance,
+                key: ValueKey('account_balance_${account.id}'),
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.blueDark,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              PopupMenuButton<String>(
+                key: ValueKey('account_menu_${account.id}'),
+                tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                iconSize: 19,
+                icon: const Icon(Icons.more_vert, color: AppColors.muted),
+                onSelected: (action) {
+                  if (action == 'edit') onEdit();
+                  if (action == 'adjust') onAdjustBalance?.call();
+                  if (action == 'archive') onArchive();
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    key: const ValueKey('account_adjust_balance_action'),
+                    value: 'adjust',
+                    enabled: onAdjustBalance != null,
+                    child: Text(adjustBalanceLabel),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.muted,
-                      fontSize: 11,
-                    ),
+                  PopupMenuItem(
+                    key: const ValueKey('account_edit_action'),
+                    value: 'edit',
+                    child: Text(editLabel),
+                  ),
+                  PopupMenuItem(
+                    key: const ValueKey('account_archive_action'),
+                    value: 'archive',
+                    child: Text(archiveLabel),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              balance,
-              key: ValueKey('account_balance_${account.id}'),
-              textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.blueDark,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            PopupMenuButton<String>(
-              key: ValueKey('account_menu_${account.id}'),
-              tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              iconSize: 19,
-              icon: const Icon(Icons.more_vert, color: AppColors.muted),
-              onSelected: (action) {
-                if (action == 'edit') onEdit();
-                if (action == 'adjust') onAdjustBalance?.call();
-                if (action == 'archive') onArchive();
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  key: const ValueKey('account_adjust_balance_action'),
-                  value: 'adjust',
-                  enabled: onAdjustBalance != null,
-                  child: Text(adjustBalanceLabel),
-                ),
-                PopupMenuItem(
-                  key: const ValueKey('account_edit_action'),
-                  value: 'edit',
-                  child: Text(editLabel),
-                ),
-                PopupMenuItem(
-                  key: const ValueKey('account_archive_action'),
-                  value: 'archive',
-                  child: Text(archiveLabel),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),

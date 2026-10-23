@@ -1159,13 +1159,13 @@ abstract class AppLocalizations {
   /// No description provided for @accountsTitle.
   ///
   /// In es, this message translates to:
-  /// **'Tus cuentas'**
+  /// **'Cuentas y deudas'**
   String get accountsTitle;
 
   /// No description provided for @accountsSubtitle.
   ///
   /// In es, this message translates to:
-  /// **'Saldos organizados por moneda'**
+  /// **'Dinero, tarjetas y préstamos en un solo lugar'**
   String get accountsSubtitle;
 
   /// No description provided for @addAccount.
@@ -2743,7 +2743,7 @@ abstract class AppLocalizations {
   /// No description provided for @moreSubtitle.
   ///
   /// In es, this message translates to:
-  /// **'Gestiona tus categorías y tu sesión.'**
+  /// **'Personaliza LumioMoney y gestiona tus preferencias.'**
   String get moreSubtitle;
 
   /// No description provided for @moreManagement.
@@ -3189,6 +3189,102 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ahora hay movimientos registrados o faltan datos actualizados. Revisa el día antes de confirmarlo.'**
   String get coachNoMovementsUnavailable;
+
+  /// No description provided for @plan.
+  ///
+  /// In es, this message translates to:
+  /// **'Plan'**
+  String get plan;
+
+  /// No description provided for @coachTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Coach'**
+  String get coachTab;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Configuración'**
+  String get settingsTitle;
+
+  /// No description provided for @accountsSectionOverview.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen'**
+  String get accountsSectionOverview;
+
+  /// No description provided for @accountsSectionMoney.
+  ///
+  /// In es, this message translates to:
+  /// **'Dinero'**
+  String get accountsSectionMoney;
+
+  /// No description provided for @accountsSectionCards.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjetas'**
+  String get accountsSectionCards;
+
+  /// No description provided for @accountsSectionLoans.
+  ///
+  /// In es, this message translates to:
+  /// **'Préstamos'**
+  String get accountsSectionLoans;
+
+  /// No description provided for @accountsSectionEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay cuentas en esta sección todavía.'**
+  String get accountsSectionEmpty;
+
+  /// No description provided for @coachHubTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu coach financiero'**
+  String get coachHubTitle;
+
+  /// No description provided for @coachHubSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa tus movimientos y construye una rutina financiera clara.'**
+  String get coachHubSubtitle;
+
+  /// No description provided for @coachHistoryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisiones recientes'**
+  String get coachHistoryTitle;
+
+  /// No description provided for @coachHistoryEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no has completado revisiones.'**
+  String get coachHistoryEmpty;
+
+  /// No description provided for @coachSettingsShortcut.
+  ///
+  /// In es, this message translates to:
+  /// **'Configurar recordatorios'**
+  String get coachSettingsShortcut;
+
+  /// No description provided for @debtSelectForPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige la tarjeta o el préstamo que ya pagaste. Registrar el pago no mueve dinero por ti.'**
+  String get debtSelectForPayment;
+
+  /// No description provided for @accountDetailTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Detalle de cuenta'**
+  String get accountDetailTitle;
+
+  /// No description provided for @operationEditTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar movimiento'**
+  String get operationEditTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
