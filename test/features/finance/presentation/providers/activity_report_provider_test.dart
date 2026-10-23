@@ -14,7 +14,15 @@ class _MockFinanceRepository extends Mock implements CanonicalFinanceRepository 
 void main() {
   test('loads all cursor pages using the selected activity filters', () async {
     final repository = _MockFinanceRepository();
-    final calls = <({OperationPageCursor? cursor, OperationType? type, List<String>? accounts})>[];
+    final calls =
+        <
+          ({
+            OperationPageCursor? cursor,
+            OperationType? type,
+            bool debtPaymentsOnly,
+            List<String>? accounts,
+          })
+        >[];
     final nextCursor = OperationPageCursor(
       occurredAt: DateTime(2026, 10, 10),
       operationId: 'page-one-last',
@@ -26,6 +34,7 @@ void main() {
         monthKey: any(named: 'monthKey'),
         currency: any(named: 'currency'),
         type: any(named: 'type'),
+        debtPaymentsOnly: any(named: 'debtPaymentsOnly'),
         accountId: any(named: 'accountId'),
         accountIds: any(named: 'accountIds'),
         startAt: any(named: 'startAt'),
@@ -35,8 +44,14 @@ void main() {
     ).thenAnswer((invocation) async {
       final cursor = invocation.namedArguments[#cursor] as OperationPageCursor?;
       final type = invocation.namedArguments[#type] as OperationType?;
+      final debtPaymentsOnly = invocation.namedArguments[#debtPaymentsOnly] as bool;
       final accounts = invocation.namedArguments[#accountIds] as List<String>?;
-      calls.add((cursor: cursor, type: type, accounts: accounts));
+      calls.add((
+        cursor: cursor,
+        type: type,
+        debtPaymentsOnly: debtPaymentsOnly,
+        accounts: accounts,
+      ));
       final operation = FinancialOperation(
         id: cursor == null ? 'expense-one' : 'expense-two',
         type: OperationType.expense,
@@ -75,8 +90,85 @@ void main() {
     expect(calls.first.cursor, isNull);
     expect(calls.last.cursor, same(nextCursor));
     expect(calls.every((call) => call.type == OperationType.expense), isTrue);
+    expect(calls.every((call) => !call.debtPaymentsOnly), isTrue);
     expect(calls.every((call) => call.accounts!.single == 'account-1'), isTrue);
     expect(report.operations, hasLength(2));
     expect(report.totalsByCurrency['COP']!.expenseMinor, 750);
   });
+
+  test(
+    'debt payment filter requests payment metadata and totals only new-charge expenses',
+    () async {
+      final repository = _MockFinanceRepository();
+      var queryUsedPaymentClassification = false;
+      when(
+        () => repository.fetchOperationsPage(
+          any(),
+          cursor: any(named: 'cursor'),
+          monthKey: any(named: 'monthKey'),
+          currency: any(named: 'currency'),
+          type: any(named: 'type'),
+          debtPaymentsOnly: any(named: 'debtPaymentsOnly'),
+          accountId: any(named: 'accountId'),
+          accountIds: any(named: 'accountIds'),
+          startAt: any(named: 'startAt'),
+          endAtExclusive: any(named: 'endAtExclusive'),
+          pageSize: any(named: 'pageSize'),
+        ),
+      ).thenAnswer((invocation) async {
+        queryUsedPaymentClassification = invocation.namedArguments[#debtPaymentsOnly] as bool;
+        return Right(
+          OperationPage(
+            items: [
+              FinancialOperation(
+                id: 'capital',
+                type: OperationType.transfer,
+                amountMinor: 100,
+                currency: 'COP',
+                monthKey: '2026-10',
+                occurredAt: DateTime(2026, 10, 12),
+                status: OperationStatus.confirmed,
+                idempotencyKey: 'capital',
+                debtCommandId: 'command',
+                debtAccountId: 'loan',
+                debtKind: 'pay',
+                principalDeltaMinor: -100,
+              ),
+              FinancialOperation(
+                id: 'new-interest',
+                type: OperationType.expense,
+                amountMinor: 50,
+                currency: 'COP',
+                monthKey: '2026-10',
+                occurredAt: DateTime(2026, 10, 12),
+                status: OperationStatus.confirmed,
+                idempotencyKey: 'new-interest',
+                debtCommandId: 'command',
+                debtAccountId: 'loan',
+                debtKind: 'newChargePaid',
+              ),
+            ],
+          ),
+        );
+      });
+      final container = ProviderContainer(
+        overrides: [
+          canonicalFinanceRepositoryProvider.overrideWithValue(repository),
+          pendingOperationsProvider.overrideWith((ref) => Stream.value(const <PendingOperation>[])),
+          balanceAdjustmentsProvider.overrideWith(
+            (ref, userId) => Stream.value(const <BalanceAdjustmentEvent>[]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(activityDebtPaymentsOnlyProvider.notifier).select(true);
+
+      final report = await container.read(activityReportProvider('user-1').future);
+
+      expect(queryUsedPaymentClassification, isTrue);
+      expect(report.operations, hasLength(2));
+      expect(report.totalsByCurrency['COP']!.expenseMinor, 50);
+      expect(report.totalsByCurrency['COP']!.incomeMinor, 0);
+    },
+  );
 }

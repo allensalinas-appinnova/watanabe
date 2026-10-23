@@ -22,6 +22,9 @@ void main() {
     rejected: 'Rechazado',
     unknownAccount: 'Cuenta desconocida',
     unknownCategory: 'Categoría desconocida',
+    paymentType: 'Tipo de pago',
+    cardPayment: 'Pago de tarjeta',
+    loanPayment: 'Pago de crédito',
   );
 
   FinancialOperation operation({
@@ -100,6 +103,7 @@ void main() {
     expect(csv, contains('"Efectivo → Banco, ahorro"'));
     expect(csv, contains('"Pendiente"'));
     expect(csv, contains('"Transferencia"'));
+    expect(csv, contains('"Tipo de pago"'));
     expect(csv, contains('"","900","COP","Confirmado"'));
     final local = DateTime(2026, 10, 21, 14, 5).toLocal();
     final offset = local.timeZoneOffset;
@@ -120,7 +124,34 @@ void main() {
     );
     expect(
       csv,
-      '\uFEFF"Fecha y hora","Tipo","Descripción","Cuenta(s)","Categoría","Importe","Moneda","Estado","Previous balance","Target balance","Difference","Command","Principal change","Charges change","Reversal of"\r\n',
+      '\uFEFF"Fecha y hora","Tipo","Descripción","Cuenta(s)","Categoría","Importe","Moneda","Estado","Previous balance","Target balance","Difference","Command","Principal change","Charges change","Reversal of","Tipo de pago"\r\n',
     );
+  });
+
+  test('identifies debt payment components without changing their accounting type', () {
+    final csv = ActivityCsvExporter.export(
+      operations: [
+        FinancialOperation(
+          id: 'payment',
+          type: OperationType.transfer,
+          amountMinor: 45000,
+          currency: 'COP',
+          monthKey: '2026-10',
+          occurredAt: DateTime(2026, 10, 21),
+          status: OperationStatus.confirmed,
+          idempotencyKey: 'payment',
+          debtCommandId: 'command-1',
+          debtAccountId: 'card',
+          debtKind: 'pay',
+        ),
+      ],
+      accounts: const [
+        FinanceAccount(id: 'card', name: 'Same name', type: 'creditCard', nature: 'debt'),
+      ],
+      categories: const [],
+      labels: labels,
+    );
+    expect(csv, contains('"Transferencia"'));
+    expect(csv, contains('"Pago de tarjeta"'));
   });
 }

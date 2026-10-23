@@ -52,7 +52,16 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
     final user = ref.read(authSessionProvider).valueOrNull;
     if (user != null) {
       final selectedType = ref.read(activityTypeFilterProvider);
-      ref.read(operationsPagerProvider((userId: user.id, type: selectedType)).notifier).loadMore();
+      final debtPaymentsOnly = ref.read(activityDebtPaymentsOnlyProvider);
+      ref
+          .read(
+            operationsPagerProvider((
+              userId: user.id,
+              type: selectedType,
+              debtPaymentsOnly: debtPaymentsOnly,
+            )).notifier,
+          )
+          .loadMore();
     }
   }
 
@@ -63,9 +72,14 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
 
     final selectedType = ref.watch(activityTypeFilterProvider);
+    final debtPaymentsOnly = ref.watch(activityDebtPaymentsOnlyProvider);
     final adjustmentsOnly = ref.watch(activityBalanceAdjustmentsOnlyProvider);
     final queryFilters = ref.watch(activityQueryFiltersProvider);
-    final pagerProvider = operationsPagerProvider((userId: user.id, type: selectedType));
+    final pagerProvider = operationsPagerProvider((
+      userId: user.id,
+      type: selectedType,
+      debtPaymentsOnly: debtPaymentsOnly,
+    ));
     final pager = ref.watch(pagerProvider);
     final reportProvider = activityReportProvider(user.id);
     final report = ref.watch(reportProvider);
@@ -111,9 +125,11 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                         const SizedBox(height: 16),
                         _ActivityTypeFilters(
                           selectedType: selectedType,
+                          debtPaymentsOnly: debtPaymentsOnly,
                           adjustmentsOnly: adjustmentsOnly,
                           onSelected: (type) {
                             ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
+                            ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
                             if (selectedType == type) return;
                             for (final filter in const <OperationType?>[
                               null,
@@ -122,15 +138,30 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                               OperationType.transfer,
                             ]) {
                               ref.invalidate(
-                                operationsPagerProvider((userId: user.id, type: filter)),
+                                operationsPagerProvider((
+                                  userId: user.id,
+                                  type: filter,
+                                  debtPaymentsOnly: false,
+                                )),
                               );
                             }
                             ref.read(activityTypeFilterProvider.notifier).select(type);
                             if (_scrollController.hasClients) _scrollController.jumpTo(0);
                           },
+                          onDebtPaymentsSelected: () {
+                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
+                            ref.read(activityTypeFilterProvider.notifier).select(null);
+                            ref.read(activityDebtPaymentsOnlyProvider.notifier).select(true);
+                            invalidateOperationLists(ref, user.id);
+                            ref.invalidate(reportProvider);
+                            if (_scrollController.hasClients) _scrollController.jumpTo(0);
+                          },
                           onAdjustmentsSelected: (value) {
                             ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(value);
-                            if (value) ref.read(activityTypeFilterProvider.notifier).select(null);
+                            if (value) {
+                              ref.read(activityTypeFilterProvider.notifier).select(null);
+                              ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
+                            }
                             ref.invalidate(reportProvider);
                             if (_scrollController.hasClients) _scrollController.jumpTo(0);
                           },
@@ -322,14 +353,25 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                                             'activity_command_${groups[index].first.debtCommandId}',
                                           ),
                                           title: Text(
-                                            groups[index].any((o) => o.debtKind == 'newChargePaid')
-                                                ? l10n.debtPay
-                                                : l10n.debtComponents,
+                                            _debtPaymentLabel(
+                                                  groups[index].first,
+                                                  accounts,
+                                                  l10n,
+                                                ) ??
+                                                l10n.debtComponents,
                                           ),
                                           subtitle: Text(
-                                            DateFormat.yMMMd(
+                                            '${DateFormat.yMMMd(
                                               Localizations.localeOf(context).toString(),
-                                            ).format(groups[index].first.occurredAt.toLocal()),
+                                            ).format(groups[index].first.occurredAt.toLocal())} · '
+                                            '${CurrencyFormatter.formatMinor(
+                                              groups[index].fold<int>(
+                                                0,
+                                                (total, operation) => total + operation.amountMinor * operation.projectionDirection,
+                                              ).abs(),
+                                              groups[index].first.currency,
+                                              locale: Localizations.localeOf(context).toString(),
+                                            )}',
                                           ),
                                           children: [
                                             for (final operation in groups[index])
@@ -403,6 +445,8 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
         periodLabel: _activityPeriodRangeLabel(queryFilters, context),
         typeLabel: adjustmentsOnly
             ? l10n.activityBalanceAdjustmentType
+            : ref.read(activityDebtPaymentsOnlyProvider)
+            ? l10n.activityFilterDebtPayments
             : selectedType == null
             ? l10n.activityFilterAll
             : selectedType == OperationType.income
@@ -446,6 +490,9 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
               principal: l10n.debtPrincipal,
               charges: l10n.debtCharges,
               reversal: l10n.debtReversal,
+              paymentType: l10n.activityCsvPaymentType,
+              cardPayment: l10n.debtPaymentCard,
+              loanPayment: l10n.debtPaymentLoan,
             ),
           );
           final now = DateTime.now();
@@ -765,17 +812,33 @@ String _activityPeriodRangeLabel(ActivityQueryFilters filters, BuildContext cont
   return '${DateFormat.yMMMd(locale).format(start)} – ${DateFormat.yMMMd(locale).format(end)}';
 }
 
+String? _debtPaymentLabel(
+  FinancialOperation operation,
+  List<FinanceAccount> accounts,
+  AppLocalizations l10n,
+) {
+  if (!operation.isDebtPaymentComponent) return null;
+  final debtAccounts = accounts.where((account) => account.id == operation.debtAccountId);
+  return debtAccounts.firstOrNull?.isCreditCard == true
+      ? l10n.debtPaymentCard
+      : l10n.debtPaymentLoan;
+}
+
 class _ActivityTypeFilters extends StatelessWidget {
   const _ActivityTypeFilters({
     required this.selectedType,
+    required this.debtPaymentsOnly,
     required this.adjustmentsOnly,
     required this.onSelected,
+    required this.onDebtPaymentsSelected,
     required this.onAdjustmentsSelected,
   });
 
   final OperationType? selectedType;
+  final bool debtPaymentsOnly;
   final bool adjustmentsOnly;
   final ValueChanged<OperationType?> onSelected;
+  final VoidCallback onDebtPaymentsSelected;
   final ValueChanged<bool> onAdjustmentsSelected;
 
   @override
@@ -785,7 +848,7 @@ class _ActivityTypeFilters extends StatelessWidget {
       (
         label: l10n.activityFilterAll,
         key: 'all',
-        selected: !adjustmentsOnly && selectedType == null,
+        selected: !adjustmentsOnly && !debtPaymentsOnly && selectedType == null,
         onTap: () => onSelected(null),
       ),
       (
@@ -805,6 +868,12 @@ class _ActivityTypeFilters extends StatelessWidget {
         key: 'transfers',
         selected: !adjustmentsOnly && selectedType == OperationType.transfer,
         onTap: () => onSelected(OperationType.transfer),
+      ),
+      (
+        label: l10n.activityFilterDebtPayments,
+        key: 'debt_payments',
+        selected: debtPaymentsOnly,
+        onTap: onDebtPaymentsSelected,
       ),
       (
         label: l10n.activityBalanceAdjustmentsFilter,
@@ -966,15 +1035,18 @@ class _ActivityOperationCard extends StatelessWidget {
     }
 
     final categoryName = category?.customName ?? l10n.category;
-    final typeLabel = operation.type == OperationType.expenseRefund
-        ? l10n.debtRefund
-        : operation.type == OperationType.debtAdjustment
-        ? l10n.debtAdjust
-        : isTransfer
-        ? l10n.transferOperationLabel
-        : isIncome
-        ? l10n.income
-        : l10n.expense;
+    final typeLabel = operation.reversalOf != null
+        ? l10n.debtReversal
+        : _debtPaymentLabel(operation, accounts, l10n) ??
+              (operation.type == OperationType.expenseRefund
+                  ? l10n.debtRefund
+                  : operation.type == OperationType.debtAdjustment
+                  ? l10n.debtAdjust
+                  : isTransfer
+                  ? l10n.transferOperationLabel
+                  : isIncome
+                  ? l10n.income
+                  : l10n.expense);
     final accountDetail = isTransfer
         ? '${sourceAccount?.name ?? l10n.account} → ${destinationAccount?.name ?? l10n.account}'
         : '${account?.name ?? l10n.account} · $categoryName';

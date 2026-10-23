@@ -34,6 +34,9 @@ class ActivityCsvLabels {
     this.principal = 'Principal change',
     this.charges = 'Charges change',
     this.reversal = 'Reversal of',
+    this.paymentType = 'Payment type',
+    this.cardPayment = 'Credit card payment',
+    this.loanPayment = 'Loan payment',
   });
 
   final String date;
@@ -62,6 +65,9 @@ class ActivityCsvLabels {
   final String principal;
   final String charges;
   final String reversal;
+  final String paymentType;
+  final String cardPayment;
+  final String loanPayment;
 }
 
 abstract final class ActivityCsvExporter {
@@ -93,6 +99,7 @@ abstract final class ActivityCsvExporter {
         labels.principal,
         labels.charges,
         labels.reversal,
+        labels.paymentType,
       ],
       for (final operation in operations)
         if (operation.status != OperationStatus.rejected)
@@ -148,6 +155,16 @@ abstract final class ActivityCsvExporter {
                     operation.currency,
                   ),
             operation.reversalOf ?? '',
+            if (operation.isDebtPaymentComponent)
+              (accounts
+                          .where((account) => account.id == operation.debtAccountId)
+                          .firstOrNull
+                          ?.isCreditCard ==
+                      true
+                  ? labels.cardPayment
+                  : labels.loanPayment)
+            else
+              '',
           ],
       for (final entry in adjustments)
         [

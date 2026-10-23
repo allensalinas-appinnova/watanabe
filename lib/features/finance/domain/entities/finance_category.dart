@@ -1,5 +1,7 @@
 enum CategoryType { income, expense }
 
+const currentCategoryCatalogVersion = 2;
+
 class FinanceCategory {
   const FinanceCategory({
     required this.id,

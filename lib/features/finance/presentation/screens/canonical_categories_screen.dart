@@ -825,6 +825,7 @@ String _categoryIconLabel(String? iconId, AppLocalizations l10n) =>
       'transport' => l10n.categoryIconCar,
       'health' => l10n.categoryIconHeart,
       'education' => l10n.categoryIconBook,
+      'interest' => l10n.categoryIconInterest,
       'salary' => l10n.categoryIconBriefcase,
       _ => l10n.categoryIconTag,
     };

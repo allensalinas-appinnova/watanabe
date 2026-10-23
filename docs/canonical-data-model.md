@@ -44,9 +44,12 @@ debt nature keep their legacy money-account meaning.
 ## Localization and onboarding
 
 The global category catalog stores localized labels and country availability.
-Onboarding creates a versioned per-user snapshot. Users can archive or rename
-their snapshot without changing the global catalog. A later catalog version is
-applied through an explicit onboarding/settings action, never silently.
+Onboarding creates a versioned per-user snapshot. On an authenticated session,
+the app non-blockingly synchronizes newly introduced defaults from the catalog;
+the operation is idempotent and adds only absent categories. User-renamed,
+customized, and archived categories are preserved. A failed sync does not block
+normal app use and can be retried. The catalog's `interest_fees` expense category
+is version 2 and does not relabel historical operations.
 
 ## Derived data
 

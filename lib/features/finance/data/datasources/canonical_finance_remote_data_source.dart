@@ -39,6 +39,12 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     String defaultCurrency = 'COP',
   });
 
+  Future<void> syncDefaultCategories(
+    String userId, {
+    required String locale,
+    required String countryCode,
+  });
+
   Stream<List<Map<String, dynamic>>> watchCategories(String userId);
 
   Future<Map<String, dynamic>> createCategory(
@@ -85,6 +91,7 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     String? monthKey,
     String? currency,
     OperationType? type,
+    bool debtPaymentsOnly = false,
     String? accountId,
     List<String>? accountIds,
     DateTime? startAt,
@@ -235,7 +242,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'timeZone': timeZone,
       'defaultCurrency': defaultCurrency,
       'onboardingStatus': 'complete',
-      'categoryCatalogVersion': 1,
+      'categoryCatalogVersion': currentCategoryCatalogVersion,
       'updatedAt': FieldValue.serverTimestamp(),
     };
     if ((await profile.get()).exists) {
@@ -246,6 +253,58 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
+  }
+
+  @override
+  Future<void> syncDefaultCategories(
+    String userId, {
+    required String locale,
+    required String countryCode,
+  }) async {
+    const catalogVersion = currentCategoryCatalogVersion;
+    final catalog = await _firestore
+        .collection('categoryCatalog')
+        .where('isActive', isEqualTo: true)
+        .where('supportedCountries', arrayContains: countryCode)
+        .get();
+    final categories = _userCollection(userId, 'categories');
+    final profile = _userDocument(userId);
+    final refs = catalog.docs.map((document) => categories.doc(document.id)).toList();
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshots = <DocumentSnapshot<Map<String, dynamic>>>[];
+      for (final reference in refs) {
+        snapshots.add(await transaction.get(reference));
+      }
+      final profileSnapshot = await transaction.get(profile);
+      for (var index = 0; index < catalog.docs.length; index++) {
+        if (snapshots[index].exists) continue;
+        final data = catalog.docs[index].data();
+        final labels = Map<String, dynamic>.from(data['labels'] as Map? ?? const {});
+        final name = labels[locale.split('-').first] as String? ?? labels['en'] as String?;
+        transaction.set(refs[index], {
+          'catalogId': catalog.docs[index].id,
+          'type': data['type'],
+          'name': name ?? data['translationKey'],
+          'icon': data['icon'],
+          'sortOrder': data['sortOrder'] ?? 0,
+          'isSystem': true,
+          'isArchived': false,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      if (profileSnapshot.exists) {
+        final currentVersion = (profileSnapshot.data()?['categoryCatalogVersion'] as num? ?? 1)
+            .toInt();
+        if (currentVersion < catalogVersion) {
+          transaction.update(profile, {
+            'categoryCatalogVersion': catalogVersion,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -267,6 +326,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String? monthKey,
     String? currency,
     OperationType? type,
+    bool debtPaymentsOnly = false,
     String? accountId,
     List<String>? accountIds,
     DateTime? startAt,
@@ -279,7 +339,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     Query<Map<String, dynamic>> query = _userCollection(userId, 'operations');
     if (monthKey != null) query = query.where('monthKey', isEqualTo: monthKey);
     if (currency != null) query = query.where('currency', isEqualTo: currency);
-    if (type != null && type != OperationType.expense) {
+    if (!debtPaymentsOnly && type != null && type != OperationType.expense) {
       query = query.where('type', isEqualTo: type.name);
     }
     final selectedAccountIds = {
@@ -326,17 +386,19 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     }
     final records = <Map<String, dynamic>>[];
     OperationPageCursor? nextCursor;
-    // Scan to fill an expense page, including refunds. A type OR combined with
-    // ten selected accounts would exceed Firestore's 30-disjunction limit.
+    // Scan to fill expense and debt-payment pages, including linked rows. A
+    // type OR combined with ten selected accounts would exceed Firestore's
+    // 30-disjunction limit.
     // The cursor always advances over scanned rows, never filtered positions.
     for (;;) {
       final remaining = pageSize - records.length;
       final snapshot = await query.limit(remaining).get();
       records.addAll(
         _records(snapshot).where(
-          (record) =>
-              type != OperationType.expense ||
-              ['expense', 'expenseRefund'].contains(record['type']),
+          (record) => (debtPaymentsOnly
+              ? _isDebtPaymentRecord(record)
+              : type != OperationType.expense ||
+                    ['expense', 'expenseRefund'].contains(record['type'])),
         ),
       );
       final last = snapshot.docs.isEmpty ? null : snapshot.docs.last;
@@ -367,15 +429,22 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         if (doc.data()['debtCommandId'] != commandId) break;
         final occurredAt = doc.data()['occurredAt'];
         if (occurredAt is! Timestamp) break;
-        if (type != OperationType.expense ||
-            ['expense', 'expenseRefund'].contains(doc.data()['type'])) {
-          records.add({...doc.data(), 'id': doc.id});
+        final data = doc.data();
+        if (debtPaymentsOnly
+            ? _isDebtPaymentRecord(data)
+            : type != OperationType.expense ||
+                  ['expense', 'expenseRefund'].contains(data['type'])) {
+          records.add({...data, 'id': doc.id});
         }
         nextCursor = OperationPageCursor(occurredAt: occurredAt.toDate(), operationId: doc.id);
       }
     }
     return RemoteOperationPage(records: records, nextCursor: nextCursor);
   }
+
+  bool _isDebtPaymentRecord(Map<String, dynamic> record) =>
+      record['debtCommandId'] is String &&
+      const {'pay', 'newChargePaid'}.contains(record['debtKind']);
 
   @override
   Stream<List<Map<String, dynamic>>> watchLedgerEntries(String userId, String accountId) =>

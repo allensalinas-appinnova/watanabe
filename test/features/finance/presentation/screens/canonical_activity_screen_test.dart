@@ -238,10 +238,10 @@ void main() {
 
     await tester.pumpWidget(buildSubject(locale: const Locale('es'), shareService: service));
     await tester.pumpAndSettle();
-    final filters = find.byKey(const ValueKey('activity_type_filters_scroll'));
-    await tester.drag(filters, const Offset(-500, 0));
+    final transfersFilter = find.byKey(const ValueKey('activity_filter_transfers'));
+    await tester.ensureVisible(transfersFilter);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('activity_filter_transfers')));
+    await tester.tap(transfersFilter);
     await tester.pumpAndSettle();
 
     expect(find.text('Mover dinero'), findsOneWidget);

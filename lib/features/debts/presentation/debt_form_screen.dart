@@ -11,7 +11,11 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../finance/domain/entities/finance_account.dart';
 import '../../finance/domain/entities/financial_operation.dart';
+import '../../finance/presentation/models/picker_usage_order.dart';
 import '../../finance/presentation/providers/canonical_finance_providers.dart';
+import '../../finance/presentation/widgets/finance_account_option.dart';
+import '../../finance/presentation/widgets/finance_category_icon.dart';
+import '../../finance/presentation/widgets/finance_popup_selector.dart';
 import '../domain/debt_command.dart';
 import 'debt_error_message.dart';
 import 'debt_providers.dart';
@@ -133,6 +137,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       );
     }
     final accounts = accountsState.valueOrNull ?? const <FinanceAccount>[];
+    final recentOperations =
+        ref.watch(canonicalRecentOperationsProvider(user.id)).valueOrNull ??
+        const <FinancialOperation>[];
     final matches = accounts.where((a) => a.id == widget.accountId);
     final account = matches.isEmpty ? null : matches.first;
     if (!_create && (account == null || !account.isDebt)) {
@@ -182,13 +189,43 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     final banks = accounts
         .where((a) => !a.isDebt && a.status == 'active' && a.currency == _currency)
         .toList();
+    final bankUsageOrder = orderPickerOptionsByUsage(
+      options: banks,
+      recentOperations: recentOperations,
+      idOf: (bank) => bank.id,
+      usageIdsOf: accountUsageIds,
+      compareAlphabetically: (left, right) =>
+          left.name.toLowerCase().compareTo(right.name.toLowerCase()),
+    );
     final bankNeeded =
         widget.action == 'pay' || widget.action == 'disburse' || (_create && _mode == 'received');
     final categoryNeeded =
-        ['purchase', 'charge'].contains(widget.action) || (widget.action == 'pay' && !_card);
+        ['purchase', 'charge'].contains(widget.action) ||
+        (widget.action == 'pay' && !_card && _hasPositiveNewCharges);
     final validCategories = categories
         .where((c) => c.type.name == 'expense' && !c.isArchived)
         .toList();
+    final suggestedCategory = validCategories.where((category) => category.id == 'interest_fees');
+    final suggestedCategoryId = suggestedCategory.isEmpty ? null : suggestedCategory.first.id;
+    final shouldSuggestFeesCategory =
+        widget.action == 'charge' || (widget.action == 'pay' && !_card && _hasPositiveNewCharges);
+    if (shouldSuggestFeesCategory &&
+        _categoryId == null &&
+        suggestedCategoryId != null &&
+        categoriesState.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _categoryId == null) setState(() => _categoryId = suggestedCategoryId);
+      });
+    }
+    final categoryUsageOrder = orderPickerOptionsByUsage(
+      options: validCategories,
+      recentOperations: recentOperations,
+      idOf: (category) => category.id,
+      usageIdsOf: (operation) => categoryUsageIds(operation, OperationType.expense),
+      compareAlphabetically: (left, right) => (left.customName ?? left.id).toLowerCase().compareTo(
+        (right.customName ?? right.id).toLowerCase(),
+      ),
+    );
     final title = debtActionLabel(l, widget.action);
     Widget input(
       String key,
@@ -239,6 +276,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
           child: Form(
             key: _form,
             child: ListView(
+              key: const ValueKey('debt_form_list'),
               padding: const EdgeInsets.all(24),
               children: [
                 if (account != null)
@@ -367,19 +405,30 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                   const SizedBox(height: 16),
                 ],
                 if (bankNeeded) ...[
-                  DropdownButtonFormField<String>(
+                  FinancePopupSelector<String>(
                     key: ValueKey('debt_bank_$_currency'),
+                    controlKey: ValueKey('debt_bank_${_currency}_tap'),
+                    title: l.debtBank,
+                    placeholder: l.selectionChoosePrompt,
                     initialValue: _bankId,
-                    isExpanded: true,
-                    decoration: InputDecoration(labelText: l.debtBank),
-                    items: banks
-                        .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
-                        .toList(),
-                    validator: (v) => v == null ? l.debtErrorReference : null,
-                    onChanged: _saving
+                    options: bankUsageOrder.ordered.map((bank) => bank.id).toList(),
+                    frequentOptions: bankUsageOrder.frequent.map((bank) => bank.id).toList(),
+                    optionLabel: (id) {
+                      final bank = banks.firstWhere((item) => item.id == id);
+                      return financeAccountSelectionLabel(bank, l);
+                    },
+                    searchText: (id) {
+                      final bank = banks.firstWhere((item) => item.id == id);
+                      return '${financeAccountSelectionLabel(bank, l)} ${bank.currency}';
+                    },
+                    optionBuilder: (context, id) => FinanceAccountOption(
+                      account: banks.firstWhere((item) => item.id == id),
+                    ),
+                    validator: (value) => value == null ? l.debtErrorReference : null,
+                    onSelected: _saving
                         ? null
-                        : (v) => setState(() {
-                            _bankId = v;
+                        : (value) => setState(() {
+                            _bankId = value;
                             _dirty = true;
                           }),
                   ),
@@ -401,21 +450,50 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                   ],
                 ],
                 if (categoryNeeded) ...[
-                  DropdownButtonFormField<String>(
+                  FinancePopupSelector<String>(
+                    key: ValueKey('debt_category_selector_${_categoryId ?? 'unselected'}'),
+                    controlKey: const ValueKey('debt_category_selector_tap'),
+                    title: widget.action == 'pay' ? l.debtNewChargesCategory : l.category,
+                    placeholder: l.selectionChoosePrompt,
                     initialValue: _categoryId,
-                    isExpanded: true,
-                    decoration: InputDecoration(labelText: l.category),
-                    items: validCategories
-                        .map(
-                          (c) => DropdownMenuItem(value: c.id, child: Text(c.customName ?? c.id)),
-                        )
+                    options: categoryUsageOrder.ordered.map((category) => category.id).toList(),
+                    frequentOptions: categoryUsageOrder.frequent
+                        .map((category) => category.id)
                         .toList(),
-                    validator: (v) =>
-                        v == null && widget.action != 'pay' ? l.debtErrorReference : null,
-                    onChanged: _saving
+                    optionLabel: (id) {
+                      final category = validCategories.firstWhere((item) => item.id == id);
+                      return category.customName ?? category.id;
+                    },
+                    searchText: (id) {
+                      final category = validCategories.firstWhere((item) => item.id == id);
+                      return '${category.customName ?? category.id} ${category.id}';
+                    },
+                    optionBuilder: (context, id) {
+                      final category = validCategories.firstWhere((item) => item.id == id);
+                      return Row(
+                        children: [
+                          FinanceCategoryIcon(
+                            iconId: category.icon,
+                            colorValue: category.colorValue,
+                            size: 28,
+                            iconSize: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              category.customName ?? category.id,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                    validator: (value) => value == null ? l.debtErrorReference : null,
+                    onSelected: _saving
                         ? null
-                        : (v) => setState(() {
-                            _categoryId = v;
+                        : (value) => setState(() {
+                            _categoryId = value;
                             _dirty = true;
                           }),
                   ),
@@ -501,7 +579,11 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
             (_create && _mode == 'received'))) {
       data['bankAccountId'] = _bankId;
     }
-    if (_categoryId != null) data['categoryId'] = _categoryId;
+    final categoryRequired =
+        widget.action == 'purchase' ||
+        widget.action == 'charge' ||
+        (widget.action == 'pay' && !_card && _money('newChargesMinor') > 0);
+    if (categoryRequired && _categoryId != null) data['categoryId'] = _categoryId;
     if (['purchase', 'charge', 'pay', 'disburse', 'refund'].contains(widget.action)) {
       data['amountMinor'] = _money('amountMinor');
     }
@@ -551,6 +633,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 Text(
                   '${_amountLabel(l, entry.key)}: ${CurrencyFormatter.formatMinor(entry.value! as int, _currency)}',
                 ),
+              if (widget.action == 'pay' && !_card) Text(l.debtNewChargesExpenseNote),
               Text(l.debtOnline),
             ],
           ),
@@ -615,4 +698,12 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     'targetDebtMinor' || 'debtMinor' => l.debtRegistered,
     _ => l.amount,
   };
+
+  bool get _hasPositiveNewCharges {
+    try {
+      return _money('newChargesMinor') > 0;
+    } on Object {
+      return false;
+    }
+  }
 }

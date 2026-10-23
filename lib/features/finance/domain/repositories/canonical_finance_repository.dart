@@ -97,6 +97,12 @@ abstract interface class CanonicalFinanceRepository {
     String defaultCurrency = 'COP',
   });
 
+  Future<Either<Failure, Unit>> syncDefaultCategories(
+    String userId, {
+    required String locale,
+    required String countryCode,
+  });
+
   Stream<List<FinanceCategory>> watchCategories(String userId);
 
   Future<Either<Failure, FinanceCategory>> createCategory(
@@ -146,6 +152,7 @@ abstract interface class CanonicalFinanceRepository {
     String? monthKey,
     String? currency,
     OperationType? type,
+    bool debtPaymentsOnly = false,
     String? accountId,
     List<String>? accountIds,
     DateTime? startAt,

@@ -256,7 +256,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('É necessário ter conexão para salvar este orçamento. Suas alterações continuam aqui; tente novamente.'),
+      find.text(
+        'É necessário ter conexão para salvar este orçamento. Suas alterações continuam aqui; tente novamente.',
+      ),
       findsOneWidget,
     );
     expect(

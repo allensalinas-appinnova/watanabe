@@ -113,6 +113,22 @@ metrics subtract refunds/reversals and exclude financing, principal and adjustme
 Expense pagination includes refunds without exceeding Firestore's account-filter
 disjunction limit. Adjacent payment components are kept together at page boundaries.
 
+Activity identifies debt-payment rows as **Card payment** or **Loan payment** from
+the linked debt account, and offers a **Debt payments** classification filter. The
+filter scans the complete paginated query and includes payment components, including
+new charges paid with an installment, but excludes purchases, disbursements,
+reconciliations and separately accrued charges. CSV retains each component's
+accounting operation type and adds its payment classification; it does not add a
+summable payment-total row.
+
+The default expense category `interest_fees` (localized as “Intereses y comisiones”,
+“Juros e tarifas” and “Interest and fees”) is suggested for a separately accrued
+financial charge and for new charges paid in a loan installment. Capital and
+previously accrued charges remain outside expenses and budget tracking. The
+category is not assigned retroactively. Authenticated category-catalog sync adds
+only missing defaults, preserves renamed/customized/archived categories, and
+advances the catalog version without blocking app use on failure.
+
 Home separates money, debt and card credits per currency inside the existing
 customizable/private balance surface. Recorded net position is explicitly not
 described as complete wealth. No currency conversion occurs.
@@ -167,6 +183,15 @@ concurrency with legacy projections, audit reconstruction and alternate-path den
 Flutter tests cover position/totals, grouping, locales, compact creation and stable
 retry. The native integration test uses synthetic Auth/Firestore/Functions data.
 Passing unit/widget tests is not proof of device E2E or visual acceptance.
+
+Current worktree qualification (2026-10-23): `flutter analyze` is clean and all
+329 Flutter tests pass. `tool/run_debt_tests.sh` passes 30 debt/projection/audit
+tests, 19 Firestore Rules tests, and 2 callable/trigger tests. The expanded Android
+debt-flow E2E builds and reaches emulator-backed flows but currently fails in its
+widget interaction sequence before completing all scenarios; it is not a passing
+qualification. The live catalog seed was attempted but could not authenticate
+because Google Application Default Credentials are missing/expired. No live
+catalog update, Rules deployment, or Functions deployment occurred in this run.
 
 Deploy only affected Functions (`mutateDebt`, `processOperation`,
 `adjustAccountBalances`, `mutateEmailImport`) and Firestore rules after validation.

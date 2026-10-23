@@ -27,6 +27,32 @@ class AppLocalizationsEs extends AppLocalizations {
   String get debtProduct => 'Producto';
 
   @override
+  String get debtPaymentCard => 'Pago de tarjeta';
+
+  @override
+  String get debtPaymentLoan => 'Pago de crédito';
+
+  @override
+  String get activityFilterDebtPayments => 'Pagos de deudas';
+
+  @override
+  String get activityCsvPaymentType => 'Tipo de pago';
+
+  @override
+  String get categoryCatalogSyncMessage =>
+      'No se pudieron actualizar las categorías predeterminadas.';
+
+  @override
+  String get categoryIconInterest => 'Intereses y comisiones';
+
+  @override
+  String get debtNewChargesCategory => 'Categoría de los cargos nuevos';
+
+  @override
+  String get debtNewChargesExpenseNote =>
+      'Solo los cargos nuevos de esta cuota se registran como gasto.';
+
+  @override
   String get debtCreditCard => 'Tarjeta de crédito';
 
   @override

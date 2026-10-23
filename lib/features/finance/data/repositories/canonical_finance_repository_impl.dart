@@ -82,6 +82,24 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> syncDefaultCategories(
+    String userId, {
+    required String locale,
+    required String countryCode,
+  }) async {
+    try {
+      await _remoteDataSource.syncDefaultCategories(
+        userId,
+        locale: locale,
+        countryCode: countryCode,
+      );
+      return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
   Stream<List<FinanceCategory>> watchCategories(String userId) =>
       _remoteDataSource.watchCategories(userId).map((records) => records.map(_category).toList());
 
@@ -264,6 +282,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     String? monthKey,
     String? currency,
     OperationType? type,
+    bool debtPaymentsOnly = false,
     String? accountId,
     List<String>? accountIds,
     DateTime? startAt,
@@ -277,6 +296,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         monthKey: monthKey,
         currency: currency,
         type: type,
+        debtPaymentsOnly: debtPaymentsOnly,
         accountId: accountId,
         accountIds: accountIds,
         startAt: startAt,

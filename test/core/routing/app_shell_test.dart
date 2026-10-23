@@ -595,7 +595,9 @@ class _ActivityPagerTab extends ConsumerWidget {
     final user = ref.watch(authSessionProvider).valueOrNull;
     if (user == null) return const Scaffold(body: Text('No test user'));
     final type = ref.watch(activityTypeFilterProvider);
-    final page = ref.watch(operationsPagerProvider((userId: user.id, type: type)));
+    final page = ref.watch(
+      operationsPagerProvider((userId: user.id, type: type, debtPaymentsOnly: false)),
+    );
     return Scaffold(
       body: Center(
         child: Text('activity-items:${page.valueOrNull?.items.length ?? 0} · All filter'),

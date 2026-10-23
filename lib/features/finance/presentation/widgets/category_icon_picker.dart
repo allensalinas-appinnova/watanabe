@@ -30,6 +30,7 @@ class _CategoryIconPickerState extends State<_CategoryIconPicker> {
       'transport': l10n.categoryIconTransport,
       'health': l10n.categoryIconHealth,
       'education': l10n.categoryIconEducation,
+      'interest': l10n.categoryIconInterest,
       'salary': l10n.categoryIconSalary,
       'other': l10n.categoryIconOther,
     };

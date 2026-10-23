@@ -6,6 +6,7 @@ import '../../core/routing/global_fab_visibility.dart';
 import '../../core/utils/async_value_extensions.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
+import '../../features/finance/domain/entities/finance_category.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
 import '../../features/finance/presentation/models/movement_save_result.dart';
 import '../../features/finance/presentation/providers/canonical_finance_providers.dart';
@@ -37,6 +38,20 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     ref.watch(pendingOperationAutoSyncProvider);
+    final sessionUser = ref.watch(authSessionProvider).valueOrNull;
+    final profile = sessionUser == null
+        ? null
+        : ref.watch(canonicalUserProfileProvider(sessionUser.id)).valueOrNull;
+    final categoryCatalogSync =
+        profile != null && profile.categoryCatalogVersion < currentCategoryCatalogVersion
+        ? ref.watch(
+            categoryCatalogSyncProvider((
+              userId: profile.id,
+              locale: profile.locale,
+              countryCode: profile.countryCode,
+            )),
+          )
+        : null;
     final showFab = ref.watch(globalFabVisibleProvider);
     final pendingOperations = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
     final activePending = pendingOperations
@@ -60,6 +75,34 @@ class _AppShellState extends ConsumerState<AppShell> {
         bottom: false,
         child: Column(
           children: [
+            if (categoryCatalogSync?.hasError == true)
+              Material(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 8, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(AppLocalizations.of(context).categoryCatalogSyncMessage),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          if (profile != null) {
+                            ref.invalidate(
+                              categoryCatalogSyncProvider((
+                                userId: profile.id,
+                                locale: profile.locale,
+                                countryCode: profile.countryCode,
+                              )),
+                            );
+                          }
+                        },
+                        child: Text(AppLocalizations.of(context).retry),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             if (hasSyncNotice)
               Material(
                 color: rejected

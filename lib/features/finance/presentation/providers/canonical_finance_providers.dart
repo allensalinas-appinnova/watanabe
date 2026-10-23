@@ -61,6 +61,25 @@ final canonicalUserProfileProvider = StreamProvider.family<UserProfile?, String>
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
 );
 
+final categoryCatalogSyncProvider =
+    FutureProvider.family<
+      void,
+      ({
+        String userId,
+        String locale,
+        String countryCode,
+      })
+    >((ref, input) async {
+      final result = await ref
+          .watch(canonicalFinanceRepositoryProvider)
+          .syncDefaultCategories(
+            input.userId,
+            locale: input.locale,
+            countryCode: input.countryCode,
+          );
+      result.match((failure) => throw Exception(failure.message), (_) {});
+    });
+
 final appearancePreferencesControllerProvider =
     NotifierProvider<AppearancePreferencesController, AppearancePreferencesSaveState>(
       AppearancePreferencesController.new,
@@ -214,7 +233,7 @@ final operationsPagerProvider =
     AsyncNotifierProvider.family<
       OperationsPagerNotifier,
       OperationPagerState,
-      ({String userId, OperationType? type})
+      ({String userId, OperationType? type, bool debtPaymentsOnly})
     >(
       OperationsPagerNotifier.new,
     );
@@ -238,13 +257,29 @@ void invalidateOperationLists(WidgetRef ref, String userId) {
     OperationType.expense,
     OperationType.transfer,
   ]) {
-    ref.invalidate(operationsPagerProvider((userId: userId, type: type)));
+    ref.invalidate(
+      operationsPagerProvider((userId: userId, type: type, debtPaymentsOnly: false)),
+    );
   }
+  ref.invalidate(
+    operationsPagerProvider((userId: userId, type: null, debtPaymentsOnly: true)),
+  );
 }
 
 final activityTypeFilterProvider = NotifierProvider<ActivityTypeFilterNotifier, OperationType?>(
   ActivityTypeFilterNotifier.new,
 );
+
+final activityDebtPaymentsOnlyProvider = NotifierProvider<DebtPaymentsOnlyNotifier, bool>(
+  DebtPaymentsOnlyNotifier.new,
+);
+
+class DebtPaymentsOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void select(bool value) => state = value;
+}
 
 final activityBalanceAdjustmentsOnlyProvider =
     NotifierProvider<BalanceAdjustmentsOnlyNotifier, bool>(
@@ -270,6 +305,7 @@ final activityReportProvider = FutureProvider.family<ActivityReport, String>((re
   Future<ActivityReport> load() async {
     final filters = ref.watch(activityQueryFiltersProvider);
     final type = ref.watch(activityTypeFilterProvider);
+    final debtPaymentsOnly = ref.watch(activityDebtPaymentsOnlyProvider);
     final adjustmentsOnly = ref.watch(activityBalanceAdjustmentsOnlyProvider);
     final adjustmentEventsState = ref.watch(balanceAdjustmentsProvider(userId));
     final localPending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
@@ -284,6 +320,7 @@ final activityReportProvider = FutureProvider.family<ActivityReport, String>((re
         cursor: cursor,
         monthKey: filters.monthKey,
         type: type,
+        debtPaymentsOnly: debtPaymentsOnly,
         accountIds: filters.accountIds,
         startAt: filters.startAt,
         endAtExclusive: filters.endAtExclusive,
@@ -306,7 +343,7 @@ final activityReportProvider = FutureProvider.family<ActivityReport, String>((re
         if (operation == null || knownIdempotencyKeys.contains(operation.idempotencyKey)) {
           continue;
         }
-        if (type != null && operation.type != type) continue;
+        if (debtPaymentsOnly || (type != null && operation.type != type)) continue;
         if (filters.monthKey != null && operation.monthKey != filters.monthKey) continue;
         if (filters.isDateRange &&
             (operation.occurredAt.isBefore(filters.startAt!) ||
@@ -330,7 +367,7 @@ final activityReportProvider = FutureProvider.family<ActivityReport, String>((re
     }
 
     final adjustments = <BalanceAdjustmentActivityEntry>[];
-    if (type == null) {
+    if (type == null && !debtPaymentsOnly) {
       for (final event in adjustmentEvents) {
         final localDate = event.adjustedAt.toLocal();
         final monthKey =
@@ -441,7 +478,7 @@ class ActivityTypeFilterNotifier extends Notifier<OperationType?> {
 class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
   OperationsPagerNotifier(this.filter);
 
-  final ({String userId, OperationType? type}) filter;
+  final ({String userId, OperationType? type, bool debtPaymentsOnly}) filter;
   int _requestGeneration = 0;
 
   @override
@@ -470,6 +507,7 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
           monthKey: current.monthKey,
           currency: current.currency,
           type: current.type,
+          debtPaymentsOnly: filter.debtPaymentsOnly,
           accountIds: current.accountIds,
           startAt: current.startAt,
           endAtExclusive: current.endAtExclusive,
@@ -504,6 +542,7 @@ class OperationsPagerNotifier extends AsyncNotifier<OperationPagerState> {
         .fetchOperationsPage(
           filter.userId,
           type: type,
+          debtPaymentsOnly: filter.debtPaymentsOnly,
           accountIds: filters.accountIds,
           monthKey: filters.monthKey,
           startAt: filters.startAt,

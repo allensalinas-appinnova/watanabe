@@ -131,6 +131,19 @@ concurrency, validation, archived history and aggregate recomputation. Rules
 tests deny all client budget/item writes and receipt access. Flutter tests cover
 command forwarding, retry identity and localized recoverable errors.
 
+Debt payments and category-catalog changes are covered by
+`integration_test/debt_flow_test.dart` using synthetic Auth, Firestore and
+Functions Emulator data. The flow is considered qualified only when it completes
+on Android Emulator; a successful build or partially completed callable sequence
+does not count as an E2E pass. Local execution uses:
+
+```sh
+JAVA_HOME=/opt/homebrew/opt/openjdk@21 \
+PATH="/opt/homebrew/opt/openjdk@21/bin:/Users/allensalinas/Library/Android/sdk/platform-tools:$PATH" \
+E2E_TEST_FILE=integration_test/debt_flow_test.dart \
+bash tool/run_emulator_e2e.sh emulator-5554
+```
+
 ## References
 
 - [Firebase Auth Flutter setup and Auth Emulator](https://firebase.google.com/docs/auth/flutter/start)

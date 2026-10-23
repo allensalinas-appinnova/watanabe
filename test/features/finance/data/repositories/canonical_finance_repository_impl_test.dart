@@ -98,6 +98,7 @@ class _OperationsDataSource implements CanonicalFinanceRemoteDataSource {
     String? monthKey,
     String? currency,
     OperationType? type,
+    bool debtPaymentsOnly = false,
     String? accountId,
     List<String>? accountIds,
     DateTime? startAt,

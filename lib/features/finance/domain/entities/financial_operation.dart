@@ -72,4 +72,7 @@ class FinancialOperation {
   };
 
   bool get isTransfer => type == OperationType.transfer;
+
+  bool get isDebtPaymentComponent =>
+      debtCommandId != null && const {'pay', 'newChargePaid'}.contains(debtKind);
 }

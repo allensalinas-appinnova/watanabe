@@ -11,6 +11,7 @@ abstract final class FinanceCategoryIcons {
     'transport',
     'health',
     'education',
+    'interest',
     'salary',
     'other',
   ];
@@ -21,6 +22,7 @@ abstract final class FinanceCategoryIcons {
     'transport': Icons.directions_car_outlined,
     'health': Icons.favorite_border,
     'education': Icons.menu_book_outlined,
+    'interest': Icons.percent_outlined,
     'salary': Icons.work_outline,
     'other': Icons.sell_outlined,
   };
@@ -32,6 +34,7 @@ abstract final class FinanceCategoryIcons {
     'medical_services': 'health',
     'spa': 'health',
     'school': 'education',
+    'percent': 'interest',
     'payments': 'salary',
     'work': 'salary',
     'storefront': 'salary',

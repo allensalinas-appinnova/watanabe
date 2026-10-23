@@ -130,6 +130,54 @@ abstract class AppLocalizations {
   /// **'Producto'**
   String get debtProduct;
 
+  /// No description provided for @debtPaymentCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago de tarjeta'**
+  String get debtPaymentCard;
+
+  /// No description provided for @debtPaymentLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago de crédito'**
+  String get debtPaymentLoan;
+
+  /// No description provided for @activityFilterDebtPayments.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos de deudas'**
+  String get activityFilterDebtPayments;
+
+  /// No description provided for @activityCsvPaymentType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de pago'**
+  String get activityCsvPaymentType;
+
+  /// No description provided for @categoryCatalogSyncMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron actualizar las categorías predeterminadas.'**
+  String get categoryCatalogSyncMessage;
+
+  /// No description provided for @categoryIconInterest.
+  ///
+  /// In es, this message translates to:
+  /// **'Intereses y comisiones'**
+  String get categoryIconInterest;
+
+  /// No description provided for @debtNewChargesCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Categoría de los cargos nuevos'**
+  String get debtNewChargesCategory;
+
+  /// No description provided for @debtNewChargesExpenseNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo los cargos nuevos de esta cuota se registran como gasto.'**
+  String get debtNewChargesExpenseNote;
+
   /// No description provided for @debtCreditCard.
   ///
   /// In es, this message translates to:
