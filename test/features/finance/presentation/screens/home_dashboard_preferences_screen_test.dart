@@ -90,6 +90,7 @@ void main() {
             as HomeDashboardPreferences;
     expect(captured.shows(HomeDashboardWidget.incomeSummary), isFalse);
 
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('home_budget_food')), 250);
     await tester.tap(find.byKey(const ValueKey('home_budget_food')));
     await tester.pumpAndSettle();
     final saves = verify(

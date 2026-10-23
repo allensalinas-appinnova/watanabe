@@ -25,9 +25,9 @@ export type AuditReport = {
 };
 
 const fields: Record<string, string[]> = {
-  accounts: ["currency", "openingBalanceMinor", "currentBalanceMinor"],
+  accounts: ["currency", "openingBalanceMinor", "currentBalanceMinor", "nature", "type", "openingPrincipalMinor", "openingChargesMinor", "principalMinor", "chargesMinor"],
   categories: ["type"],
-  operations: ["type", "status", "amountMinor", "currency", "monthKey", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId"],
+  operations: ["type", "status", "amountMinor", "currency", "monthKey", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId", "debtAccountId", "principalDeltaMinor", "chargesDeltaMinor", "projectionDirection", "balanceDeltaMinor"],
   monthlySummaries: ["monthKey", "currency", "incomeMinor", "expenseMinor", "transferInMinor", "transferOutMinor", "byCategory"],
   budgets: ["categoryId", "flowType", "currency"],
   items: ["actualAmountMinor"],
@@ -103,7 +103,7 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
     try {
       if (!validCurrency(account.currency)) throw new ProjectionError("invalid_account_currency");
       const opening = checkedInteger(account.openingBalanceMinor);
-      if (opening < 0 || opening > maximumMinor(account.currency)) throw new ProjectionError("invalid_opening_balance");
+      if ((opening < 0 && account.nature !== "debt") || Math.abs(opening) > maximumMinor(account.currency)) throw new ProjectionError("invalid_opening_balance");
       expectedAccounts.set(id, opening);
     } catch (error) {
       issue(`accounts/${id}`, error instanceof ProjectionError ? error.code : "invalid_account");
@@ -125,14 +125,14 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
       if (operation.categoryId && operation.type !== "transfer") {
         const category = snapshot.categories.get(operation.categoryId);
         if (!category) throw new ProjectionError("missing_category");
-        if (category.type !== operation.type) throw new ProjectionError("category_type_mismatch");
+        if (category.type !== (operation.type === "expenseRefund" ? "expense" : operation.type)) throw new ProjectionError("category_type_mismatch");
       }
       if (operation.budgetId) {
         const budget = snapshot.budgets.get(operation.budgetId);
         if (!budget || !snapshot.items.has(`${operation.budgetId}/${operation.budgetItemId}`)) {
           throw new ProjectionError("missing_budget_reference");
         }
-        if (budget.categoryId !== operation.categoryId || budget.flowType !== operation.type ||
+        if (budget.categoryId !== operation.categoryId || budget.flowType !== (operation.type === "expenseRefund" ? "expense" : operation.type) ||
             budget.currency !== operation.currency) throw new ProjectionError("budget_reference_mismatch");
       }
       // Check the entire contribution before updating any accumulator.
@@ -194,6 +194,22 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
     }
   }
   for (const [id, expected] of expectedAccounts) compare(`accounts/${id}`, "currentBalanceMinor", expected, snapshot.accounts.get(id)?.currentBalanceMinor);
+  for (const [id, account] of snapshot.accounts) {
+    if (account.nature !== "debt" || account.type === "creditCard") continue;
+    try {
+      let principal = checkedInteger(account.openingPrincipalMinor), charges = checkedInteger(account.openingChargesMinor);
+      if (principal < 0 || charges < 0 || -(principal + charges) !== account.openingBalanceMinor) throw new ProjectionError("invalid_opening_components");
+      for (const operation of snapshot.operations.values()) {
+        if (operation.status !== "confirmed" || operation.debtAccountId !== id) continue;
+        const direction = operation.projectionDirection === -1 ? -1 : 1;
+        principal = checkedInteger(principal + direction * checkedInteger(operation.principalDeltaMinor));
+        charges = checkedInteger(charges + direction * checkedInteger(operation.chargesDeltaMinor));
+      }
+      if (principal < 0 || charges < 0 || expectedAccounts.get(id) !== -(principal + charges)) throw new ProjectionError("inconsistent_debt_components");
+      compare(`accounts/${id}`, "principalMinor", principal, account.principalMinor);
+      compare(`accounts/${id}`, "chargesMinor", charges, account.chargesMinor);
+    } catch (error) { issue(`accounts/${id}`, error instanceof ProjectionError ? error.code : "invalid_debt_components"); }
+  }
   for (const [id, expected] of expectedItems) {
     compare(`budgets/${id.split("/")[0]}/items/${id.split("/")[1]}`, "actualAmountMinor", expected, snapshot.items.get(id)?.actualAmountMinor ?? 0);
   }

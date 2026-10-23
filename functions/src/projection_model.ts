@@ -1,5 +1,5 @@
 export type Operation = {
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "expenseRefund" | "debtAdjustment";
   amountMinor: number;
   currency: string;
   monthKey: string;
@@ -9,6 +9,9 @@ export type Operation = {
   destinationAccountId?: string;
   budgetId?: string;
   budgetItemId?: string;
+  // These fields are server-only; security rules forbid them on client writes.
+  projectionDirection?: 1 | -1;
+  balanceDeltaMinor?: number;
   status: "pending" | "confirmed" | "rejected";
 };
 
@@ -54,21 +57,23 @@ export function maximumMinor(currency: string): number {
 }
 
 export function parseOperation(data: Record<string, unknown>): Operation {
-  if (!["income", "expense", "transfer"].includes(String(data.type)) ||
+  if (!["income", "expense", "transfer", "expenseRefund", "debtAdjustment"].includes(String(data.type)) ||
       !["pending", "confirmed", "rejected"].includes(String(data.status)) ||
       !validCurrency(data.currency) || !validMonth(data.monthKey)) {
     throw new ProjectionError("invalid_operation");
   }
   const amount = checkedInteger(data.amountMinor);
-  if (amount <= 0 || amount > maximumMinor(data.currency)) throw new ProjectionError("invalid_amount");
+  if (amount < 0 || (amount === 0 && data.type !== "debtAdjustment") || amount > maximumMinor(data.currency) * (data.type === "debtAdjustment" ? 2 : 1)) throw new ProjectionError("invalid_amount");
   if (data.type === "transfer") {
     if (!validId(data.sourceAccountId) || !validId(data.destinationAccountId) ||
         data.sourceAccountId === data.destinationAccountId) throw new ProjectionError("invalid_transfer");
-  } else if (!validId(data.accountId) || !validId(data.categoryId)) {
+  } else if (!validId(data.accountId) || (data.type !== "debtAdjustment" && !validId(data.categoryId))) {
     throw new ProjectionError("invalid_operation_reference");
   }
+  if (data.projectionDirection !== undefined && data.projectionDirection !== 1 && data.projectionDirection !== -1) throw new ProjectionError("invalid_direction");
+  if (data.type === "debtAdjustment" && Math.abs(checkedInteger(data.balanceDeltaMinor)) !== amount) throw new ProjectionError("invalid_adjustment_delta");
   if (data.budgetId !== undefined || data.budgetItemId !== undefined) {
-    if (!validId(data.budgetId) || !validId(data.budgetItemId) || data.type === "transfer") {
+    if (!validId(data.budgetId) || !validId(data.budgetItemId) || data.type === "transfer" || data.type === "debtAdjustment") {
       throw new ProjectionError("invalid_budget_reference");
     }
   }
@@ -81,9 +86,13 @@ export function calculateProjectionDeltas(previous: Operation | undefined, curre
   const budgetItems = new Map<string, number>();
   const add = (operation: Operation | undefined, direction: 1 | -1) => {
     if (!operation || operation.status !== "confirmed") return;
-    const amount = operation.amountMinor * direction;
+    const amount = operation.amountMinor * direction * (operation.projectionDirection ?? 1);
     const account = (id: string, delta: number) =>
       accounts.set(id, checkedInteger((accounts.get(id) ?? 0) + delta));
+    if (operation.type === "debtAdjustment") {
+      account(operation.accountId!, operation.balanceDeltaMinor! * direction * (operation.projectionDirection ?? 1));
+      return;
+    }
     const key = `${operation.monthKey}_${operation.currency}`;
     const summary = summaries.get(key) ?? {
       monthKey: operation.monthKey, currency: operation.currency,
@@ -95,13 +104,15 @@ export function calculateProjectionDeltas(previous: Operation | undefined, curre
       account(operation.sourceAccountId!, -amount);
       account(operation.destinationAccountId!, amount);
     } else {
-      summary[operation.type] = checkedInteger(summary[operation.type] + amount);
-      const signed = operation.type === "income" ? amount : -amount;
+      const flow = operation.type === "income" ? "income" : "expense";
+      const financialAmount = operation.type === "expenseRefund" ? -amount : amount;
+      summary[flow] = checkedInteger(summary[flow] + financialAmount);
+      const signed = flow === "income" ? financialAmount : -financialAmount;
       summary.categories.set(operation.categoryId!, checkedInteger((summary.categories.get(operation.categoryId!) ?? 0) + signed));
       account(operation.accountId!, signed);
       if (operation.budgetId && operation.budgetItemId) {
         const item = `${operation.budgetId}/${operation.budgetItemId}`;
-        budgetItems.set(item, checkedInteger((budgetItems.get(item) ?? 0) + amount));
+        budgetItems.set(item, checkedInteger((budgetItems.get(item) ?? 0) + financialAmount));
       }
     }
     summaries.set(key, summary);

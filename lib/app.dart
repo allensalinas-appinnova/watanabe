@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/coach/presentation/widgets/coach_lifecycle.dart';
 import 'l10n/generated/app_localizations.dart';
 
 class PersonalFinanceApp extends StatelessWidget {
@@ -21,6 +22,10 @@ class PersonalFinanceApp extends StatelessWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: appRouter,
+      builder: (context, child) => CoachLifecycle(
+        onOpen: (location) => appRouter.push(location),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

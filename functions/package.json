@@ -11,6 +11,7 @@
     "seed:catalog": "npm run build && node lib/seed_category_catalog.js",
     "seed:catalog:real": "npm run build && node lib/seed_category_catalog_real.js",
     "test:rules": "node test/firestore_rules_test.mjs",
+    "test:email-imports": "npm run build && node --test test/bank_email_parser_test.mjs test/email_imports_test.mjs",
     "test:projections": "npm run build && node --test test/projection_test.mjs",
     "audit:projections": "npm run build && node lib/audit_projections.js",
     "test:projections:emulator": "node --test test/projection_store_test.mjs test/projection_audit_test.mjs",
@@ -22,7 +23,8 @@
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
-    "firebase-functions": "^6.0.0"
+    "firebase-functions": "^6.0.0",
+    "htmlparser2": "10.0.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

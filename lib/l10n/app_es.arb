@@ -1,4 +1,51 @@
 {
+  "debtTitle": "Tarjetas y préstamos",
+  "debtAdd": "Agregar tarjeta o préstamo",
+  "debtMoney": "Dinero disponible",
+  "debtCards": "Tarjetas de crédito",
+  "debtLoans": "Créditos y préstamos",
+  "debtProduct": "Producto",
+  "debtCreditCard": "Tarjeta de crédito",
+  "debtBankLoan": "Crédito bancario",
+  "debtPersonalLoan": "Préstamo personal recibido",
+  "debtRegistered": "Deuda registrada",
+  "debtCreditBalance": "Saldo a favor en tarjetas",
+  "debtPosition": "Posición neta registrada",
+  "debtPositionNote": "Solo registros seleccionados; no representa tu patrimonio completo.",
+  "debtOpeningMode": "Origen del saldo",
+  "debtExisting": "Deuda existente (no mueve dinero)",
+  "debtReceived": "Préstamo recibido ahora",
+  "debtReferenceDate": "Fecha del saldo inicial",
+  "debtPrincipal": "Capital pendiente",
+  "debtCharges": "Cargos devengados pendientes",
+  "debtLimit": "Cupo (opcional)",
+  "debtCreditor": "Acreedor (opcional)",
+  "debtLastFour": "Últimos 4 dígitos (opcional)",
+  "debtPay": "Registrar pago",
+  "debtPayCard": "Pagar tarjeta",
+  "debtDisburse": "Registrar desembolso",
+  "debtCharge": "Registrar cargo",
+  "debtRefund": "Devolución de gasto",
+  "debtAdjust": "Ajustar deuda",
+  "debtPurchase": "Compra con tarjeta",
+  "debtPreviousCharges": "Cargos ya registrados que pagas",
+  "debtNewCharges": "Cargos nuevos pagados ahora",
+  "debtOriginalPurchase": "Compra original",
+  "debtBank": "Cuenta de dinero",
+  "debtReview": "Revisar antes de confirmar",
+  "debtOnline": "Requiere conexión. Tu borrador se conserva si falla el guardado.",
+  "debtDisabled": "La función de deudas aún no está activada en el servidor.",
+  "debtErrorSplit": "Completa el desglose: capital, cargos registrados y cargos nuevos deben sumar el pago.",
+  "debtErrorComponents": "El cambio dejaría capital o cargos negativos. Revisa el desglose y los movimientos posteriores.",
+  "debtErrorRefund": "Revisa la compra original y el importe aún no devuelto.",
+  "debtErrorDate": "La fecha no puede ser anterior al saldo inicial.",
+  "debtErrorArchive": "Solo puedes archivar una obligación con saldo cero.",
+  "debtErrorReference": "Revisa la cuenta, moneda, categoría y presupuesto seleccionados.",
+  "debtOverLimit": "La deuda supera el cupo registrado. El movimiento se guardó.",
+  "debtReverse": "Anular con reversión",
+  "debtComponents": "Componentes vinculados",
+  "debtCommand": "Comando",
+  "debtReversal": "Reversión",
   "budgetConnectionRequired": "Necesitas conexión para guardar este presupuesto. Tus cambios siguen aquí; vuelve a intentarlo.",
   "budgetCommandArchived": "Este presupuesto o elemento está archivado. Actualiza la lista.",
   "budgetCommandNotFound": "Este presupuesto o elemento ya no está disponible. Actualiza la lista.",
@@ -59,6 +106,7 @@
   "activity": "Actividad",
   "activitySubtitle": "Encuentra y revisa tus movimientos",
   "activityFilterAll": "Todos",
+  "activityFilterTransfers": "Transferencias",
   "activityBalanceAdjustmentsFilter": "Ajustes",
   "activityBalanceAdjustmentType": "Ajuste de saldo",
   "activityBalanceAdjustmentEntry": "Saldo {previous} → {target} · diferencia {difference}",
@@ -126,11 +174,12 @@
   "activityExportErrorTitle": "No pudimos generar el archivo",
   "activityExportErrorMessage": "Ocurrió un problema temporal. Tu selección sigue aquí; puedes intentarlo de nuevo.",
   "activityExportCloseHint": "Al cerrar, se conservan tus filtros y selección.",
-  "activityTotalsTitle": "Totales confirmados",
+  "activityTotalsTitle": "Resumen",
   "activityTotalsIncome": "Ingresos",
   "activityTotalsExpenses": "Egresos",
-  "activityTotalsNet": "Saldo neto",
-  "activityTotalsPendingNote": "Los totales incluyen solo movimientos confirmados. No incluyen pendientes ni transferencias.",
+  "activityTotalsNet": "Resultado",
+  "activityTotalsMethodNote": "Ingresos − egresos · Transferencias excluidas",
+  "activityTransfersTotalsNote": "Las transferencias no se suman a ingresos, egresos ni resultado.",
   "activityTotalsEmpty": "No hay ingresos ni egresos confirmados para calcular los totales.",
   "activityCsvDate": "Fecha y hora",
   "activityCsvType": "Tipo",
@@ -446,4 +495,53 @@
   ,"homeNoBudgetCards": "No hay presupuestos activos para personalizar."
   ,"homePreferencesSaving": "Guardando preferencia…"
   ,"homePreferencesSaveFailed": "No se pudo guardar. Tu selección se conserva; inténtalo de nuevo."
+  ,"coachTitle": "Coach y recordatorios"
+  ,"coachSettingsIntro": "Organiza tu rutina y elige cuándo quieres revisar tus finanzas."
+  ,"coachDailyTitle": "Cierre diario"
+  ,"coachWeeklyTitle": "Revisión semanal"
+  ,"coachNextStepTitle": "Tu siguiente paso"
+  ,"coachDailyReminder": "Recordatorio de cierre diario"
+  ,"coachWeeklyReminder": "Recordatorio de revisión semanal"
+  ,"coachReminderTime": "Hora del recordatorio"
+  ,"coachReminderDays": "Días de la semana"
+  ,"coachDevice": "En este dispositivo"
+  ,"coachEnableDevice": "Recibir recordatorios en este dispositivo"
+  ,"coachDevicePrivacy": "Los avisos no muestran importes ni datos de tus cuentas."
+  ,"coachWindowNotice": "Abre la app al menos una vez cada 28 días para renovar los avisos. Los cambios de otros dispositivos se aplican al sincronizar."
+  ,"coachPause": "Pausar durante siete días"
+  ,"coachResume": "Reactivar recordatorios"
+  ,"coachPaused": "Recordatorios pausados"
+  ,"coachPermissionGranted": "Notificaciones permitidas"
+  ,"coachPermissionDenied": "Las notificaciones están bloqueadas en los ajustes del dispositivo."
+  ,"coachPermissionUnknown": "Activa los avisos para solicitar permiso."
+  ,"coachUnsupported": "En web puedes revisar tu rutina. Los recordatorios están disponibles en Android e iOS."
+  ,"coachOpenSettings": "Abrir ajustes del dispositivo"
+  ,"coachReviewed": "Revisado"
+  ,"coachFinishDaily": "Ya revisé mis movimientos"
+  ,"coachNoMovements": "Hoy no tuve movimientos"
+  ,"coachFinishWeekly": "Marcar semana como revisada"
+  ,"coachNoRecords": "No hay movimientos registrados en este periodo."
+  ,"coachAllCurrent": "Tu rutina está al día."
+  ,"coachDailyAction": "Revisar mis movimientos"
+  ,"coachWeeklyAction": "Revisar mi semana"
+  ,"coachReviewIntro": "Revisa lo registrado antes de completar tu cierre. Registrar un movimiento no completa la revisión."
+  ,"coachWeeklyIntro": "Ingresos, gastos y Resultado según tus movimientos confirmados. Transferencias y ajustes no se suman a estos totales."
+  ,"coachConfirmedCount": "Movimientos confirmados"
+  ,"coachPendingCount": "Pendientes de sincronización"
+  ,"coachRejectedCount": "Movimientos rechazados"
+  ,"coachCached": "Datos guardados en este dispositivo; el periodo puede estar incompleto. Conéctate y actualiza para comprobarlo."
+  ,"coachSavePending": "Revisión guardada en este dispositivo; pendiente de sincronización."
+  ,"coachSaveFailed": "No se pudo guardar. Tu selección se conserva; vuelve a intentarlo."
+  ,"coachSaveConfirmed": "Revisión guardada"
+  ,"coachTopCategories": "Categorías con mayor gasto"
+  ,"coachConfigure": "Configurar mi rutina"
+  ,"coachReadFailure": "No pudimos cargar tu revisión. Vuelve a intentarlo."
+  ,"coachNotificationTitle": "Un momento para tus finanzas"
+  ,"coachNotificationBody": "Tu revisión está lista. Abre LumioMoney para continuar."
+  ,"coachHomeWidget": "Tu siguiente paso del coach"
+  ,"coachReminderTiming": "Los avisos pueden llegar más tarde según los ajustes y el ahorro de batería del dispositivo."
+  ,"coachPreferencesPending": "Cambios guardados en este dispositivo; pendientes de sincronización."
+  ,"coachScheduleFailed": "No pudimos programar los avisos. Reintenta la programación."
+  ,"coachViewMovements": "Ver movimientos del periodo"
+  ,"coachNoMovementsUnavailable": "Ahora hay movimientos registrados o faltan datos actualizados. Revisa el día antes de confirmarlo."
 }

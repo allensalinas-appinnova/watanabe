@@ -52,6 +52,7 @@ export async function executeBalanceAdjustment(db: Firestore, uid: string | unde
       const snapshot = snapshots[index];
       const account = snapshot.data();
       if (!snapshot.exists || !account) throw new BalanceAdjustmentError("balance-adjustment-account-not-found", "not-found");
+      if (account.nature === "debt") throw new BalanceAdjustmentError("balance-adjustment-debt-command-required", "failed-precondition");
       if (account.status !== "active") throw new BalanceAdjustmentError("balance-adjustment-account-inactive", "failed-precondition");
       if (account.currency !== adjustment.currency) throw new BalanceAdjustmentError("balance-adjustment-currency-mismatch", "failed-precondition");
       const previous = account.currentBalanceMinor;

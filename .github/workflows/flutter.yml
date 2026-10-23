@@ -37,6 +37,8 @@ jobs:
       - run: bash ./tool/run_projection_tests.sh
       - run: bash ./tool/run_budget_command_tests.sh
       - run: bash ./tool/run_balance_adjustment_tests.sh
+      - run: bash ./tool/run_email_import_tests.sh
+      - run: bash ./tool/run_debt_tests.sh
 
   budget-e2e:
     needs: flutter
@@ -76,3 +78,4 @@ jobs:
             cp config/google-services.emulator.example.json android/app/google-services.json
             E2E_TEST_FILE=integration_test/budget_creation_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
             E2E_TEST_FILE=integration_test/budget_item_management_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            E2E_TEST_FILE=integration_test/debt_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554

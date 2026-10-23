@@ -10,18 +10,26 @@ Target market: Latin America from the initial launch, as requested by the founde
 Verdict: functional prototype; not yet a release candidate or a validated business.
 
 This is a release/product audit, not a penetration test, legal opinion or exhaustive
-dependency audit. The baseline is the current local `finance_flutter` directory:
+dependency audit. **Historical snapshot:** the inventory and findings below were
+recorded on 2026-10-04, before the canonical finance, Activity, Coach and Debt
+work documented elsewhere in `docs/`. Do not treat its implementation findings
+as current without rechecking them against the present code and dated feature
+reports. The baseline at that time was the local `finance_flutter` directory:
 neither it nor the workspace root is a Git repository, so no mobile commit or
-clean/dirty baseline is available. Existing files were preserved. The web scope in
-[functional-scope.md](functional-scope.md) is a reference, not proof of mobile parity.
+clean/dirty baseline is available. Existing files were preserved. The functional
+scope in [functional-scope.md](functional-scope.md) describes the Flutter product,
+not release readiness.
 Generated code, build caches, third-party sources and binary assets were excluded
 from source review. The first-party file inventory covered lib, test,
 integration_test, platform configuration, rules, scripts and docs.
 
 Evidence labels: **Code** = inspected implementation; **Executed** = commands
-run in this review; **Prior execution** = earlier result in this conversation;
-**External unknown** = requires console/device/operator evidence; **Proposed** =
-recommended work. All implementation findings below remain **Open**.
+run in the historical review; **Prior execution** = earlier result in that
+conversation; **External unknown** = requires console/device/operator evidence;
+**Proposed** = recommended work. Finding status is as of the historical review,
+not the current checkout. Current release blockers are summarized in
+[implementation-backlog.md](implementation-backlog.md), with feature evidence in
+[coach](coach.md) and [debts](debts.md).
 
 ## What exists today
 
@@ -49,7 +57,7 @@ estimates live in [implementation-backlog.md](implementation-backlog.md).
 | DATA-001 | High | The adapter now matches new budgets by `monthKey` and exposes atomic nested budget-item totals; legacy `spent` remains a compatibility cache. `BudgetsScreen._buildBudgets` still needs ledger-derived recomputation and month-boundary tests, so prior data is not yet release-safe. | CB-07 |
 | DATA-002 | High | `deleteAccount` deletes movements without reversing budget spending; deletes beyond 499 records span batches; receipt failures are swallowed with a comment about future cleanup. Implement recoverable deletion/archive, aggregate reconciliation and a real cleanup mechanism. | CB-05, CB-16 |
 | DATA-003 | Resolved for the canonical slice | Financial entities use `amountMinor` plus ISO currency; UI parsing still requires locale-specific validation coverage before release. | CB-04, CB-12 |
-| DATA-004 | Resolved by isolation decision | The mobile app uses `operations` and does not read or migrate the retired web `cashflow` model. | CB-04 |
+| DATA-004 | Resolved by schema decision | The app uses canonical `operations`; migration from earlier development data formats is not planned. | CB-04 |
 | UX-001 | High | `HomeScreen._BalanceSummary` displays literal `↑ 8.4% vs last month` for every user. Remove or calculate it from comparable periods; unavailable history must show an honest empty state. | CB-09 |
 | UX-002 | High | The canonical finance repository now exposes category bootstrap, income/expense/transfer commands and itemized budget creation, but the existing presentation still uses the earlier expense-only/edit-limit flow. Complete the fresh-user UI migration before release. | CB-05–08 |
 | UX-003 | High for regional launch | `PersonalFinanceApp.build` wires no localization delegates/supported locales; feature text is English; `CurrencyFormatter.cop` fixes `es_CO`; ARBs do exist. Spanish/English policy is not implemented end to end; Portuguese is absent. | CB-11, CB-12 |

@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
+import 'pending_operation_backend_stub.dart'
+    if (dart.library.io) 'pending_operation_backend_native.dart'
+    if (dart.library.js_interop) 'pending_operation_backend_web.dart'
+    as backend;
 import 'sync_state.dart';
 
 part 'pending_operation_queue.g.dart';
@@ -137,8 +137,5 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
 }
 
 Future<PendingOperationDatabase> openPendingOperationDatabase() async {
-  final directory = await getApplicationSupportDirectory();
-  return PendingOperationDatabase(
-    NativeDatabase.createInBackground(File(p.join(directory.path, 'clearbudget.sqlite'))),
-  );
+  return PendingOperationDatabase(await backend.openPendingOperationExecutor());
 }

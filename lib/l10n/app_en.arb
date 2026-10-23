@@ -1,4 +1,51 @@
 {
+  "debtTitle": "Cards and loans",
+  "debtAdd": "Add card or loan",
+  "debtMoney": "Available money",
+  "debtCards": "Credit cards",
+  "debtLoans": "Loans",
+  "debtProduct": "Product",
+  "debtCreditCard": "Credit card",
+  "debtBankLoan": "Bank loan",
+  "debtPersonalLoan": "Personal loan received",
+  "debtRegistered": "Recorded debt",
+  "debtCreditBalance": "Card credit balance",
+  "debtPosition": "Net recorded position",
+  "debtPositionNote": "Selected records only; not your complete net worth.",
+  "debtOpeningMode": "Opening balance source",
+  "debtExisting": "Existing debt (no money movement)",
+  "debtReceived": "Loan received now",
+  "debtReferenceDate": "Opening balance date",
+  "debtPrincipal": "Outstanding principal",
+  "debtCharges": "Accrued unpaid charges",
+  "debtLimit": "Credit limit (optional)",
+  "debtCreditor": "Creditor (optional)",
+  "debtLastFour": "Last 4 digits (optional)",
+  "debtPay": "Record payment",
+  "debtPayCard": "Pay card",
+  "debtDisburse": "Record disbursement",
+  "debtCharge": "Record charge",
+  "debtRefund": "Expense refund",
+  "debtAdjust": "Adjust debt",
+  "debtPurchase": "Card purchase",
+  "debtPreviousCharges": "Previously recorded charges paid",
+  "debtNewCharges": "New charges paid now",
+  "debtOriginalPurchase": "Original purchase",
+  "debtBank": "Money account",
+  "debtReview": "Review before confirming",
+  "debtOnline": "Connection required. Your draft is kept if saving fails.",
+  "debtDisabled": "Debt commands are not enabled on the server yet.",
+  "debtErrorSplit": "Complete the breakdown: principal, recorded and new charges must equal the payment.",
+  "debtErrorComponents": "This would leave negative principal or charges. Review the breakdown and subsequent movements.",
+  "debtErrorRefund": "Check the original purchase and remaining refundable amount.",
+  "debtErrorDate": "The date cannot precede the opening balance.",
+  "debtErrorArchive": "Only an obligation with a zero balance can be archived.",
+  "debtErrorReference": "Review the selected account, currency, category and budget.",
+  "debtOverLimit": "Debt exceeds the recorded limit. The movement was saved.",
+  "debtReverse": "Void with reversal",
+  "debtComponents": "Linked components",
+  "debtCommand": "Command",
+  "debtReversal": "Reversal",
   "budgetConnectionRequired": "A connection is required to save this budget. Your changes are still here; try again.",
   "budgetCommandArchived": "This budget or item has been archived. Refresh the list.",
   "budgetCommandNotFound": "This budget or item is no longer available. Refresh the list.",
@@ -59,6 +106,7 @@
   "activity": "Activity",
   "activitySubtitle": "Find and review your transactions",
   "activityFilterAll": "All",
+  "activityFilterTransfers": "Transfers",
   "activityBalanceAdjustmentsFilter": "Adjustments",
   "activityBalanceAdjustmentType": "Balance adjustment",
   "activityBalanceAdjustmentEntry": "Balance {previous} → {target} · difference {difference}",
@@ -126,11 +174,12 @@
   "activityExportErrorTitle": "We couldn't create the file",
   "activityExportErrorMessage": "A temporary problem occurred. Your selection is still here; please try again.",
   "activityExportCloseHint": "Your filters and selection are kept when you close.",
-  "activityTotalsTitle": "Confirmed totals",
+  "activityTotalsTitle": "Summary",
   "activityTotalsIncome": "Income",
   "activityTotalsExpenses": "Expenses",
-  "activityTotalsNet": "Net balance",
-  "activityTotalsPendingNote": "Totals include confirmed transactions only. Pending transactions and transfers are excluded.",
+  "activityTotalsNet": "Result",
+  "activityTotalsMethodNote": "Income − expenses · Transfers excluded",
+  "activityTransfersTotalsNote": "Transfers are not included in income, expenses, or net result.",
   "activityTotalsEmpty": "No confirmed income or expenses to calculate totals.",
   "activityCsvDate": "Date and time",
   "activityCsvType": "Type",
@@ -446,4 +495,53 @@
   ,"homeNoBudgetCards": "There are no active budgets to customize."
   ,"homePreferencesSaving": "Saving preference…"
   ,"homePreferencesSaveFailed": "Could not save. Your selection is preserved; try again."
+  ,"coachTitle": "Coach and reminders"
+  ,"coachSettingsIntro": "Set your routine and choose when to review your finances."
+  ,"coachDailyTitle": "Daily check-in"
+  ,"coachWeeklyTitle": "Weekly review"
+  ,"coachNextStepTitle": "Your next step"
+  ,"coachDailyReminder": "Daily check-in reminder"
+  ,"coachWeeklyReminder": "Weekly review reminder"
+  ,"coachReminderTime": "Reminder time"
+  ,"coachReminderDays": "Days of the week"
+  ,"coachDevice": "On this device"
+  ,"coachEnableDevice": "Receive reminders on this device"
+  ,"coachDevicePrivacy": "Notifications never show amounts or account details."
+  ,"coachWindowNotice": "Open the app at least once every 28 days to renew reminders. Changes from other devices apply after syncing."
+  ,"coachPause": "Pause for seven days"
+  ,"coachResume": "Resume reminders"
+  ,"coachPaused": "Reminders paused"
+  ,"coachPermissionGranted": "Notifications allowed"
+  ,"coachPermissionDenied": "Notifications are blocked in device settings."
+  ,"coachPermissionUnknown": "Enable reminders to request permission."
+  ,"coachUnsupported": "You can review your routine on the web. Reminders are available on Android and iOS."
+  ,"coachOpenSettings": "Open device settings"
+  ,"coachReviewed": "Reviewed"
+  ,"coachFinishDaily": "I reviewed my transactions"
+  ,"coachNoMovements": "I had no transactions today"
+  ,"coachFinishWeekly": "Mark week as reviewed"
+  ,"coachNoRecords": "No transactions recorded for this period."
+  ,"coachAllCurrent": "Your routine is up to date."
+  ,"coachDailyAction": "Review my transactions"
+  ,"coachWeeklyAction": "Review my week"
+  ,"coachReviewIntro": "Review your records before completing your check-in. Recording a transaction does not complete the review."
+  ,"coachWeeklyIntro": "Income, expenses and Result from confirmed transactions. Transfers and balance adjustments are excluded."
+  ,"coachConfirmedCount": "Confirmed transactions"
+  ,"coachPendingCount": "Pending synchronization"
+  ,"coachRejectedCount": "Rejected transactions"
+  ,"coachCached": "Data saved on this device; the period may be incomplete. Connect and refresh to verify it."
+  ,"coachSavePending": "Review saved on this device; awaiting synchronization."
+  ,"coachSaveFailed": "Could not save. Your selection is preserved; try again."
+  ,"coachSaveConfirmed": "Review saved"
+  ,"coachTopCategories": "Top spending categories"
+  ,"coachConfigure": "Configure my routine"
+  ,"coachReadFailure": "We could not load your review. Try again."
+  ,"coachNotificationTitle": "A moment for your finances"
+  ,"coachNotificationBody": "Your review is ready. Open LumioMoney to continue."
+  ,"coachHomeWidget": "Coach next step"
+  ,"coachReminderTiming": "Delivery may be delayed by device settings or battery saving."
+  ,"coachPreferencesPending": "Changes saved on this device; awaiting synchronization."
+  ,"coachScheduleFailed": "We could not schedule reminders. Retry scheduling."
+  ,"coachViewMovements": "View transactions for this period"
+  ,"coachNoMovementsUnavailable": "Transactions are now recorded or current data is unavailable. Review this day before confirming."
 }

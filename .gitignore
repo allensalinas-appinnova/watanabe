@@ -25,6 +25,8 @@ ios/Runner/GoogleService-Info.plist
 # Firebase Functions
 functions/node_modules/
 functions/lib/
+functions/.env
+functions/.env.*
 /.local/projection-audits/
 /.local/firebase-deployments/
 

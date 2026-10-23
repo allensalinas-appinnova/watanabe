@@ -109,6 +109,7 @@ abstract interface class CanonicalFinanceRepository {
   Future<Either<Failure, Unit>> archiveCategory(String userId, String categoryId);
 
   Stream<List<FinanceAccount>> watchAccounts(String userId);
+  Stream<FinanceAccount?> watchAccount(String userId, String accountId);
 
   Stream<List<BalanceAdjustmentEvent>> watchBalanceAdjustments(String userId);
 

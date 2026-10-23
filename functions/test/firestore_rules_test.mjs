@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test, {after, before, beforeEach} from 'node:test';
 import {assertFails, assertSucceeds, initializeTestEnvironment} from '@firebase/rules-unit-testing';
-import {Timestamp, deleteField} from 'firebase/firestore';
+import {Timestamp, deleteField, serverTimestamp, setLogLevel} from 'firebase/firestore';
+
+setLogLevel('silent');
 
 const rules = readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8');
 let environment;
@@ -27,6 +29,205 @@ const userProfile = () => ({
   createdAt: Timestamp.now(),
   updatedAt: Timestamp.now(),
 });
+
+test('debt accounts and command-owned operations reject every client write and alternate path', async () => {
+  const opening = {name: 'Synthetic', type: 'creditCard', nature: 'debt', currency: 'COP', openingBalanceMinor: 0, currentBalanceMinor: 0, includeInDashboard: true, status: 'active', createdAt: Timestamp.now(), updatedAt: Timestamp.now()};
+  const operation = {type: 'expense', accountId: 'card', categoryId: 'food', currency: 'COP', amountMinor: 100, monthKey: '2026-01', occurredAt: Timestamp.now(), description: '', status: 'confirmed', idempotencyKey: 'debt_test_01', createdAt: Timestamp.now(), updatedAt: Timestamp.now()};
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    await admin.doc('users/alice').set(userProfile());
+    await admin.doc('users/alice/accounts/card').set(opening);
+    await admin.doc('users/alice/accounts/money').set({...opening, type: 'cash', nature: 'money'});
+    await admin.doc('users/alice/categories/food').set({type: 'expense'});
+    await admin.doc('users/alice/operations/debt_test_01').set({...operation, debtCommandId: 'receipt_0001'});
+    await admin.doc('users/alice/debtCommands/receipt_0001').set({projectionsApplied: true});
+  });
+  const alice = environment.authenticatedContext('alice').firestore();
+  await assertSucceeds(alice.doc('users/alice/accounts/card').get());
+  await assertFails(alice.doc('users/alice/accounts/newcard').set(opening));
+  await assertFails(alice.doc('users/alice/accounts/newcard').set({...opening, nature: 'money'}));
+  for (const patch of [{name: 'Changed'}, {currentBalanceMinor: 1}, {principalMinor: 0}, {nature: 'money'}, {status: 'archived'}, {includeInDashboard: false}]) await assertFails(alice.doc('users/alice/accounts/card').update(patch));
+  for (const patch of [{status: 'rejected'}, {debtCommandId: deleteField()}, {projectionDirection: -1}]) await assertFails(alice.doc('users/alice/operations/debt_test_01').update(patch));
+  await assertFails(alice.doc('users/alice/operations/new_op_001').set({...operation, idempotencyKey: 'new_op_001'}));
+  await assertFails(alice.doc('users/alice/operations/new_op_002').set({...operation, type: 'transfer', sourceAccountId: 'money', destinationAccountId: 'card', idempotencyKey: 'new_op_002'}));
+  await assertFails(alice.doc('users/alice/ledgerEntries/forged').set({operationId: 'debt_test_01', accountId: 'card', currency: 'COP', deltaMinor: 10, occurredAt: Timestamp.now()}));
+  for (const collection of ['debtCommands', 'debtReversals', 'debtRefunds']) {
+    await assertFails(alice.doc(`users/alice/${collection}/forged`).set({projectionsApplied: true}));
+    await assertFails(environment.authenticatedContext('bob').firestore().collection(`users/alice/${collection}`).get());
+    await assertFails(environment.unauthenticatedContext().firestore().collection(`users/alice/${collection}`).get());
+  }
+  await assertFails(alice.doc('users/alice/debtCommands/receipt_0001').get());
+});
+
+const coachPreferences = () => ({
+  dailyEnabled: true, weeklyEnabled: true,
+  dailyHour: 20, dailyMinute: 0, dailyWeekdays: [1, 2, 3, 4, 5, 6, 7],
+  weeklyWeekday: 7, weeklyHour: 18, weeklyMinute: 30,
+});
+const coachCompletion = (kind, periodKey = '2026-10-22') => ({
+  periodKey, kind, noMovements: false, reviewedAt: serverTimestamp(),
+});
+
+test('email imports are server-only, including evidence, credentials and deduplication receipts', async () => {
+  const collections = ['emailImportCandidates', 'emailImportCredentials', 'emailImportCommands',
+    'emailImportSources', 'emailImportReferences'];
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    await admin.doc('users/alice').set(userProfile());
+    for (const collection of collections) {
+      await admin.doc(`users/alice/${collection}/sample`).set({status: 'pending', evidence: 'PRIVATE'});
+    }
+  });
+  for (const context of [environment.authenticatedContext('alice'),
+    environment.authenticatedContext('bob'), environment.unauthenticatedContext()]) {
+    for (const collection of collections) {
+      const ref = context.firestore().collection(`users/alice/${collection}`);
+      await assertFails(ref.doc('sample').get());
+      await assertFails(ref.get());
+      await assertFails(context.firestore().collectionGroup(collection).get());
+      await assertFails(ref.doc('new').set({status: 'approved', operationId: 'forged'}));
+      await assertFails(ref.doc('sample').update({status: 'approved', uid: 'bob'}));
+      await assertFails(ref.doc('sample').delete());
+    }
+  }
+});
+
+test('coach preferences support legacy absence, exact schema, boundaries and owner access', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const profile = alice.doc('users/alice');
+  await assertSucceeds(profile.set({...userProfile(), coachPreferences: coachPreferences()}));
+  await assertSucceeds(profile.update({coachPreferences: {
+    dailyEnabled: false, weeklyEnabled: false, dailyHour: 0, dailyMinute: 59,
+    dailyWeekdays: [7], weeklyWeekday: 1, weeklyHour: 23, weeklyMinute: 0,
+  }}));
+  await assertSucceeds(profile.update({coachPreferences: deleteField()}));
+  await assertSucceeds(profile.update({coachPreferences: coachPreferences()}));
+  await assertSucceeds(environment.authenticatedContext('legacy').firestore()
+    .doc('users/legacy').set(userProfile()));
+  for (const context of [environment.authenticatedContext('bob'), environment.unauthenticatedContext()]) {
+    const other = context.firestore().doc('users/alice');
+    await assertFails(other.get());
+    await assertFails(other.set({...userProfile(), coachPreferences: coachPreferences()}));
+    await assertFails(other.update({coachPreferences: coachPreferences()}));
+  }
+});
+
+test('coach preferences reject malformed creates, replacements and required-field deletion', async () => {
+  const profile = environment.authenticatedContext('alice').firestore().doc('users/alice');
+  const candidate = environment.authenticatedContext('candidate').firestore().doc('users/candidate');
+  await assertSucceeds(profile.set({...userProfile(), coachPreferences: coachPreferences()}));
+  const invalid = [null, false, [], 'preferences', {...coachPreferences(), unexpected: true}];
+  for (const field of ['dailyEnabled', 'weeklyEnabled']) {
+    for (const value of [null, 1, 'true']) invalid.push({...coachPreferences(), [field]: value});
+  }
+  for (const [field, maximum] of [
+    ['dailyHour', 23], ['weeklyHour', 23], ['dailyMinute', 59], ['weeklyMinute', 59],
+    ['weeklyWeekday', 7],
+  ]) {
+    for (const value of [-1, maximum + 1, 1.5, '1', null, true]) {
+      invalid.push({...coachPreferences(), [field]: value});
+    }
+  }
+  invalid.push({...coachPreferences(), weeklyWeekday: 0});
+  for (const days of [[], [1, 1], [0], [8], [1.5], ['1'], [true], [null],
+    [1, 2, 3, 4, 5, 6, 7, 1], '1', null]) {
+    invalid.push({...coachPreferences(), dailyWeekdays: days});
+  }
+  // Exercise every array position rather than validating only the first day.
+  for (let index = 0; index < 7; index++) {
+    const days = [1, 2, 3, 4, 5, 6, 7];
+    days[index] = '7';
+    invalid.push({...coachPreferences(), dailyWeekdays: days});
+  }
+  for (const field of Object.keys(coachPreferences())) {
+    const missing = coachPreferences();
+    delete missing[field];
+    invalid.push(missing);
+    await assertFails(profile.update({[`coachPreferences.${field}`]: deleteField()}));
+  }
+  for (const value of invalid) {
+    await assertFails(candidate.set({...userProfile(), coachPreferences: value}));
+    await assertFails(profile.update({coachPreferences: value}));
+  }
+  await assertFails(profile.update({'coachPreferences.unexpected': true}));
+});
+
+for (const [collectionName, kind] of [
+  ['coachDailyCheckIns', 'daily'], ['coachWeeklyReviews', 'weekly'],
+]) {
+  test(`${collectionName}: owner completion, updates, replay and scoped queries`, async () => {
+    const db = environment.authenticatedContext('alice').firestore();
+    await assertSucceeds(db.doc('users/alice').set(userProfile()));
+    const completions = db.collection(`users/alice/${collectionName}`);
+    const completion = completions.doc('2026-10-22');
+    await assertSucceeds(completion.set(coachCompletion(kind)));
+    await assertSucceeds(completion.set(coachCompletion(kind))); // Replay refreshes server time.
+    await assertSucceeds(completion.update({reviewedAt: serverTimestamp(), noMovements: kind === 'daily'}));
+    await assertSucceeds(completion.get());
+    assert.equal((await completion.get()).data().noMovements, kind === 'daily');
+    await assertSucceeds(completions.orderBy('periodKey', 'desc').limit(28).get());
+    await assertSucceeds(completions.where('periodKey', '>=', '2026-10-01')
+      .where('periodKey', '<=', '2026-10-31').orderBy('periodKey').get());
+    await assertSucceeds(completions.orderBy('__name__').startAt('2026-10-01').endAt('2026-10-31').get());
+    await assertFails(completion.delete());
+    for (const context of [environment.authenticatedContext('bob'), environment.unauthenticatedContext()]) {
+      const foreign = context.firestore().collection(`users/alice/${collectionName}`);
+      await assertFails(foreign.doc(completion.id).get());
+      await assertFails(foreign.get());
+      await assertFails(foreign.where('periodKey', '==', completion.id).get());
+      await assertFails(foreign.doc('2026-10-23').set(coachCompletion(kind, '2026-10-23')));
+      await assertFails(foreign.doc(completion.id).update({reviewedAt: serverTimestamp()}));
+      await assertFails(foreign.doc(completion.id).delete());
+      await assertFails(context.firestore().collectionGroup(collectionName).get());
+    }
+    await assertFails(db.collectionGroup(collectionName).get());
+  });
+
+  test(`${collectionName}: strict create/update schema, dates, server time and parent existence`, async () => {
+    const db = environment.authenticatedContext('alice').firestore();
+    const profile = db.doc('users/alice');
+    const completions = db.collection(`users/alice/${collectionName}`);
+    const completion = completions.doc('2026-10-22');
+    await assertFails(completion.set(coachCompletion(kind)));
+    await assertSucceeds(profile.set(userProfile()));
+    const invalid = [
+      {periodKey: '2026-10-23'}, {periodKey: 20261022}, {kind: kind === 'daily' ? 'weekly' : 'daily'},
+      {kind: true}, {noMovements: 'false'}, {noMovements: 0}, {noMovements: null},
+      {reviewedAt: Timestamp.fromMillis(0)}, {reviewedAt: Timestamp.fromMillis(4102444800000)},
+      {reviewedAt: '2026-10-22'}, {reviewedAt: null}, {extra: true}, {ownerId: 'bob'},
+    ].map((patch) => ({...coachCompletion(kind), ...patch}));
+    if (kind === 'weekly') invalid.push({...coachCompletion(kind), noMovements: true});
+    for (const field of Object.keys(coachCompletion(kind))) {
+      const missing = coachCompletion(kind);
+      delete missing[field];
+      invalid.push(missing);
+    }
+    for (const value of invalid) await assertFails(completion.set(value));
+    for (const date of ['2026-00-22', '2026-13-22', '2026-10-00', '2026-10-32',
+      '2026-1-01', '26-10-22', '2026-10-22suffix', 'x'.repeat(1000)]) {
+      await assertFails(completions.doc(date).set(coachCompletion(kind, date)));
+    }
+    for (const date of ['2026-01-01', '2026-12-31']) {
+      await assertSucceeds(completions.doc(date).set(coachCompletion(kind, date)));
+    }
+    await assertSucceeds(completion.set(coachCompletion(kind)));
+    for (const value of invalid) {
+      await assertFails(completion.set(value));
+      if (Object.keys(coachCompletion(kind)).every((field) => field in value)) {
+        await assertFails(completion.update(value));
+      }
+    }
+    for (const field of Object.keys(coachCompletion(kind))) {
+      await assertFails(completion.update({[field]: deleteField(),
+        ...(field === 'reviewedAt' ? {} : {reviewedAt: serverTimestamp()}),
+      }));
+    }
+    // A patch omitting fields preserves them; a replacement/deletion may not.
+    await assertSucceeds(completion.update({reviewedAt: serverTimestamp()}));
+    await environment.withSecurityRulesDisabled(async (context) => context.firestore().doc(profile.path).delete());
+    await assertFails(completion.update({reviewedAt: serverTimestamp()}));
+  });
+}
 
 test('unauthenticated users cannot read user data or the category catalog', async () => {
   const db = environment.unauthenticatedContext().firestore();
@@ -59,6 +260,13 @@ test('home preferences are owner-updatable, typed, bounded, and cannot add profi
     hiddenBudgetCategoryIds: ['food', 'transport'],
   };
   await assertSucceeds(profile.update({homePreferences: validPreferences}));
+  await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': true}));
+  await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': false}));
+  await assertFails(profile.update({'homePreferences.widgets.coachNextStep': 'true'}));
+  await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': deleteField()}));
+  for (const field of Object.keys(validPreferences.widgets)) {
+    await assertFails(profile.update({[`homePreferences.widgets.${field}`]: deleteField()}));
+  }
   await assertSucceeds(profile.update({homePreferences: deleteField()}));
   await assertFails(profile.update({homePreferences: {...validPreferences, admin: true}}));
   await assertFails(profile.update({homePreferences: {...validPreferences, widgets: {

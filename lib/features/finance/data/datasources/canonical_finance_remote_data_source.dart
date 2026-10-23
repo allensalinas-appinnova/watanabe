@@ -51,6 +51,7 @@ abstract interface class CanonicalFinanceRemoteDataSource {
   Future<void> archiveCategory(String userId, String categoryId);
 
   Stream<List<Map<String, dynamic>>> watchAccounts(String userId);
+  Stream<Map<String, dynamic>?> watchAccount(String userId, String accountId);
 
   Future<Map<String, dynamic>> createAccount(
     String userId, {
@@ -268,7 +269,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     Query<Map<String, dynamic>> query = _userCollection(userId, 'operations');
     if (monthKey != null) query = query.where('monthKey', isEqualTo: monthKey);
     if (currency != null) query = query.where('currency', isEqualTo: currency);
-    if (type != null) query = query.where('type', isEqualTo: type.name);
+    if (type != null && type != OperationType.expense) {
+      query = query.where('type', isEqualTo: type.name);
+    }
     final selectedAccountIds = {
       ?accountId,
       ...?accountIds,
@@ -311,19 +314,57 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         cursor.operationId,
       ]);
     }
-    final snapshot = await query.get();
-    final records = _records(snapshot);
-    final last = snapshot.docs.isEmpty ? null : snapshot.docs.last;
-    final lastOccurredAt = last?.data()['occurredAt'];
-    return RemoteOperationPage(
-      records: records,
-      nextCursor: last != null && lastOccurredAt is Timestamp && records.length == pageSize
-          ? OperationPageCursor(
-              occurredAt: lastOccurredAt.toDate(),
-              operationId: last.id,
-            )
-          : null,
-    );
+    final records = <Map<String, dynamic>>[];
+    OperationPageCursor? nextCursor;
+    // Scan to fill an expense page, including refunds. A type OR combined with
+    // ten selected accounts would exceed Firestore's 30-disjunction limit.
+    // The cursor always advances over scanned rows, never filtered positions.
+    for (;;) {
+      final remaining = pageSize - records.length;
+      final snapshot = await query.limit(remaining).get();
+      records.addAll(
+        _records(snapshot).where(
+          (record) =>
+              type != OperationType.expense ||
+              ['expense', 'expenseRefund'].contains(record['type']),
+        ),
+      );
+      final last = snapshot.docs.isEmpty ? null : snapshot.docs.last;
+      final occurredAt = last?.data()['occurredAt'];
+      if (last == null || occurredAt is! Timestamp || snapshot.size < remaining) {
+        nextCursor = null;
+        break;
+      }
+      nextCursor = OperationPageCursor(occurredAt: occurredAt.toDate(), operationId: last.id);
+      if (records.length == pageSize) break;
+      query = query.startAfter([occurredAt, last.id]);
+    }
+    // Keep the adjacent components of a payment together at a page boundary.
+    // Receipts cap a command at four source rows (reversal + replacement).
+    final commandId = records.lastOrNull?['debtCommandId'];
+    if (commandId is String && nextCursor != null) {
+      for (var tail = 0; tail < 4 && nextCursor != null; tail++) {
+        final cursor = nextCursor;
+        final extra = await query
+            .startAfter([Timestamp.fromDate(cursor.occurredAt), cursor.operationId])
+            .limit(1)
+            .get();
+        if (extra.docs.isEmpty) {
+          nextCursor = null;
+          break;
+        }
+        final doc = extra.docs.single;
+        if (doc.data()['debtCommandId'] != commandId) break;
+        final occurredAt = doc.data()['occurredAt'];
+        if (occurredAt is! Timestamp) break;
+        if (type != OperationType.expense ||
+            ['expense', 'expenseRefund'].contains(doc.data()['type'])) {
+          records.add({...doc.data(), 'id': doc.id});
+        }
+        nextCursor = OperationPageCursor(occurredAt: occurredAt.toDate(), operationId: doc.id);
+      }
+    }
+    return RemoteOperationPage(records: records, nextCursor: nextCursor);
   }
 
   @override
@@ -387,6 +428,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   ).where('status', isEqualTo: 'active').snapshots().map(_records);
 
   @override
+  Stream<Map<String, dynamic>?> watchAccount(String userId, String accountId) =>
+      _userCollection(userId, 'accounts')
+          .doc(accountId)
+          .snapshots()
+          .map((snapshot) => snapshot.exists ? {...snapshot.data()!, 'id': snapshot.id} : null);
+
+  @override
   Stream<List<Map<String, dynamic>>> watchBalanceAdjustments(String userId) => _userCollection(
     userId,
     'balanceAdjustments',
@@ -410,6 +458,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     final data = {
       'name': name.trim(),
       'type': type,
+      'nature': 'money',
       'currency': currency,
       'openingBalanceMinor': openingBalanceMinor,
       'currentBalanceMinor': openingBalanceMinor,
@@ -486,6 +535,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       if (!account.exists || account.data()?['currency'] != draft.currency) {
         throw StateError('The account does not exist or uses another currency.');
       }
+      if (account.data()?['nature'] == 'debt') throw StateError('debt-command-required');
       if (draft.budgetId != null || draft.budgetItemId != null) {
         if (draft.budgetId == null ||
             draft.budgetItemId == null ||
@@ -570,6 +620,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           source.data()?['currency'] != draft.currency ||
           destination.data()?['currency'] != draft.currency) {
         throw StateError('Transfer accounts must exist and use the same currency.');
+      }
+      if (source.data()?['nature'] == 'debt' || destination.data()?['nature'] == 'debt') {
+        throw StateError('debt-command-required');
       }
       transaction
         ..set(operationRef, data)

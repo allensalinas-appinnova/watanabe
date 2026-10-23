@@ -3,102 +3,55 @@ title: LumioMoney implementation and business backlog
 summary: Prioritized, dependency-aware work with acceptance criteria and effort ranges for a LATAM launch.
 ---
 
-UX contract: [docs/ux-implementation-contract.md](ux-implementation-contract.md)
+## Current project status — 2026-10-22
 
-project_status:
-  updated_at: "2026-10-21T23:59:00-05:00"
-  iteration: "ARCHITECTURE-HARDENING"
-  last_commit: "d89fe40"
-  status: "Baseline UX P0 verificado en Android y preparado para publicar; Iteración 7 inicia aceptación visual pantalla por pantalla. El E2E llega a onboarding y dashboard, pero aún falta evidencia comparable guardada para cada frame."
-  verified:
-    - "ARCHITECTURE-HARDENING: profile route reads use the finance repository, cache per UID across redirects, and show a localized recovery route on profile read failure"
-    - "ARCHITECTURE-HARDENING: operation projection deltas cover confirmed create, edit, rejection and deletion with event-marker idempotency and automatic trigger retry"
-    - "ARCHITECTURE-HARDENING: CI runs Flutter analysis/tests, Functions compilation/projection tests, and Firestore rules against demo-clearbudget only"
-    - "Baseline UX P0: flutter analyze sin issues"
-    - "Baseline UX P0: flutter test con 54 pruebas aprobadas"
-    - "Baseline UX P0: E2E Android Emulator Suite demo-clearbudget aprobado en emulator-5554 (Android 17/API 37); onboarding completo, flujo financiero canónico y dashboard verificado"
-    - "Baseline UX P0: dashboard final visible durante 10 segundos en el E2E"
-    - "Baseline UX P0: git diff --check aprobado antes de los commits"
-    - "Commit funcional creado: d89fe40"
-    - "ITERATION-6: flutter analyze sin issues y flutter test con 47 pruebas aprobadas en ese corte histórico"
-    - "ITERATION-6: Android E2E completo del runner pasó en emulator-5554, Android 17/API 37, usando solo demo-clearbudget Emulator Suite"
-    - "ITERATION-6: prueba E2E cubrió onboarding de UI y flujo canónico de ingreso, gasto, transferencia y presupuesto itemizado; Functions processOperation ejecutó en Emulator"
-    - "ITERATION-6: cinco escenarios de Firestore Rules pasaron con Emulator Suite"
-    - "ITERATION-6: Functions TypeScript build y seed de 16 categorías completados desde el runner E2E"
-    - "ITERATION-6: pruebas de sync temporal pendiente, rechazo seguro, reintento/idempotencia y modo offline unitario aprobadas"
-    - "ITERATION-6: prueba de navegación confirma que las cuatro ramas mantienen estado y que el selector global expone ingreso, gasto y transferencia"
-    - "ITERATION-6: Figma 07 P0 Screens contiene 12 frames funcionales y 4 variantes QA: compacto 360 px, portugués largo, estados de sync y presupuesto excedido"
-    - "Commit funcional de ITERATION-6: 9e43e5e"
-    - "flutter analyze passes with no issues"
-    - "Historical Flutter test suite had 39 tests before ITERATION-6; ITERATION-7 baseline suite: 54"
-    - "Functions compile"
-    - "Firestore Emulator security tests pass (5 tests)"
-    - "Firebase Emulator Suite starts with Java 21 and category seeding"
-    - "Iteration 3 commit eac40f4 is the documentation baseline"
-    - "Android debug APK builds successfully"
-    - "Firebase CLI 15.32.1 is available"
-    - "Staging prerequisite guards fail closed when configuration is absent"
-    - "Emulator mode is rejected outside dev and in release builds"
-    - "Crashlytics/Analytics hooks allow only non-financial event names"
-    - "Staging launch profiles use platform-specific Dart-define files"
-    - "Release preflight fails closed when staging config or signing assets are absent"
-    - "Firestore Emulator pagination test passes with 101 operations"
-    - "Android debug APK installs on emulator-5554"
-    - "E2E runner starts Auth, Firestore, Storage and Functions emulators"
-    - "Firebase Auth UID source-of-truth regression test passes"
-    - "Android Auth-to-Firestore diagnostic passes with emulator-issued token and strict rules"
-    - "Android E2E covers onboarding in UI and income/expense/transfer/itemized budget through the canonical repository; full screen-by-screen UI E2E remains open"
-    - "Itemized budget parent and items pass atomic creation rules test"
-    - "Flutter test suite passed with 54 tests at ITERATION-7 baseline"
-    - "Commit fc96aed publica el E2E de registro, ingreso, gasto y verificación de saldo en origin/main"
-    - "git diff --check, flutter analyze y flutter test fueron ejecutados antes de publicar el baseline"
-    - "Figma page 06 UX Contract contiene componentes P0, estados globales, onboarding, presupuesto, tracking, transferencia y variantes corregidas de Add Expense/Add Income"
-    - "La matriz visual de estados fue revisada con screenshot y todos sus estados quedaron visibles"
-  blocked:
-    - "Iteración 7: no se han guardado aún capturas de aceptación comparables para cada pantalla P0"
-    - "Iteración 7: onboarding fue recorrido en el E2E, pero falta su captura post-cambio equivalente a Figma para sign-off visual"
-    - "iOS Simulator/runtime no disponible en esta máquina; la cualificación visual y E2E iOS sigue pendiente"
-    - "Firebase staging, OAuth productivo, firma Android/iOS, Crashlytics/Analytics staging y archivos SDK oficiales no configurados"
-    - "El E2E Android valida onboarding visual y resto del flujo a nivel de repositorio; falta el recorrido UI de todas las pantallas P0"
-    - "La cola offline está cubierta con pruebas unitarias y la UI conserva el comando, pero falta el E2E de perder/redobrar conectividad, cerrar/reabrir y reintentar desde otro dispositivo"
-    - "Figma incluye muestras de accesibilidad/localización; faltan revisión con usuarios, textos ampliados reales y auditoría completa de contraste/semántica en Flutter"
-    - "Firebase staging project ID and app configuration values were not provided"
-    - "Android upload keystore/Play App Signing credentials are not configured"
-    - "iOS DEVELOPMENT_TEAM, certificates and provisioning profiles are not configured"
-    - "No iOS Simulator runtime is available to simctl"
-    - "OAuth provider configuration and Crashlytics/Analytics staging evidence are not available"
-    - "Firebase CLI credentials require reauthentication for project discovery"
-    - "Firebase CLI reauthentication is pending before project discovery"
-  next_iteration: "Implementar reconciliación dry-run de proyecciones, resolver la autoridad de agregados de presupuestos y provisionar staging/App Check; completar E2E en CI y aceptación física Android/iOS cuando haya emuladores, proyectos y credenciales."
+UX contract: [UX implementation contract](ux-implementation-contract.md).
 
-Current verification for ARCHITECTURE-HARDENING is recorded in `docs/architecture-hardening.md`.
-Historical test counts above are retained as historical evidence and are not the current suite size.
+Code baseline: commit `e23b6ba` plus local changes in this checkout; this status
+does not describe only `origin/main`. Verification counts below come from the
+linked delivery records and were not all rerun while editing this page.
 
-## Iteration status snapshot
+### Implemented and verified
 
-| ID | Status | Evidence / remaining gap |
-| --- | --- | --- |
-| CB-02 | in_progress | Environment/release documentation and observability hooks updated; CI and release ownership remain. |
-| CB-03 | in_progress | Fail-fast guards, platform-specific staging profiles and non-debug Android signing checks exist in e744ec5; cloud IDs, keys, iOS team and signed smoke remain. |
-| CB-05 | in_progress | Edit/delete UI route and safe errors added; Android E2E covers repository transactions, not the full form journey or reconciliation. |
-| CB-06 | in_progress | Transfer UI remains separate from income/expense and E2E repository path passes; offline/rejection and multi-device qualification remain. |
-| CB-07 | in_progress | Create budgets with multiple items for expense/income, month selector and tracker summary; edit/archive and full budget boundary matrix remain. |
-| CB-08 | in_progress | Onboarding now captures locale, country, currency and a supported IANA time zone; category creation/archive UI added; user validation and localization audit remain. |
-| CB-09 | in_progress | Persistent tabs, dashboard summary and 10-item recent list; Activity stays paginated. Full stale/offline UX and user validation remain. |
-| CB-10 | in_progress | Typed confirmed/pending/rejected outcomes, retryable network mapping, durable payload and safe codes covered by tests; real connectivity/reopen E2E remains. |
-| CB-11 | in_progress | Added translated shell, category/account, budget, sync, error and editing labels in es/pt/en; text-scale, semantic and full hardcoded-string audit remain. |
-| CB-12 | in_progress | Minor-unit formatting applied in account/budget views and onboarding time-zone selection added for CO/MX/BR; full country/currency matrix remains. |
-| CB-16 | in_progress | Five Firestore Rules Emulator scenarios pass; staging rule review, App Check, recovery and cost verification remain. |
-| CB-19 | in_progress | 54 Flutter tests, five rules tests and Android 17 Emulator E2E pass; visual acceptance by screen, full offline UI journey, iOS and staging remain unavailable. |
-| CB-18 | in_progress | Crashlytics records only typed technical codes; Analytics remains allowlisted and parameterless; staging delivery and consent validation remain. |
+- Canonical finance flows, itemized budgets, projections and a read-only
+  reconciliation audit. See [architecture hardening](architecture-hardening.md),
+  [budget commands](budget-commands.md) and [projection audit](projection-audit.md).
+- Coach daily/weekly routines and local reminder qualification, recorded in
+  [coach](coach.md).
+- Debt accounts and commands with **298 Flutter tests**, clean `flutter analyze`,
+  backend/Rules tests, and Android Emulator E2E in the qualification recorded
+  by [debt accounts](debts.md).
+- Assisted email import is backend groundwork only; Gmail OAuth and mailbox
+  search are not implemented. See [email imports](email-imports.md).
 
-# LumioMoney implementation and business backlog
+### Current blockers
 
-Baseline: 2026-10-04 local mobile project. All items are **Proposed / not started**
-in this planning delivery, including repairs. This document does not mean the
-features have been implemented. Read the [release audit](store-readiness-audit.md)
-for evidence and the [business analysis](market-and-business-analysis.md) for
-commercial assumptions and source links.
+- Cloud Run readiness for `mutateDebt` is resolved by revision
+  `mutatedebt-00004-leh` (`Ready`, `ConfigurationsReady` and `RoutesReady` true);
+  an unauthenticated request returns the expected callable `401
+  UNAUTHENTICATED`. Debt commands remain safely disabled with
+  `DEBTS_ENABLED=false` pending updated-client qualification and authenticated
+  Emulator/device checks. See [debt deployment evidence](debts.md).
+- Android release packaging fails until a release signing `storeFile` is
+  configured. No signing keystore was generated.
+- Independent Firebase staging and store, privacy, accessibility and live
+  observability gates remain; see [store readiness](store-readiness-audit.md).
+
+### Recommended next delivery
+
+Qualify the debt client against Emulator and the installed test device without
+creating real financial data; then configure signing and complete release
+qualification.
+Keep future product priorities and commercial assumptions in the backlog below
+and [business analysis](market-and-business-analysis.md).
+
+# Backlog planning
+
+The estimates and acceptance statements below are planning material, not a
+current implementation checklist. Some items have since been delivered; use the
+current status above and linked feature reports for actual evidence. Read the
+[release audit](store-readiness-audit.md) for release gates and the
+[business analysis](market-and-business-analysis.md) for commercial assumptions.
 
 Priority: **P0** blocks a reliable regional beta/release candidate; **P1** supports
 the first paid proposition; **P2** requires evidence from users before commitment.
@@ -115,26 +68,26 @@ not claims that the team currently has those people.
 
 ## Current implementation notes
 
-The canonical mobile vertical slice is now wired into Flutter presentation:
+The canonical financial vertical slice is wired into Flutter presentation:
 integer money, localized category bootstrap, canonical accounts, income,
 expense, transfers with ledger entries, itemized budgets, budget tracking and
-high-value routes are available. The retired web schema is not read or migrated.
-This is not a completion claim for all P0 release gates: production rule review,
-staging qualification, device E2E and full offline UI/network qualification remain
-release work. The current Activity path is cursor-paginated and dashboard/tracker
-totals use derived monthly summaries when available.
+high-value routes are available. No migration from earlier development data
+formats is planned. Production rules, staging qualification, signed release
+builds and full offline UI/network qualification remain separate release gates.
+Activity is cursor-paginated; dashboard/tracker totals use derived monthly
+summaries when available.
 
 | ID | Deliverable and owner | Days | Depends on |
 | --- | --- | --- | --- |
 | CB-01 | Customer/problem validation; Founder/Product | 5–8 | None |
 | CB-02 | Git baseline, CI and documentation reconciliation; Mobile | 3–5 | None |
 | CB-03 | Signed environments and cloud release configuration; Mobile/Release | 5–8 | CB-02; publisher/project access |
-| CB-04 | Money, ledger schema and web-data compatibility decision; Mobile/Backend | 4–7 | None |
+| CB-04 | Money and canonical ledger contract; Mobile/Backend | 4–7 | None |
 | CB-05 | Complete income/expense lifecycle and account reconciliation; Mobile/Backend | 7–12 | CB-04 |
 | CB-06 | Atomic transfers; Mobile/Backend | 4–6 | CB-05 |
 | CB-07 | Monthly budget creation and correct aggregates; Mobile/Backend | 5–8 | CB-04/05 |
 | CB-08 | Fresh-user onboarding and category management; Mobile/Product | 4–6 | CB-04/07 |
-| CB-09 | Honest dashboard and report navigation; Mobile | 1–2 | None for removing literal; CB-05/07 for calculated comparisons |
+| CB-09 | Honest dashboard and report navigation; Mobile | 1–2 | Validate calculated comparisons; no literal comparison is intended |
 | CB-10 | Durable offline entry and retry UX; Mobile/Backend | 6–10 | CB-04/05 |
 | CB-11 | Spanish/Portuguese localization and accessibility; Mobile/Design | 5–9 | Inventory of current screens |
 | CB-12 | Regional currencies, dates and time zones; Mobile | 4–7 | CB-04/11 |
@@ -146,7 +99,7 @@ totals use derived monthly summaries when available.
 | CB-18 | Operational and product measurement; Mobile/Backend | 3–5 | CB-03; collection policy with CB-17 |
 | CB-19 | Independent E2Es and device release qualification; QA/Mobile | 6–10 | CB-03–18 technical work |
 | CB-20 | Store identity, listings and beta distribution; Founder/Design/Release | 3–5 | CB-03/11/17; CB-19 for final submission |
-| CB-23 | User-controlled basic export; Mobile | 2–4 | CB-04/05 |
+| CB-23 | User-controlled basic export; Mobile | 2–4 | Delivered as filtered CSV review/save/share; see current Activity implementation |
 
 Acceptance and meaningful verification:
 
@@ -156,8 +109,8 @@ country, language and price reaction. Produce one target subgroup, ranked pains,
 consenting beta recruits and a documented continue/change decision. Recruitment is
 not completed by publishing a form; no outreach is authorized by this document.
 
-**CB-02.** Establish mobile source-control ownership without importing build caches
-or sibling web history accidentally. Record reproducible SDK/lockfiles and protect
+**CB-02.** Establish source-control ownership without importing build caches
+or unrelated repositories accidentally. Record reproducible SDK/lockfiles and protect
 credentials. CI runs analyze, unit/widget tests and emulator security/E2E jobs;
 update architecture/localization/testing claims to match code. No blanket refactor
 is required: correct boundaries and error mapping in affected vertical slices.
@@ -172,7 +125,9 @@ emulators except a specifically controlled staging qualification.
 
 **CB-04.** Approve a versioned schema with exact monetary representation, currency,
 rounding, transaction kinds, stable category IDs and period/time-zone semantics.
-Choose web isolation or migration; test `in/out` compatibility if reusing data.
+Use the canonical mobile schema; no legacy data migration is planned for this
+development project. Test exact `income/expense` compatibility only where an
+existing internal contract requires it.
 Golden cases include decimal currencies, large values, negative balances, same-time
 entries, opening balances and invalid amounts. Domain layer remains pure Dart.
 
@@ -232,7 +187,7 @@ permanent account without loss, including credential collision recovery. Test
 logout/login as another user and stale cached-state visibility. Define account
 recovery/email-verification behavior and test expired/invalid reset flows.
 
-**CB-15.** In-app and external-web request paths reauthenticate appropriately and
+**CB-15.** Account-deletion request paths reauthenticate appropriately and
 delete Auth plus Firestore descendants and Storage objects through a resumable,
 idempotent process. Test interruption/retry and more than one batch; stop background
 writes during deletion. State retention exceptions and backup expiry. Subscription

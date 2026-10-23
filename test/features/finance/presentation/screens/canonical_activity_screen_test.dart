@@ -180,6 +180,7 @@ void main() {
 
     expect(find.text('Encuentra y revisa tus movimientos'), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_filter_transfers')), findsOneWidget);
     expect(find.byKey(const ValueKey('activity_operation_salary')), findsOneWidget);
     final activityAmount = find.byKey(const ValueKey('activity_operation_amount_salary'));
     expect(tester.widget<Text>(activityAmount).textAlign, TextAlign.end);
@@ -199,10 +200,11 @@ void main() {
     expect(find.text('Banco1 Ahorros · Salario'), findsOneWidget);
     expect(find.text('Banco1 Ahorros · Comida'), findsOneWidget);
     expect(find.text('Banco1 Ahorros → Efectivo'), findsOneWidget);
-    expect(find.text('Totales confirmados'), findsOneWidget);
-    expect(find.text('Saldo neto'), findsOneWidget);
+    expect(find.text('Resumen'), findsOneWidget);
+    expect(find.text('Resultado'), findsOneWidget);
+    expect(find.text('Ingresos − egresos · Transferencias excluidas'), findsOneWidget);
     expect(find.text('Movimientos · 3'), findsOneWidget);
-    expect(find.text('Los totales incluyen solo movimientos confirmados.'), findsNothing);
+    expect(find.textContaining('pendientes'), findsNothing);
 
     await tester.drag(
       find.byKey(const ValueKey('canonical_activity_scroll_view')),
@@ -225,6 +227,43 @@ void main() {
     expect(find.text('Mercado'), findsOneWidget);
     expect(find.text('Salario'), findsNothing);
     expect(find.text('Mover dinero'), findsNothing);
+  });
+
+  testWidgets('transfer filter limits rows, summary and CSV to transfers', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _FakeActivityCsvShareService();
+
+    await tester.pumpWidget(buildSubject(locale: const Locale('es'), shareService: service));
+    await tester.pumpAndSettle();
+    final filters = find.byKey(const ValueKey('activity_type_filters_scroll'));
+    await tester.drag(filters, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('activity_filter_transfers')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mover dinero'), findsOneWidget);
+    expect(find.text('Salario'), findsNothing);
+    expect(find.text('Mercado'), findsNothing);
+    expect(find.text('Resumen'), findsOneWidget);
+    expect(
+      find.text('Las transferencias no se suman a ingresos, egresos ni resultado.'),
+      findsOneWidget,
+    );
+    expect(find.text('Resultado'), findsNothing);
+    expect(find.text('Movimientos · 1'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('activity_export_open')));
+    await tester.pumpAndSettle();
+    expect(find.text('Transferencias'), findsWidgets);
+    expect(find.text('1 movimiento confirmado'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('activity_export_share')));
+    await tester.pumpAndSettle();
+    expect(service.contents, contains('"Transferencia"'));
+    expect(service.contents, isNot(contains('"Salario"')));
+    expect(service.contents, isNot(contains('"Mercado"')));
   });
 
   testWidgets('opens export review and shares confirmed rows including transfers', (tester) async {
@@ -286,6 +325,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('activity_title')), findsOneWidget);
       expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
+      expect(find.byKey(const ValueKey('activity_filter_transfers')), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
   });

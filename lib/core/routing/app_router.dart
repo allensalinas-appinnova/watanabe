@@ -6,6 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_recovery_screen.dart';
+import '../../features/coach/domain/entities/coach_models.dart';
+import '../../features/coach/presentation/screens/coach_review_screen.dart';
+import '../../features/coach/presentation/screens/coach_settings_screen.dart';
+import '../../features/debts/presentation/debt_detail_screen.dart';
+import '../../features/debts/presentation/debt_form_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
@@ -69,6 +74,27 @@ GoRouter _buildAppRouter() => GoRouter(
     );
   },
   routes: [
+    GoRoute(
+      path: '/coach',
+      name: 'coach-settings',
+      builder: (context, state) => const CoachSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/coach/daily',
+      name: 'coach-daily',
+      builder: (context, state) => CoachReviewScreen(
+        kind: CoachReviewKind.daily,
+        periodKey: state.uri.queryParameters['date'],
+      ),
+    ),
+    GoRoute(
+      path: '/coach/weekly',
+      name: 'coach-weekly',
+      builder: (context, state) => CoachReviewScreen(
+        kind: CoachReviewKind.weekly,
+        periodKey: state.uri.queryParameters['date'],
+      ),
+    ),
     GoRoute(
       path: '/login',
       name: 'login',
@@ -181,6 +207,13 @@ GoRouter _buildAppRouter() => GoRouter(
               path: '/accounts',
               name: 'accounts',
               builder: (context, state) => const CanonicalAccountsScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id/debt',
+                  builder: (context, state) =>
+                      DebtDetailScreen(accountId: state.pathParameters['id']!),
+                ),
+              ],
             ),
           ],
         ),
@@ -191,6 +224,18 @@ GoRouter _buildAppRouter() => GoRouter(
       name: 'new-account',
       builder: (context, state) => AccountFormScreen(
         initialCurrency: state.uri.queryParameters['currency'],
+      ),
+    ),
+    GoRoute(path: '/debts/new', builder: (context, state) => const DebtFormScreen()),
+    GoRoute(
+      path: '/debts/:id/actions/:action',
+      builder: (context, state) => DebtFormScreen(
+        accountId: state.pathParameters['id'],
+        action: state.pathParameters['action']!,
+        originalOperationId: state.uri.queryParameters['original'],
+        initialComponents: state.extra is List<FinancialOperation>
+            ? state.extra! as List<FinancialOperation>
+            : const [],
       ),
     ),
     GoRoute(
@@ -210,6 +255,7 @@ GoRouter _buildAppRouter() => GoRouter(
             : OperationType.expense,
         initialAccountId: state.uri.queryParameters['accountId'],
         initialCategoryId: state.uri.queryParameters['categoryId'],
+        initialOccurredAt: DateTime.tryParse(state.uri.queryParameters['occurredAt'] ?? ''),
       ),
     ),
     GoRoute(
@@ -261,6 +307,7 @@ GoRouter _buildAppRouter() => GoRouter(
       name: 'new-transfer',
       builder: (context, state) => CanonicalTransferScreen(
         initialSourceAccountId: state.uri.queryParameters['sourceAccountId'],
+        initialOccurredAt: DateTime.tryParse(state.uri.queryParameters['occurredAt'] ?? ''),
       ),
     ),
   ],

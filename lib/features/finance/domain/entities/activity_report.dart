@@ -38,16 +38,18 @@ class ActivityReport {
         case OperationType.income:
           incomeByCurrency.update(
             operation.currency,
-            (amount) => amount + operation.amountMinor,
-            ifAbsent: () => operation.amountMinor,
+            (amount) => amount + operation.recognizedIncomeMinor,
+            ifAbsent: () => operation.recognizedIncomeMinor,
           );
         case OperationType.expense:
+        case OperationType.expenseRefund:
           expenseByCurrency.update(
             operation.currency,
-            (amount) => amount + operation.amountMinor,
-            ifAbsent: () => operation.amountMinor,
+            (amount) => amount + operation.recognizedExpenseMinor,
+            ifAbsent: () => operation.recognizedExpenseMinor,
           );
         case OperationType.transfer:
+        case OperationType.debtAdjustment:
           // Transfers move money between accounts; they are not income or expense.
           break;
       }
@@ -77,8 +79,24 @@ class ActivityReport {
   /// Confirmed income/expense totals, kept separate for each currency.
   final Map<String, ActivityCurrencyTotals> totalsByCurrency;
 
-  int get confirmedOperationCount =>
-      operations.where((operation) => operation.status == OperationStatus.confirmed).length;
+  static List<List<FinancialOperation>> groupOperations(Iterable<FinancialOperation> operations) {
+    final groups = <String, List<FinancialOperation>>{};
+    for (final operation in operations) {
+      groups
+          .putIfAbsent(
+            operation.debtCommandId == null
+                ? 'operation:${operation.id}'
+                : 'command:${operation.debtCommandId}',
+            () => [],
+          )
+          .add(operation);
+    }
+    return groups.values.toList(growable: false);
+  }
+
+  int get confirmedOperationCount => groupOperations(
+    operations.where((operation) => operation.status == OperationStatus.confirmed),
+  ).length;
 
   int get pendingOperationCount =>
       operations.where((operation) => operation.status == OperationStatus.pending).length;

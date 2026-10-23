@@ -76,27 +76,60 @@ class CanonicalAccountsScreen extends ConsumerWidget {
                           children: [
                             for (var index = 0; index < items.length; index++) ...[
                               if (index > 0) const SizedBox(height: 18),
+                              if (index == 0 ||
+                                  items[index].isDebt != items[index - 1].isDebt ||
+                                  items[index].isCreditCard != items[index - 1].isCreditCard)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: Text(
+                                      items[index].isCreditCard
+                                          ? l10n.debtCards
+                                          : items[index].isDebt
+                                          ? l10n.debtLoans
+                                          : l10n.debtMoney,
+                                      style: Theme.of(context).textTheme.titleMedium,
+                                    ),
+                                  ),
+                                ),
                               _AccountCard(
                                 account: items[index],
                                 subtitle: _accountSubtitle(l10n, items[index]),
                                 balance: CurrencyFormatter.formatMinor(
-                                  items[index].currentBalanceMinor,
+                                  items[index].isDebt
+                                      ? (items[index].creditBalanceMinor > 0
+                                            ? items[index].creditBalanceMinor
+                                            : items[index].debtMinor)
+                                      : items[index].currentBalanceMinor,
                                   items[index].currency,
                                 ),
-                                editLabel: l10n.editAccount,
+                                editLabel: items[index].isDebt ? l10n.debtTitle : l10n.editAccount,
                                 archiveLabel: l10n.archive,
                                 adjustBalanceLabel: l10n.adjustAccountBalance,
                                 onEdit: () => _editAccount(context, items[index]),
-                                onAdjustBalance: items[index].status == 'active'
+                                onAdjustBalance:
+                                    items[index].status == 'active' && !items[index].isDebt
                                     ? () =>
                                           _adjustBalance(context, ref, user.id, items[index], items)
                                     : null,
-                                onArchive: () =>
-                                    _archiveAccount(context, ref, user.id, items[index]),
+                                onArchive: () => items[index].isDebt
+                                    ? context.push('/debts/${items[index].id}/actions/archive')
+                                    : _archiveAccount(context, ref, user.id, items[index]),
                               ),
                             ],
                           ],
                         ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => context.push('/debts/new'),
+                      child: Text(l10n.debtAdd),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 42),
                 SizedBox(
@@ -127,9 +160,12 @@ class CanonicalAccountsScreen extends ConsumerWidget {
       'cash' || 'wallet' => l10n.cashAccountType,
       'checking' => l10n.checkingAccountType,
       'savings' => l10n.savingsAccountType,
+      'creditcard' => l10n.debtCreditCard,
+      'bankloan' => l10n.debtBankLoan,
+      'personalloan' => l10n.debtPersonalLoan,
       _ => account.type,
     };
-    return '${account.currency} · $typeLabel';
+    return '${account.currency} · $typeLabel${account.creditBalanceMinor > 0 ? ' · ${l10n.debtCreditBalance}' : ''}';
   }
 
   void _showCreate(BuildContext context) {
@@ -140,6 +176,10 @@ class CanonicalAccountsScreen extends ConsumerWidget {
     BuildContext context,
     FinanceAccount account,
   ) async {
+    if (account.isDebt) {
+      await context.push('/accounts/${account.id}/debt');
+      return;
+    }
     await context.pushNamed<void>(
       'edit-account',
       pathParameters: {'id': account.id},
@@ -161,7 +201,9 @@ class CanonicalAccountsScreen extends ConsumerWidget {
       builder: (context) => AccountBalanceAdjustmentSheet(
         userId: userId,
         initialAccount: account,
-        accounts: accounts.where((item) => item.status == 'active').toList(growable: false),
+        accounts: accounts
+            .where((item) => item.status == 'active' && !item.isDebt)
+            .toList(growable: false),
         repository: ref.read(canonicalFinanceRepositoryProvider),
         loadActiveOperations: () => getIt<PendingOperationDatabase>().watchActive().first,
       ),

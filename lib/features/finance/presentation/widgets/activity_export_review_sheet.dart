@@ -458,6 +458,8 @@ class _OperationPreview extends StatelessWidget {
             OperationType.income => l10n.income,
             OperationType.expense => l10n.expense,
             OperationType.transfer => l10n.transferOperationLabel,
+            OperationType.expenseRefund => l10n.debtRefund,
+            OperationType.debtAdjustment => l10n.debtAdjust,
           };
     final amount = CurrencyFormatter.formatMinor(
       operation.amountMinor,

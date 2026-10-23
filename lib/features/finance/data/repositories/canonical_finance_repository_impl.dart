@@ -121,6 +121,11 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
       _remoteDataSource.watchAccounts(userId).map((records) => records.map(_account).toList());
 
   @override
+  Stream<FinanceAccount?> watchAccount(String userId, String accountId) => _remoteDataSource
+      .watchAccount(userId, accountId)
+      .map((record) => record == null ? null : _account(record));
+
+  @override
   Stream<List<BalanceAdjustmentEvent>> watchBalanceAdjustments(String userId) => _remoteDataSource
       .watchBalanceAdjustments(userId)
       .map(
@@ -520,6 +525,13 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
     archivedAt: FirestoreDateMapper.toDateTime(data['archivedAt']),
+    nature: data['nature'] as String? ?? 'money',
+    referenceAt: FirestoreDateMapper.toDateTime(data['referenceAt']),
+    principalMinor: (data['principalMinor'] as num? ?? 0).toInt(),
+    chargesMinor: (data['chargesMinor'] as num? ?? 0).toInt(),
+    limitMinor: (data['limitMinor'] as num?)?.toInt(),
+    creditor: data['creditor'] as String?,
+    lastFour: data['lastFour'] as String?,
   );
 
   FinancialOperation _operation(Map<String, dynamic> data) => FinancialOperation(
@@ -540,6 +552,17 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     budgetId: data['budgetId'] as String?,
     budgetItemId: data['budgetItemId'] as String?,
     description: data['description'] as String? ?? '',
+    debtCommandId: data['debtCommandId'] as String?,
+    debtAccountId: data['debtAccountId'] as String?,
+    debtKind: data['debtKind'] as String?,
+    originalOperationId: data['originalOperationId'] as String?,
+    reversalOf: data['reversalOf'] as String?,
+    projectionDirection: (data['projectionDirection'] as num? ?? 1).toInt(),
+    principalDeltaMinor: (data['principalDeltaMinor'] as num? ?? 0).toInt(),
+    chargesDeltaMinor: (data['chargesDeltaMinor'] as num? ?? 0).toInt(),
+    balanceDeltaMinor: (data['balanceDeltaMinor'] as num?)?.toInt(),
+    previousBalanceMinor: (data['previousBalanceMinor'] as num?)?.toInt(),
+    targetBalanceMinor: (data['targetBalanceMinor'] as num?)?.toInt(),
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
   );

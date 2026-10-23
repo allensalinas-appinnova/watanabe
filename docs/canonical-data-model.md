@@ -1,7 +1,8 @@
 # LumioMoney canonical mobile data model
 
-The mobile application owns this model. The retired web schema is not a
-compatibility constraint and no migration is planned for development data.
+This repository owns the canonical LumioMoney model. No migration from earlier
+development-only data stores is planned; existing account records without a
+debt nature keep their legacy money-account meaning.
 
 ## Principles
 
@@ -25,6 +26,16 @@ compatibility constraint and no migration is planned for development data.
 /users/{userId}/budgets/{budgetId}
 /users/{userId}/budgets/{budgetId}/items/{itemId}
 /users/{userId}/monthlySummaries/{summaryId}
+/users/{userId}/balanceAdjustments/{requestId}
+/users/{userId}/coachDailyCheckIns/{YYYY-MM-DD}
+/users/{userId}/coachWeeklyReviews/{weekStart}
+/users/{userId}/debtCommands/{requestId}
+/users/{userId}/debtReversals/{requestId}
+/users/{userId}/debtRefunds/{operationId}
+/users/{userId}/emailImportCandidates/{candidateId} (server-only)
+/users/{userId}/emailImportCommands/{requestId} (server-only)
+/users/{userId}/emailImportSources/{sourceId} (server-only)
+/users/{userId}/emailImportReferences/{referenceId} (server-only)
 ```
 
 `operationId` is the validated idempotency key. `budgetId` is generated from
@@ -48,3 +59,20 @@ reconciliation can rebuild them from the source ledger.
 Pending commands are stored in the local Drift database with an idempotency key,
 payload, retry count and `pending/syncing/confirmed/rejected` state. A transfer
 is one command and is never partially confirmed.
+
+## Debt commands
+
+Debt accounts use an explicit `nature=debt`; absence of nature remains legacy
+money. Signed ledger balances and nonnegative loan components are maintained
+transactionally by `mutateDebt`, not by client writes or the offline outbox.
+Refunds reduce expenses rather than creating income. See [debts.md](debts.md)
+for the command, reversal, receipt and activation contracts.
+
+## Other derived and workflow records
+
+Balance adjustments, coach check-ins and weekly reviews are separate from
+financial operations. They do not count as income or expense. Email-import
+candidates and command/deduplication markers are server-only; the current
+implementation does not connect Gmail. See [coach.md](coach.md),
+[projection-audit.md](projection-audit.md) and [email-imports.md](email-imports.md)
+for their validation and activation boundaries.

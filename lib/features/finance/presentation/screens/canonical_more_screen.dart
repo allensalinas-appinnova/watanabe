@@ -54,6 +54,12 @@ class CanonicalMoreScreen extends ConsumerWidget {
             onPressed: () => context.push('/home-preferences'),
             child: Text(l10n.homeCustomizeTitle),
           ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            key: const ValueKey('more_coach'),
+            onPressed: () => context.push('/coach'),
+            child: Text(l10n.coachTitle),
+          ),
           const SizedBox(height: 32),
           Text(
             l10n.moreSession,

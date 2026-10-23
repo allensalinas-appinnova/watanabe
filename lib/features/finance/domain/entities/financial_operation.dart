@@ -1,4 +1,4 @@
-enum OperationType { income, expense, transfer }
+enum OperationType { income, expense, transfer, expenseRefund, debtAdjustment }
 
 enum OperationStatus { pending, confirmed, rejected }
 
@@ -21,6 +21,17 @@ class FinancialOperation {
     this.description = '',
     this.createdAt,
     this.updatedAt,
+    this.debtCommandId,
+    this.debtAccountId,
+    this.debtKind,
+    this.originalOperationId,
+    this.reversalOf,
+    this.projectionDirection = 1,
+    this.principalDeltaMinor = 0,
+    this.chargesDeltaMinor = 0,
+    this.balanceDeltaMinor,
+    this.previousBalanceMinor,
+    this.targetBalanceMinor,
   });
 
   final String id;
@@ -40,6 +51,25 @@ class FinancialOperation {
   final String description;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? debtCommandId;
+  final String? debtAccountId;
+  final String? debtKind;
+  final String? originalOperationId;
+  final String? reversalOf;
+  final int projectionDirection;
+  final int principalDeltaMinor;
+  final int chargesDeltaMinor;
+  final int? balanceDeltaMinor;
+  final int? previousBalanceMinor;
+  final int? targetBalanceMinor;
+
+  int get recognizedIncomeMinor =>
+      type == OperationType.income ? amountMinor * projectionDirection : 0;
+  int get recognizedExpenseMinor => switch (type) {
+    OperationType.expense => amountMinor * projectionDirection,
+    OperationType.expenseRefund => -amountMinor * projectionDirection,
+    _ => 0,
+  };
 
   bool get isTransfer => type == OperationType.transfer;
 }

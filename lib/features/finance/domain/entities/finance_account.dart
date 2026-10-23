@@ -11,6 +11,13 @@ class FinanceAccount {
     this.createdAt,
     this.updatedAt,
     this.archivedAt,
+    this.nature = 'money',
+    this.referenceAt,
+    this.principalMinor = 0,
+    this.chargesMinor = 0,
+    this.limitMinor,
+    this.creditor,
+    this.lastFour,
   });
 
   final String id;
@@ -24,4 +31,16 @@ class FinanceAccount {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? archivedAt;
+  final String nature;
+  final DateTime? referenceAt;
+  final int principalMinor;
+  final int chargesMinor;
+  final int? limitMinor;
+  final String? creditor;
+  final String? lastFour;
+
+  bool get isDebt => nature == 'debt';
+  bool get isCreditCard => isDebt && type == 'creditCard';
+  int get debtMinor => isDebt && currentBalanceMinor < 0 ? -currentBalanceMinor : 0;
+  int get creditBalanceMinor => isCreditCard && currentBalanceMinor > 0 ? currentBalanceMinor : 0;
 }

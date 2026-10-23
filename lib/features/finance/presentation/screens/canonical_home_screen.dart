@@ -13,6 +13,8 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../coach/presentation/widgets/coach_next_step_card.dart';
+import '../../../debts/domain/recorded_position.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_flow_type.dart';
 import '../../domain/entities/finance_account.dart';
@@ -121,6 +123,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                   ],
+                  if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
+                    CoachNextStepCard(userId: user.id, timeZone: profile?.timeZone ?? 'UTC'),
                   if (homePreferences.shows(HomeDashboardWidget.totalBalance))
                     accounts.when(
                       loading: () => const _HomeSkeleton(height: 116),
@@ -308,7 +312,7 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final groups = <String, List<FinanceAccount>>{};
     for (final account in accounts.where(
-      (item) => item.status == 'active' && item.includeInDashboard,
+      (item) => item.status == 'active' && item.includeInDashboard && !item.isDebt,
     )) {
       groups.putIfAbsent(account.currency, () => []).add(account);
     }
@@ -324,7 +328,10 @@ class _BalanceCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  AppLocalizations.of(context).homeTotalBalance.toUpperCase(),
+                  (accounts.any((a) => a.isDebt)
+                          ? AppLocalizations.of(context).debtMoney
+                          : AppLocalizations.of(context).homeTotalBalance)
+                      .toUpperCase(),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: const Color(0xFFD8E7F8),
                     fontWeight: FontWeight.w600,
@@ -377,6 +384,34 @@ class _BalanceCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: const Color(0xFFD8E7F8),
               ),
+            ),
+          ],
+          if (accounts.any((a) => a.isDebt && a.includeInDashboard)) ...[
+            const Divider(color: Colors.white24),
+            for (final entry in RecordedPosition.byCurrency(accounts).entries) ...[
+              for (final row in [
+                (AppLocalizations.of(context).debtRegistered, entry.value.debtMinor),
+                (AppLocalizations.of(context).debtCreditBalance, entry.value.cardCreditMinor),
+                (AppLocalizations.of(context).debtPosition, entry.value.netMinor),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 12,
+                    children: [
+                      Text('${row.$1} · ${entry.key}', style: const TextStyle(color: Colors.white)),
+                      Text(
+                        amountsHidden ? '••••••' : _money(row.$2, entry.key),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            Text(
+              AppLocalizations.of(context).debtPositionNote,
+              style: const TextStyle(color: Colors.white70),
             ),
           ],
         ],
@@ -761,7 +796,11 @@ class _OperationTile extends StatelessWidget {
         : operation.description.isEmpty
         ? (category?.customName ?? category?.id ?? (isIncome ? l10n.income : l10n.expense))
         : operation.description;
-    final subtitle = isTransfer
+    final subtitle = operation.type == OperationType.expenseRefund
+        ? '${l10n.debtRefund} · $date'
+        : operation.type == OperationType.debtAdjustment
+        ? '${l10n.debtAdjust} · $date'
+        : isTransfer
         ? '${l10n.transferOperationLabel} · $date'
         : '${isIncome ? l10n.income : l10n.expense} · $date';
 
@@ -771,7 +810,9 @@ class _OperationTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: isTransfer
+          onTap: operation.debtAccountId != null
+              ? () => context.push('/accounts/${operation.debtAccountId}/debt')
+              : isTransfer
               ? null
               : () => context.push('/operations/${operation.id}/edit', extra: operation),
           borderRadius: BorderRadius.circular(14),
@@ -834,7 +875,7 @@ class _OperationTile extends StatelessWidget {
                         key: ValueKey('home_operation_amount_${operation.id}'),
                         amountsHidden
                             ? '••••••'
-                            : '${isIncome
+                            : '${(isIncome || operation.type == OperationType.expenseRefund) != (operation.projectionDirection == -1)
                                   ? '+'
                                   : isTransfer
                                   ? ''

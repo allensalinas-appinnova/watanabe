@@ -5,6 +5,18 @@ rules_version = '2';
 // Collections: categoryCatalog, users/{uid}/accounts, categories, operations,
 // operations/{operationId}/entries, ledgerEntries, budgets/items and
 // monthlySummaries.
+// Coach: optional users/{uid}.coachPreferences is an exact eight-field map
+// (booleans, integer local times, unique ISO weekdays). Optional Home widget
+// coachNextStep is boolean; legacy widget keys remain required.
+// coachDailyCheckIns/{YYYY-MM-DD} and coachWeeklyReviews/{YYYY-MM-DD}:
+// exact periodKey (document ID), kind (daily/weekly), noMovements (boolean,
+// false for weekly), reviewedAt (server timestamp). Owner reads/writes only;
+// writes require an existing profile, deletes are forbidden.
+// Email import candidates (including evidence), credentials, command receipts
+// and source/reference deduplication markers are server-only. The future client
+// must use callable responses so email evidence never enters persistent cache.
+// Debt accounts (nature=debt), debtCommands, debtReversals and debtRefunds are
+// server-owned. Only mutateDebt may change balances, components or source ops.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -32,6 +44,7 @@ service cloud.firestore {
     function accountExists(uid, accountId, currency) {
       return accountId is string &&
         exists(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)) &&
+        get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.get('nature', 'money') == 'money' &&
         get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.currency == currency;
     }
     function categoryExists(uid, categoryId, type) {
@@ -76,7 +89,7 @@ service cloud.firestore {
           data.homePreferences.widgets is map &&
           data.homePreferences.widgets.keys().hasOnly([
             'totalBalance', 'incomeSummary', 'expenseSummary',
-            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity'
+            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity', 'coachNextStep'
           ]) &&
           required(data.homePreferences.widgets, [
             'totalBalance', 'incomeSummary', 'expenseSummary',
@@ -88,10 +101,58 @@ service cloud.firestore {
           data.homePreferences.widgets.expenseBudgetRatio is bool &&
           data.homePreferences.widgets.incomeBudgetRatio is bool &&
           data.homePreferences.widgets.recentActivity is bool &&
+          (!('coachNextStep' in data.homePreferences.widgets) ||
+            data.homePreferences.widgets.coachNextStep is bool) &&
           data.homePreferences.hiddenBudgetCategoryIds is list &&
           data.homePreferences.hiddenBudgetCategoryIds.size() <= 100 &&
           data.homePreferences.hiddenBudgetCategoryIds.toSet().size() ==
             data.homePreferences.hiddenBudgetCategoryIds.size());
+    }
+
+    function validCoachHour(value) {
+      return value is int && value >= 0 && value <= 23;
+    }
+    function validCoachMinute(value) {
+      return value is int && value >= 0 && value <= 59;
+    }
+    function validCoachWeekday(value) {
+      return value is int && value >= 1 && value <= 7;
+    }
+    function validCoachWeekdays(days) {
+      return days is list && days.size() >= 1 && days.size() <= 7 &&
+        days.toSet().size() == days.size() &&
+        validCoachWeekday(days[0]) &&
+        (days.size() < 2 || validCoachWeekday(days[1])) &&
+        (days.size() < 3 || validCoachWeekday(days[2])) &&
+        (days.size() < 4 || validCoachWeekday(days[3])) &&
+        (days.size() < 5 || validCoachWeekday(days[4])) &&
+        (days.size() < 6 || validCoachWeekday(days[5])) &&
+        (days.size() < 7 || validCoachWeekday(days[6]));
+    }
+    function validCoachPreferences(data) {
+      let fields = ['dailyEnabled', 'weeklyEnabled', 'dailyHour', 'dailyMinute',
+        'dailyWeekdays', 'weeklyWeekday', 'weeklyHour', 'weeklyMinute'];
+      return !('coachPreferences' in data) ||
+        (data.coachPreferences is map &&
+          data.coachPreferences.keys().hasOnly(fields) &&
+          required(data.coachPreferences, fields) &&
+          data.coachPreferences.dailyEnabled is bool &&
+          data.coachPreferences.weeklyEnabled is bool &&
+          validCoachHour(data.coachPreferences.dailyHour) &&
+          validCoachMinute(data.coachPreferences.dailyMinute) &&
+          validCoachWeekdays(data.coachPreferences.dailyWeekdays) &&
+          validCoachWeekday(data.coachPreferences.weeklyWeekday) &&
+          validCoachHour(data.coachPreferences.weeklyHour) &&
+          validCoachMinute(data.coachPreferences.weeklyMinute));
+    }
+    function validCoachCompletion(data, periodKey, kind) {
+      return required(data, ['periodKey', 'kind', 'noMovements', 'reviewedAt']) &&
+        data.keys().hasOnly(['periodKey', 'kind', 'noMovements', 'reviewedAt']) &&
+        data.periodKey is string && data.periodKey == periodKey &&
+        data.periodKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$') &&
+        data.kind == kind && data.noMovements is bool &&
+        (kind == 'daily' || data.noMovements == false) &&
+        data.reviewedAt is timestamp && data.reviewedAt == request.time;
     }
 
     match /categoryCatalog/{categoryId} {
@@ -100,24 +161,48 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
+      match /emailImportCandidates/{id} { allow read, write: if false; }
+      match /emailImportCredentials/{id} { allow read, write: if false; }
+      match /emailImportCommands/{id} { allow read, write: if false; }
+      match /emailImportSources/{id} { allow read, write: if false; }
+      match /emailImportReferences/{id} { allow read, write: if false; }
       allow read: if owner(uid);
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
-        'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt'
-      ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']);
+        'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt', 'coachPreferences'
+      ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']) &&
+        validCoachPreferences(request.resource.data);
       allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
-        'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'updatedAt'
-      ]) && validHomePreferences(request.resource.data);
+        'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'coachPreferences', 'updatedAt'
+      ]) && validHomePreferences(request.resource.data) && validCoachPreferences(request.resource.data);
       allow delete: if false;
+
+      match /coachDailyCheckIns/{periodKey} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid) &&
+          exists(/databases/$(database)/documents/users/$(uid)) &&
+          validCoachCompletion(request.resource.data, periodKey, 'daily');
+        allow delete: if false;
+      }
+
+      match /coachWeeklyReviews/{periodKey} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid) &&
+          exists(/databases/$(database)/documents/users/$(uid)) &&
+          validCoachCompletion(request.resource.data, periodKey, 'weekly');
+        allow delete: if false;
+      }
 
       match /accounts/{accountId} {
         allow read: if owner(uid);
         allow create: if owner(uid) && request.resource.data.keys().hasOnly([
           'name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor',
-          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt'
+          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt', 'nature'
         ]) && required(request.resource.data, ['name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor', 'includeInDashboard', 'status', 'createdAt', 'updatedAt']) &&
           request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+          request.resource.data.get('nature', 'money') == 'money' &&
+          !(request.resource.data.type in ['creditCard', 'bankLoan', 'personalLoan']) &&
           validCurrency(request.resource.data.currency) &&
           request.resource.data.openingBalanceMinor is int &&
           request.resource.data.currentBalanceMinor is int &&
@@ -125,7 +210,7 @@ service cloud.firestore {
           validNonNegativeMoney(request.resource.data.currentBalanceMinor, request.resource.data.currency) &&
           request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
           request.resource.data.status in ['active', 'archived'];
-        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        allow update: if owner(uid) && resource.data.get('nature', 'money') == 'money' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'includeInDashboard', 'status', 'updatedAt', 'archivedAt'
         ]) && (!('includeInDashboard' in request.resource.data) ||
           request.resource.data.includeInDashboard is bool);
@@ -159,7 +244,7 @@ service cloud.firestore {
             : accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
               categoryExists(uid, request.resource.data.categoryId, request.resource.data.type)) &&
           validBudgetItemLink(uid, request.resource.data);
-        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        allow update: if owner(uid) && !('debtCommandId' in resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'updatedAt'
         ]) && request.resource.data.status in ['confirmed', 'rejected'];
         allow delete: if false;
@@ -204,6 +289,9 @@ service cloud.firestore {
       match /budgetCommands/{requestId} {
         allow read, write: if false;
       }
+      match /debtCommands/{requestId} { allow read, write: if false; }
+      match /debtReversals/{requestId} { allow read: if owner(uid); allow write: if false; }
+      match /debtRefunds/{operationId} { allow read: if owner(uid); allow write: if false; }
 
       match /monthlySummaries/{summaryId} {
         allow read: if owner(uid);

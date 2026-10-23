@@ -8,6 +8,11 @@ summary: Implemented architecture improvements and remaining verification and re
 Updated: 2026-10-22. This records implementation and remaining release work; it
 does not imply that unavailable staging/device checks have passed.
 
+The test counts below are a historical snapshot of the hardening delivery, not
+the current total suite size. Later feature-specific verification is recorded in
+[coach](coach.md), [debt accounts](debts.md), and the
+[implementation backlog](implementation-backlog.md).
+
 ## Delivered in this slice
 
 - Authenticated route guards load the profile through `CanonicalFinanceRepository`

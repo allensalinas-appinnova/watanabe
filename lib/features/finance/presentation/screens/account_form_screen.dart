@@ -11,6 +11,7 @@ import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../debts/presentation/debt_form_screen.dart';
 import '../../domain/entities/finance_account.dart';
 import '../providers/canonical_finance_providers.dart';
 
@@ -65,6 +66,7 @@ class AccountFormScreen extends ConsumerWidget {
         ),
       );
     }
+    if (account.isDebt) return DebtFormScreen(accountId: account.id, action: 'update');
     return _AccountForm(
       key: ValueKey('edit_account_form_${account.id}'),
       userId: user.id,

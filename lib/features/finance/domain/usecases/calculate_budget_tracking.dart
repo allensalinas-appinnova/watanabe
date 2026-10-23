@@ -28,8 +28,8 @@ class CalculateBudgetTracking {
         summary.currency == budget.currency) {
       final signedCategoryTotal = summary.byCategory[budget.categoryId] ?? 0;
       final actual = budget.flowType == BudgetFlowType.expense
-          ? signedCategoryTotal.abs()
-          : signedCategoryTotal.clamp(0, 1 << 62);
+          ? -signedCategoryTotal
+          : signedCategoryTotal;
       return BudgetTracking(plannedMinor: budget.plannedAmountMinor, actualMinor: actual);
     }
     final actual = operations
@@ -38,10 +38,19 @@ class CalculateBudgetTracking {
               operation.monthKey == budget.monthKey &&
               operation.currency == budget.currency &&
               operation.categoryId == budget.categoryId &&
-              operation.type.name == budget.flowType.value &&
+              (operation.type.name == budget.flowType.value ||
+                  (budget.flowType == BudgetFlowType.expense &&
+                      operation.type == OperationType.expenseRefund)) &&
               operation.status == OperationStatus.confirmed,
         )
-        .fold<int>(0, (total, operation) => total + operation.amountMinor);
+        .fold<int>(
+          0,
+          (total, operation) =>
+              total +
+              (budget.flowType == BudgetFlowType.expense
+                  ? operation.recognizedExpenseMinor
+                  : operation.recognizedIncomeMinor),
+        );
     return BudgetTracking(plannedMinor: budget.plannedAmountMinor, actualMinor: actual);
   }
 }

@@ -39,12 +39,17 @@ and derived monthly summaries. Presentation uses the canonical repository for
 onboarding, categories, accounts, income, expense, transfer, budget and tracker
 flows. Receipt support remains available as a separate attachment capability.
 
-The app also includes a Drift-backed pending-operation queue for offline
-commands and a Firebase Functions worker for balance and monthly-summary
-projections.
+The app also includes a Drift-backed pending-operation queue for supported
+offline commands and Firebase Functions for balances, summaries, atomic
+budgets, balance adjustments and debt commands. Debt commands remain gated;
+see [debt activation status](debts.md).
 
-## Planned feature modules
+`features/coach` owns daily check-ins, weekly reports and reminder
+configuration. `features/debts` owns obligation commands, account positions and
+debt workflows. Assisted email import currently has backend contracts and
+extractors documented in [email-imports.md](email-imports.md), but no Gmail
+connection or Flutter import screens.
 
-Reports and imports should follow the same boundary rules when added. Budget
-tracking derives actual values from confirmed operations by category, month,
-flow type and currency; stored budget amounts describe the plan only.
+Activity summaries and CSV export remain within the finance feature. Budget
+tracking derives actual values from operations by category, month, flow type
+and currency; stored budget amounts describe the plan only.

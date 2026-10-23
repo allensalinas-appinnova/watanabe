@@ -119,6 +119,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                               null,
                               OperationType.income,
                               OperationType.expense,
+                              OperationType.transfer,
                             ]) {
                               ref.invalidate(
                                 operationsPagerProvider((userId: user.id, type: filter)),
@@ -175,7 +176,10 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                         retryLabel: l10n.retry,
                         onRetry: () => ref.invalidate(reportProvider),
                       ),
-                      data: (value) => _ActivityReportSummary(report: value),
+                      data: (value) => _ActivityReportSummary(
+                        report: value,
+                        selectedType: selectedType,
+                      ),
                     ),
                   ),
                 ),
@@ -248,13 +252,29 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                   ),
                 ],
                 if (adjustmentsOnly)
-                  if (report.valueOrNull?.adjustments.isEmpty ?? true)
+                  if ((report.valueOrNull?.adjustments.isEmpty ?? true) &&
+                      (report.valueOrNull?.operations.isEmpty ?? true))
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: _ActivityMessage(message: l10n.activityBalanceAdjustmentsEmpty),
                     )
                   else
-                    const SliverToBoxAdapter(child: SizedBox(height: 96))
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 104),
+                      sliver: SliverList.list(
+                        children: [
+                          for (final operation
+                              in report.valueOrNull?.operations ?? const <FinancialOperation>[])
+                            _ActivityOperationCard(
+                              operation: operation,
+                              accounts: accounts,
+                              categories: categories,
+                              locale: Localizations.localeOf(context).toString(),
+                              l10n: l10n,
+                            ),
+                        ],
+                      ),
+                    )
                 else
                   pager.when(
                     loading: () => const SliverFillRemaining(
@@ -269,50 +289,86 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
                         onAction: () => ref.read(pagerProvider.notifier).refresh(),
                       ),
                     ),
-                    data: (page) => page.items.isEmpty
-                        ? SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: _ActivityMessage(message: l10n.noTransactions),
-                          )
-                        : SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 104),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  if (index >= page.items.length) {
-                                    return SizedBox(
-                                      height: 64,
-                                      child: Center(
-                                        child: page.errorMessage == null
-                                            ? const CircularProgressIndicator()
-                                            : TextButton(
-                                                onPressed: () =>
-                                                    ref.read(pagerProvider.notifier).loadMore(),
-                                                child: Text(l10n.retry),
+                    data: (page) {
+                      final groups = ActivityReport.groupOperations(page.items);
+                      return page.items.isEmpty
+                          ? SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: _ActivityMessage(message: l10n.noTransactions),
+                            )
+                          : SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 104),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    if (index >= groups.length) {
+                                      return SizedBox(
+                                        height: 64,
+                                        child: Center(
+                                          child: page.errorMessage == null
+                                              ? const CircularProgressIndicator()
+                                              : TextButton(
+                                                  onPressed: () =>
+                                                      ref.read(pagerProvider.notifier).loadMore(),
+                                                  child: Text(l10n.retry),
+                                                ),
+                                        ),
+                                      );
+                                    }
+                                    if (groups[index].length > 1) {
+                                      return Card(
+                                        child: ExpansionTile(
+                                          key: ValueKey(
+                                            'activity_command_${groups[index].first.debtCommandId}',
+                                          ),
+                                          title: Text(
+                                            groups[index].any((o) => o.debtKind == 'newChargePaid')
+                                                ? l10n.debtPay
+                                                : l10n.debtComponents,
+                                          ),
+                                          subtitle: Text(
+                                            DateFormat.yMMMd(
+                                              Localizations.localeOf(context).toString(),
+                                            ).format(groups[index].first.occurredAt.toLocal()),
+                                          ),
+                                          children: [
+                                            for (final operation in groups[index])
+                                              _ActivityOperationCard(
+                                                operation: operation,
+                                                accounts: accounts,
+                                                categories: categories,
+                                                locale: Localizations.localeOf(context).toString(),
+                                                l10n: l10n,
                                               ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: _ActivityOperationCard(
+                                        key: ValueKey(
+                                          'activity_operation_${groups[index].first.id}',
+                                        ),
+                                        operation: groups[index].first,
+                                        accounts: accounts,
+                                        categories: categories,
+                                        locale: Localizations.localeOf(context).toString(),
+                                        l10n: l10n,
                                       ),
                                     );
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _ActivityOperationCard(
-                                      key: ValueKey('activity_operation_${page.items[index].id}'),
-                                      operation: page.items[index],
-                                      accounts: accounts,
-                                      categories: categories,
-                                      locale: Localizations.localeOf(context).toString(),
-                                      l10n: l10n,
-                                    ),
-                                  );
-                                },
-                                childCount:
-                                    page.items.length +
-                                    (page.hasMore || page.isLoadingMore || page.errorMessage != null
-                                        ? 1
-                                        : 0),
+                                  },
+                                  childCount:
+                                      groups.length +
+                                      (page.hasMore ||
+                                              page.isLoadingMore ||
+                                              page.errorMessage != null
+                                          ? 1
+                                          : 0),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                    },
                   ),
               ],
             ),
@@ -351,7 +407,9 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
             ? l10n.activityFilterAll
             : selectedType == OperationType.income
             ? l10n.income
-            : l10n.expense,
+            : selectedType == OperationType.expense
+            ? l10n.expense
+            : l10n.activityFilterTransfers,
         accounts: accounts,
         categories: categories,
         locale: Localizations.localeOf(context).toString(),
@@ -382,6 +440,12 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
               previousBalance: l10n.balanceAdjustmentPrevious,
               targetBalance: l10n.balanceAdjustmentTarget,
               difference: l10n.balanceAdjustmentDifferenceLabel,
+              expenseRefund: l10n.debtRefund,
+              debtAdjustment: l10n.debtAdjust,
+              command: l10n.debtCommand,
+              principal: l10n.debtPrincipal,
+              charges: l10n.debtCharges,
+              reversal: l10n.debtReversal,
             ),
           );
           final now = DateTime.now();
@@ -452,9 +516,10 @@ class _ActivityMovementsHeader extends StatelessWidget {
 }
 
 class _ActivityReportSummary extends StatelessWidget {
-  const _ActivityReportSummary({required this.report});
+  const _ActivityReportSummary({required this.report, required this.selectedType});
 
   final ActivityReport report;
+  final OperationType? selectedType;
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +539,12 @@ class _ActivityReportSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.activityTotalsTitle, style: Theme.of(context).textTheme.titleSmall),
-            if (totals.isEmpty)
+            if (selectedType == OperationType.transfer)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(l10n.activityTransfersTotalsNote),
+              )
+            else if (totals.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(l10n.activityTotalsEmpty),
@@ -520,11 +590,13 @@ class _ActivityReportSummary extends StatelessWidget {
                   },
                 ),
               ],
-            const SizedBox(height: 8),
-            Text(
-              l10n.activityTotalsPendingNote,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
-            ),
+            if (selectedType != OperationType.transfer) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.activityTotalsMethodNote,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+            ],
           ],
         ),
       ),
@@ -727,6 +799,12 @@ class _ActivityTypeFilters extends StatelessWidget {
         onTap: () => onSelected(OperationType.expense),
       ),
       (
+        label: l10n.activityFilterTransfers,
+        key: 'transfers',
+        selected: !adjustmentsOnly && selectedType == OperationType.transfer,
+        onTap: () => onSelected(OperationType.transfer),
+      ),
+      (
         label: l10n.activityBalanceAdjustmentsFilter,
         key: 'balance_adjustments',
         selected: adjustmentsOnly,
@@ -735,6 +813,7 @@ class _ActivityTypeFilters extends StatelessWidget {
     ];
 
     return SingleChildScrollView(
+      key: const ValueKey('activity_type_filters_scroll'),
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
@@ -881,7 +960,11 @@ class _ActivityOperationCard extends StatelessWidget {
     }
 
     final categoryName = category?.customName ?? l10n.category;
-    final typeLabel = isTransfer
+    final typeLabel = operation.type == OperationType.expenseRefund
+        ? l10n.debtRefund
+        : operation.type == OperationType.debtAdjustment
+        ? l10n.debtAdjust
+        : isTransfer
         ? l10n.transferOperationLabel
         : isIncome
         ? l10n.income
@@ -895,7 +978,9 @@ class _ActivityOperationCard extends StatelessWidget {
       operation.currency,
       locale: locale,
     );
-    final signedAmount = isIncome
+    final signedAmount =
+        (isIncome || operation.type == OperationType.expenseRefund) !=
+            (operation.projectionDirection == -1)
         ? '+ $amount'
         : isTransfer
         ? amount
@@ -916,7 +1001,9 @@ class _ActivityOperationCard extends StatelessWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: isTransfer
+          onTap: operation.debtAccountId != null
+              ? () => context.push('/accounts/${operation.debtAccountId}/debt')
+              : isTransfer
               ? null
               : () => context.push('/operations/${operation.id}/edit', extra: operation),
           child: ConstrainedBox(

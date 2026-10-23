@@ -9,6 +9,149 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get debtTitle => 'Cards and loans';
+
+  @override
+  String get debtAdd => 'Add card or loan';
+
+  @override
+  String get debtMoney => 'Available money';
+
+  @override
+  String get debtCards => 'Credit cards';
+
+  @override
+  String get debtLoans => 'Loans';
+
+  @override
+  String get debtProduct => 'Product';
+
+  @override
+  String get debtCreditCard => 'Credit card';
+
+  @override
+  String get debtBankLoan => 'Bank loan';
+
+  @override
+  String get debtPersonalLoan => 'Personal loan received';
+
+  @override
+  String get debtRegistered => 'Recorded debt';
+
+  @override
+  String get debtCreditBalance => 'Card credit balance';
+
+  @override
+  String get debtPosition => 'Net recorded position';
+
+  @override
+  String get debtPositionNote => 'Selected records only; not your complete net worth.';
+
+  @override
+  String get debtOpeningMode => 'Opening balance source';
+
+  @override
+  String get debtExisting => 'Existing debt (no money movement)';
+
+  @override
+  String get debtReceived => 'Loan received now';
+
+  @override
+  String get debtReferenceDate => 'Opening balance date';
+
+  @override
+  String get debtPrincipal => 'Outstanding principal';
+
+  @override
+  String get debtCharges => 'Accrued unpaid charges';
+
+  @override
+  String get debtLimit => 'Credit limit (optional)';
+
+  @override
+  String get debtCreditor => 'Creditor (optional)';
+
+  @override
+  String get debtLastFour => 'Last 4 digits (optional)';
+
+  @override
+  String get debtPay => 'Record payment';
+
+  @override
+  String get debtPayCard => 'Pay card';
+
+  @override
+  String get debtDisburse => 'Record disbursement';
+
+  @override
+  String get debtCharge => 'Record charge';
+
+  @override
+  String get debtRefund => 'Expense refund';
+
+  @override
+  String get debtAdjust => 'Adjust debt';
+
+  @override
+  String get debtPurchase => 'Card purchase';
+
+  @override
+  String get debtPreviousCharges => 'Previously recorded charges paid';
+
+  @override
+  String get debtNewCharges => 'New charges paid now';
+
+  @override
+  String get debtOriginalPurchase => 'Original purchase';
+
+  @override
+  String get debtBank => 'Money account';
+
+  @override
+  String get debtReview => 'Review before confirming';
+
+  @override
+  String get debtOnline => 'Connection required. Your draft is kept if saving fails.';
+
+  @override
+  String get debtDisabled => 'Debt commands are not enabled on the server yet.';
+
+  @override
+  String get debtErrorSplit =>
+      'Complete the breakdown: principal, recorded and new charges must equal the payment.';
+
+  @override
+  String get debtErrorComponents =>
+      'This would leave negative principal or charges. Review the breakdown and subsequent movements.';
+
+  @override
+  String get debtErrorRefund => 'Check the original purchase and remaining refundable amount.';
+
+  @override
+  String get debtErrorDate => 'The date cannot precede the opening balance.';
+
+  @override
+  String get debtErrorArchive => 'Only an obligation with a zero balance can be archived.';
+
+  @override
+  String get debtErrorReference => 'Review the selected account, currency, category and budget.';
+
+  @override
+  String get debtOverLimit => 'Debt exceeds the recorded limit. The movement was saved.';
+
+  @override
+  String get debtReverse => 'Void with reversal';
+
+  @override
+  String get debtComponents => 'Linked components';
+
+  @override
+  String get debtCommand => 'Command';
+
+  @override
+  String get debtReversal => 'Reversal';
+
+  @override
   String get budgetConnectionRequired =>
       'A connection is required to save this budget. Your changes are still here; try again.';
 
@@ -172,6 +315,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activityFilterAll => 'All';
+
+  @override
+  String get activityFilterTransfers => 'Transfers';
 
   @override
   String get activityBalanceAdjustmentsFilter => 'Adjustments';
@@ -397,7 +543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activityExportCloseHint => 'Your filters and selection are kept when you close.';
 
   @override
-  String get activityTotalsTitle => 'Confirmed totals';
+  String get activityTotalsTitle => 'Summary';
 
   @override
   String get activityTotalsIncome => 'Income';
@@ -406,11 +552,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activityTotalsExpenses => 'Expenses';
 
   @override
-  String get activityTotalsNet => 'Net balance';
+  String get activityTotalsNet => 'Result';
 
   @override
-  String get activityTotalsPendingNote =>
-      'Totals include confirmed transactions only. Pending transactions and transfers are excluded.';
+  String get activityTotalsMethodNote => 'Income − expenses · Transfers excluded';
+
+  @override
+  String get activityTransfersTotalsNote =>
+      'Transfers are not included in income, expenses, or net result.';
 
   @override
   String get activityTotalsEmpty => 'No confirmed income or expenses to calculate totals.';
@@ -1425,4 +1574,157 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homePreferencesSaveFailed => 'Could not save. Your selection is preserved; try again.';
+
+  @override
+  String get coachTitle => 'Coach and reminders';
+
+  @override
+  String get coachSettingsIntro => 'Set your routine and choose when to review your finances.';
+
+  @override
+  String get coachDailyTitle => 'Daily check-in';
+
+  @override
+  String get coachWeeklyTitle => 'Weekly review';
+
+  @override
+  String get coachNextStepTitle => 'Your next step';
+
+  @override
+  String get coachDailyReminder => 'Daily check-in reminder';
+
+  @override
+  String get coachWeeklyReminder => 'Weekly review reminder';
+
+  @override
+  String get coachReminderTime => 'Reminder time';
+
+  @override
+  String get coachReminderDays => 'Days of the week';
+
+  @override
+  String get coachDevice => 'On this device';
+
+  @override
+  String get coachEnableDevice => 'Receive reminders on this device';
+
+  @override
+  String get coachDevicePrivacy => 'Notifications never show amounts or account details.';
+
+  @override
+  String get coachWindowNotice =>
+      'Open the app at least once every 28 days to renew reminders. Changes from other devices apply after syncing.';
+
+  @override
+  String get coachPause => 'Pause for seven days';
+
+  @override
+  String get coachResume => 'Resume reminders';
+
+  @override
+  String get coachPaused => 'Reminders paused';
+
+  @override
+  String get coachPermissionGranted => 'Notifications allowed';
+
+  @override
+  String get coachPermissionDenied => 'Notifications are blocked in device settings.';
+
+  @override
+  String get coachPermissionUnknown => 'Enable reminders to request permission.';
+
+  @override
+  String get coachUnsupported =>
+      'You can review your routine on the web. Reminders are available on Android and iOS.';
+
+  @override
+  String get coachOpenSettings => 'Open device settings';
+
+  @override
+  String get coachReviewed => 'Reviewed';
+
+  @override
+  String get coachFinishDaily => 'I reviewed my transactions';
+
+  @override
+  String get coachNoMovements => 'I had no transactions today';
+
+  @override
+  String get coachFinishWeekly => 'Mark week as reviewed';
+
+  @override
+  String get coachNoRecords => 'No transactions recorded for this period.';
+
+  @override
+  String get coachAllCurrent => 'Your routine is up to date.';
+
+  @override
+  String get coachDailyAction => 'Review my transactions';
+
+  @override
+  String get coachWeeklyAction => 'Review my week';
+
+  @override
+  String get coachReviewIntro =>
+      'Review your records before completing your check-in. Recording a transaction does not complete the review.';
+
+  @override
+  String get coachWeeklyIntro =>
+      'Income, expenses and Result from confirmed transactions. Transfers and balance adjustments are excluded.';
+
+  @override
+  String get coachConfirmedCount => 'Confirmed transactions';
+
+  @override
+  String get coachPendingCount => 'Pending synchronization';
+
+  @override
+  String get coachRejectedCount => 'Rejected transactions';
+
+  @override
+  String get coachCached =>
+      'Data saved on this device; the period may be incomplete. Connect and refresh to verify it.';
+
+  @override
+  String get coachSavePending => 'Review saved on this device; awaiting synchronization.';
+
+  @override
+  String get coachSaveFailed => 'Could not save. Your selection is preserved; try again.';
+
+  @override
+  String get coachSaveConfirmed => 'Review saved';
+
+  @override
+  String get coachTopCategories => 'Top spending categories';
+
+  @override
+  String get coachConfigure => 'Configure my routine';
+
+  @override
+  String get coachReadFailure => 'We could not load your review. Try again.';
+
+  @override
+  String get coachNotificationTitle => 'A moment for your finances';
+
+  @override
+  String get coachNotificationBody => 'Your review is ready. Open LumioMoney to continue.';
+
+  @override
+  String get coachHomeWidget => 'Coach next step';
+
+  @override
+  String get coachReminderTiming => 'Delivery may be delayed by device settings or battery saving.';
+
+  @override
+  String get coachPreferencesPending => 'Changes saved on this device; awaiting synchronization.';
+
+  @override
+  String get coachScheduleFailed => 'We could not schedule reminders. Retry scheduling.';
+
+  @override
+  String get coachViewMovements => 'View transactions for this period';
+
+  @override
+  String get coachNoMovementsUnavailable =>
+      'Transactions are now recorded or current data is unavailable. Review this day before confirming.';
 }

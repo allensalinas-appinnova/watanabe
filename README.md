@@ -1,14 +1,18 @@
-# Personal Finance Flutter
+# LumioMoney
 
-Aplicación móvil Flutter de finanzas personales. Se mantiene separada de la versión web ubicada en [`../studio`](../studio), que solo funciona como referencia de dominio y casos de uso.
+Aplicación Flutter de finanzas personales. Este repositorio contiene la
+implementación canónica del producto y sus contratos, pruebas y documentación.
 
 ## Estado
 
-Beta funcional en construcción con el modelo financiero canónico: onboarding
-localizado, cuentas, ingresos, gastos, transferencias, presupuestos itemizados,
-seguimiento y cola offline durable. La validación de Emulator Suite está
-automatizada; la cualificación del APK/iOS en dispositivos y la configuración
-de staging siguen siendo gates de release.
+Producto en construcción con cuentas, ingresos, gastos, transferencias,
+presupuestos itemizados, Actividad/exportación, personalización de Inicio,
+rutinas del coach y cola offline. La gestión de deuda está implementada en el
+checkout; su callable está lista en Cloud Run, pero permanece desactivada hasta
+completar la cualificación del cliente. La importación asistida de correo solo
+tiene una base parcial de backend y no conecta con Gmail. Consulta el backlog y
+las guías de cada feature antes de
+interpretar el estado de un despliegue como disponibilidad para usuarios.
 
 ## Documentación del proyecto
 
@@ -18,9 +22,15 @@ de staging siguen siendo gates de release.
 - [UI standards and theme](docs/ui-standards-and-theme.md)
 - [Localization](docs/localization.md)
 - [Testing strategy](docs/testing-strategy.md)
+- [Coach y recordatorios](docs/coach.md)
+- [Comandos de presupuesto](docs/budget-commands.md)
+- [Auditoría y reconstrucción de proyecciones](docs/projection-audit.md)
+- [Email import backend foundation and remaining gates](docs/email-imports.md)
+- [Debt accounts, command integrity and activation gates](docs/debts.md)
 - [Auditoría de preparación para iOS y Android](docs/store-readiness-audit.md)
 - [Análisis de mercado y negocio LATAM](docs/market-and-business-analysis.md)
 - [Backlog priorizado de implementación](docs/implementation-backlog.md)
+- [Estado de cualificación para tiendas](docs/store-readiness-audit.md)
 
 ## Comandos
 

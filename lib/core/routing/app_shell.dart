@@ -52,6 +52,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       '/accounts',
     }.contains(widget.currentLocation);
     final hideFabForConsultation =
+        widget.currentLocation.endsWith('/debt') ||
         widget.currentLocation == '/budgets/tracking' ||
         RegExp(r'^/budgets/[^/]+$').hasMatch(widget.currentLocation);
     return Scaffold(
@@ -176,6 +177,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       OperationType.income => '/operations/new?type=income',
       OperationType.expense => '/operations/new?type=expense',
       OperationType.transfer => '/transfers/new',
+      OperationType.expenseRefund || OperationType.debtAdjustment => '/accounts',
     };
     setState(() => _openingForm = true);
     try {
@@ -217,6 +219,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       OperationType.income => l10n.incomeRegistered(amount),
       OperationType.expense => l10n.expenseRegistered(amount),
       OperationType.transfer => l10n.transferRegistered,
+      OperationType.expenseRefund => l10n.debtRefund,
+      OperationType.debtAdjustment => l10n.debtAdjust,
     };
     final isVisibleInActivity =
         widget.navigationShell.currentIndex != 1 ||

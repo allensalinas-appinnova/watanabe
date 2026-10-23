@@ -20,9 +20,10 @@ import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_components.dart';
 
 class CanonicalTransferScreen extends ConsumerStatefulWidget {
-  const CanonicalTransferScreen({super.key, this.initialSourceAccountId});
+  const CanonicalTransferScreen({super.key, this.initialSourceAccountId, this.initialOccurredAt});
 
   final String? initialSourceAccountId;
+  final DateTime? initialOccurredAt;
   @override
   ConsumerState<CanonicalTransferScreen> createState() => _CanonicalTransferScreenState();
 }
@@ -42,6 +43,7 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
   void initState() {
     super.initState();
     source = widget.initialSourceAccountId;
+    occurredAt = widget.initialOccurredAt ?? occurredAt;
     amount.addListener(_markChanged);
     note.addListener(_markChanged);
   }
@@ -59,7 +61,9 @@ class _CanonicalTransferScreenState extends ConsumerState<CanonicalTransferScree
     final l10n = AppLocalizations.of(context);
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
     final accounts =
-        ref.watch(canonicalAccountsProvider(user.id)).valueOrNull ?? const <FinanceAccount>[];
+        (ref.watch(canonicalAccountsProvider(user.id)).valueOrNull ?? const <FinanceAccount>[])
+            .where((a) => !a.isDebt)
+            .toList();
     return DiscardChangesScope(
       isDirty: _hasUnsavedChanges,
       child: Scaffold(

@@ -9,6 +9,151 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get debtTitle => 'Tarjetas y préstamos';
+
+  @override
+  String get debtAdd => 'Agregar tarjeta o préstamo';
+
+  @override
+  String get debtMoney => 'Dinero disponible';
+
+  @override
+  String get debtCards => 'Tarjetas de crédito';
+
+  @override
+  String get debtLoans => 'Créditos y préstamos';
+
+  @override
+  String get debtProduct => 'Producto';
+
+  @override
+  String get debtCreditCard => 'Tarjeta de crédito';
+
+  @override
+  String get debtBankLoan => 'Crédito bancario';
+
+  @override
+  String get debtPersonalLoan => 'Préstamo personal recibido';
+
+  @override
+  String get debtRegistered => 'Deuda registrada';
+
+  @override
+  String get debtCreditBalance => 'Saldo a favor en tarjetas';
+
+  @override
+  String get debtPosition => 'Posición neta registrada';
+
+  @override
+  String get debtPositionNote =>
+      'Solo registros seleccionados; no representa tu patrimonio completo.';
+
+  @override
+  String get debtOpeningMode => 'Origen del saldo';
+
+  @override
+  String get debtExisting => 'Deuda existente (no mueve dinero)';
+
+  @override
+  String get debtReceived => 'Préstamo recibido ahora';
+
+  @override
+  String get debtReferenceDate => 'Fecha del saldo inicial';
+
+  @override
+  String get debtPrincipal => 'Capital pendiente';
+
+  @override
+  String get debtCharges => 'Cargos devengados pendientes';
+
+  @override
+  String get debtLimit => 'Cupo (opcional)';
+
+  @override
+  String get debtCreditor => 'Acreedor (opcional)';
+
+  @override
+  String get debtLastFour => 'Últimos 4 dígitos (opcional)';
+
+  @override
+  String get debtPay => 'Registrar pago';
+
+  @override
+  String get debtPayCard => 'Pagar tarjeta';
+
+  @override
+  String get debtDisburse => 'Registrar desembolso';
+
+  @override
+  String get debtCharge => 'Registrar cargo';
+
+  @override
+  String get debtRefund => 'Devolución de gasto';
+
+  @override
+  String get debtAdjust => 'Ajustar deuda';
+
+  @override
+  String get debtPurchase => 'Compra con tarjeta';
+
+  @override
+  String get debtPreviousCharges => 'Cargos ya registrados que pagas';
+
+  @override
+  String get debtNewCharges => 'Cargos nuevos pagados ahora';
+
+  @override
+  String get debtOriginalPurchase => 'Compra original';
+
+  @override
+  String get debtBank => 'Cuenta de dinero';
+
+  @override
+  String get debtReview => 'Revisar antes de confirmar';
+
+  @override
+  String get debtOnline => 'Requiere conexión. Tu borrador se conserva si falla el guardado.';
+
+  @override
+  String get debtDisabled => 'La función de deudas aún no está activada en el servidor.';
+
+  @override
+  String get debtErrorSplit =>
+      'Completa el desglose: capital, cargos registrados y cargos nuevos deben sumar el pago.';
+
+  @override
+  String get debtErrorComponents =>
+      'El cambio dejaría capital o cargos negativos. Revisa el desglose y los movimientos posteriores.';
+
+  @override
+  String get debtErrorRefund => 'Revisa la compra original y el importe aún no devuelto.';
+
+  @override
+  String get debtErrorDate => 'La fecha no puede ser anterior al saldo inicial.';
+
+  @override
+  String get debtErrorArchive => 'Solo puedes archivar una obligación con saldo cero.';
+
+  @override
+  String get debtErrorReference =>
+      'Revisa la cuenta, moneda, categoría y presupuesto seleccionados.';
+
+  @override
+  String get debtOverLimit => 'La deuda supera el cupo registrado. El movimiento se guardó.';
+
+  @override
+  String get debtReverse => 'Anular con reversión';
+
+  @override
+  String get debtComponents => 'Componentes vinculados';
+
+  @override
+  String get debtCommand => 'Comando';
+
+  @override
+  String get debtReversal => 'Reversión';
+
+  @override
   String get budgetConnectionRequired =>
       'Necesitas conexión para guardar este presupuesto. Tus cambios siguen aquí; vuelve a intentarlo.';
 
@@ -174,6 +319,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get activityFilterAll => 'Todos';
+
+  @override
+  String get activityFilterTransfers => 'Transferencias';
 
   @override
   String get activityBalanceAdjustmentsFilter => 'Ajustes';
@@ -399,7 +547,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get activityExportCloseHint => 'Al cerrar, se conservan tus filtros y selección.';
 
   @override
-  String get activityTotalsTitle => 'Totales confirmados';
+  String get activityTotalsTitle => 'Resumen';
 
   @override
   String get activityTotalsIncome => 'Ingresos';
@@ -408,11 +556,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get activityTotalsExpenses => 'Egresos';
 
   @override
-  String get activityTotalsNet => 'Saldo neto';
+  String get activityTotalsNet => 'Resultado';
 
   @override
-  String get activityTotalsPendingNote =>
-      'Los totales incluyen solo movimientos confirmados. No incluyen pendientes ni transferencias.';
+  String get activityTotalsMethodNote => 'Ingresos − egresos · Transferencias excluidas';
+
+  @override
+  String get activityTransfersTotalsNote =>
+      'Las transferencias no se suman a ingresos, egresos ni resultado.';
 
   @override
   String get activityTotalsEmpty =>
@@ -1433,4 +1584,163 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get homePreferencesSaveFailed =>
       'No se pudo guardar. Tu selección se conserva; inténtalo de nuevo.';
+
+  @override
+  String get coachTitle => 'Coach y recordatorios';
+
+  @override
+  String get coachSettingsIntro =>
+      'Organiza tu rutina y elige cuándo quieres revisar tus finanzas.';
+
+  @override
+  String get coachDailyTitle => 'Cierre diario';
+
+  @override
+  String get coachWeeklyTitle => 'Revisión semanal';
+
+  @override
+  String get coachNextStepTitle => 'Tu siguiente paso';
+
+  @override
+  String get coachDailyReminder => 'Recordatorio de cierre diario';
+
+  @override
+  String get coachWeeklyReminder => 'Recordatorio de revisión semanal';
+
+  @override
+  String get coachReminderTime => 'Hora del recordatorio';
+
+  @override
+  String get coachReminderDays => 'Días de la semana';
+
+  @override
+  String get coachDevice => 'En este dispositivo';
+
+  @override
+  String get coachEnableDevice => 'Recibir recordatorios en este dispositivo';
+
+  @override
+  String get coachDevicePrivacy => 'Los avisos no muestran importes ni datos de tus cuentas.';
+
+  @override
+  String get coachWindowNotice =>
+      'Abre la app al menos una vez cada 28 días para renovar los avisos. Los cambios de otros dispositivos se aplican al sincronizar.';
+
+  @override
+  String get coachPause => 'Pausar durante siete días';
+
+  @override
+  String get coachResume => 'Reactivar recordatorios';
+
+  @override
+  String get coachPaused => 'Recordatorios pausados';
+
+  @override
+  String get coachPermissionGranted => 'Notificaciones permitidas';
+
+  @override
+  String get coachPermissionDenied =>
+      'Las notificaciones están bloqueadas en los ajustes del dispositivo.';
+
+  @override
+  String get coachPermissionUnknown => 'Activa los avisos para solicitar permiso.';
+
+  @override
+  String get coachUnsupported =>
+      'En web puedes revisar tu rutina. Los recordatorios están disponibles en Android e iOS.';
+
+  @override
+  String get coachOpenSettings => 'Abrir ajustes del dispositivo';
+
+  @override
+  String get coachReviewed => 'Revisado';
+
+  @override
+  String get coachFinishDaily => 'Ya revisé mis movimientos';
+
+  @override
+  String get coachNoMovements => 'Hoy no tuve movimientos';
+
+  @override
+  String get coachFinishWeekly => 'Marcar semana como revisada';
+
+  @override
+  String get coachNoRecords => 'No hay movimientos registrados en este periodo.';
+
+  @override
+  String get coachAllCurrent => 'Tu rutina está al día.';
+
+  @override
+  String get coachDailyAction => 'Revisar mis movimientos';
+
+  @override
+  String get coachWeeklyAction => 'Revisar mi semana';
+
+  @override
+  String get coachReviewIntro =>
+      'Revisa lo registrado antes de completar tu cierre. Registrar un movimiento no completa la revisión.';
+
+  @override
+  String get coachWeeklyIntro =>
+      'Ingresos, gastos y Resultado según tus movimientos confirmados. Transferencias y ajustes no se suman a estos totales.';
+
+  @override
+  String get coachConfirmedCount => 'Movimientos confirmados';
+
+  @override
+  String get coachPendingCount => 'Pendientes de sincronización';
+
+  @override
+  String get coachRejectedCount => 'Movimientos rechazados';
+
+  @override
+  String get coachCached =>
+      'Datos guardados en este dispositivo; el periodo puede estar incompleto. Conéctate y actualiza para comprobarlo.';
+
+  @override
+  String get coachSavePending =>
+      'Revisión guardada en este dispositivo; pendiente de sincronización.';
+
+  @override
+  String get coachSaveFailed =>
+      'No se pudo guardar. Tu selección se conserva; vuelve a intentarlo.';
+
+  @override
+  String get coachSaveConfirmed => 'Revisión guardada';
+
+  @override
+  String get coachTopCategories => 'Categorías con mayor gasto';
+
+  @override
+  String get coachConfigure => 'Configurar mi rutina';
+
+  @override
+  String get coachReadFailure => 'No pudimos cargar tu revisión. Vuelve a intentarlo.';
+
+  @override
+  String get coachNotificationTitle => 'Un momento para tus finanzas';
+
+  @override
+  String get coachNotificationBody => 'Tu revisión está lista. Abre LumioMoney para continuar.';
+
+  @override
+  String get coachHomeWidget => 'Tu siguiente paso del coach';
+
+  @override
+  String get coachReminderTiming =>
+      'Los avisos pueden llegar más tarde según los ajustes y el ahorro de batería del dispositivo.';
+
+  @override
+  String get coachPreferencesPending =>
+      'Cambios guardados en este dispositivo; pendientes de sincronización.';
+
+  @override
+  String get coachScheduleFailed => 'No pudimos programar los avisos. Reintenta la programación.';
+
+  @override
+  String get coachViewMovements => 'Ver movimientos del periodo';
+
+  @override
+  String get coachNoMovementsUnavailable =>
+      'Ahora hay movimientos registrados o faltan datos actualizados. Revisa el día antes de confirmarlo.';
 }

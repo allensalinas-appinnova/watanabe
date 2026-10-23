@@ -12,6 +12,9 @@ import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../debts/domain/debt_command.dart';
+import '../../../debts/presentation/debt_error_message.dart';
+import '../../../debts/presentation/debt_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -30,6 +33,7 @@ class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
     this.initialAccountId,
     this.initialCategoryId,
     this.initialBudgetItemPreset,
+    this.initialOccurredAt,
   });
 
   final OperationType initialType;
@@ -37,6 +41,7 @@ class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
   final String? initialAccountId;
   final String? initialCategoryId;
   final BudgetItemMovementPreset? initialBudgetItemPreset;
+  final DateTime? initialOccurredAt;
   @override
   ConsumerState<CanonicalOperationFormScreen> createState() => _CanonicalOperationFormScreenState();
 }
@@ -57,6 +62,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   void initState() {
     super.initState();
     final operation = widget.initialOperation;
+    _occurredAt = widget.initialOccurredAt ?? _occurredAt;
     _type = operation?.type ?? widget.initialType;
     _accountId = operation?.accountId ?? widget.initialAccountId;
     _categoryId = operation?.categoryId ?? widget.initialCategoryId;
@@ -73,6 +79,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       _accountId = operation.accountId;
       _categoryId = operation.categoryId;
       _idempotencyKey = operation.idempotencyKey;
+      if (operation.debtCommandId != null) _idempotencyKey = null;
       _occurredAt = operation.occurredAt.toLocal();
     }
     _amount.addListener(_markChanged);
@@ -96,6 +103,16 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     final preset = widget.initialBudgetItemPreset;
     final availableAccounts = (accounts.valueOrNull ?? const <FinanceAccount>[])
         .where((account) => account.status == 'active')
+        .where(
+          (account) =>
+              widget.initialOperation == null ||
+              (widget.initialOperation!.debtCommandId != null
+                  ? account.id == widget.initialOperation!.debtAccountId
+                  : !account.isDebt),
+        )
+        .where(
+          (account) => !account.isDebt || (_type == OperationType.expense && account.isCreditCard),
+        )
         .where((account) => preset == null || account.currency == preset.currency)
         .toList(growable: false);
     final selectedAccountId = _effectiveAccountId(availableAccounts);
@@ -155,7 +172,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                     expenseLabel: l10n.expense,
                     incomeLabel: l10n.income,
                     isIncomeSelected: _type == OperationType.income,
-                    enabled: preset == null,
+                    enabled: preset == null && widget.initialOperation?.debtCommandId == null,
                     onChanged: (isIncome) => setState(() {
                       _hasUnsavedChanges = true;
                       _type = isIncome ? OperationType.income : OperationType.expense;
@@ -394,6 +411,53 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     }
     setState(() => _saving = true);
     final existing = widget.initialOperation;
+    if (account.isDebt) {
+      final purchase = <String, Object?>{
+        'action': 'purchase',
+        'accountId': account.id,
+        'amountMinor': amountMinor,
+        'categoryId': _categoryId,
+        'occurredAt': _occurredAt.toUtc().toIso8601String(),
+        'description': _description.text,
+        if (preset?.budgetId != null || existing?.budgetId != null)
+          'budgetId': preset?.budgetId ?? existing?.budgetId,
+        if (preset?.itemId != null || existing?.budgetItemId != null)
+          'budgetItemId': preset?.itemId ?? existing?.budgetItemId,
+      };
+      final result = await ref
+          .read(debtRepositoryProvider)
+          .execute(
+            userId,
+            DebtCommand(
+              requestId: _idempotencyKey ??= '${DateTime.now().microsecondsSinceEpoch}_debt',
+              fields: existing?.debtCommandId == null
+                  ? purchase
+                  : {
+                      'action': 'correct',
+                      'accountId': account.id,
+                      'originalRequestId': existing!.debtCommandId,
+                      'replacement': purchase,
+                    },
+            ),
+          );
+      if (!mounted) return;
+      await result.match<Future<void>>(
+        (failure) async {
+          setState(() => _saving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(debtErrorMessage(AppLocalizations.of(context), failure))),
+          );
+        },
+        (_) async {
+          ref
+            ..invalidate(canonicalAccountsProvider(userId))
+            ..invalidate(activityReportProvider(userId));
+          invalidateOperationLists(ref, userId);
+          await _popAfterSave();
+        },
+      );
+      return;
+    }
     final categories = ref.read(canonicalCategoriesProvider(userId)).valueOrNull ?? const [];
     String? categoryName;
     for (final category in categories) {
@@ -499,6 +563,37 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     );
     final operation = widget.initialOperation;
     if (confirmed != true || operation == null) return;
+    if (operation.debtCommandId != null) {
+      setState(() => _saving = true);
+      final result = await ref
+          .read(debtRepositoryProvider)
+          .execute(
+            userId,
+            DebtCommand(
+              requestId: _idempotencyKey ??= '${DateTime.now().microsecondsSinceEpoch}_reverse',
+              fields: {
+                'action': 'reverse',
+                'accountId': operation.debtAccountId,
+                'originalRequestId': operation.debtCommandId,
+              },
+            ),
+          );
+      if (!mounted) return;
+      await result.match<Future<void>>(
+        (failure) async {
+          setState(() => _saving = false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(debtErrorMessage(l10n, failure))));
+        },
+        (_) async {
+          invalidateOperationLists(ref, userId);
+          ref.invalidate(activityReportProvider(userId));
+          await _popAfterSave();
+        },
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       await ref.read(canonicalActionsProvider).deleteOperation(userId, operation.id);
@@ -526,6 +621,16 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     final preset = widget.initialBudgetItemPreset;
     final activeAccounts = accounts
         .where((account) => account.status == 'active')
+        .where(
+          (account) =>
+              widget.initialOperation == null ||
+              (widget.initialOperation!.debtCommandId != null
+                  ? account.id == widget.initialOperation!.debtAccountId
+                  : !account.isDebt),
+        )
+        .where(
+          (account) => !account.isDebt || (_type == OperationType.expense && account.isCreditCard),
+        )
         .where((account) => preset == null || account.currency == preset.currency)
         .toList();
     return activeAccounts.length == 1 ? activeAccounts.single.id : null;

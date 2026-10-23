@@ -65,12 +65,25 @@ final canonicalCategoriesProvider = StreamProvider.family<List<FinanceCategory>,
 );
 
 final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, String>(
-  (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId),
+  (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId).map((items) {
+    int group(FinanceAccount account) => account.isCreditCard
+        ? 1
+        : account.isDebt
+        ? 2
+        : 0;
+    return [...items]..sort((a, b) => group(a).compareTo(group(b)));
+  }),
 );
 
 final balanceAdjustmentsProvider = StreamProvider.family<List<BalanceAdjustmentEvent>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchBalanceAdjustments(userId),
 );
+
+final canonicalAccountProvider =
+    StreamProvider.family<FinanceAccount?, ({String userId, String accountId})>(
+      (ref, key) =>
+          ref.watch(canonicalFinanceRepositoryProvider).watchAccount(key.userId, key.accountId),
+    );
 
 final canonicalOperationsPageProvider =
     FutureProvider.family<
@@ -125,6 +138,7 @@ void invalidateOperationLists(WidgetRef ref, String userId) {
     null,
     OperationType.income,
     OperationType.expense,
+    OperationType.transfer,
   ]) {
     ref.invalidate(operationsPagerProvider((userId: userId, type: type)));
   }
@@ -244,7 +258,9 @@ final activityReportProvider = FutureProvider.family<ActivityReport, String>((re
       }
     }
     return ActivityReport.fromOperations(
-      adjustmentsOnly ? const [] : operations,
+      adjustmentsOnly
+          ? operations.where((operation) => operation.type == OperationType.debtAdjustment)
+          : operations,
       adjustments: adjustments,
     );
   }

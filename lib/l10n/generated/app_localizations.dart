@@ -94,6 +94,288 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en'), Locale('es'), Locale('pt')];
 
+  /// No description provided for @debtTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjetas y préstamos'**
+  String get debtTitle;
+
+  /// No description provided for @debtAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar tarjeta o préstamo'**
+  String get debtAdd;
+
+  /// No description provided for @debtMoney.
+  ///
+  /// In es, this message translates to:
+  /// **'Dinero disponible'**
+  String get debtMoney;
+
+  /// No description provided for @debtCards.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjetas de crédito'**
+  String get debtCards;
+
+  /// No description provided for @debtLoans.
+  ///
+  /// In es, this message translates to:
+  /// **'Créditos y préstamos'**
+  String get debtLoans;
+
+  /// No description provided for @debtProduct.
+  ///
+  /// In es, this message translates to:
+  /// **'Producto'**
+  String get debtProduct;
+
+  /// No description provided for @debtCreditCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta de crédito'**
+  String get debtCreditCard;
+
+  /// No description provided for @debtBankLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Crédito bancario'**
+  String get debtBankLoan;
+
+  /// No description provided for @debtPersonalLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Préstamo personal recibido'**
+  String get debtPersonalLoan;
+
+  /// No description provided for @debtRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Deuda registrada'**
+  String get debtRegistered;
+
+  /// No description provided for @debtCreditBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo a favor en tarjetas'**
+  String get debtCreditBalance;
+
+  /// No description provided for @debtPosition.
+  ///
+  /// In es, this message translates to:
+  /// **'Posición neta registrada'**
+  String get debtPosition;
+
+  /// No description provided for @debtPositionNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo registros seleccionados; no representa tu patrimonio completo.'**
+  String get debtPositionNote;
+
+  /// No description provided for @debtOpeningMode.
+  ///
+  /// In es, this message translates to:
+  /// **'Origen del saldo'**
+  String get debtOpeningMode;
+
+  /// No description provided for @debtExisting.
+  ///
+  /// In es, this message translates to:
+  /// **'Deuda existente (no mueve dinero)'**
+  String get debtExisting;
+
+  /// No description provided for @debtReceived.
+  ///
+  /// In es, this message translates to:
+  /// **'Préstamo recibido ahora'**
+  String get debtReceived;
+
+  /// No description provided for @debtReferenceDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha del saldo inicial'**
+  String get debtReferenceDate;
+
+  /// No description provided for @debtPrincipal.
+  ///
+  /// In es, this message translates to:
+  /// **'Capital pendiente'**
+  String get debtPrincipal;
+
+  /// No description provided for @debtCharges.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargos devengados pendientes'**
+  String get debtCharges;
+
+  /// No description provided for @debtLimit.
+  ///
+  /// In es, this message translates to:
+  /// **'Cupo (opcional)'**
+  String get debtLimit;
+
+  /// No description provided for @debtCreditor.
+  ///
+  /// In es, this message translates to:
+  /// **'Acreedor (opcional)'**
+  String get debtCreditor;
+
+  /// No description provided for @debtLastFour.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimos 4 dígitos (opcional)'**
+  String get debtLastFour;
+
+  /// No description provided for @debtPay.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar pago'**
+  String get debtPay;
+
+  /// No description provided for @debtPayCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagar tarjeta'**
+  String get debtPayCard;
+
+  /// No description provided for @debtDisburse.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar desembolso'**
+  String get debtDisburse;
+
+  /// No description provided for @debtCharge.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar cargo'**
+  String get debtCharge;
+
+  /// No description provided for @debtRefund.
+  ///
+  /// In es, this message translates to:
+  /// **'Devolución de gasto'**
+  String get debtRefund;
+
+  /// No description provided for @debtAdjust.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajustar deuda'**
+  String get debtAdjust;
+
+  /// No description provided for @debtPurchase.
+  ///
+  /// In es, this message translates to:
+  /// **'Compra con tarjeta'**
+  String get debtPurchase;
+
+  /// No description provided for @debtPreviousCharges.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargos ya registrados que pagas'**
+  String get debtPreviousCharges;
+
+  /// No description provided for @debtNewCharges.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargos nuevos pagados ahora'**
+  String get debtNewCharges;
+
+  /// No description provided for @debtOriginalPurchase.
+  ///
+  /// In es, this message translates to:
+  /// **'Compra original'**
+  String get debtOriginalPurchase;
+
+  /// No description provided for @debtBank.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta de dinero'**
+  String get debtBank;
+
+  /// No description provided for @debtReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar antes de confirmar'**
+  String get debtReview;
+
+  /// No description provided for @debtOnline.
+  ///
+  /// In es, this message translates to:
+  /// **'Requiere conexión. Tu borrador se conserva si falla el guardado.'**
+  String get debtOnline;
+
+  /// No description provided for @debtDisabled.
+  ///
+  /// In es, this message translates to:
+  /// **'La función de deudas aún no está activada en el servidor.'**
+  String get debtDisabled;
+
+  /// No description provided for @debtErrorSplit.
+  ///
+  /// In es, this message translates to:
+  /// **'Completa el desglose: capital, cargos registrados y cargos nuevos deben sumar el pago.'**
+  String get debtErrorSplit;
+
+  /// No description provided for @debtErrorComponents.
+  ///
+  /// In es, this message translates to:
+  /// **'El cambio dejaría capital o cargos negativos. Revisa el desglose y los movimientos posteriores.'**
+  String get debtErrorComponents;
+
+  /// No description provided for @debtErrorRefund.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la compra original y el importe aún no devuelto.'**
+  String get debtErrorRefund;
+
+  /// No description provided for @debtErrorDate.
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha no puede ser anterior al saldo inicial.'**
+  String get debtErrorDate;
+
+  /// No description provided for @debtErrorArchive.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo puedes archivar una obligación con saldo cero.'**
+  String get debtErrorArchive;
+
+  /// No description provided for @debtErrorReference.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la cuenta, moneda, categoría y presupuesto seleccionados.'**
+  String get debtErrorReference;
+
+  /// No description provided for @debtOverLimit.
+  ///
+  /// In es, this message translates to:
+  /// **'La deuda supera el cupo registrado. El movimiento se guardó.'**
+  String get debtOverLimit;
+
+  /// No description provided for @debtReverse.
+  ///
+  /// In es, this message translates to:
+  /// **'Anular con reversión'**
+  String get debtReverse;
+
+  /// No description provided for @debtComponents.
+  ///
+  /// In es, this message translates to:
+  /// **'Componentes vinculados'**
+  String get debtComponents;
+
+  /// No description provided for @debtCommand.
+  ///
+  /// In es, this message translates to:
+  /// **'Comando'**
+  String get debtCommand;
+
+  /// No description provided for @debtReversal.
+  ///
+  /// In es, this message translates to:
+  /// **'Reversión'**
+  String get debtReversal;
+
   /// No description provided for @budgetConnectionRequired.
   ///
   /// In es, this message translates to:
@@ -405,6 +687,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Todos'**
   String get activityFilterAll;
+
+  /// No description provided for @activityFilterTransfers.
+  ///
+  /// In es, this message translates to:
+  /// **'Transferencias'**
+  String get activityFilterTransfers;
 
   /// No description provided for @activityBalanceAdjustmentsFilter.
   ///
@@ -733,7 +1021,7 @@ abstract class AppLocalizations {
   /// No description provided for @activityTotalsTitle.
   ///
   /// In es, this message translates to:
-  /// **'Totales confirmados'**
+  /// **'Resumen'**
   String get activityTotalsTitle;
 
   /// No description provided for @activityTotalsIncome.
@@ -751,14 +1039,20 @@ abstract class AppLocalizations {
   /// No description provided for @activityTotalsNet.
   ///
   /// In es, this message translates to:
-  /// **'Saldo neto'**
+  /// **'Resultado'**
   String get activityTotalsNet;
 
-  /// No description provided for @activityTotalsPendingNote.
+  /// No description provided for @activityTotalsMethodNote.
   ///
   /// In es, this message translates to:
-  /// **'Los totales incluyen solo movimientos confirmados. No incluyen pendientes ni transferencias.'**
-  String get activityTotalsPendingNote;
+  /// **'Ingresos − egresos · Transferencias excluidas'**
+  String get activityTotalsMethodNote;
+
+  /// No description provided for @activityTransfersTotalsNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Las transferencias no se suman a ingresos, egresos ni resultado.'**
+  String get activityTransfersTotalsNote;
 
   /// No description provided for @activityTotalsEmpty.
   ///
@@ -2601,6 +2895,300 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo guardar. Tu selección se conserva; inténtalo de nuevo.'**
   String get homePreferencesSaveFailed;
+
+  /// No description provided for @coachTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Coach y recordatorios'**
+  String get coachTitle;
+
+  /// No description provided for @coachSettingsIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Organiza tu rutina y elige cuándo quieres revisar tus finanzas.'**
+  String get coachSettingsIntro;
+
+  /// No description provided for @coachDailyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cierre diario'**
+  String get coachDailyTitle;
+
+  /// No description provided for @coachWeeklyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisión semanal'**
+  String get coachWeeklyTitle;
+
+  /// No description provided for @coachNextStepTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu siguiente paso'**
+  String get coachNextStepTitle;
+
+  /// No description provided for @coachDailyReminder.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorio de cierre diario'**
+  String get coachDailyReminder;
+
+  /// No description provided for @coachWeeklyReminder.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorio de revisión semanal'**
+  String get coachWeeklyReminder;
+
+  /// No description provided for @coachReminderTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora del recordatorio'**
+  String get coachReminderTime;
+
+  /// No description provided for @coachReminderDays.
+  ///
+  /// In es, this message translates to:
+  /// **'Días de la semana'**
+  String get coachReminderDays;
+
+  /// No description provided for @coachDevice.
+  ///
+  /// In es, this message translates to:
+  /// **'En este dispositivo'**
+  String get coachDevice;
+
+  /// No description provided for @coachEnableDevice.
+  ///
+  /// In es, this message translates to:
+  /// **'Recibir recordatorios en este dispositivo'**
+  String get coachEnableDevice;
+
+  /// No description provided for @coachDevicePrivacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Los avisos no muestran importes ni datos de tus cuentas.'**
+  String get coachDevicePrivacy;
+
+  /// No description provided for @coachWindowNotice.
+  ///
+  /// In es, this message translates to:
+  /// **'Abre la app al menos una vez cada 28 días para renovar los avisos. Los cambios de otros dispositivos se aplican al sincronizar.'**
+  String get coachWindowNotice;
+
+  /// No description provided for @coachPause.
+  ///
+  /// In es, this message translates to:
+  /// **'Pausar durante siete días'**
+  String get coachPause;
+
+  /// No description provided for @coachResume.
+  ///
+  /// In es, this message translates to:
+  /// **'Reactivar recordatorios'**
+  String get coachResume;
+
+  /// No description provided for @coachPaused.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios pausados'**
+  String get coachPaused;
+
+  /// No description provided for @coachPermissionGranted.
+  ///
+  /// In es, this message translates to:
+  /// **'Notificaciones permitidas'**
+  String get coachPermissionGranted;
+
+  /// No description provided for @coachPermissionDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'Las notificaciones están bloqueadas en los ajustes del dispositivo.'**
+  String get coachPermissionDenied;
+
+  /// No description provided for @coachPermissionUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Activa los avisos para solicitar permiso.'**
+  String get coachPermissionUnknown;
+
+  /// No description provided for @coachUnsupported.
+  ///
+  /// In es, this message translates to:
+  /// **'En web puedes revisar tu rutina. Los recordatorios están disponibles en Android e iOS.'**
+  String get coachUnsupported;
+
+  /// No description provided for @coachOpenSettings.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir ajustes del dispositivo'**
+  String get coachOpenSettings;
+
+  /// No description provided for @coachReviewed.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisado'**
+  String get coachReviewed;
+
+  /// No description provided for @coachFinishDaily.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya revisé mis movimientos'**
+  String get coachFinishDaily;
+
+  /// No description provided for @coachNoMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Hoy no tuve movimientos'**
+  String get coachNoMovements;
+
+  /// No description provided for @coachFinishWeekly.
+  ///
+  /// In es, this message translates to:
+  /// **'Marcar semana como revisada'**
+  String get coachFinishWeekly;
+
+  /// No description provided for @coachNoRecords.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay movimientos registrados en este periodo.'**
+  String get coachNoRecords;
+
+  /// No description provided for @coachAllCurrent.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu rutina está al día.'**
+  String get coachAllCurrent;
+
+  /// No description provided for @coachDailyAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar mis movimientos'**
+  String get coachDailyAction;
+
+  /// No description provided for @coachWeeklyAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar mi semana'**
+  String get coachWeeklyAction;
+
+  /// No description provided for @coachReviewIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa lo registrado antes de completar tu cierre. Registrar un movimiento no completa la revisión.'**
+  String get coachReviewIntro;
+
+  /// No description provided for @coachWeeklyIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresos, gastos y Resultado según tus movimientos confirmados. Transferencias y ajustes no se suman a estos totales.'**
+  String get coachWeeklyIntro;
+
+  /// No description provided for @coachConfirmedCount.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos confirmados'**
+  String get coachConfirmedCount;
+
+  /// No description provided for @coachPendingCount.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendientes de sincronización'**
+  String get coachPendingCount;
+
+  /// No description provided for @coachRejectedCount.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos rechazados'**
+  String get coachRejectedCount;
+
+  /// No description provided for @coachCached.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos guardados en este dispositivo; el periodo puede estar incompleto. Conéctate y actualiza para comprobarlo.'**
+  String get coachCached;
+
+  /// No description provided for @coachSavePending.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisión guardada en este dispositivo; pendiente de sincronización.'**
+  String get coachSavePending;
+
+  /// No description provided for @coachSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar. Tu selección se conserva; vuelve a intentarlo.'**
+  String get coachSaveFailed;
+
+  /// No description provided for @coachSaveConfirmed.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisión guardada'**
+  String get coachSaveConfirmed;
+
+  /// No description provided for @coachTopCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Categorías con mayor gasto'**
+  String get coachTopCategories;
+
+  /// No description provided for @coachConfigure.
+  ///
+  /// In es, this message translates to:
+  /// **'Configurar mi rutina'**
+  String get coachConfigure;
+
+  /// No description provided for @coachReadFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos cargar tu revisión. Vuelve a intentarlo.'**
+  String get coachReadFailure;
+
+  /// No description provided for @coachNotificationTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Un momento para tus finanzas'**
+  String get coachNotificationTitle;
+
+  /// No description provided for @coachNotificationBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu revisión está lista. Abre LumioMoney para continuar.'**
+  String get coachNotificationBody;
+
+  /// No description provided for @coachHomeWidget.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu siguiente paso del coach'**
+  String get coachHomeWidget;
+
+  /// No description provided for @coachReminderTiming.
+  ///
+  /// In es, this message translates to:
+  /// **'Los avisos pueden llegar más tarde según los ajustes y el ahorro de batería del dispositivo.'**
+  String get coachReminderTiming;
+
+  /// No description provided for @coachPreferencesPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambios guardados en este dispositivo; pendientes de sincronización.'**
+  String get coachPreferencesPending;
+
+  /// No description provided for @coachScheduleFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos programar los avisos. Reintenta la programación.'**
+  String get coachScheduleFailed;
+
+  /// No description provided for @coachViewMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver movimientos del periodo'**
+  String get coachViewMovements;
+
+  /// No description provided for @coachNoMovementsUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Ahora hay movimientos registrados o faltan datos actualizados. Revisa el día antes de confirmarlo.'**
+  String get coachNoMovementsUnavailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

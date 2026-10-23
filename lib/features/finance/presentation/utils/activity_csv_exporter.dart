@@ -28,6 +28,12 @@ class ActivityCsvLabels {
     this.previousBalance = 'Previous balance',
     this.targetBalance = 'Target balance',
     this.difference = 'Difference',
+    this.expenseRefund = 'Expense refund',
+    this.debtAdjustment = 'Debt adjustment',
+    this.command = 'Command',
+    this.principal = 'Principal change',
+    this.charges = 'Charges change',
+    this.reversal = 'Reversal of',
   });
 
   final String date;
@@ -50,6 +56,12 @@ class ActivityCsvLabels {
   final String previousBalance;
   final String targetBalance;
   final String difference;
+  final String expenseRefund;
+  final String debtAdjustment;
+  final String command;
+  final String principal;
+  final String charges;
+  final String reversal;
 }
 
 abstract final class ActivityCsvExporter {
@@ -77,6 +89,10 @@ abstract final class ActivityCsvExporter {
         labels.previousBalance,
         labels.targetBalance,
         labels.difference,
+        labels.command,
+        labels.principal,
+        labels.charges,
+        labels.reversal,
       ],
       for (final operation in operations)
         if (operation.status != OperationStatus.rejected)
@@ -86,6 +102,8 @@ abstract final class ActivityCsvExporter {
               OperationType.income => labels.income,
               OperationType.expense => labels.expense,
               OperationType.transfer => labels.transfer,
+              OperationType.expenseRefund => labels.expenseRefund,
+              OperationType.debtAdjustment => labels.debtAdjustment,
             },
             operation.description,
             operation.type == OperationType.transfer
@@ -95,16 +113,41 @@ abstract final class ActivityCsvExporter {
             operation.type == OperationType.transfer
                 ? ''
                 : categoryNames[operation.categoryId] ?? labels.unknownCategory,
-            _decimalAmount(operation.amountMinor, operation.currency),
+            _decimalAmount(
+              operation.amountMinor *
+                  operation.projectionDirection *
+                  (operation.type == OperationType.expenseRefund ? -1 : 1),
+              operation.currency,
+            ),
             operation.currency,
             switch (operation.status) {
               OperationStatus.pending => labels.pending,
               OperationStatus.confirmed => labels.confirmed,
               OperationStatus.rejected => labels.rejected,
             },
-            '',
-            '',
-            '',
+            operation.previousBalanceMinor == null
+                ? ''
+                : _decimalAmount(operation.previousBalanceMinor!, operation.currency),
+            operation.targetBalanceMinor == null
+                ? ''
+                : _decimalAmount(operation.targetBalanceMinor!, operation.currency),
+            operation.balanceDeltaMinor == null
+                ? ''
+                : _decimalAmount(operation.balanceDeltaMinor!, operation.currency),
+            operation.debtCommandId ?? '',
+            operation.debtCommandId == null
+                ? ''
+                : _decimalAmount(
+                    operation.principalDeltaMinor * operation.projectionDirection,
+                    operation.currency,
+                  ),
+            operation.debtCommandId == null
+                ? ''
+                : _decimalAmount(
+                    operation.chargesDeltaMinor * operation.projectionDirection,
+                    operation.currency,
+                  ),
+            operation.reversalOf ?? '',
           ],
       for (final entry in adjustments)
         [
@@ -119,6 +162,10 @@ abstract final class ActivityCsvExporter {
           _decimalAmount(entry.adjustment.previousBalanceMinor, entry.adjustment.currency),
           _decimalAmount(entry.adjustment.targetBalanceMinor, entry.adjustment.currency),
           _decimalAmount(entry.adjustment.deltaMinor, entry.adjustment.currency),
+          '',
+          '',
+          '',
+          '',
         ],
     ];
     return '\uFEFF${rows.map((row) => row.map(_cell).join(',')).join('\r\n')}\r\n';

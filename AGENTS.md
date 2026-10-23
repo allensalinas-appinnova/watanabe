@@ -1,11 +1,11 @@
-# AGENTS.md — Personal Finance Flutter
+# AGENTS.md — LumioMoney Flutter
 
 ## Project scope
 
-This directory is the Flutter mobile client for the personal finance product.
-The sibling `../studio` directory is the original web implementation and may be
-used only as a business-domain and functional reference. Do not copy its
-architecture or React/Next.js implementation decisions into this project.
+This repository is the canonical Flutter application for LumioMoney. Its source,
+tests, versioned product/architecture documentation and Firebase contracts are
+the authority for implemented behavior. Do not depend on or infer requirements
+from a separate application repository.
 
 The current product concept is named LumioMoney. The functional baseline is
 documented in `docs/functional-scope.md`.
@@ -15,9 +15,11 @@ documented in `docs/functional-scope.md`.
 When sources disagree, use this order:
 
 1. Current Flutter code and passing tests.
-2. Versioned Flutter architecture and product documentation in `docs/`.
-3. The web repository as a reference for behavior and domain vocabulary.
-4. Figma as the visual reference for intended mobile UI.
+2. Deployed Firebase behavior/configuration when verified, then versioned
+   Firebase contracts and tests.
+3. Versioned product and architecture documentation in `docs/`.
+4. Figma as the visual reference for intended UI, not as proof of runtime
+   behavior.
 
 For Figma work, use the `Personal Finance Mobile — ClearBudget` file and its
 `07 P0 Screens` page (`325:3059`) as the canonical implementation reference
@@ -30,9 +32,9 @@ switch pages. If the file, page, or frame cannot be verified, stop and ask for
 the exact Figma URL rather than inferring a target. Record the canonical page
 and frame name/ID in the task or design handoff.
 
-Label proposed behavior as proposed. Do not silently convert web behavior into
-mobile behavior when offline, synchronization, platform permissions, or UX
-decisions are unresolved.
+Label proposed behavior as proposed. Do not treat a design proposal as an
+implemented feature when offline, synchronization, platform permissions, or UX
+decisions remain unresolved.
 
 ## Architecture rules
 

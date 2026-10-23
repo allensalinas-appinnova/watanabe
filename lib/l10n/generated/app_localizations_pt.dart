@@ -9,6 +9,150 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get debtTitle => 'Cartões e empréstimos';
+
+  @override
+  String get debtAdd => 'Adicionar cartão ou empréstimo';
+
+  @override
+  String get debtMoney => 'Dinheiro disponível';
+
+  @override
+  String get debtCards => 'Cartões de crédito';
+
+  @override
+  String get debtLoans => 'Créditos e empréstimos';
+
+  @override
+  String get debtProduct => 'Produto';
+
+  @override
+  String get debtCreditCard => 'Cartão de crédito';
+
+  @override
+  String get debtBankLoan => 'Crédito bancário';
+
+  @override
+  String get debtPersonalLoan => 'Empréstimo pessoal recebido';
+
+  @override
+  String get debtRegistered => 'Dívida registrada';
+
+  @override
+  String get debtCreditBalance => 'Saldo credor em cartões';
+
+  @override
+  String get debtPosition => 'Posição líquida registrada';
+
+  @override
+  String get debtPositionNote =>
+      'Somente registros selecionados; não representa todo o seu patrimônio.';
+
+  @override
+  String get debtOpeningMode => 'Origem do saldo';
+
+  @override
+  String get debtExisting => 'Dívida existente (não movimenta dinheiro)';
+
+  @override
+  String get debtReceived => 'Empréstimo recebido agora';
+
+  @override
+  String get debtReferenceDate => 'Data do saldo inicial';
+
+  @override
+  String get debtPrincipal => 'Capital pendente';
+
+  @override
+  String get debtCharges => 'Encargos acumulados pendentes';
+
+  @override
+  String get debtLimit => 'Limite (opcional)';
+
+  @override
+  String get debtCreditor => 'Credor (opcional)';
+
+  @override
+  String get debtLastFour => 'Últimos 4 dígitos (opcional)';
+
+  @override
+  String get debtPay => 'Registrar pagamento';
+
+  @override
+  String get debtPayCard => 'Pagar cartão';
+
+  @override
+  String get debtDisburse => 'Registrar desembolso';
+
+  @override
+  String get debtCharge => 'Registrar encargo';
+
+  @override
+  String get debtRefund => 'Estorno de despesa';
+
+  @override
+  String get debtAdjust => 'Ajustar dívida';
+
+  @override
+  String get debtPurchase => 'Compra com cartão';
+
+  @override
+  String get debtPreviousCharges => 'Encargos já registrados pagos';
+
+  @override
+  String get debtNewCharges => 'Novos encargos pagos agora';
+
+  @override
+  String get debtOriginalPurchase => 'Compra original';
+
+  @override
+  String get debtBank => 'Conta de dinheiro';
+
+  @override
+  String get debtReview => 'Revisar antes de confirmar';
+
+  @override
+  String get debtOnline => 'Requer conexão. Seu rascunho é mantido se o salvamento falhar.';
+
+  @override
+  String get debtDisabled => 'A função de dívidas ainda não está ativada no servidor.';
+
+  @override
+  String get debtErrorSplit =>
+      'Complete a divisão: capital, encargos registrados e novos devem somar o pagamento.';
+
+  @override
+  String get debtErrorComponents =>
+      'A alteração deixaria capital ou encargos negativos. Revise a divisão e os movimentos posteriores.';
+
+  @override
+  String get debtErrorRefund => 'Confira a compra original e o valor ainda não estornado.';
+
+  @override
+  String get debtErrorDate => 'A data não pode ser anterior ao saldo inicial.';
+
+  @override
+  String get debtErrorArchive => 'Só é possível arquivar uma obrigação com saldo zero.';
+
+  @override
+  String get debtErrorReference => 'Revise a conta, moeda, categoria e orçamento selecionados.';
+
+  @override
+  String get debtOverLimit => 'A dívida supera o limite registrado. O movimento foi salvo.';
+
+  @override
+  String get debtReverse => 'Anular com reversão';
+
+  @override
+  String get debtComponents => 'Componentes vinculados';
+
+  @override
+  String get debtCommand => 'Comando';
+
+  @override
+  String get debtReversal => 'Reversão';
+
+  @override
   String get budgetConnectionRequired =>
       'É necessário ter conexão para salvar este orçamento. Suas alterações continuam aqui; tente novamente.';
 
@@ -172,6 +316,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get activityFilterAll => 'Todas';
+
+  @override
+  String get activityFilterTransfers => 'Transferências';
 
   @override
   String get activityBalanceAdjustmentsFilter => 'Ajustes';
@@ -398,7 +545,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get activityExportCloseHint => 'Ao fechar, seus filtros e seleção serão mantidos.';
 
   @override
-  String get activityTotalsTitle => 'Totais confirmados';
+  String get activityTotalsTitle => 'Resumo';
 
   @override
   String get activityTotalsIncome => 'Receitas';
@@ -407,11 +554,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get activityTotalsExpenses => 'Despesas';
 
   @override
-  String get activityTotalsNet => 'Saldo líquido';
+  String get activityTotalsNet => 'Resultado';
 
   @override
-  String get activityTotalsPendingNote =>
-      'Os totais incluem apenas movimentações confirmadas. Pendentes e transferências não são incluídas.';
+  String get activityTotalsMethodNote => 'Receitas − despesas · Transferências excluídas';
+
+  @override
+  String get activityTransfersTotalsNote =>
+      'Transferências não entram em receitas, despesas nem no resultado.';
 
   @override
   String get activityTotalsEmpty =>
@@ -1429,4 +1579,161 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get homePreferencesSaveFailed =>
       'Não foi possível salvar. Sua seleção foi mantida; tente novamente.';
+
+  @override
+  String get coachTitle => 'Coach e lembretes';
+
+  @override
+  String get coachSettingsIntro => 'Organize sua rotina e escolha quando revisar suas finanças.';
+
+  @override
+  String get coachDailyTitle => 'Revisão diária';
+
+  @override
+  String get coachWeeklyTitle => 'Revisão semanal';
+
+  @override
+  String get coachNextStepTitle => 'Seu próximo passo';
+
+  @override
+  String get coachDailyReminder => 'Lembrete de revisão diária';
+
+  @override
+  String get coachWeeklyReminder => 'Lembrete de revisão semanal';
+
+  @override
+  String get coachReminderTime => 'Horário do lembrete';
+
+  @override
+  String get coachReminderDays => 'Dias da semana';
+
+  @override
+  String get coachDevice => 'Neste dispositivo';
+
+  @override
+  String get coachEnableDevice => 'Receber lembretes neste dispositivo';
+
+  @override
+  String get coachDevicePrivacy => 'Os avisos não mostram valores nem dados das suas contas.';
+
+  @override
+  String get coachWindowNotice =>
+      'Abra o app ao menos uma vez a cada 28 dias para renovar os avisos. Alterações de outros dispositivos são aplicadas ao sincronizar.';
+
+  @override
+  String get coachPause => 'Pausar por sete dias';
+
+  @override
+  String get coachResume => 'Reativar lembretes';
+
+  @override
+  String get coachPaused => 'Lembretes pausados';
+
+  @override
+  String get coachPermissionGranted => 'Notificações permitidas';
+
+  @override
+  String get coachPermissionDenied =>
+      'As notificações estão bloqueadas nos ajustes do dispositivo.';
+
+  @override
+  String get coachPermissionUnknown => 'Ative os avisos para solicitar permissão.';
+
+  @override
+  String get coachUnsupported =>
+      'Na web você pode revisar sua rotina. Os lembretes estão disponíveis no Android e iOS.';
+
+  @override
+  String get coachOpenSettings => 'Abrir ajustes do dispositivo';
+
+  @override
+  String get coachReviewed => 'Revisado';
+
+  @override
+  String get coachFinishDaily => 'Já revisei minhas movimentações';
+
+  @override
+  String get coachNoMovements => 'Hoje não tive movimentações';
+
+  @override
+  String get coachFinishWeekly => 'Marcar semana como revisada';
+
+  @override
+  String get coachNoRecords => 'Não há movimentações registradas neste período.';
+
+  @override
+  String get coachAllCurrent => 'Sua rotina está em dia.';
+
+  @override
+  String get coachDailyAction => 'Revisar minhas movimentações';
+
+  @override
+  String get coachWeeklyAction => 'Revisar minha semana';
+
+  @override
+  String get coachReviewIntro =>
+      'Confira os registros antes de concluir. Registrar uma movimentação não conclui a revisão.';
+
+  @override
+  String get coachWeeklyIntro =>
+      'Receitas, despesas e Resultado das movimentações confirmadas. Transferências e ajustes não entram nesses totais.';
+
+  @override
+  String get coachConfirmedCount => 'Movimentações confirmadas';
+
+  @override
+  String get coachPendingCount => 'Sincronização pendente';
+
+  @override
+  String get coachRejectedCount => 'Movimentações rejeitadas';
+
+  @override
+  String get coachCached =>
+      'Dados salvos neste dispositivo; o período pode estar incompleto. Conecte-se e atualize para verificar.';
+
+  @override
+  String get coachSavePending => 'Revisão salva neste dispositivo; aguardando sincronização.';
+
+  @override
+  String get coachSaveFailed =>
+      'Não foi possível salvar. Sua seleção foi mantida; tente novamente.';
+
+  @override
+  String get coachSaveConfirmed => 'Revisão salva';
+
+  @override
+  String get coachTopCategories => 'Categorias com maiores despesas';
+
+  @override
+  String get coachConfigure => 'Configurar minha rotina';
+
+  @override
+  String get coachReadFailure => 'Não foi possível carregar sua revisão. Tente novamente.';
+
+  @override
+  String get coachNotificationTitle => 'Um momento para suas finanças';
+
+  @override
+  String get coachNotificationBody => 'Sua revisão está pronta. Abra o LumioMoney para continuar.';
+
+  @override
+  String get coachHomeWidget => 'Próximo passo do coach';
+
+  @override
+  String get coachReminderTiming =>
+      'Os avisos podem atrasar conforme os ajustes e a economia de bateria do dispositivo.';
+
+  @override
+  String get coachPreferencesPending =>
+      'Alterações salvas neste dispositivo; aguardando sincronização.';
+
+  @override
+  String get coachScheduleFailed => 'Não foi possível programar os avisos. Tente novamente.';
+
+  @override
+  String get coachViewMovements => 'Ver movimentações do período';
+
+  @override
+  String get coachNoMovementsUnavailable =>
+      'Agora há movimentações registradas ou faltam dados atualizados. Revise o dia antes de confirmar.';
 }

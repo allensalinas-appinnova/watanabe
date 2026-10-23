@@ -24,15 +24,28 @@ abstract final class FirebaseBootstrap {
     int functionsEmulatorPort = 59192,
   }) async {
     environment.validate(useEmulators: useEmulators, isRelease: kReleaseMode);
-    _app = await Firebase.initializeApp(
-      // Native configuration can already initialize the real default app.
-      // Never reuse it for emulator data or authentication.
-      name: useEmulators ? 'demo-clearbudget' : null,
-      options: AppFirebaseOptions.forEnvironment(
-        environment,
-        useEmulators: useEmulators,
-      ),
+    final options = AppFirebaseOptions.forEnvironment(
+      environment,
+      useEmulators: useEmulators,
     );
+    if (useEmulators) {
+      _app = await Firebase.initializeApp(
+        name: 'demo-clearbudget',
+        options: options,
+      );
+    } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // Android already loads its platform-specific app from
+      // google-services.json. Supplying web Dart defines here can conflict
+      // with that native app and cause [core/duplicate-app].
+      _app = await Firebase.initializeApp();
+      if (_app!.options.projectId != options.projectId) {
+        throw StateError(
+          'The native Firebase app does not match the selected environment.',
+        );
+      }
+    } else {
+      _app = await Firebase.initializeApp(options: options);
+    }
 
     final auth = FirebaseAuth.instanceFor(app: app);
     final firestore = FirebaseFirestore.instanceFor(app: app);

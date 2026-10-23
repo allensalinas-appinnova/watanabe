@@ -1,203 +1,139 @@
-# Alcance funcional inicial
-
-## Propósito
-
-Este documento define el alcance inicial de la aplicación Flutter de finanzas personales, tomando como baseline funcional la versión web `studio` en el commit `8847693` (`Order Unbudgeted Expenses by value desc`). Describe comportamiento observado en el repositorio; las decisiones específicas de UX, arquitectura móvil y operación offline quedan como propuestas o preguntas abiertas.
-
-## Objetivo del producto
-
-Permitir que una persona registre y consulte sus ingresos, gastos, cuentas y presupuestos, y que obtenga una vista rápida de su situación financiera mediante un dashboard, seguimiento presupuestario y reportes.
-
-## Alcance funcional confirmado en la versión web
-
-### 1. Acceso y configuración inicial
-
-- Crear cuenta con email y contraseña; la contraseña exige mínimo ocho caracteres.
-- Iniciar sesión con email y contraseña.
-- Iniciar sesión con Google.
-- Iniciar sesión como invitado mediante autenticación anónima.
-- Crear el perfil inicial del usuario en Firestore.
-- Ejecutar onboarding después del registro para elegir idioma y seleccionar categorías y cuentas predeterminadas.
-- Proteger las pantallas principales para usuarios autenticados.
-
-Evidencia: `studio/src/app/login/page.tsx:43-185`, `studio/src/app/onboarding/page.tsx:92-157`, `studio/src/components/auth/ProtectedRoutes.tsx`.
-
-### 2. Dashboard
-
-Mostrar un resumen del mes actual basado en las cuentas marcadas para aparecer en el dashboard:
-
-- gasto total;
-- ingreso total;
-- presupuesto de gastos;
-- presupuesto neto —ingresos presupuestados menos gastos presupuestados—;
-- porcentaje de cumplimiento del presupuesto de gastos;
-- distribución y actividad reciente según los componentes del dashboard.
-
-Las transferencias internas se excluyen de los totales de ingresos y gastos. El usuario puede controlar qué cuentas aparecen en el dashboard.
-
-Evidencia: `studio/src/app/page.tsx:16-109`, `studio/src/lib/actions.ts:32-88`, `studio/src/components/dashboard/`.
-
-### 3. Cuentas financieras
-
-Permitir:
-
-- crear, editar y eliminar cuentas;
-- configurar tipo de cuenta: wallet, savings, checking, credit card, revolving credit o loan;
-- definir saldo inicial y fecha del saldo inicial;
-- mostrar u ocultar la cuenta en el dashboard;
-- mostrar u ocultar el saldo de la cuenta en selectores y filtros;
-- ordenar manualmente las cuentas;
-- recalcular el saldo de una cuenta a partir de sus movimientos.
-
-Al eliminar una cuenta, también se eliminan sus ingresos y gastos asociados.
-
-Evidencia: `studio/src/app/accounts/page.tsx:18-109`, `studio/src/lib/types.ts:17-29`, `studio/src/lib/actions.ts:303-430`.
-
-### 4. Movimientos, ingresos y gastos
-
-El dominio usa un movimiento de caja (`Cashflow`) con tipo `in` o `out`, descripción, monto, fecha, cuenta, categoría opcional y saldo resultante.
-
-Permitir:
-
-- registrar ingresos;
-- registrar gastos;
-- editar movimientos;
-- eliminar movimientos;
-- asignar cuenta y categoría;
-- consultar ingresos y gastos por separado;
-- consultar todos los movimientos;
-- filtrar por cuenta, categoría y rango de fechas;
-- exportar los movimientos filtrados a CSV;
-- confirmar explícitamente operaciones retroactivas cuando la fecha del movimiento puede alterar saldos posteriores.
-
-Al agregar o editar un movimiento, se recalculan los saldos de la cuenta y de los movimientos posteriores. La edición de un movimiento no permite cambiarlo de cuenta; la implementación actual indica eliminarlo y crearlo nuevamente.
-
-Evidencia: `studio/src/app/expenses/page.tsx:18-151`, `studio/src/app/incomes/page.tsx:18-146`, `studio/src/app/transactions/page.tsx:18-204`, `studio/src/lib/actions.ts:95-299`.
-
-### 5. Transferencias entre cuentas
-
-Permitir transferir dinero entre dos cuentas. La transferencia se representa como un movimiento de salida en la cuenta origen y uno de entrada en la cuenta destino, con categorías internas de transferencia para excluirla de los totales ordinarios.
-
-Evidencia: `studio/src/app/transfers/page.tsx:13-58`, `studio/src/lib/actions.ts:719-781`.
-
-### 6. Categorías
-
-Permitir:
-
-- listar categorías;
-- crear, editar y eliminar categorías;
-- definir nombre, icono y tipo —ingreso o gasto—;
-- usar categorías diferentes para ingresos y gastos;
-- seleccionar categorías predeterminadas durante el onboarding.
-
-Al eliminar una categoría, los movimientos relacionados quedan sin categoría y los presupuestos asociados se eliminan.
-
-Evidencia: `studio/src/app/categories/page.tsx:12-58`, `studio/src/lib/types.ts:57-66`, `studio/src/lib/actions.ts:432-501`, `studio/src/lib/default-categories.ts`.
-
-### 7. Presupuestos
-
-Permitir definir un presupuesto por categoría y agregar elementos de presupuesto con descripción, monto y día del mes. Los elementos modifican el total del presupuesto de su categoría y pueden servir como base para crear un ingreso o gasto desde el planificador.
-
-Evidencia: `studio/src/app/budgets/page.tsx:14-93`, `studio/src/lib/types.ts:43-55`, `studio/src/lib/actions.ts:503-640`, `studio/src/components/budgets/`.
-
-### 8. Seguimiento presupuestario
-
-Comparar, por categoría y mes, el gasto real contra el presupuesto definido. Mostrar también los gastos que pertenecen a categorías sin presupuesto, sus movimientos relacionados y el total no presupuestado.
-
-Evidencia: `studio/src/app/budget-tracker/page.tsx:34-190`, `studio/src/components/budget-tracker/`.
-
-### 9. Reportes
-
-Mostrar un reporte visual que compara presupuesto y gasto por categoría mediante un gráfico de barras.
-
-Evidencia: `studio/src/app/reports/page.tsx:14-70`, `studio/src/components/reports/BudgetComparisonChart.tsx:16-84`.
-
-### 10. Importación y categorización asistida
-
-El producto web contiene dos flujos de importación:
-
-- revisión de transacciones extraídas de emails, con confirmación, rechazo y selección de cuenta/categoría;
-- carga de CSV, procesamiento de filas, sugerencia de categoría y revisión antes de confirmar.
-
-También existe categorización asistida para gastos a partir de descripción o imagen de comprobante.
-
-Estado: estas capacidades deben considerarse parte del alcance funcional de referencia, pero requieren validación adicional antes de convertirlas en una promesa de MVP móvil. La integración Gmail visible en el perfil declara explícitamente que aún no está implementada y el flujo CSV contiene comportamiento de demostración.
-
-Evidencia: `studio/src/app/import/page.tsx:15-88`, `studio/src/components/import/`, `studio/src/ai/flows/`, `studio/src/components/profile/ConnectGmailButton.tsx:8-25`.
-
-### 11. Perfil y preferencias
-
-Permitir consultar y editar datos del perfil, cambiar idioma entre español e inglés y conservar preferencias como última cuenta usada para ingresos/gastos. La interfaz ofrece un selector de idioma global.
-
-Evidencia: `studio/src/app/profile/page.tsx:16-66`, `studio/src/components/profile/`, `studio/src/components/i18n/`, `studio/src/lib/types.ts:5-15`.
-
-## Modelo de información de referencia
-
-El modelo por usuario se organiza en Firestore bajo `users/{userId}`:
-
-- perfil de usuario;
-- `accounts`;
-- `cashflow`;
-- `categories`;
-- `budgets` con elementos hijos `items`;
-- `email_transactions`;
-- `email_integrations`;
-- entidades de importación CSV y transacciones importadas.
-
-Los tipos principales están definidos en `studio/src/lib/types.ts:5-133`. Las reglas de acceso actuales restringen el árbol de datos del usuario autenticado a su propio `userId`, con excepciones explícitas para transacciones e integraciones de email en `studio/firestore.rules:1-20`.
-
-## Prioridad propuesta para el MVP Flutter
-
-### P0 — núcleo financiero
-
-1. autenticación y onboarding;
-2. perfil e idioma;
-3. cuentas y saldos;
-4. categorías;
-5. registro, edición y eliminación de ingresos/gastos;
-6. transferencias;
-7. dashboard mensual;
-8. sincronización remota con Firestore.
-
-### P1 — control presupuestario
-
-1. presupuestos por categoría;
-2. elementos de presupuesto;
-3. seguimiento de gasto real vs. presupuesto;
-4. gastos no presupuestados;
-5. reportes básicos;
-6. exportación CSV.
-
-### P2 — automatización e importaciones
-
-1. importación CSV robusta;
-2. revisión y confirmación de filas importadas;
-3. categorización asistida por descripción o imagen;
-4. integración Gmail y extracción de transacciones.
-
-## Fuera del alcance confirmado
-
-- No hay evidencia suficiente en el repositorio para confirmar modo offline, sincronización diferida, notificaciones, múltiples monedas, cuentas compartidas, roles, metas de ahorro, pagos recurrentes, inversiones, deudas detalladas o integración bancaria directa.
-
-## Preguntas abiertas para Flutter
-
-1. ¿El MVP debe funcionar offline? Si la respuesta es sí, hay que definir persistencia local, conflictos y política de sincronización.
-2. ¿Se mantiene Firebase Authentication/Firestore como backend móvil?
-3. ¿La importación CSV y Gmail entran en P0/P1 o se posponen a P2?
-4. ¿La edición debe permitir mover un movimiento entre cuentas, o se conserva la restricción web?
-5. ¿Qué moneda, zona horaria y formato regional deben ser configurables?
-6. ¿Los saldos y movimientos deben soportar múltiples monedas?
-7. ¿Qué proveedores de autenticación se habilitarán en producción: email, Google e invitado?
-8. ¿La aplicación móvil debe conservar las mismas rutas conceptuales de la web o reorganizarlas en una navegación móvil?
-
-## Evidencia y verificación
-
-Baseline revisado: commit `8847693` del repositorio `studio`.
-
-Comandos de inspección ejecutados:
-
-- `find src/app -maxdepth 3 -type f -print | sort`
-- búsquedas `rg` sobre rutas, componentes, tipos, acciones, flujos AI y colecciones Firestore;
-- lectura de `src/lib/types.ts`, `src/lib/actions.ts`, `firestore.rules`, `src/app/*/page.tsx` y componentes relacionados.
-
-Este documento describe el estado encontrado en el código; no implica que las capacidades marcadas como parciales estén listas para producción móvil.
+# Alcance funcional vigente
+
+## Propósito y fuente de verdad
+
+Este documento resume el comportamiento del producto LumioMoney implementado
+en este repositorio Flutter y sus límites conocidos. El código y las pruebas
+son la evidencia de implementación; las decisiones de datos y backend se
+documentan en [modelo canónico](canonical-data-model.md),
+[presupuestos](budget-commands.md), [coach](coach.md),
+[deudas](debts.md) e [importación asistida](email-imports.md). Los diseños
+orientan la interfaz, pero no prueban que una capacidad esté desplegada.
+
+## Funcionalidad implementada
+
+### Identidad, onboarding y navegación
+
+- Autenticación Firebase, recuperación de sesión y rutas protegidas.
+- Onboarding localizado con datos regionales y selección inicial de cuentas y
+  categorías.
+- Cuatro secciones persistentes: Inicio, Actividad, Presupuesto y Cuentas; Más
+  reúne configuración y gestión global.
+- Pantallas de tarea y consulta conservan navegación contextual y estado de
+  sección según el contrato de UX.
+
+Evidencia: `lib/features/auth/`, `lib/core/routing/` y
+`docs/ux-implementation-contract.md`.
+
+### Cuentas, movimientos y sincronización
+
+- Cuentas monetarias con moneda, saldo inicial, saldo derivado y preferencia
+  para incluirlas en el saldo de Inicio.
+- Ingresos, gastos y transferencias con importes en unidades menores. Las
+  transferencias tienen dos entradas contables y no se cuentan como ingresos ni
+  gastos.
+- Ajuste auditable de saldos mediante callable autenticada; los movimientos
+  pendientes locales que afecten las cuentas seleccionadas bloquean el ajuste.
+- Outbox local para comandos financieros compatibles y estados pendiente,
+  sincronizando, confirmado o rechazado. Las callables de presupuestos y deuda
+  no se convierten en escrituras offline optimistas.
+- Inicio consolida por moneda y respeta selección de cuentas, privacidad y
+  preferencias de widgets.
+
+Evidencia: `lib/features/finance/`, `lib/core/offline/`,
+`functions/src/balance_adjustments.ts` y
+`docs/canonical-data-model.md`.
+
+### Categorías y presupuestos
+
+- Categorías por tipo con selección de color y valores predeterminados
+  compatibles con perfiles antiguos.
+- Presupuestos por mes, categoría, tipo y moneda, compuestos por elementos.
+  La callable `mutateBudget` recalcula total y conteo en la misma transacción.
+- Seguimiento compara importes planeados y reales; el Home muestra todas las
+  tarjetas de presupuesto visibles, incluyendo el estado de exceso con estilo de
+  alerta.
+
+Evidencia: `lib/features/finance/domain/`,
+`lib/features/finance/presentation/screens/`,
+`functions/src/budget_commands.ts` y `docs/budget-commands.md`.
+
+### Actividad e informes
+
+- Lista paginada con filtros de periodo, cuenta y tipo para ingresos, gastos,
+  transferencias y ajustes de saldo.
+- Resumen por moneda con Ingresos, Egresos y Resultado; transferencias y
+  ajustes no participan en esos totales.
+- Revisión previa de CSV con acciones nativas para guardar y compartir. La
+  selección se exporta completa, no solo la página cargada; pendientes se
+  excluyen por defecto y pueden incluirse explícitamente.
+
+Evidencia: `lib/features/finance/domain/entities/activity_report.dart`,
+`lib/features/finance/presentation/screens/canonical_activity_screen.dart`,
+`lib/features/finance/presentation/utils/activity_csv_exporter.dart` y
+`test/features/finance/presentation/`.
+
+### Coach financiero
+
+- Cierre diario, revisión de la última semana calendario completa y tarjeta
+  opcional «Tu siguiente paso» en Inicio.
+- Preferencias de horarios/días se sincronizan con Firestore. Los permisos,
+  pausa y programación de recordatorios son locales por dispositivo.
+- Android/iOS usan notificaciones locales; en web hay interfaz del coach, pero
+  no notificaciones web.
+- Los informes separan monedas, excluyen transferencias y ajustes de los
+  totales y distinguen datos pendientes o posiblemente incompletos.
+
+Evidencia: `lib/features/coach/` y [contrato y verificación](coach.md).
+
+### Cuentas de deuda
+
+El checkout incluye tarjetas de crédito, préstamos/créditos recibidos,
+desembolsos, pagos, cargos, devoluciones, ajustes y correcciones auditables.
+La implementación está detrás de controles de activación; no convierte cuentas
+antiguas y no admite amortización o intereses automáticos. La revisión de la
+callable en Cloud Run está lista; una llamada no autenticada fue rechazada como
+se espera. No se ha probado un comando financiero autenticado, por lo que la
+creación de deuda debe seguir deshabilitada hasta cualificar el cliente. Véase
+[estado y límites](debts.md).
+
+### Importación asistida de correo
+
+Solo existe una base parcial de backend: extractores deterministas limitados,
+candidatos revisables y comandos de aprobación protegidos. No hay cliente OAuth,
+búsqueda Gmail ni pantallas móviles de importación; no debe presentarse como
+una integración disponible. Véase [gates restantes](email-imports.md).
+
+## Persistencia y permisos
+
+Firestore organiza los datos financieros bajo `users/{uid}`. Las operaciones y
+entradas del ledger son la fuente de verdad; saldos, resúmenes y uso del
+presupuesto son proyecciones reconciliables. Las reglas limitan el acceso a los
+datos del propietario y reservan las escrituras sensibles para las callables
+correspondientes. Los cambios de reglas y Functions se validan separadamente
+con Firebase Emulator y con evidencia del proyecto remoto.
+
+Evidencia: `firestore.rules`, `functions/src/projection_store.ts`,
+`functions/src/projection_audit.ts` y `docs/projection-audit.md`.
+
+## Límites conocidos y estado de release
+
+- No hay configuración de Firebase staging verificada; la configuración local
+  de desarrollo apunta a `lumiomoney`. Las pruebas automatizadas deben usar
+  `demo-clearbudget`.
+- El Android debug y los flujos Emulator se cualifican por separado del APK
+  firmado. El build release requiere un `storeFile`/keystore que no está
+  configurado.
+- La entrega de notificaciones se verificó en dispositivos para el flujo
+  probado; los toques reales con app cerrada, la revisión completa de
+  accesibilidad y la aceptación visual de todas las pantallas continúan siendo
+  gates distintos.
+- Gmail requiere aún OAuth, permisos y recursos de infraestructura; no hay
+  importación real habilitada.
+- La función de deuda sigue desactivada hasta validar el cliente actualizado;
+  Cloud Run presenta una revisión lista.
+
+El estado detallado y las últimas verificaciones se mantienen en
+[backlog](implementation-backlog.md), [cualificación de tiendas](store-readiness-audit.md)
+y las guías enlazadas arriba. Los diseños orientan la interfaz, pero no son
+evidencia de implementación o despliegue.

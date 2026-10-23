@@ -120,7 +120,7 @@ void main() {
     );
     expect(
       csv,
-      '\uFEFF"Fecha y hora","Tipo","Descripción","Cuenta(s)","Categoría","Importe","Moneda","Estado","Previous balance","Target balance","Difference"\r\n',
+      '\uFEFF"Fecha y hora","Tipo","Descripción","Cuenta(s)","Categoría","Importe","Moneda","Estado","Previous balance","Target balance","Difference","Command","Principal change","Charges change","Reversal of"\r\n',
     );
   });
 }
