@@ -229,8 +229,50 @@ void main() {
       '89\u00a0%',
     );
     expect(
+      tester.widget<Text>(find.byKey(const ValueKey('home_expense_budget_percent'))).style?.color,
+      AppTheme.forAppearance(
+        AppearancePalette.lumio,
+        Brightness.light,
+      ).extension<AppThemeColors>()!.warning,
+    );
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
+              of: find.byKey(const ValueKey('home_expense_budget_ratio')),
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          )
+          .color,
+      AppTheme.forAppearance(
+        AppearancePalette.lumio,
+        Brightness.light,
+      ).extension<AppThemeColors>()!.warning,
+    );
+    expect(
       tester.widget<Text>(find.byKey(const ValueKey('home_income_budget_percent'))).data,
       '50\u00a0%',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('home_income_budget_percent'))).style?.color,
+      AppTheme.forAppearance(
+        AppearancePalette.lumio,
+        Brightness.light,
+      ).extension<AppThemeColors>()!.expense,
+    );
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
+              of: find.byKey(const ValueKey('home_income_budget_ratio')),
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          )
+          .color,
+      AppTheme.forAppearance(
+        AppearancePalette.lumio,
+        Brightness.light,
+      ).extension<AppThemeColors>()!.expense,
     );
     await tester.ensureVisible(find.byKey(const ValueKey('home_budget_preview_food-budget')));
     expect(find.byKey(const ValueKey('home_budget_preview_food-budget')), findsOneWidget);

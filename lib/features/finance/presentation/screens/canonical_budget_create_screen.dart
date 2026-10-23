@@ -13,12 +13,15 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/finance_category.dart';
+import '../../domain/entities/financial_operation.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import '../models/picker_usage_order.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/budget_command_message.dart';
 import '../widgets/budget_month_picker.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
+import '../widgets/finance_popup_selector.dart';
 
 class CanonicalBudgetCreateScreen extends ConsumerStatefulWidget {
   const CanonicalBudgetCreateScreen({super.key});
@@ -198,11 +201,24 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
 
     final categoriesAsync = ref.watch(canonicalCategoriesProvider(user.id));
     final categories = categoriesAsync.valueOrNull ?? const <FinanceCategory>[];
+    final recentOperations =
+        ref.watch(canonicalRecentOperationsProvider(user.id)).valueOrNull ??
+        const <FinancialOperation>[];
     final profile = ref.watch(canonicalUserProfileProvider(user.id)).valueOrNull;
     final currency = profile?.defaultCurrency ?? 'COP';
     final availableCategories = categories
         .where((category) => category.type.name == _flowType && !category.isArchived)
         .toList();
+    final flowOperationType = _flowType == 'income' ? OperationType.income : OperationType.expense;
+    final categoryUsageOrder = orderPickerOptionsByUsage(
+      options: availableCategories,
+      recentOperations: recentOperations,
+      idOf: (category) => category.id,
+      usageIdsOf: (operation) => categoryUsageIds(operation, flowOperationType),
+      compareAlphabetically: (left, right) => (left.customName ?? left.id).toLowerCase().compareTo(
+        (right.customName ?? right.id).toLowerCase(),
+      ),
+    );
     if (_categoryId != null && !availableCategories.any((item) => item.id == _categoryId)) {
       _categoryId = null;
     }
@@ -308,37 +324,53 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                         label: l10n.budgetCategory,
                         child: categoriesAsync.isLoading
                             ? const LinearProgressIndicator()
-                            : DropdownButtonFormField<String>(
-                                key: const ValueKey('budget_category_selector'),
+                            : FinancePopupSelector<String>(
+                                key: ValueKey('budget_category_selector_$_flowType'),
+                                controlKey: const ValueKey('budget_category_selector_tap'),
+                                title: l10n.budgetCategory,
+                                placeholder: l10n.budgetSelectCategory,
                                 initialValue: _categoryId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(),
-                                hint: Text(l10n.budgetSelectCategory),
-                                items: availableCategories
-                                    .map(
-                                      (category) => DropdownMenuItem(
-                                        key: ValueKey('budget_category_option_${category.id}'),
-                                        value: category.id,
-                                        child: Row(
-                                          children: [
-                                            FinanceCategoryIcon(
-                                              iconId: category.icon,
-                                              colorValue: category.colorValue,
-                                              size: 28,
-                                              iconSize: 16,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              category.customName ?? category.id,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                                options: categoryUsageOrder.ordered
+                                    .map((category) => category.id)
+                                    .toList(growable: false),
+                                frequentOptions: categoryUsageOrder.frequent
+                                    .map((category) => category.id)
+                                    .toList(growable: false),
+                                optionLabel: (id) =>
+                                    availableCategories
+                                        .firstWhere((category) => category.id == id)
+                                        .customName ??
+                                    id,
+                                searchText: (id) {
+                                  final category = availableCategories.firstWhere(
+                                    (item) => item.id == id,
+                                  );
+                                  return '${category.customName ?? category.id} ${category.id}';
+                                },
+                                optionBuilder: (context, id) {
+                                  final category = availableCategories.firstWhere(
+                                    (item) => item.id == id,
+                                  );
+                                  return Row(
+                                    children: [
+                                      FinanceCategoryIcon(
+                                        iconId: category.icon,
+                                        colorValue: category.colorValue,
+                                        size: 28,
+                                        iconSize: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          category.customName ?? category.id,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                    )
-                                    .toList(),
-                                onChanged: _saving || availableCategories.isEmpty
+                                    ],
+                                  );
+                                },
+                                onSelected: _saving || availableCategories.isEmpty
                                     ? null
                                     : (value) => setState(() {
                                         _hasUnsavedChanges = true;

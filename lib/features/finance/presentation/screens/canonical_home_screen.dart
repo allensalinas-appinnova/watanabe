@@ -725,12 +725,22 @@ class _BudgetComparisonCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final hasBudget = plannedMinor > 0;
     final ratio = hasBudget ? actualMinor / plannedMinor : 0.0;
-    final isOverBudget = isExpense && ratio > 1;
-    final statusColor = isOverBudget
-        ? context.appColors.expense
-        : (!isExpense && ratio >= 1
-              ? context.appColors.income
-              : Theme.of(context).colorScheme.primary);
+    final appColors = context.appColors;
+    final statusColor = isExpense
+        ? !hasBudget
+              ? Theme.of(context).colorScheme.primary
+              : ratio > 1
+              ? appColors.expense
+              : ratio >= 0.8
+              ? appColors.warning
+              : appColors.positive
+        : !hasBudget
+        ? Theme.of(context).colorScheme.primary
+        : ratio >= 1
+        ? appColors.income
+        : ratio >= 0.8
+        ? appColors.warning
+        : appColors.expense;
     final locale = Localizations.localeOf(context).toString();
     final percentage = NumberFormat.percentPattern(locale).format(ratio);
 

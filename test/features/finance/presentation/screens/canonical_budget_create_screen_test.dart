@@ -69,6 +69,7 @@ void main() {
       canonicalCategoriesProvider('user-1').overrideWith(
         (ref) => Stream.value(categories ?? _categories),
       ),
+      canonicalRecentOperationsProvider('user-1').overrideWith((ref) => Stream.value(const [])),
       canonicalActionsProvider.overrideWithValue(actions),
     ],
     child: MaterialApp(
@@ -137,7 +138,7 @@ void main() {
 
     await _enter(tester, 'budget_item_description_0', 'Mercado');
     await _enter(tester, 'budget_item_amount_0', '100');
-    await _tap(tester, 'budget_category_selector');
+    await _tap(tester, 'budget_category_selector_expense');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comida').last);
     await tester.pumpAndSettle();
@@ -145,7 +146,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ingresos').last);
     await tester.pumpAndSettle();
-    await _tap(tester, 'budget_category_selector');
+    await _tap(tester, 'budget_category_selector_income');
     await tester.pumpAndSettle();
     expect(find.text('Salario'), findsOneWidget);
     await tester.tap(find.text('Salario').last);
@@ -182,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
     await _enter(tester, 'budget_item_description_0', 'Mercado');
     await _enter(tester, 'budget_item_amount_0', '100');
-    await _tap(tester, 'budget_category_selector');
+    await _tap(tester, 'budget_category_selector_expense');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comida').last);
     await tester.pumpAndSettle();
@@ -247,7 +248,7 @@ void main() {
     await tester.pumpAndSettle();
     await _enter(tester, 'budget_item_description_0', 'Comida del mes');
     await _enter(tester, 'budget_item_amount_0', '450');
-    await _tap(tester, 'budget_category_selector');
+    await _tap(tester, 'budget_category_selector_expense');
     await tester.tap(find.text('Comida').last);
     await tester.pumpAndSettle();
     await _tap(tester, 'budget_save');
