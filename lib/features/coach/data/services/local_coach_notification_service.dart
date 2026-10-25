@@ -248,6 +248,14 @@ class LocalCoachNotificationService implements CoachNotificationService {
       await _backend.cancelAll();
     });
   }
+
+  @override
+  Future<void> clearUserData(String uid) async {
+    await cancelAll();
+    await _tokens.remove(uid);
+    await _store.remove(_key(uid, 'settings'));
+    await _store.remove(_key(uid, 'owner'));
+  }
 }
 
 class SharedPreferencesCoachNotificationStore implements CoachNotificationStore {
@@ -258,4 +266,7 @@ class SharedPreferencesCoachNotificationStore implements CoachNotificationStore 
 
   @override
   Future<void> write(String key, String value) => _preferences.setString(key, value);
+
+  @override
+  Future<void> remove(String key) => _preferences.remove(key);
 }

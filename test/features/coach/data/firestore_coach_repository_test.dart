@@ -109,6 +109,11 @@ void main() {
     collection = MockCollection();
     query = MockQuery();
     metadata = MockMetadata();
+    final profileSnapshot = MockDocumentSnapshot();
+    // Mocktail requires a closure here to capture the zero-argument invocation.
+    // ignore: unnecessary_lambdas
+    when(() => profileSnapshot.data()).thenReturn({'dataGeneration': 0});
+    when(() => user.get()).thenAnswer((_) => Future.value(profileSnapshot));
     database = PendingOperationDatabase(NativeDatabase.memory());
     repository = FirestoreCoachRepository(firestore: firestore, pendingOperations: database);
     when(() => firestore.collection('users')).thenReturn(users);
@@ -287,8 +292,15 @@ void main() {
     );
     expect(result.getOrElse((_) => throw StateError('failed')), CoachWriteState.pending);
     final map = verify(() => document.set(captureAny())).captured.single as Map;
-    expect(map.keys.toSet(), {'periodKey', 'kind', 'noMovements', 'reviewedAt'});
+    expect(map.keys.toSet(), {
+      'periodKey',
+      'kind',
+      'noMovements',
+      'reviewedAt',
+      'dataGeneration',
+    });
     expect(map['reviewedAt'], isA<FieldValue>());
+    expect(map['dataGeneration'], 0);
     server.completeError(FirebaseException(plugin: 'cloud_firestore', code: 'permission-denied'));
     await Future<void>.delayed(Duration.zero);
     expect(failures.single.failure, isA<AuthFailure>());

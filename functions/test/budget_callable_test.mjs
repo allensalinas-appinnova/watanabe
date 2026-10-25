@@ -5,7 +5,7 @@ import {app, db} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
 const endpoint = 'http://127.0.0.1:59192/demo-clearbudget/us-central1/mutateBudget';
-const command = {action: 'create', requestId: 'callable-create', categoryId: 'food',
+const command = {action: 'create', requestId: 'callable-create', expectedGeneration: 0, categoryId: 'food',
   flowType: 'expense', monthKey: '2026-10', currency: 'COP',
   items: [{description: 'Synthetic budget', amountMinor: 250, dayOfMonth: 1}]};
 async function invoke(data, token) {

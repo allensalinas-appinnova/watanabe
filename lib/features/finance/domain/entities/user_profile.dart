@@ -12,6 +12,10 @@ class UserProfile {
     required this.categoryCatalogVersion,
     this.homeDashboardPreferences = const HomeDashboardPreferences(),
     this.appearancePreferences = const AppearancePreferences(),
+    this.dataGeneration = 0,
+    this.resetStatus = 'ready',
+    this.resetRequestId,
+    this.resetPreviousGeneration,
   });
 
   final String id;
@@ -23,4 +27,8 @@ class UserProfile {
   final int categoryCatalogVersion;
   final HomeDashboardPreferences homeDashboardPreferences;
   final AppearancePreferences appearancePreferences;
+  final int dataGeneration;
+  final String resetStatus;
+  final String? resetRequestId;
+  final int? resetPreviousGeneration;
 }

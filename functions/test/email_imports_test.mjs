@@ -23,14 +23,14 @@ async function fixture(name, options = {}) {
     evidence: 'Synthetic evidence only', ...options,
   }, now);
   return {root, id, call: (changes = {}) => executeEmailImportCommand(db, root.id, {
-    requestId: 'synthetic-command-1', candidateId: id, action: 'approve',
+    requestId: 'synthetic-command-1', expectedGeneration: 0, candidateId: id, action: 'approve',
     expectedVersion: 1, draft, ...changes,
   }, policy(root.id))};
 }
 
 test('pilot is deny-by-default, authenticated and isolated by UID', async () => {
   const {root, id} = await fixture('auth');
-  const command = {requestId: 'synthetic-command-1', candidateId: id, action: 'discard', expectedVersion: 1};
+  const command = {requestId: 'synthetic-command-1', expectedGeneration: 0, candidateId: id, action: 'discard', expectedVersion: 1};
   await assert.rejects(executeEmailImportCommand(db, undefined, command, policy(root.id)), {status: 'unauthenticated'});
   await assert.rejects(executeEmailImportCommand(db, root.id, command, {allowedUids: []}), {issue: 'import-pilot-disabled'});
   await assert.rejects(executeEmailImportCommand(db, 'someone-else', command, policy('someone-else')), {issue: 'import-profile-missing'});

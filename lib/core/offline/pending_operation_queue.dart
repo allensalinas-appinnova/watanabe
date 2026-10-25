@@ -71,6 +71,45 @@ class PendingOperationDatabase extends _$PendingOperationDatabase {
     )..where((row) => row.idempotencyKey.equals(key))).getSingleOrNull();
   }
 
+  Future<List<PendingOperation>> activeForUser(String userId) async {
+    final rows =
+        await (select(pendingOperations)..where(
+              (row) => row.status.isIn(const ['pending', 'syncing', 'rejected']),
+            ))
+            .get();
+    return rows
+        .where((row) {
+          try {
+            final payload = jsonDecode(row.payload);
+            return payload is Map<String, dynamic> &&
+                (payload['ownerUserId'] == userId || !payload.containsKey('ownerUserId'));
+          } on FormatException {
+            return false;
+          }
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> clearUserData(String userId) async {
+    final rows = await (select(pendingOperations)).get();
+    final ids = rows
+        .where((row) {
+          try {
+            final payload = jsonDecode(row.payload);
+            // The v1 queue predates ownerUserId. Once reset has been confirmed and
+            // all unresolved rows are blocked, clear legacy local-only rows too.
+            return payload is Map<String, dynamic> &&
+                (payload['ownerUserId'] == userId || !payload.containsKey('ownerUserId'));
+          } on FormatException {
+            return false;
+          }
+        })
+        .map((row) => row.id)
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+    await (delete(pendingOperations)..where((row) => row.id.isIn(ids))).go();
+  }
+
   Future<void> clearConfirmed(String key) async {
     await (delete(pendingOperations)..where((row) => row.idempotencyKey.equals(key))).go();
   }

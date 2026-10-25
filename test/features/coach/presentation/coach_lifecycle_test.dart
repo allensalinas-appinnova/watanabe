@@ -95,6 +95,9 @@ class _Notifications implements CoachNotificationService {
   }
 
   @override
+  Future<void> clearUserData(String uid) async => cancelAll();
+
+  @override
   CoachNotificationTarget? takeInitialTarget() {
     events.add('take-target');
     final target = initialTarget;

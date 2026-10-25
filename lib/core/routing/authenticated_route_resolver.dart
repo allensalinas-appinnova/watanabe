@@ -27,11 +27,35 @@ Future<String?> resolveAuthenticatedRoute({
   const login = '/login';
   const onboarding = '/onboarding';
   const recovery = '/session-recovery';
+  const resetInProgress = '/settings/reset-in-progress';
   if (!authenticated) return matchedLocation == login ? null : login;
   if (matchedLocation == recovery) return null;
 
   try {
     final profile = await loadProfile();
+    if (matchedLocation == '/settings/reset-data' &&
+        profile?.resetStatus == 'ready' &&
+        profile?.onboardingStatus == 'not_started' &&
+        profile?.resetRequestId != null) {
+      return resetInProgress;
+    }
+    if (matchedLocation == '/settings/reset-data' &&
+        (profile?.resetStatus == 'resetting' ||
+            (profile?.resetStatus == 'ready' && profile?.onboardingStatus == 'not_started'))) {
+      return null;
+    }
+    if (matchedLocation == resetInProgress &&
+        profile?.resetStatus == 'ready' &&
+        profile?.onboardingStatus == 'not_started' &&
+        profile?.resetRequestId != null) {
+      return null;
+    }
+    if (profile?.resetStatus == 'resetting' && matchedLocation != resetInProgress) {
+      return resetInProgress;
+    }
+    if (matchedLocation == resetInProgress && profile?.resetStatus != 'resetting') {
+      return profile?.onboardingStatus == 'complete' ? '/home' : onboarding;
+    }
     final onboardingComplete = profile?.onboardingStatus == 'complete';
     if (!onboardingComplete && matchedLocation != onboarding) return onboarding;
     if (onboardingComplete && (matchedLocation == onboarding || matchedLocation == login)) {

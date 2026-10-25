@@ -813,10 +813,11 @@ class CanonicalFinanceActions {
     FinancialOperationDraft draft,
   ) async {
     return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
+      final generation = (await _repository.watchUserProfile(userId).first)?.dataGeneration ?? 0;
       await _sync.enqueue(
         idempotencyKey: draft.idempotencyKey,
         operationType: 'operation',
-        payload: {..._operationPayload(draft), 'ownerUserId': userId},
+        payload: {..._operationPayload(draft), 'ownerUserId': userId, 'dataGeneration': generation},
       );
       await _sync.drain((type, payload) => _send(userId, type, payload));
       final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
@@ -832,10 +833,11 @@ class CanonicalFinanceActions {
 
   Future<SyncState> createTransfer(String userId, TransferDraft draft) async {
     return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
+      final generation = (await _repository.watchUserProfile(userId).first)?.dataGeneration ?? 0;
       await _sync.enqueue(
         idempotencyKey: draft.idempotencyKey,
         operationType: 'transfer',
-        payload: {..._transferPayload(draft), 'ownerUserId': userId},
+        payload: {..._transferPayload(draft), 'ownerUserId': userId, 'dataGeneration': generation},
       );
       await _sync.drain((type, payload) => _send(userId, type, payload));
       final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
@@ -988,6 +990,7 @@ class CanonicalFinanceActions {
           description: payload['description'] as String,
           idempotencyKey: payload['idempotencyKey'] as String,
           monthKey: payload['monthKey'] as String?,
+          dataGeneration: payload['dataGeneration'] as int? ?? 0,
         ),
       );
       return result.match(_syncFailureResult, (_) => const SyncAttemptResult.success());
@@ -1006,6 +1009,7 @@ class CanonicalFinanceActions {
         idempotencyKey: payload['idempotencyKey'] as String,
         budgetId: payload['budgetId'] as String?,
         budgetItemId: payload['budgetItemId'] as String?,
+        dataGeneration: payload['dataGeneration'] as int? ?? 0,
       ),
     );
     return result.match(_syncFailureResult, (_) => const SyncAttemptResult.success());

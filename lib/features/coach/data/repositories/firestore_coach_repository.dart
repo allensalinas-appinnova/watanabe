@@ -32,6 +32,12 @@ class FirestoreCoachRepository implements CoachRepository {
   DocumentReference<Map<String, dynamic>> _user(String uid) =>
       _firestore.collection('users').doc(uid);
 
+  Future<int> _dataGeneration(String uid) async {
+    final profile = (await _user(uid).get()).data();
+    if (profile?['resetStatus'] == 'resetting') throw StateError('user-reset-in-progress');
+    return (profile?['dataGeneration'] as num? ?? 0).toInt();
+  }
+
   @override
   Stream<CoachCompletion?> watchCompletion(
     String uid, {
@@ -197,11 +203,12 @@ class FirestoreCoachRepository implements CoachRepository {
   }) => _write(
     uid,
     '${kind.name}:$periodKey',
-    () => _user(uid).collection(_collection(kind)).doc(periodKey).set({
+    () async => _user(uid).collection(_collection(kind)).doc(periodKey).set({
       'periodKey': periodKey,
       'kind': kind.name,
       'noMovements': noMovements,
       'reviewedAt': FieldValue.serverTimestamp(),
+      'dataGeneration': await _dataGeneration(uid),
     }),
   );
 

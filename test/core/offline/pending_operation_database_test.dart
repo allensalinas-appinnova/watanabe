@@ -6,6 +6,47 @@ import 'package:personal_finance/core/offline/pending_operation_queue.dart';
 import 'package:personal_finance/core/offline/sync_state.dart';
 
 void main() {
+  test('reset pending guard is user-scoped and safely blocks legacy unowned queue rows', () async {
+    final database = PendingOperationDatabase(NativeDatabase.memory());
+    await database.enqueue(
+      idempotencyKey: 'user-a-active',
+      operationType: 'operation',
+      payload: const {
+        'ownerUserId': 'user-a',
+        'dataGeneration': 0,
+      },
+    );
+    await database.enqueue(
+      idempotencyKey: 'user-b-active',
+      operationType: 'operation',
+      payload: const {
+        'ownerUserId': 'user-b',
+        'dataGeneration': 0,
+      },
+    );
+    await database.enqueue(
+      idempotencyKey: 'legacy-active',
+      operationType: 'operation',
+      payload: const {
+        'dataGeneration': 0,
+      },
+    );
+    expect(
+      (await database.activeForUser('user-a')).map((row) => row.idempotencyKey),
+      containsAll(['user-a-active', 'legacy-active']),
+    );
+
+    final userA = await database.findByIdempotencyKey('user-a-active');
+    await database.markConfirmed(userA!.id);
+    final legacy = await database.findByIdempotencyKey('legacy-active');
+    await database.markConfirmed(legacy!.id);
+    await database.clearUserData('user-a');
+    expect(await database.findByIdempotencyKey('user-a-active'), isNull);
+    expect(await database.findByIdempotencyKey('legacy-active'), isNull);
+    expect(await database.findByIdempotencyKey('user-b-active'), isNotNull);
+    await database.close();
+  });
+
   test('pending operation survives database reopen and reaches confirmed once', () async {
     final directory = await Directory.systemTemp.createTemp('clearbudget-drift-');
     final path = '${directory.path}/pending.sqlite';

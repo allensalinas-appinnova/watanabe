@@ -4,7 +4,7 @@ import {checkedInteger, maximumMinor, validCurrency, validId, validMonth} from "
 
 type ItemDraft = {description: string; amountMinor: number; dayOfMonth: number};
 type BudgetIdentity = {categoryId: string; flowType: "income" | "expense"; monthKey: string; currency: string};
-type Command = {requestId: string} & (
+type Command = {requestId: string; expectedGeneration: number} & (
   {action: "create"; identity: BudgetIdentity; items: ItemDraft[]} |
   {action: "addItem"; budgetId: string; item: ItemDraft} |
   {action: "updateItem"; budgetId: string; itemId: string; item: ItemDraft} |
@@ -64,24 +64,26 @@ function parseCommand(payload: unknown): Command {
   const data = object(payload);
   if (typeof data.requestId !== "string" || !/^[A-Za-z0-9_-]{8,128}$/.test(data.requestId)) throw new BudgetCommandError("budget-invalid-request-id");
   const requestId = data.requestId;
+  if (!Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0) throw new BudgetCommandError("budget-generation-required", "failed-precondition");
+  const expectedGeneration = Number(data.expectedGeneration);
   switch (data.action) {
   case "create": {
-    keys(data, ["requestId", "action", "categoryId", "flowType", "monthKey", "currency", "items"]);
+    keys(data, ["requestId", "expectedGeneration", "action", "categoryId", "flowType", "monthKey", "currency", "items"]);
     if (!Array.isArray(data.items) || !data.items.length || data.items.length > 1000) throw new BudgetCommandError("budget-invalid-items");
-    return {requestId, action: "create", identity: identity(data), items: data.items.map(draft)};
+    return {requestId, expectedGeneration, action: "create", identity: identity(data), items: data.items.map(draft)};
   }
   case "addItem":
-    keys(data, ["requestId", "action", "budgetId", "item"]);
-    return {requestId, action: "addItem", budgetId: id(data.budgetId), item: draft(data.item)};
+    keys(data, ["requestId", "expectedGeneration", "action", "budgetId", "item"]);
+    return {requestId, expectedGeneration, action: "addItem", budgetId: id(data.budgetId), item: draft(data.item)};
   case "updateItem":
-    keys(data, ["requestId", "action", "budgetId", "itemId", "item"]);
-    return {requestId, action: "updateItem", budgetId: id(data.budgetId), itemId: id(data.itemId), item: draft(data.item)};
+    keys(data, ["requestId", "expectedGeneration", "action", "budgetId", "itemId", "item"]);
+    return {requestId, expectedGeneration, action: "updateItem", budgetId: id(data.budgetId), itemId: id(data.itemId), item: draft(data.item)};
   case "archiveItem":
-    keys(data, ["requestId", "action", "budgetId", "itemId"]);
-    return {requestId, action: "archiveItem", budgetId: id(data.budgetId), itemId: id(data.itemId)};
+    keys(data, ["requestId", "expectedGeneration", "action", "budgetId", "itemId"]);
+    return {requestId, expectedGeneration, action: "archiveItem", budgetId: id(data.budgetId), itemId: id(data.itemId)};
   case "archiveBudget":
-    keys(data, ["requestId", "action", "budgetId"]);
-    return {requestId, action: "archiveBudget", budgetId: id(data.budgetId)};
+    keys(data, ["requestId", "expectedGeneration", "action", "budgetId"]);
+    return {requestId, expectedGeneration, action: "archiveBudget", budgetId: id(data.budgetId)};
   default: throw new BudgetCommandError("budget-invalid-action");
   }
 }
@@ -97,6 +99,10 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     `${command.identity.monthKey}_${command.identity.flowType}_${command.identity.categoryId}_${command.identity.currency}` : command.budgetId;
   const budgetRef = root.collection("budgets").doc(budgetId);
   return db.runTransaction(async (transaction) => {
+    const profile = (await transaction.get(root)).data();
+    if (!profile || profile.resetStatus === "resetting") throw new BudgetCommandError("budget-user-resetting", "failed-precondition");
+    const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
+    if (generation !== command.expectedGeneration) throw new BudgetCommandError("budget-stale-generation", "failed-precondition");
     const receipt = await transaction.get(receiptRef);
     if (receipt.exists) {
       if (receipt.data()?.digest !== digest) throw new BudgetCommandError("budget-request-conflict", "already-exists");

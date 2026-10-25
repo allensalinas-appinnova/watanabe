@@ -1898,4 +1898,66 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get selectionAll => 'Todas as opções';
+
+  @override
+  String get resetSectionTitle => 'Ações destrutivas';
+
+  @override
+  String get resetTitle => 'Reiniciar meus dados';
+
+  @override
+  String get resetDescription =>
+      'Seus movimentos, contas e dívidas, orçamentos, categorias personalizadas, preferências, revisões do Coach e dados de importação serão excluídos. Esta ação não pode ser desfeita.';
+
+  @override
+  String get resetPreserveAccess =>
+      'Seu acesso ao LumioMoney será mantido. Depois, você voltará à configuração inicial.';
+
+  @override
+  String get resetConfirmTitle => 'Confirme a reinicialização';
+
+  @override
+  String get resetConfirmMessage => 'Para continuar, digite a palavra exibida abaixo.';
+
+  @override
+  String get resetTypePrompt => 'Digite REINICIAR';
+
+  @override
+  String get resetConfirmWord => 'REINICIAR';
+
+  @override
+  String get resetFinalTitle => 'Excluir todos os seus dados?';
+
+  @override
+  String get resetFinalMessage =>
+      'Os outros dispositivos serão bloqueados enquanto seus dados do LumioMoney são excluídos. Você continuará conectado.';
+
+  @override
+  String get resetAction => 'Reiniciar dados';
+
+  @override
+  String get resetProgressTitle => 'Reinicialização em andamento';
+
+  @override
+  String get resetProgressMessage =>
+      'Estamos excluindo seus dados com segurança. Mantenha esta tela aberta ou volte aqui para continuar se o processo for interrompido.';
+
+  @override
+  String get resetWorking => 'Reiniciando…';
+
+  @override
+  String get resetResume => 'Continuar reinicialização';
+
+  @override
+  String get resetFailure =>
+      'Não foi possível concluir. Seus dados continuam bloqueados; você pode tentar novamente com segurança.';
+
+  @override
+  String resetPendingWarning(Object count) {
+    return 'Resolva primeiro as $count operações pendentes, sincronizando ou rejeitadas. Nenhum dado foi excluído.';
+  }
+
+  @override
+  String get resetPendingCheckFailure =>
+      'Não foi possível verificar os movimentos pendentes. Tente novamente antes de reiniciar.';
 }

@@ -1888,4 +1888,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectionAll => 'All options';
+
+  @override
+  String get resetSectionTitle => 'Destructive actions';
+
+  @override
+  String get resetTitle => 'Reset my data';
+
+  @override
+  String get resetDescription =>
+      'Your movements, accounts and debts, budgets, custom categories, preferences, Coach reviews, and import data will be deleted. This cannot be undone.';
+
+  @override
+  String get resetPreserveAccess =>
+      'Your LumioMoney sign-in will remain. You will return to the initial setup afterward.';
+
+  @override
+  String get resetConfirmTitle => 'Confirm reset';
+
+  @override
+  String get resetConfirmMessage => 'To continue, type the word shown below.';
+
+  @override
+  String get resetTypePrompt => 'Type RESET';
+
+  @override
+  String get resetConfirmWord => 'RESET';
+
+  @override
+  String get resetFinalTitle => 'Delete all your data?';
+
+  @override
+  String get resetFinalMessage =>
+      'Other devices will be blocked while your LumioMoney data is deleted. You will remain signed in.';
+
+  @override
+  String get resetAction => 'Reset data';
+
+  @override
+  String get resetProgressTitle => 'Reset in progress';
+
+  @override
+  String get resetProgressMessage =>
+      'We are securely deleting your data. Keep this screen open, or return here to continue if interrupted.';
+
+  @override
+  String get resetWorking => 'Resetting…';
+
+  @override
+  String get resetResume => 'Continue reset';
+
+  @override
+  String get resetFailure =>
+      'We couldn\'t finish the reset. Your data remains blocked; you can safely retry.';
+
+  @override
+  String resetPendingWarning(Object count) {
+    return 'First resolve the $count pending, syncing, or rejected operations. No data was deleted.';
+  }
+
+  @override
+  String get resetPendingCheckFailure =>
+      'We couldn\'t verify pending operations. Try again before resetting.';
 }

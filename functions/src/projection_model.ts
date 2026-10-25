@@ -12,6 +12,7 @@ export type Operation = {
   // These fields are server-only; security rules forbid them on client writes.
   projectionDirection?: 1 | -1;
   balanceDeltaMinor?: number;
+  dataGeneration?: number;
   status: "pending" | "confirmed" | "rejected";
 };
 
@@ -71,6 +72,7 @@ export function parseOperation(data: Record<string, unknown>): Operation {
     throw new ProjectionError("invalid_operation_reference");
   }
   if (data.projectionDirection !== undefined && data.projectionDirection !== 1 && data.projectionDirection !== -1) throw new ProjectionError("invalid_direction");
+  if (data.dataGeneration !== undefined && (!Number.isSafeInteger(data.dataGeneration) || Number(data.dataGeneration) < 0)) throw new ProjectionError("invalid_generation");
   if (data.type === "debtAdjustment" && Math.abs(checkedInteger(data.balanceDeltaMinor)) !== amount) throw new ProjectionError("invalid_adjustment_delta");
   if (data.budgetId !== undefined || data.budgetItemId !== undefined) {
     if (!validId(data.budgetId) || !validId(data.budgetItemId) || data.type === "transfer" || data.type === "debtAdjustment") {

@@ -10,7 +10,10 @@ const create = (requestId = 'create-request', overrides = {}) => ({
   action: 'create', requestId, categoryId: 'food', flowType: 'expense',
   monthKey: '2026-10', currency: 'COP', items: [item(), item(200)], ...overrides,
 });
-const send = (root, data) => executeBudgetCommand(db, root.id, data);
+const send = (root, data) => executeBudgetCommand(db, root.id, {
+  expectedGeneration: 0,
+  ...data,
+});
 const refs = (root, budgetId) => root.collection('budgets').doc(budgetId);
 
 test('create, recalculate corrupted aggregates, edit, archive and recreate preserve historical actuals', async () => {

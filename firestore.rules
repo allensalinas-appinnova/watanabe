@@ -22,6 +22,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function authenticated() { return request.auth != null; }
     function owner(uid) { return authenticated() && request.auth.uid == uid; }
+    function profileGeneration(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.get('dataGeneration', 0);
+    }
+    function profileWritable(uid) {
+      return owner(uid) && exists(/databases/$(database)/documents/users/$(uid)) &&
+        get(/databases/$(database)/documents/users/$(uid)).data.get('resetStatus', 'ready') == 'ready';
+    }
+    function generationMatches(uid, data) {
+      return profileWritable(uid) && data.get('dataGeneration', 0) == profileGeneration(uid);
+    }
     function validCurrency(value) {
       return value is string && value.matches('^[A-Z]{3}$');
     }
@@ -69,7 +79,7 @@ service cloud.firestore {
         data.keys().hasOnly([
           'type', 'amountMinor', 'currency', 'categoryId', 'accountId',
           'sourceAccountId', 'destinationAccountId', 'budgetId', 'budgetItemId', 'monthKey', 'occurredAt',
-          'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt'
+          'description', 'status', 'idempotencyKey', 'createdAt', 'updatedAt', 'dataGeneration'
         ]) &&
         data.type in ['income', 'expense', 'transfer'] &&
         validCurrency(data.currency) && validMoney(data.amountMinor, data.currency) &&
@@ -155,7 +165,7 @@ service cloud.firestore {
     }
     function validCoachCompletion(data, periodKey, kind) {
       return required(data, ['periodKey', 'kind', 'noMovements', 'reviewedAt']) &&
-        data.keys().hasOnly(['periodKey', 'kind', 'noMovements', 'reviewedAt']) &&
+        data.keys().hasOnly(['periodKey', 'kind', 'noMovements', 'reviewedAt', 'dataGeneration']) &&
         data.periodKey is string && data.periodKey == periodKey &&
         data.periodKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$') &&
         data.kind == kind && data.noMovements is bool &&
@@ -178,20 +188,22 @@ service cloud.firestore {
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
         'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt', 'coachPreferences',
-        'appearancePreferences'
+        'appearancePreferences', 'dataGeneration'
       ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']) &&
+        request.resource.data.get('dataGeneration', 0) == 0 &&
         validCoachPreferences(request.resource.data) && validAppearancePreferences(request.resource.data);
-      allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+      allow update: if owner(uid) && resource.data.get('resetStatus', 'ready') == 'ready' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
         'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'coachPreferences',
-        'appearancePreferences', 'updatedAt'
+        'appearancePreferences', 'updatedAt', 'dataGeneration'
       ]) && validHomePreferences(request.resource.data) && validCoachPreferences(request.resource.data) &&
-        validAppearancePreferences(request.resource.data);
+        validAppearancePreferences(request.resource.data) &&
+        request.resource.data.get('dataGeneration', 0) == resource.data.get('dataGeneration', 0);
       allow delete: if false;
 
       match /coachDailyCheckIns/{periodKey} {
         allow read: if owner(uid);
-        allow create, update: if owner(uid) &&
+        allow create, update: if generationMatches(uid, request.resource.data) &&
           exists(/databases/$(database)/documents/users/$(uid)) &&
           validCoachCompletion(request.resource.data, periodKey, 'daily');
         allow delete: if false;
@@ -199,7 +211,7 @@ service cloud.firestore {
 
       match /coachWeeklyReviews/{periodKey} {
         allow read: if owner(uid);
-        allow create, update: if owner(uid) &&
+        allow create, update: if generationMatches(uid, request.resource.data) &&
           exists(/databases/$(database)/documents/users/$(uid)) &&
           validCoachCompletion(request.resource.data, periodKey, 'weekly');
         allow delete: if false;
@@ -207,9 +219,9 @@ service cloud.firestore {
 
       match /accounts/{accountId} {
         allow read: if owner(uid);
-        allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+        allow create: if generationMatches(uid, request.resource.data) && request.resource.data.keys().hasOnly([
           'name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor',
-          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt', 'nature'
+          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt', 'nature', 'dataGeneration'
         ]) && required(request.resource.data, ['name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor', 'includeInDashboard', 'status', 'createdAt', 'updatedAt']) &&
           request.resource.data.name is string && request.resource.data.name.size() > 0 &&
           request.resource.data.get('nature', 'money') == 'money' &&
@@ -221,7 +233,7 @@ service cloud.firestore {
           validNonNegativeMoney(request.resource.data.currentBalanceMinor, request.resource.data.currency) &&
           request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
           request.resource.data.status in ['active', 'archived'];
-        allow update: if owner(uid) && resource.data.get('nature', 'money') == 'money' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        allow update: if profileWritable(uid) && resource.data.get('nature', 'money') == 'money' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'includeInDashboard', 'status', 'updatedAt', 'archivedAt'
         ]) && (!('includeInDashboard' in request.resource.data) ||
           request.resource.data.includeInDashboard is bool);
@@ -230,15 +242,15 @@ service cloud.firestore {
 
       match /categories/{categoryId} {
         allow read: if owner(uid);
-        allow create: if owner(uid) && request.resource.data.keys().hasOnly([
+        allow create: if generationMatches(uid, request.resource.data) && request.resource.data.keys().hasOnly([
           'catalogId', 'type', 'name', 'icon', 'colorValue', 'sortOrder',
-          'isSystem', 'isArchived', 'createdAt', 'updatedAt'
+          'isSystem', 'isArchived', 'createdAt', 'updatedAt', 'dataGeneration'
         ]) && required(request.resource.data, ['type', 'name', 'icon', 'sortOrder', 'isSystem', 'isArchived', 'createdAt', 'updatedAt']) && request.resource.data.type in ['income', 'expense'] &&
           request.resource.data.name is string && request.resource.data.name.size() > 0 &&
           validCategoryColor(request.resource.data) &&
           (!request.resource.data.isSystem ||
             exists(/databases/$(database)/documents/categoryCatalog/$(request.resource.data.catalogId)));
-        allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        allow update: if profileWritable(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'icon', 'colorValue', 'sortOrder', 'isArchived', 'updatedAt'
         ]) && validCategoryColor(request.resource.data);
         allow delete: if false;
@@ -246,7 +258,7 @@ service cloud.firestore {
 
       match /operations/{operationId} {
         allow read: if owner(uid);
-        allow create: if owner(uid) && request.resource.id == request.resource.data.idempotencyKey &&
+        allow create: if generationMatches(uid, request.resource.data) && request.resource.id == request.resource.data.idempotencyKey &&
           validOperation(request.resource.data) &&
           (request.resource.data.type == 'transfer'
             ? accountExists(uid, request.resource.data.sourceAccountId, request.resource.data.currency) &&
@@ -255,15 +267,15 @@ service cloud.firestore {
             : accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
               categoryExists(uid, request.resource.data.categoryId, request.resource.data.type)) &&
           validBudgetItemLink(uid, request.resource.data);
-        allow update: if owner(uid) && !('debtCommandId' in resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        allow update: if profileWritable(uid) && !('debtCommandId' in resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'updatedAt'
         ]) && request.resource.data.status in ['confirmed', 'rejected'];
         allow delete: if false;
 
         match /entries/{entryId} {
           allow read: if owner(uid);
-          allow create: if owner(uid) && request.resource.data.keys().hasOnly([
-            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt'
+          allow create: if generationMatches(uid, request.resource.data) && request.resource.data.keys().hasOnly([
+            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt', 'dataGeneration'
           ]) && request.resource.data.operationId == operationId &&
             getAfter(/databases/$(database)/documents/users/$(uid)/operations/$(operationId)).data.status == 'confirmed' &&
             request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
@@ -275,9 +287,9 @@ service cloud.firestore {
 
       match /ledgerEntries/{entryId} {
         allow read: if owner(uid);
-        allow create: if owner(uid) &&
+        allow create: if generationMatches(uid, request.resource.data) &&
           request.resource.data.keys().hasOnly([
-            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt'
+            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt', 'dataGeneration'
           ]) && request.resource.data.operationId is string &&
           request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
           validCurrency(request.resource.data.currency) && request.resource.data.occurredAt is timestamp &&

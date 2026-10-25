@@ -59,17 +59,22 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
   const input = object(payload);
   const requestId = id(input.requestId);
   if (!/^[A-Za-z0-9_-]{8,100}$/.test(requestId)) fail("invalid-request");
+  const expectedGeneration = input.expectedGeneration;
+  if (!Number.isSafeInteger(expectedGeneration) || Number(expectedGeneration) < 0) fail("generation-required", "failed-precondition");
   const digest = createHash("sha256").update(JSON.stringify(canonical(input))).digest("hex");
   const root = db.doc(`users/${uid}`);
   return db.runTransaction(async (tx) => {
+    const profile = (await tx.get(root)).data();
+    if (!profile) fail("profile-missing", "failed-precondition");
+    if (profile.resetStatus === "resetting") fail("user-resetting", "failed-precondition");
+    const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
+    if (generation !== expectedGeneration) fail("stale-generation", "failed-precondition");
     const receiptRef = root.collection("debtCommands").doc(requestId);
     const receipt = await tx.get(receiptRef);
     if (receipt.exists) {
       if (receipt.data()!.digest !== digest) fail("request-conflict", "already-exists");
       return receipt.data()!.result as DebtResult;
     }
-    const profile = (await tx.get(root)).data();
-    if (!profile) fail("profile-missing", "failed-precondition");
     const now = FieldValue.serverTimestamp();
     const action = input.action;
     const creating = action === "create";
@@ -79,7 +84,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     let account: Data;
     let createAccount = false;
     if (creating) {
-      only(input, ["requestId", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "mode", "bankAccountId", "description"]);
+      only(input, ["requestId", "expectedGeneration", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "mode", "bankAccountId", "description"]);
       if (existing) fail("account-exists", "already-exists");
       if (!["creditCard", "bankLoan", "personalLoan"].includes(String(input.product))) fail("invalid-product");
       if (!validCurrency(input.currency)) fail("invalid-currency");
@@ -98,7 +103,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         openingPrincipalMinor: input.mode === "received" ? 0 : principal,
         openingChargesMinor: input.mode === "received" ? 0 : charges,
         principalMinor: input.mode === "received" ? 0 : principal, chargesMinor: input.mode === "received" ? 0 : charges,
-        includeInDashboard: true, status: "active", createdAt: now, updatedAt: now};
+        includeInDashboard: true, status: "active", dataGeneration: generation, createdAt: now, updatedAt: now};
       if (input.limitMinor !== undefined) {
         if (!card) fail("invalid-limit");
         account.limitMinor = amount(input.limitMinor, currency);
@@ -126,6 +131,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     const base = (data: Data, kind: string, type: Operation["type"], value: number, occurredAt: Timestamp): DebtOperation => ({
       type, amountMinor: value, currency, monthKey: month(occurredAt, profile.timeZone), occurredAt,
       description: data.description === undefined ? "" : text(data.description, 500), status: "confirmed",
+      dataGeneration: generation,
       idempotencyKey: `debt_${requestId}_${operations.length}`, debtCommandId: requestId,
       debtAccountId: accountId, debtKind: kind, principalDeltaMinor: 0, chargesDeltaMinor: 0,
       createdAt: now, updatedAt: now,
@@ -158,7 +164,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       operation.budgetId = budgetId; operation.budgetItemId = itemId;
     };
     const build = async (data: Data) => {
-      only(data, ["requestId", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor"]);
+      only(data, ["requestId", "expectedGeneration", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor"]);
       const occurredAt = at(data.occurredAt);
       const kind = String(data.action);
       if (["purchase", "charge"].includes(kind)) {
@@ -246,7 +252,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     if (creating && input.mode === "received") {
       await build({action: "disburse", occurredAt: input.referenceAt, bankAccountId: input.bankAccountId, amountMinor: input.principalMinor, description: input.description});
     } else if (!creating && (action === "reverse" || action === "correct")) {
-      only(input, ["requestId", "action", "accountId", "originalRequestId", "replacement", "description"]);
+      only(input, ["requestId", "expectedGeneration", "action", "accountId", "originalRequestId", "replacement", "description"]);
       const originalId = id(input.originalRequestId);
       const originalReceipt = (await tx.get(root.collection("debtCommands").doc(originalId))).data();
       const reversalRef = root.collection("debtReversals").doc(originalId);
@@ -287,7 +293,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         account = cached;
       }
     } else if (!creating && action === "update") {
-      only(input, ["requestId", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard"]);
+      only(input, ["requestId", "expectedGeneration", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard"]);
       if (input.name !== undefined) account.name = text(input.name, 80, true);
       if (input.creditor !== undefined) account.creditor = text(input.creditor, 120);
       if (input.lastFour !== undefined) {
@@ -297,7 +303,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       if (input.limitMinor !== undefined) { if (!card) fail("invalid-limit"); account.limitMinor = input.limitMinor === null ? FieldValue.delete() : amount(input.limitMinor, currency); }
       if (input.includeInDashboard !== undefined) { if (typeof input.includeInDashboard !== "boolean") fail("invalid-visibility"); account.includeInDashboard = input.includeInDashboard; }
     } else if (!creating && action === "archive") {
-      only(input, ["requestId", "action", "accountId"]);
+      only(input, ["requestId", "expectedGeneration", "action", "accountId"]);
       if (account.currentBalanceMinor !== 0 || (!card && (account.principalMinor !== 0 || account.chargesMinor !== 0))) fail("balance-not-zero", "failed-precondition");
       account.status = "archived"; account.archivedAt = now;
     } else if (!creating) await build(input);
@@ -329,7 +335,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       let index = 0;
       for (const [entryAccount, deltaMinor] of entries) {
         const entryId = `${opId}_${index++}`;
-        const entry = {operationId: opId, accountId: entryAccount, deltaMinor, currency, occurredAt: operation.occurredAt};
+        const entry = {operationId: opId, accountId: entryAccount, deltaMinor, currency, occurredAt: operation.occurredAt, dataGeneration: generation};
         tx.create(root.collection("ledgerEntries").doc(entryId), entry);
         tx.create(ref.collection("entries").doc(entryId), entry);
       }

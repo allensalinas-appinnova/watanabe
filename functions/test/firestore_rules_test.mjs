@@ -59,6 +59,37 @@ test('debt accounts and command-owned operations reject every client write and a
   await assertFails(alice.doc('users/alice/debtCommands/receipt_0001').get());
 });
 
+test('user data generation is server-owned and invalidates stale writes after reset', async () => {
+  const db = environment.authenticatedContext('alice').firestore();
+  const profile = db.doc('users/alice');
+  await assertSucceeds(profile.set({...userProfile(), dataGeneration: 0}));
+  const makeAccount = (dataGeneration) => ({
+    name: 'Wallet', type: 'cash', currency: 'COP', openingBalanceMinor: 100,
+    currentBalanceMinor: 100, includeInDashboard: true, status: 'active',
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(), dataGeneration,
+  });
+  await assertSucceeds(db.doc('users/alice/accounts/current').set(makeAccount(0)));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('users/alice').update({
+      dataGeneration: 1, resetStatus: 'ready', onboardingStatus: 'not_started',
+    });
+  });
+  await assertFails(db.doc('users/alice/accounts/stale').set(makeAccount(0)));
+  await assertSucceeds(db.doc('users/alice/accounts/new-generation').set(makeAccount(1)));
+  await assertFails(profile.update({dataGeneration: 2}));
+  await assertFails(profile.update({resetStatus: 'resetting'}));
+  await assertFails(db.doc('users/alice/coachDailyCheckIns/2026-10-24')
+    .set({...coachCompletion('daily', '2026-10-24'), dataGeneration: 0}));
+  await assertSucceeds(db.doc('users/alice/coachDailyCheckIns/2026-10-24')
+    .set({...coachCompletion('daily', '2026-10-24'), dataGeneration: 1}));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('users/alice').update({resetStatus: 'resetting'});
+  });
+  await assertFails(db.doc('users/alice/accounts/blocked').set(makeAccount(1)));
+  await assertFails(db.doc('users/alice/coachDailyCheckIns/2026-10-24')
+    .set({...coachCompletion('daily', '2026-10-24'), dataGeneration: 1}));
+});
+
 const coachPreferences = () => ({
   dailyEnabled: true, weeklyEnabled: true,
   dailyHour: 20, dailyMinute: 0, dailyWeekdays: [1, 2, 3, 4, 5, 6, 7],

@@ -27,6 +27,7 @@ class FinancialOperationDraft {
     this.categoryId,
     this.budgetId,
     this.budgetItemId,
+    this.dataGeneration,
   });
 
   final OperationType type;
@@ -40,6 +41,7 @@ class FinancialOperationDraft {
   final String? categoryId;
   final String? budgetId;
   final String? budgetItemId;
+  final int? dataGeneration;
 }
 
 class TransferDraft {
@@ -52,6 +54,7 @@ class TransferDraft {
     required this.description,
     required this.idempotencyKey,
     this.monthKey,
+    this.dataGeneration,
   });
 
   final int amountMinor;
@@ -60,6 +63,7 @@ class TransferDraft {
   final String destinationAccountId;
   final DateTime occurredAt;
   final String? monthKey;
+  final int? dataGeneration;
   final String description;
   final String idempotencyKey;
 }

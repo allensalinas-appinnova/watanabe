@@ -9,7 +9,10 @@ import {app, db, seedUser, userDump} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
 const date = '2026-01-01T12:00:00Z';
-const execute = (root, command) => executeDebtCommand(db, root.id, command, {enabled: true});
+const execute = (root, command) => executeDebtCommand(db, root.id, {
+  expectedGeneration: 0,
+  ...command,
+}, {enabled: true});
 const create = (overrides = {}) => ({requestId: 'create_debt_001', action: 'create', name: 'Synthetic', product: 'creditCard', currency: 'COP', referenceAt: date, debtMinor: 0, mode: 'existing', ...overrides});
 const command = (accountId, requestId, action, extra = {}) => ({requestId, action, accountId, occurredAt: date, ...extra});
 async function seed(id) {
@@ -173,7 +176,7 @@ test('debt reconciliation, initial-date bounds, archive and generic adjustment b
   assert.equal(await summary(root), undefined);
   await assert.rejects(execute(root, command(id, 'old_purchase1', 'purchase', {occurredAt: '2025-12-01T00:00:00Z', amountMinor: 100, categoryId: 'food'})), {issue: 'debt-before-opening'});
   await assert.rejects(execute(root, {requestId: 'archive_0001', action: 'archive', accountId: id}), {issue: 'debt-balance-not-zero'});
-  await assert.rejects(executeBalanceAdjustment(db, root.id, {requestId: 'generic_0001', adjustments: [{accountId: id, currency: 'COP', targetBalanceMinor: 0}]}), {issue: 'balance-adjustment-debt-command-required'});
+  await assert.rejects(executeBalanceAdjustment(db, root.id, {requestId: 'generic_0001', expectedGeneration: 0, adjustments: [{accountId: id, currency: 'COP', targetBalanceMinor: 0}]}), {issue: 'balance-adjustment-debt-command-required'});
   await execute(root, command(id, 'adjust_00002', 'adjust', {targetDebtMinor: 0}));
   await execute(root, {requestId: 'archive_0001', action: 'archive', accountId: id});
   await cleanAudit(root);

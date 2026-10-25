@@ -8,6 +8,7 @@ import {applyOperationEvent} from "./projection_store";
 import {defineString} from "firebase-functions/params";
 import {EmailImportError, executeEmailImportCommand, listEmailImportCandidates} from "./email_imports";
 import {DebtCommandError, executeDebtCommand} from "./debt_commands";
+import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
 
 initializeApp();
 
@@ -85,3 +86,15 @@ export const processOperation = onDocumentWritten(
     });
   },
 );
+
+export const resetUserData = onCall({region: "us-central1", timeoutSeconds: 540, memory: "1GiB"}, async (request) => {
+  try {
+    return await executeUserDataReset(getFirestore(), request.auth?.uid, request.data);
+  } catch (error) {
+    if (error instanceof UserDataResetError) {
+      throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    }
+    // Do not log document names, contents, or raw errors during deletion.
+    throw new HttpsError("internal", "reset-failed", {issue: "reset-failed"});
+  }
+});

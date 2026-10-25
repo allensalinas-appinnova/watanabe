@@ -3,7 +3,7 @@ import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {maximumMinor, validCurrency, validId} from "./projection_model";
 
 type AdjustmentInput = {accountId: string; currency: string; targetBalanceMinor: number};
-type Command = {requestId: string; reason?: string; adjustments: AdjustmentInput[]};
+type Command = {requestId: string; expectedGeneration: number; reason?: string; adjustments: AdjustmentInput[]};
 type Data = Record<string, unknown>;
 
 export class BalanceAdjustmentError extends Error {
@@ -18,6 +18,7 @@ function parseCommand(value: unknown): Command {
   const data = value as Data;
   const requestId = data.requestId;
   if (!validId(requestId) || !/^[A-Za-z0-9_-]{8,128}$/.test(requestId)) throw new BalanceAdjustmentError("balance-adjustment-invalid-request", "invalid-argument");
+  if (!Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0) throw new BalanceAdjustmentError("balance-adjustment-generation-required", "failed-precondition");
   if (!Array.isArray(data.adjustments) || data.adjustments.length < 1 || data.adjustments.length > 20) throw new BalanceAdjustmentError("balance-adjustment-invalid-count", "invalid-argument");
   if (data.reason !== undefined && (typeof data.reason !== "string" || data.reason.trim().length > 240)) throw new BalanceAdjustmentError("balance-adjustment-invalid-reason", "invalid-argument");
   const seen = new Set<string>();
@@ -30,7 +31,8 @@ function parseCommand(value: unknown): Command {
     seen.add(row.accountId);
     return {accountId: row.accountId, currency: row.currency, targetBalanceMinor: row.targetBalanceMinor};
   }).sort((a, b) => a.accountId.localeCompare(b.accountId));
-  return {requestId, adjustments, ...(typeof data.reason === "string" && data.reason.trim() ? {reason: data.reason.trim()} : {})};
+  if (Object.keys(data).some((key) => !["requestId", "expectedGeneration", "reason", "adjustments"].includes(key))) throw new BalanceAdjustmentError("balance-adjustment-invalid-command", "invalid-argument");
+  return {requestId, expectedGeneration: Number(data.expectedGeneration), adjustments, ...(typeof data.reason === "string" && data.reason.trim() ? {reason: data.reason.trim()} : {})};
 }
 
 /** Atomically reconciles selected account balances and records an immutable audit event. */
@@ -41,6 +43,10 @@ export async function executeBalanceAdjustment(db: Firestore, uid: string | unde
   const root = db.doc(`users/${uid}`);
   const eventRef = root.collection("balanceAdjustments").doc(command.requestId);
   const adjustments = await db.runTransaction(async (transaction) => {
+    const profile = (await transaction.get(root)).data();
+    if (!profile || profile.resetStatus === "resetting") throw new BalanceAdjustmentError("balance-adjustment-user-resetting", "failed-precondition");
+    const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
+    if (generation !== command.expectedGeneration) throw new BalanceAdjustmentError("balance-adjustment-stale-generation", "failed-precondition");
     const receipt = await transaction.get(eventRef);
     if (receipt.exists) {
       if (receipt.data()?.digest !== digest) throw new BalanceAdjustmentError("balance-adjustment-request-conflict", "already-exists");
@@ -63,6 +69,7 @@ export async function executeBalanceAdjustment(db: Firestore, uid: string | unde
     for (const result of results) transaction.update(root.collection("accounts").doc(result.accountId), {currentBalanceMinor: result.targetBalanceMinor, updatedAt: now});
     transaction.create(eventRef, {
       requestId: command.requestId,
+      dataGeneration: generation,
       digest,
       reason: command.reason ?? null,
       adjustments: results,

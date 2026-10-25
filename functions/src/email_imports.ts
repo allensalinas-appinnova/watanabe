@@ -23,7 +23,7 @@ export type ImportResult = {
   version: number; operationId?: string;
 };
 type Command = {
-  requestId: string; candidateId: string; action: "edit" | "approve" | "discard";
+  requestId: string; expectedGeneration: number; candidateId: string; action: "edit" | "approve" | "discard";
   expectedVersion: number; draft?: ImportDraft; duplicatesReviewed: boolean;
 };
 
@@ -97,8 +97,9 @@ export function parseImportDraft(value: unknown, now: Date): ImportDraft {
 
 function command(value: unknown, now: Date): Command {
   const data = record(value);
-  only(data, ["requestId", "candidateId", "action", "expectedVersion", "draft", "duplicatesReviewed"]);
+  only(data, ["requestId", "expectedGeneration", "candidateId", "action", "expectedVersion", "draft", "duplicatesReviewed"]);
   if (!identifier(data.requestId) || data.requestId.length < 8 || !identifier(data.candidateId) ||
+      !Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0 ||
       !["edit", "approve", "discard"].includes(String(data.action)) ||
       !Number.isSafeInteger(data.expectedVersion) || Number(data.expectedVersion) < 1 ||
       (data.duplicatesReviewed !== undefined && typeof data.duplicatesReviewed !== "boolean")) {
@@ -108,7 +109,7 @@ function command(value: unknown, now: Date): Command {
     throw new EmailImportError("import-invalid-fields", "invalid-argument");
   }
   const draft = data.action === "discard" ? undefined : parseImportDraft(data.draft, now);
-  return {requestId: data.requestId, candidateId: data.candidateId,
+  return {requestId: data.requestId, expectedGeneration: Number(data.expectedGeneration), candidateId: data.candidateId,
     action: data.action as Command["action"], expectedVersion: Number(data.expectedVersion),
     ...(draft ? {draft} : {}), duplicatesReviewed: data.duplicatesReviewed === true};
 }
@@ -135,13 +136,18 @@ export async function executeEmailImportCommand(
   const receiptRef = root.collection("emailImportCommands").doc(input.requestId);
   const candidateRef = root.collection("emailImportCandidates").doc(input.candidateId);
   return db.runTransaction(async (tx) => {
+    const profileSnapshot = await tx.get(root);
+    const profile = profileSnapshot.data();
+    if (!profile) throw new EmailImportError("import-profile-missing", "failed-precondition");
+    const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
+    if (profile.resetStatus === "resetting") throw new EmailImportError("import-user-resetting", "failed-precondition");
+    if (generation !== input.expectedGeneration) throw new EmailImportError("import-stale-generation", "failed-precondition");
     const receipt = await tx.get(receiptRef);
     if (receipt.exists) {
       if (receipt.data()?.digest !== digest) throw new EmailImportError("import-request-conflict", "already-exists");
       return receipt.data()!.result as ImportResult;
     }
-    const [profile, snapshot] = await Promise.all([tx.get(root), tx.get(candidateRef)]);
-    if (!profile.exists) throw new EmailImportError("import-profile-missing", "failed-precondition");
+    const snapshot = await tx.get(candidateRef);
     const candidate = snapshot.data();
     if (!candidate) throw new EmailImportError("import-candidate-missing", "not-found");
     // A separate request racing with an identical approval may return the existing result.
@@ -207,7 +213,8 @@ export async function executeEmailImportCommand(
         throw new EmailImportError("import-duplicate-review-required", "failed-precondition");
       }
       const operation = {...draft, occurredAt: Timestamp.fromDate(occurredAt),
-        monthKey: currentMonth(occurredAt, profile.data()?.timeZone), status: "confirmed",
+        monthKey: currentMonth(occurredAt, profile.timeZone), status: "confirmed",
+        dataGeneration: generation,
         idempotencyKey: operationId, createdAt: timestamp, updatedAt: timestamp};
       parseOperation(operation);
       tx.create(operationRef, operation);
@@ -215,7 +222,7 @@ export async function executeEmailImportCommand(
       accountIds.forEach((accountId, index) => {
         const entryId = `${operationId}_${index}`;
         const entry = {operationId, accountId, deltaMinor: signs[index] * draft.amountMinor,
-          currency: draft.currency, occurredAt: Timestamp.fromDate(occurredAt)};
+          currency: draft.currency, occurredAt: Timestamp.fromDate(occurredAt), dataGeneration: generation};
         tx.create(root.collection("ledgerEntries").doc(entryId), entry);
         tx.create(operationRef.collection("entries").doc(entryId), entry);
       });

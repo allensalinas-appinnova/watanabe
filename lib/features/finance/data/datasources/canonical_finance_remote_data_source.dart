@@ -178,6 +178,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   DocumentReference<Map<String, dynamic>> _userDocument(String userId) =>
       _firestore.collection('users').doc(userId);
 
+  Future<int> _currentGeneration(String userId) async {
+    final profile = await _userDocument(userId).get();
+    final data = profile.data();
+    if (data?['resetStatus'] == 'resetting') throw StateError('user-reset-in-progress');
+    return (data?['dataGeneration'] as num? ?? 0).toInt();
+  }
+
   @override
   Stream<Map<String, dynamic>?> watchUserProfile(String userId) =>
       _userDocument(userId).snapshots().map((snapshot) => snapshot.exists ? snapshot.data() : null);
@@ -206,6 +213,22 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String timeZone = 'UTC',
     String defaultCurrency = 'COP',
   }) async {
+    final generation = await _currentGeneration(userId);
+    final profile = _userDocument(userId);
+    final initialProfile = await profile.get();
+    if (!initialProfile.exists) {
+      await profile.set({
+        'locale': locale,
+        'countryCode': countryCode,
+        'timeZone': timeZone,
+        'defaultCurrency': defaultCurrency,
+        'onboardingStatus': 'in_progress',
+        'categoryCatalogVersion': currentCategoryCatalogVersion,
+        'dataGeneration': generation,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
     final catalog = await _firestore
         .collection('categoryCatalog')
         .where('isActive', isEqualTo: true)
@@ -229,13 +252,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         'isArchived': false,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
+        'dataGeneration': generation,
       });
     }
     if (catalog.docs.any((document) => !existingIds.contains(document.id))) {
       await categoryBatch.commit();
     }
 
-    final profile = _userDocument(userId);
     final profileData = {
       'locale': locale,
       'countryCode': countryCode,
@@ -244,15 +267,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'onboardingStatus': 'complete',
       'categoryCatalogVersion': currentCategoryCatalogVersion,
       'updatedAt': FieldValue.serverTimestamp(),
+      'dataGeneration': generation,
     };
-    if ((await profile.get()).exists) {
-      await profile.update(profileData);
-    } else {
-      await profile.set({
-        ...profileData,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
+    await profile.update(profileData);
   }
 
   @override
@@ -277,6 +294,10 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         snapshots.add(await transaction.get(reference));
       }
       final profileSnapshot = await transaction.get(profile);
+      final profileData = profileSnapshot.data();
+      if (!profileSnapshot.exists) throw StateError('user-profile-missing');
+      if (profileData?['resetStatus'] == 'resetting') throw StateError('user-reset-in-progress');
+      final generation = (profileData?['dataGeneration'] as num? ?? 0).toInt();
       for (var index = 0; index < catalog.docs.length; index++) {
         if (snapshots[index].exists) continue;
         final data = catalog.docs[index].data();
@@ -292,6 +313,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'isArchived': false,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
+          'dataGeneration': generation,
         });
       }
       if (profileSnapshot.exists) {
@@ -465,6 +487,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required String icon,
     int? colorValue,
   }) async {
+    final generation = await _currentGeneration(userId);
     if (name.trim().isEmpty) throw ArgumentError('Category name is required.');
     final ref = _userCollection(userId, 'categories').doc();
     final data = {
@@ -477,6 +500,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'isArchived': false,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'dataGeneration': generation,
     };
     await ref.set(data);
     return {...data, 'id': ref.id};
@@ -527,6 +551,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required String currency,
     required int openingBalanceMinor,
   }) async {
+    final generation = await _currentGeneration(userId);
     if (name.trim().isEmpty ||
         openingBalanceMinor < 0 ||
         openingBalanceMinor > MoneyParser.maxMinorUnits(currency) ||
@@ -545,6 +570,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'status': 'active',
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'dataGeneration': generation,
     };
     await ref.set(data);
     return {...data, 'id': ref.id};
@@ -577,7 +603,12 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     if (service == null) {
       return Future.error(StateError('Balance adjustment service is unavailable'));
     }
-    return service.adjust(requestId: requestId, adjustments: adjustments, reason: reason);
+    return service.adjust(
+      userId: userId,
+      requestId: requestId,
+      adjustments: adjustments,
+      reason: reason,
+    );
   }
 
   @override
@@ -585,6 +616,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String userId,
     FinancialOperationDraft draft,
   ) async {
+    final generation = draft.dataGeneration ?? await _currentGeneration(userId);
     _validateOperation(draft.type, draft.amountMinor, draft.currency, draft.idempotencyKey);
     if (draft.type == OperationType.transfer) {
       throw ArgumentError('Use createTransfer for transfer operations.');
@@ -604,8 +636,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       accountId: draft.accountId,
       budgetId: draft.budgetId,
       budgetItemId: draft.budgetItemId,
+      dataGeneration: generation,
     );
     await _firestore.runTransaction((transaction) async {
+      final profile = await transaction.get(_userDocument(userId));
+      final currentGeneration = (profile.data()?['dataGeneration'] as num? ?? 0).toInt();
+      if (!profile.exists ||
+          profile.data()?['resetStatus'] == 'resetting' ||
+          currentGeneration != generation) {
+        throw StateError('user-reset-in-progress');
+      }
       final existing = await transaction.get(operationRef);
       if (existing.exists) return;
       final account = await transaction.get(
@@ -644,6 +684,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': draft.type == OperationType.income ? draft.amountMinor : -draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         })
         ..set(entryRef, {
           'operationId': operationRef.id,
@@ -651,6 +692,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': draft.type == OperationType.income ? draft.amountMinor : -draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         });
     });
     return {...data, 'id': operationRef.id};
@@ -658,6 +700,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
 
   @override
   Future<Map<String, dynamic>> createTransfer(String userId, TransferDraft draft) async {
+    final generation = draft.dataGeneration ?? await _currentGeneration(userId);
     _validateOperation(
       OperationType.transfer,
       draft.amountMinor,
@@ -684,8 +727,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       sourceAccountId: draft.sourceAccountId,
       destinationAccountId: draft.destinationAccountId,
       monthKey: draft.monthKey,
+      dataGeneration: generation,
     );
     await _firestore.runTransaction((transaction) async {
+      final profile = await transaction.get(_userDocument(userId));
+      final currentGeneration = (profile.data()?['dataGeneration'] as num? ?? 0).toInt();
+      if (!profile.exists ||
+          profile.data()?['resetStatus'] == 'resetting' ||
+          currentGeneration != generation) {
+        throw StateError('user-reset-in-progress');
+      }
       final existing = await transaction.get(operationRef);
       if (existing.exists) return;
       final source = await transaction.get(
@@ -711,6 +762,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': -draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         })
         ..set(sourceEntryRef, {
           'operationId': operationRef.id,
@@ -718,6 +770,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': -draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         })
         ..set(destinationNestedEntryRef, {
           'operationId': operationRef.id,
@@ -725,6 +778,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         })
         ..set(destinationEntryRef, {
           'operationId': operationRef.id,
@@ -732,6 +786,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           'deltaMinor': draft.amountMinor,
           'currency': draft.currency,
           'occurredAt': Timestamp.fromDate(draft.occurredAt),
+          'dataGeneration': generation,
         });
     });
     return {...data, 'id': operationRef.id};
@@ -908,6 +963,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String? destinationAccountId,
     String? budgetId,
     String? budgetItemId,
+    int dataGeneration = 0,
   }) => {
     'type': type.name,
     'amountMinor': amountMinor,
@@ -925,6 +981,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     'idempotencyKey': idempotencyKey,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
+    'dataGeneration': dataGeneration,
   };
 
   void _validateOperation(

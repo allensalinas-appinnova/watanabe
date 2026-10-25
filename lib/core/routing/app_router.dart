@@ -16,6 +16,7 @@ import '../../features/debts/presentation/debt_payment_picker_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
+import '../../features/finance/domain/entities/user_profile.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
 import '../../features/finance/presentation/models/budget_item_movement_preset.dart';
 import '../../features/finance/presentation/screens/account_form_screen.dart';
@@ -37,21 +38,45 @@ import '../../features/finance/presentation/screens/canonical_transfer_screen.da
 import '../../features/finance/presentation/screens/home_dashboard_preferences_screen.dart';
 import '../../features/finance/presentation/screens/money_account_detail_screen.dart';
 import '../../features/finance/presentation/screens/operation_edit_route_screen.dart';
+import '../../features/finance/presentation/screens/user_data_reset_screen.dart';
 import '../di/injection.dart';
 import '../firebase/firebase_bootstrap.dart';
 import 'app_shell.dart';
 import 'authenticated_route_resolver.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
-  AuthRefreshListenable(Stream<User?> stream) {
-    _subscription = stream.listen((_) => notifyListeners());
+  AuthRefreshListenable(
+    Stream<User?> stream, {
+    required Stream<UserProfile?> Function(String userId) profileStream,
+  }) : _profileStream = profileStream {
+    _subscription = stream.listen(_onAuthChanged);
   }
 
+  final Stream<UserProfile?> Function(String userId) _profileStream;
   late final StreamSubscription<User?> _subscription;
+  StreamSubscription<UserProfile?>? _profileSubscription;
+
+  void _onAuthChanged(User? user) {
+    _profileSubscription?.cancel();
+    _profileSubscription = user == null
+        ? null
+        : _profileStream(user.uid).listen(
+            (_) {
+              invalidateCachedUserProfile(user.uid);
+              notifyListeners();
+            },
+            onError: (Object _) {
+              // The route resolver owns recovery UI for profile read failures.
+              notifyListeners();
+            },
+          );
+    notifyListeners();
+  }
 
   @override
   void dispose() {
     _subscription.cancel();
+    _profileSubscription?.cancel();
     super.dispose();
   }
 }
@@ -66,6 +91,7 @@ GoRouter _buildAppRouter() => GoRouter(
   initialLocation: '/login',
   refreshListenable: AuthRefreshListenable(
     FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).authStateChanges(),
+    profileStream: (userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
   ),
   redirect: (context, state) async {
     final user = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser;
@@ -104,6 +130,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/session-recovery',
       name: 'session-recovery',
       builder: (context, state) => const SessionRecoveryScreen(),
+    ),
+    GoRoute(
+      path: '/settings/reset-in-progress',
+      name: 'reset-in-progress',
+      builder: (context, state) => const UserDataResetScreen(resumeOnly: true),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => AppShell(
@@ -298,6 +329,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/settings/appearance',
       name: 'settings-appearance',
       builder: (context, state) => const AppearanceSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/reset-data',
+      name: 'reset-user-data',
+      builder: (context, state) => const UserDataResetScreen(),
     ),
     GoRoute(
       path: '/coach/settings',

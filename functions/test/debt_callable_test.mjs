@@ -15,10 +15,10 @@ test('callable requires Auth and applies a synthetic card purchase once end to e
   const {idToken, localId} = await signup.json();
   await db.doc(`users/${localId}`).set({timeZone: 'America/Bogota'});
   await db.doc(`users/${localId}/categories/food`).set({type: 'expense'});
-  const created = await invoke({requestId: 'create_card_01', action: 'create', name: 'Synthetic', product: 'creditCard', currency: 'COP', mode: 'existing', debtMinor: 0, referenceAt: '2026-01-01T00:00:00Z'}, idToken);
+  const created = await invoke({requestId: 'create_card_01', expectedGeneration: 0, action: 'create', name: 'Synthetic', product: 'creditCard', currency: 'COP', mode: 'existing', debtMinor: 0, referenceAt: '2026-01-01T00:00:00Z'}, idToken);
   assert.equal(created.status, 200, JSON.stringify(created.body));
   const accountId = created.body.result.accountId;
-  const purchase = {requestId: 'purchase_card01', action: 'purchase', accountId, occurredAt: '2026-01-02T12:00:00Z', amountMinor: 100, categoryId: 'food'};
+  const purchase = {requestId: 'purchase_card01', expectedGeneration: 0, action: 'purchase', accountId, occurredAt: '2026-01-02T12:00:00Z', amountMinor: 100, categoryId: 'food'};
   const results = await Promise.all([invoke(purchase, idToken), invoke(purchase, idToken)]);
   assert.deepEqual(results[0].body, results[1].body);
   assert.equal(results[0].status, 200);

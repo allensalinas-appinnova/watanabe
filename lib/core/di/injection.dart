@@ -22,6 +22,7 @@ import '../../features/finance/data/datasources/balance_adjustment_service.dart'
 import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
+import '../../features/finance/data/datasources/user_data_reset_service.dart';
 import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
 import '../firebase/firebase_bootstrap.dart';
@@ -72,6 +73,7 @@ Future<void> configureDependencies({
         FirebaseDebtCommandService(
           FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
           getIt<FirebaseAuth>(),
+          getIt<FirebaseFirestore>(),
         ),
       ),
     );
@@ -84,6 +86,15 @@ Future<void> configureDependencies({
   if (!getIt.isRegistered<FirebaseStorage>()) {
     getIt.registerLazySingleton<FirebaseStorage>(
       () => FirebaseStorage.instanceFor(app: FirebaseBootstrap.app),
+    );
+  }
+  if (!getIt.isRegistered<UserDataResetService>()) {
+    getIt.registerLazySingleton<UserDataResetService>(
+      () => FirebaseUserDataResetService(
+        functions: FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        firestore: getIt(),
+        auth: getIt(),
+      ),
     );
   }
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
@@ -113,6 +124,7 @@ Future<void> configureDependencies({
             region: 'us-central1',
           ),
           auth: getIt(),
+          firestore: getIt(),
         ),
       );
     }
@@ -123,6 +135,7 @@ Future<void> configureDependencies({
             app: FirebaseBootstrap.app,
             region: 'us-central1',
           ),
+          firestore: getIt(),
         ),
       );
     }

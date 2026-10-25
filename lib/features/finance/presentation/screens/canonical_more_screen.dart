@@ -88,6 +88,22 @@ class CanonicalMoreScreen extends ConsumerWidget {
             onPressed: () => _confirmSignOut(context, ref, pendingCount),
             child: Text(l10n.signOut),
           ),
+          const SizedBox(height: 32),
+          Text(
+            l10n.resetSectionTitle,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('settings_reset_user_data'),
+            onPressed: () => context.push('/settings/reset-data'),
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: Text(l10n.resetTitle),
+            style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+          ),
         ],
       ),
     );

@@ -61,6 +61,7 @@ abstract interface class CoachNotificationService {
     required String body,
   });
   Future<void> cancelAll();
+  Future<void> clearUserData(String uid);
 
   /// Returns a cold-start target once, only after replaceSchedule binds its owner.
   CoachNotificationTarget? takeInitialTarget();

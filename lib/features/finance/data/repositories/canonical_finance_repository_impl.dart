@@ -534,6 +534,10 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     categoryCatalogVersion: (data['categoryCatalogVersion'] as num? ?? 1).toInt(),
     homeDashboardPreferences: HomeDashboardPreferences.fromMap(data['homePreferences']),
     appearancePreferences: AppearancePreferences.fromMap(data['appearancePreferences']),
+    dataGeneration: (data['dataGeneration'] as num? ?? 0).toInt(),
+    resetStatus: data['resetStatus'] as String? ?? 'ready',
+    resetRequestId: data['resetRequestId'] as String?,
+    resetPreviousGeneration: (data['resetPreviousGeneration'] as num?)?.toInt(),
   );
 
   FinanceCategory _category(Map<String, dynamic> data) => FinanceCategory(

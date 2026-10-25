@@ -93,17 +93,8 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
 /** The event marker and every projection commit together, including on retries. */
 export async function applyOperationEvent(db: Firestore, event: OperationEvent): Promise<void> {
   if (!validId(event.userId) || !validId(event.eventId)) throw new ProjectionError("invalid_event");
-  // A server-owned receipt proves the synchronous command applied projections.
-  // Never skip merely because a document claims it has been processed.
-  const debtRecords = [event.previous, event.current].filter((row) => row?.debtCommandId);
-  if (debtRecords.length) {
-    for (const row of debtRecords) {
-      if (!validId(row!.debtCommandId) || !validId(row!.idempotencyKey)) throw new ProjectionError("invalid_debt_receipt");
-      const receipt = await db.doc(`users/${event.userId}/debtCommands/${row!.debtCommandId}`).get();
-      if (receipt.data()?.projectionsApplied !== true || !receipt.data()?.operationIds?.includes(row!.idempotencyKey)) throw new ProjectionError("missing_debt_receipt");
-    }
-    return;
-  }
+  // Parse early, but check reset generation before consulting receipts: reset
+  // intentionally removes those receipts and may be followed by delayed triggers.
   const previous = event.previous ? parseOperation(event.previous) : undefined;
   const current = event.current ? parseOperation(event.current) : undefined;
   if (previous?.status !== "confirmed" && current?.status !== "confirmed") return;
@@ -111,7 +102,23 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
   const marker = root.collection("processedOperations").doc(event.eventId);
 
   await db.runTransaction(async (transaction) => {
+    const profile = (await transaction.get(root)).data();
+    if (!profile || profile.resetStatus === "resetting") return;
+    const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
+    const eventGeneration = current?.dataGeneration ?? previous?.dataGeneration ?? 0;
+    if (eventGeneration !== generation) return;
     if ((await transaction.get(marker)).exists) return;
+    // A server-owned receipt proves the synchronous command applied projections.
+    // Never skip merely because a document claims it has been processed.
+    const debtRecords = [event.previous, event.current].filter((row) => row?.debtCommandId);
+    if (debtRecords.length) {
+      for (const row of debtRecords) {
+        if (!validId(row!.debtCommandId) || !validId(row!.idempotencyKey)) throw new ProjectionError("invalid_debt_receipt");
+        const receipt = await transaction.get(root.collection("debtCommands").doc(row!.debtCommandId));
+        if (receipt.data()?.projectionsApplied !== true || !receipt.data()?.operationIds?.includes(row!.idempotencyKey)) throw new ProjectionError("missing_debt_receipt");
+      }
+      return;
+    }
     const write = await prepareProjectionWrites(transaction, root, [{previous, current}]);
     write();
     transaction.create(marker, {processedAt: FieldValue.serverTimestamp()});

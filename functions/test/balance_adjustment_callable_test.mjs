@@ -16,7 +16,7 @@ async function invoke(data, token) {
 }
 
 test('callable requires Auth, scopes mutations to auth UID and rejects reused IDs with changed contents', {timeout: 60000}, async () => {
-  const unauthenticated = await invoke({requestId: 'balance-call-1', adjustments: []});
+  const unauthenticated = await invoke({requestId: 'balance-call-1', expectedGeneration: 0, adjustments: []});
   assert.equal(unauthenticated.body.error.status, 'UNAUTHENTICATED');
   const response = await fetch('http://127.0.0.1:59199/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-key', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -27,7 +27,11 @@ test('callable requires Auth, scopes mutations to auth UID and rejects reused ID
   const user = db.doc(`users/${localId}`);
   await user.set({});
   await user.collection('accounts').doc('bank').set({currency: 'COP', currentBalanceMinor: 1200, status: 'active'});
-  const command = {requestId: 'balance-call-1', adjustments: [{accountId: 'bank', currency: 'COP', targetBalanceMinor: 0}], userId: 'attacker'};
+  const forged = {requestId: 'balance-call-1', expectedGeneration: 0, adjustments: [{accountId: 'bank', currency: 'COP', targetBalanceMinor: 0}], userId: 'attacker'};
+  const rejectedForgery = await invoke(forged, idToken);
+  assert.equal(rejectedForgery.status, 400);
+  assert.equal((await user.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 1200);
+  const {userId: _ignored, ...command} = forged;
   const first = await invoke(command, idToken);
   assert.equal(first.status, 200);
   assert.equal(first.body.result.adjustments[0].previousBalanceMinor, 1200);

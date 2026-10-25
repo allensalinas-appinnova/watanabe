@@ -1906,4 +1906,66 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get selectionAll => 'Todas las opciones';
+
+  @override
+  String get resetSectionTitle => 'Acciones destructivas';
+
+  @override
+  String get resetTitle => 'Reiniciar mis datos';
+
+  @override
+  String get resetDescription =>
+      'Se borrarán tus movimientos, cuentas y deudas, presupuestos, categorías personalizadas, preferencias, revisiones del Coach y datos de importaciones. Esta acción no se puede deshacer.';
+
+  @override
+  String get resetPreserveAccess =>
+      'Tu acceso a LumioMoney se conservará. Después volverás al inicio de configuración.';
+
+  @override
+  String get resetConfirmTitle => 'Confirma el reinicio';
+
+  @override
+  String get resetConfirmMessage => 'Para continuar, escribe la palabra que aparece abajo.';
+
+  @override
+  String get resetTypePrompt => 'Escribe REINICIAR';
+
+  @override
+  String get resetConfirmWord => 'REINICIAR';
+
+  @override
+  String get resetFinalTitle => '¿Borrar todos tus datos?';
+
+  @override
+  String get resetFinalMessage =>
+      'Se bloquearán los demás dispositivos y se eliminarán tus datos de LumioMoney. No se cerrará tu sesión.';
+
+  @override
+  String get resetAction => 'Reiniciar datos';
+
+  @override
+  String get resetProgressTitle => 'Reinicio en curso';
+
+  @override
+  String get resetProgressMessage =>
+      'Estamos eliminando tus datos de forma segura. Mantén esta pantalla abierta o vuelve aquí para continuar si se interrumpe.';
+
+  @override
+  String get resetWorking => 'Reiniciando…';
+
+  @override
+  String get resetResume => 'Continuar reinicio';
+
+  @override
+  String get resetFailure =>
+      'No pudimos completar el reinicio. Tus datos siguen bloqueados; puedes reintentar de forma segura.';
+
+  @override
+  String resetPendingWarning(Object count) {
+    return 'Resuelve primero las $count operaciones pendientes, en sincronización o rechazadas. No se borró ningún dato.';
+  }
+
+  @override
+  String get resetPendingCheckFailure =>
+      'No pudimos verificar los movimientos pendientes. Inténtalo de nuevo antes de reiniciar.';
 }

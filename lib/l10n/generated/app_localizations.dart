@@ -3507,6 +3507,114 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Todas las opciones'**
   String get selectionAll;
+
+  /// No description provided for @resetSectionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones destructivas'**
+  String get resetSectionTitle;
+
+  /// No description provided for @resetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reiniciar mis datos'**
+  String get resetTitle;
+
+  /// No description provided for @resetDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Se borrarán tus movimientos, cuentas y deudas, presupuestos, categorías personalizadas, preferencias, revisiones del Coach y datos de importaciones. Esta acción no se puede deshacer.'**
+  String get resetDescription;
+
+  /// No description provided for @resetPreserveAccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu acceso a LumioMoney se conservará. Después volverás al inicio de configuración.'**
+  String get resetPreserveAccess;
+
+  /// No description provided for @resetConfirmTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirma el reinicio'**
+  String get resetConfirmTitle;
+
+  /// No description provided for @resetConfirmMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Para continuar, escribe la palabra que aparece abajo.'**
+  String get resetConfirmMessage;
+
+  /// No description provided for @resetTypePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe REINICIAR'**
+  String get resetTypePrompt;
+
+  /// No description provided for @resetConfirmWord.
+  ///
+  /// In es, this message translates to:
+  /// **'REINICIAR'**
+  String get resetConfirmWord;
+
+  /// No description provided for @resetFinalTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Borrar todos tus datos?'**
+  String get resetFinalTitle;
+
+  /// No description provided for @resetFinalMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Se bloquearán los demás dispositivos y se eliminarán tus datos de LumioMoney. No se cerrará tu sesión.'**
+  String get resetFinalMessage;
+
+  /// No description provided for @resetAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Reiniciar datos'**
+  String get resetAction;
+
+  /// No description provided for @resetProgressTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reinicio en curso'**
+  String get resetProgressTitle;
+
+  /// No description provided for @resetProgressMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Estamos eliminando tus datos de forma segura. Mantén esta pantalla abierta o vuelve aquí para continuar si se interrumpe.'**
+  String get resetProgressMessage;
+
+  /// No description provided for @resetWorking.
+  ///
+  /// In es, this message translates to:
+  /// **'Reiniciando…'**
+  String get resetWorking;
+
+  /// No description provided for @resetResume.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar reinicio'**
+  String get resetResume;
+
+  /// No description provided for @resetFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos completar el reinicio. Tus datos siguen bloqueados; puedes reintentar de forma segura.'**
+  String get resetFailure;
+
+  /// No description provided for @resetPendingWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Resuelve primero las {count} operaciones pendientes, en sincronización o rechazadas. No se borró ningún dato.'**
+  String resetPendingWarning(Object count);
+
+  /// No description provided for @resetPendingCheckFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos verificar los movimientos pendientes. Inténtalo de nuevo antes de reiniciar.'**
+  String get resetPendingCheckFailure;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

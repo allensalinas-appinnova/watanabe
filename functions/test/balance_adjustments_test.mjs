@@ -5,7 +5,7 @@ import {executeBalanceAdjustment} from '../lib/balance_adjustments.js';
 import {app, db, seedUser, userDump} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
-const invoke = (uid, requestId, adjustments, reason) => executeBalanceAdjustment(db, uid, {requestId, adjustments, reason});
+const invoke = (uid, requestId, adjustments, reason) => executeBalanceAdjustment(db, uid, {requestId, expectedGeneration: 0, adjustments, reason});
 
 test('authenticated adjustment atomically sets mixed-currency accounts and is idempotent', async () => {
   const root = await seedUser('balance-adjustment-idempotency');
