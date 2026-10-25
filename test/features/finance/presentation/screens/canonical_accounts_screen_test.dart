@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/core/utils/currency_formatter.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
@@ -126,6 +127,64 @@ void main() {
     expect(find.text('Tarjeta principal'), findsOneWidget);
     expect(find.text('Banco1 Ahorros'), findsNothing);
     expect(find.text('Efectivo'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Agregar cuenta opens creation instead of matching the dynamic account id', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/accounts',
+      routes: [
+        GoRoute(
+          path: '/accounts',
+          builder: (context, state) => const CanonicalAccountsScreen(),
+          routes: [
+            GoRoute(
+              path: 'new',
+              name: 'new-account',
+              builder: (context, state) => const Scaffold(body: Text('account creation form')),
+            ),
+            GoRoute(
+              path: ':id',
+              builder: (context, state) => Scaffold(
+                body: Text('account detail: ${state.pathParameters['id']}'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authSessionProvider.overrideWith(
+            (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
+          ),
+          canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(_accounts)),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('accounts_add_button')));
+    await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('account creation form'), findsOneWidget);
+    expect(find.text('account detail: new'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

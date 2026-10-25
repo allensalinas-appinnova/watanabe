@@ -287,13 +287,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
                           ref.invalidate(canonicalOperationsPageProvider(operationsInput)),
                     ),
                     data: (page) => page.items.isEmpty
-                        ? Card(
-                            color: Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Text(l10n.noTransactions),
-                            ),
-                          )
+                        ? HomeRecentActivityEmptyState(message: l10n.noTransactions)
                         : Column(
                             children: page.items.take(3).map((item) {
                               FinanceCategory? category;
@@ -318,6 +312,21 @@ class CanonicalHomeScreen extends ConsumerWidget {
       },
     );
   }
+}
+
+class HomeRecentActivityEmptyState extends StatelessWidget {
+  const HomeRecentActivityEmptyState({required this.message, super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    key: const ValueKey('home_empty_activity'),
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Text(message),
+    ),
+  );
 }
 
 class _BalanceCard extends StatelessWidget {

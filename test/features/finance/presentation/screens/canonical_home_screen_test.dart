@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,15 @@ void main() {
 
     final now = DateTime.now();
     final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final operationsInput = (
+      userId: 'u1',
+      cursor: null,
+      monthKey: null,
+      currency: null,
+      type: null,
+      accountIds: null,
+      pageSize: 10,
+    );
     var themeMode = ThemeMode.light;
     late void Function(ThemeMode mode) setThemeMode;
     final providers = ProviderScope(
@@ -158,15 +168,7 @@ void main() {
             ),
           ]),
         ),
-        canonicalOperationsPageProvider((
-          userId: 'u1',
-          cursor: null,
-          monthKey: null,
-          currency: null,
-          type: null,
-          accountIds: null,
-          pageSize: 10,
-        )).overrideWith(
+        canonicalOperationsPageProvider(operationsInput).overrideWith(
           (ref) async => OperationPage(
             items: [
               FinancialOperation(
@@ -340,6 +342,40 @@ void main() {
       final text = tester.widget<Text>(find.byKey(ValueKey(key)));
       expect(_contrastRatio(text.style!.color!, background), greaterThanOrEqualTo(4.5));
     }
+  });
+
+  testWidgets('home recent activity empty state follows dark theme colors', (tester) async {
+    const message = 'Aún no tienes movimientos.';
+    final darkTheme = AppTheme.forAppearance(AppearancePalette.lumio, Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: darkTheme,
+        darkTheme: darkTheme,
+        themeMode: ThemeMode.dark,
+        home: const Scaffold(
+          body: HomeRecentActivityEmptyState(message: message),
+        ),
+      ),
+    );
+
+    final emptyCardFinder = find.byKey(const ValueKey('home_empty_activity'));
+    final emptyCard = tester.widget<Card>(emptyCardFinder);
+    final emptyTheme = Theme.of(tester.element(emptyCardFinder));
+    expect(emptyCard.color, isNull);
+    expect(emptyTheme.cardTheme.color, emptyTheme.colorScheme.surface);
+
+    final emptyCardMaterial = tester.widget<Material>(
+      find.descendant(of: emptyCardFinder, matching: find.byType(Material)).first,
+    );
+    expect(emptyCardMaterial.color, emptyTheme.colorScheme.surface);
+    final textStyle = tester.renderObject<RenderParagraph>(find.text(message)).text.style!;
+    expect(textStyle.color, emptyTheme.colorScheme.onSurface);
+    expect(
+      _contrastRatio(textStyle.color!, emptyCardMaterial.color!),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(tester.takeException(), isNull);
   });
 }
 

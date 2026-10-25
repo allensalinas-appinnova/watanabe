@@ -178,6 +178,14 @@ GoRouter _buildAppRouter() => GoRouter(
               ),
               routes: [
                 GoRoute(
+                  path: 'new',
+                  name: 'new-account',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => AccountFormScreen(
+                    initialCurrency: state.uri.queryParameters['currency'],
+                  ),
+                ),
+                GoRoute(
                   path: ':id/debt',
                   builder: (context, state) =>
                       DebtDetailScreen(accountId: state.pathParameters['id']!),
@@ -270,13 +278,6 @@ GoRouter _buildAppRouter() => GoRouter(
           ],
         ),
       ],
-    ),
-    GoRoute(
-      path: '/accounts/new',
-      name: 'new-account',
-      builder: (context, state) => AccountFormScreen(
-        initialCurrency: state.uri.queryParameters['currency'],
-      ),
     ),
     GoRoute(path: '/debts/new', builder: (context, state) => const DebtFormScreen()),
     GoRoute(
