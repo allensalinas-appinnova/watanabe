@@ -22,6 +22,12 @@ abstract interface class AuthRemoteDataSource {
 
   Future<AuthUserModel> signInWithGoogle();
 
+  Future<AuthUserModel> linkEmailPassword({required String email, required String password});
+
+  Future<AuthUserModel> linkGoogle();
+
+  Future<void> sendEmailVerification();
+
   Future<void> sendPasswordResetEmail({required String email});
 
   Future<AuthUserModel> signInAnonymously();
@@ -44,7 +50,7 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
 
   @override
   Stream<AuthUserModel?> observeSession() {
-    return _firebaseAuth.authStateChanges().map(_mapUser);
+    return _firebaseAuth.userChanges().map(_mapUser);
   }
 
   @override
@@ -99,6 +105,48 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
+  Future<AuthUserModel> linkEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    final user = _requireAnonymousUser();
+    final credential = EmailAuthProvider.credential(email: email, password: password);
+    final linked = await user.linkWithCredential(credential);
+    return _mapRequiredUser(linked.user);
+  }
+
+  @override
+  Future<AuthUserModel> linkGoogle() async {
+    final user = _requireAnonymousUser();
+    final UserCredential linked;
+    if (kIsWeb) {
+      linked = await user.linkWithPopup(GoogleAuthProvider());
+    } else {
+      try {
+        final idToken = await _googleSignInDataSource.authenticate();
+        linked = await user.linkWithCredential(
+          GoogleAuthProvider.credential(idToken: idToken),
+        );
+      } on GoogleSignInException catch (error) {
+        if (error.code == GoogleSignInExceptionCode.canceled) {
+          throw FirebaseAuthException(code: 'web-context-canceled');
+        }
+        rethrow;
+      }
+    }
+    return _mapRequiredUser(linked.user);
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null || user.isAnonymous || user.email == null) {
+      throw FirebaseAuthException(code: 'user-mismatch');
+    }
+    await user.sendEmailVerification();
+  }
+
+  @override
   Future<void> sendPasswordResetEmail({required String email}) {
     return _firebaseAuth.sendPasswordResetEmail(email: email);
   }
@@ -125,5 +173,13 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       throw StateError('Firebase returned no authenticated user.');
     }
     return mapped;
+  }
+
+  User _requireAnonymousUser() {
+    final user = _firebaseAuth.currentUser;
+    if (user == null || !user.isAnonymous) {
+      throw FirebaseAuthException(code: 'user-mismatch');
+    }
+    return user;
   }
 }

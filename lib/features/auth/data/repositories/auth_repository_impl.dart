@@ -2,10 +2,12 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/firebase_failure_mapper.dart';
+import '../../domain/entities/auth_account_link_result.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
+import '../models/auth_user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl({
@@ -23,7 +25,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Stream<AuthUser?> observeSession() async* {
     // Firebase Auth is the source of truth for the active UID. Yielding a cached
-    // user before authStateChanges() can briefly expose another user's UID after
+    // user before Firebase publishes the active UID after
     // logout/login, causing owner-scoped Firestore writes to be rejected.
     await for (final user in _remoteDataSource.observeSession()) {
       if (user == null) {
@@ -81,6 +83,50 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, AuthAccountLinkResult>> linkEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final user = await _remoteDataSource.linkEmailPassword(email: email, password: password);
+      var verificationSent = false;
+      try {
+        await _remoteDataSource.sendEmailVerification();
+        verificationSent = true;
+      } on Object {
+        // Linking already succeeded. Delivery is a separate recoverable step.
+      }
+      await _cacheLinkedUserBestEffort(user);
+      return Right(
+        AuthAccountLinkResult(user: user.toEntity(), emailVerificationSent: verificationSent),
+      );
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AuthAccountLinkResult>> linkGoogle() async {
+    try {
+      final user = await _remoteDataSource.linkGoogle();
+      await _cacheLinkedUserBestEffort(user);
+      return Right(AuthAccountLinkResult(user: user.toEntity()));
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> sendEmailVerification() async {
+    try {
+      await _remoteDataSource.sendEmailVerification();
+      return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> sendPasswordResetEmail({required String email}) async {
     try {
       await _remoteDataSource.sendPasswordResetEmail(email: email);
@@ -109,6 +155,14 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(unit);
     } catch (error) {
       return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  Future<void> _cacheLinkedUserBestEffort(AuthUserModel user) async {
+    try {
+      await _localDataSource.cacheUser(user);
+    } on Object {
+      // Firebase remains the source of truth after a successful link.
     }
   }
 }

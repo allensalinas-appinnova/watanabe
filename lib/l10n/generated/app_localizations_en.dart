@@ -208,7 +208,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAccount => 'Create account';
 
   @override
-  String get continueAsGuest => 'Continue as guest';
+  String get continueAsGuest => 'Try without creating an account';
+
+  @override
+  String get guestAccountHint =>
+      'Your data is tied to this session. Save your account to recover it on other devices.';
+
+  @override
+  String get guestSaveAccount => 'Save my account';
+
+  @override
+  String get guestUpgradeTitle => 'Save my account';
+
+  @override
+  String get guestUpgradeSubtitle =>
+      'Link an email or Google to this session to protect your data. Your profile and movements will stay here.';
+
+  @override
+  String get guestUpgradeEmailTitle => 'Create email sign-in';
+
+  @override
+  String get guestUpgradeGoogleButton => 'Link with Google';
+
+  @override
+  String get guestUpgradeConfirmPassword => 'Confirm password';
+
+  @override
+  String get guestUpgradePasswordMismatch => 'The passwords do not match.';
+
+  @override
+  String get guestUpgradeSuccess => 'Your account is protected. Your data remains in this session.';
+
+  @override
+  String get guestUpgradeEmailSent =>
+      'Account protected. We sent an email to verify your address; you can keep using the app.';
+
+  @override
+  String get guestUpgradeEmailNotSent =>
+      'Your account is protected, but we couldn\'t send the verification email. You can retry.';
+
+  @override
+  String get guestUpgradeResendVerification => 'Resend verification';
+
+  @override
+  String get guestUpgradeAlreadyProtected => 'This session already has a sign-in method linked.';
+
+  @override
+  String get guestUpgradeConflict =>
+      'This email or account already belongs to another account. Your guest session and data are unchanged. Try another credential.';
+
+  @override
+  String get guestUpgradeProviderLinked => 'This sign-in method is already linked to this session.';
+
+  @override
+  String get guestUpgradeCancelled => 'Linking was cancelled. Your guest session is still active.';
+
+  @override
+  String get guestUpgradeUnavailable =>
+      'This sign-in method is unavailable right now. Your session is still active.';
+
+  @override
+  String get guestUpgradeWeakPassword => 'Choose a stronger password.';
+
+  @override
+  String get guestSignOutWarning =>
+      'This guest session has no recovery method. If you sign out, you may lose access to this data. Save your account first to recover it on another device.';
+
+  @override
+  String get guestUpgradeBackToApp => 'Back to app';
 
   @override
   String get authLoginTab => 'Log in';

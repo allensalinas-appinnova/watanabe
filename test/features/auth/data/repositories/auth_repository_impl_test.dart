@@ -102,6 +102,55 @@ void main() {
     });
   });
 
+  group('linkEmailPassword', () {
+    test('retains the guest UID and treats verification delivery as recoverable', () async {
+      const linkedUser = AuthUserModel(
+        id: 'user-123',
+        email: 'person@example.test',
+        displayName: 'Test User',
+        isAnonymous: false,
+      );
+      when(
+        () => remoteDataSource.linkEmailPassword(
+          email: 'person@example.test',
+          password: 'password123',
+        ),
+      ).thenAnswer((_) async => linkedUser);
+      when(
+        () => remoteDataSource.sendEmailVerification(),
+      ).thenThrow(StateError('mail unavailable'));
+      when(() => localDataSource.cacheUser(linkedUser)).thenAnswer((_) async {});
+
+      final result = await repository.linkEmailPassword(
+        email: 'person@example.test',
+        password: 'password123',
+      );
+
+      expect(result.getRight().toNullable()?.user.id, 'user-123');
+      expect(result.getRight().toNullable()?.user.isAnonymous, isFalse);
+      expect(result.getRight().toNullable()?.emailVerificationSent, isFalse);
+      verify(() => localDataSource.cacheUser(linkedUser)).called(1);
+    });
+
+    test('does not cache or replace user after a credential conflict', () async {
+      when(
+        () => remoteDataSource.linkEmailPassword(
+          email: 'person@example.test',
+          password: 'password123',
+        ),
+      ).thenThrow(StateError('credential-already-in-use'));
+
+      final result = await repository.linkEmailPassword(
+        email: 'person@example.test',
+        password: 'password123',
+      );
+
+      expect(result.isLeft(), isTrue);
+      verifyNever(() => localDataSource.cacheUser(user));
+      verifyNever(() => remoteDataSource.signOut());
+    });
+  });
+
   test('signOut clears the local cache after remote sign out', () async {
     when(() => remoteDataSource.signOut()).thenAnswer((_) async {});
     when(() => localDataSource.clearCachedUser()).thenAnswer((_) async {});

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +16,8 @@ class CanonicalMoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final user = ref.watch(authSessionProvider).valueOrNull;
+    final isGuest = user?.isAnonymous ?? false;
     final pending = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
     final pendingCount = pending
         .where((operation) => operation.status == 'pending' || operation.status == 'syncing')
@@ -36,6 +40,30 @@ class CanonicalMoreScreen extends ConsumerWidget {
             ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
+          if (isGuest) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.guestAccountHint),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        key: const ValueKey('settings_secure_guest_account'),
+                        onPressed: () => context.push('/settings/secure-account'),
+                        icon: const Icon(Icons.verified_user_outlined),
+                        label: Text(l10n.guestSaveAccount),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           OutlinedButton.icon(
             key: const ValueKey('settings_appearance'),
             onPressed: () => context.push('/settings/appearance'),
@@ -85,7 +113,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           OutlinedButton(
             key: const ValueKey('more_sign_out'),
-            onPressed: () => _confirmSignOut(context, ref, pendingCount),
+            onPressed: () => _confirmSignOut(context, ref, pendingCount, isGuest),
             child: Text(l10n.signOut),
           ),
           const SizedBox(height: 32),
@@ -109,28 +137,41 @@ class CanonicalMoreScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref, int pendingCount) async {
+  Future<void> _confirmSignOut(
+    BuildContext context,
+    WidgetRef ref,
+    int pendingCount,
+    bool isGuest,
+  ) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final decision = await showDialog<_SignOutDecision>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.signOutConfirmTitle),
-        content: Text(
-          pendingCount > 0 ? l10n.signOutPendingWarning(pendingCount) : l10n.signOutConfirmMessage,
-        ),
+        content: Text(_signOutMessage(l10n, pendingCount, isGuest)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext, _SignOutDecision.cancel),
             child: Text(l10n.cancel),
           ),
+          if (isGuest)
+            TextButton(
+              key: const ValueKey('guest_sign_out_save_account'),
+              onPressed: () => Navigator.pop(dialogContext, _SignOutDecision.secureAccount),
+              child: Text(l10n.guestSaveAccount),
+            ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () => Navigator.pop(dialogContext, _SignOutDecision.signOut),
             child: Text(l10n.signOut),
           ),
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (decision == null || decision == _SignOutDecision.cancel || !context.mounted) return;
+    if (decision == _SignOutDecision.secureAccount) {
+      unawaited(context.push('/settings/secure-account'));
+      return;
+    }
 
     await ref.read(authControllerProvider.notifier).signOut();
     if (!context.mounted) return;
@@ -138,4 +179,15 @@ class CanonicalMoreScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.genericError)));
     }
   }
+
+  String _signOutMessage(AppLocalizations l10n, int pendingCount, bool isGuest) {
+    final messages = <String>[
+      if (isGuest) l10n.guestSignOutWarning,
+      if (pendingCount > 0) l10n.signOutPendingWarning(pendingCount),
+      if (!isGuest && pendingCount == 0) l10n.signOutConfirmMessage,
+    ];
+    return messages.join('\n\n');
+  }
 }
+
+enum _SignOutDecision { cancel, signOut, secureAccount }

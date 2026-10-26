@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../entities/auth_account_link_result.dart';
 import '../entities/auth_user.dart';
 
 abstract interface class AuthRepository {
@@ -21,6 +22,15 @@ abstract interface class AuthRepository {
   });
 
   Future<Either<Failure, AuthUser>> signInWithGoogle();
+
+  Future<Either<Failure, AuthAccountLinkResult>> linkEmailPassword({
+    required String email,
+    required String password,
+  });
+
+  Future<Either<Failure, AuthAccountLinkResult>> linkGoogle();
+
+  Future<Either<Failure, Unit>> sendEmailVerification();
 
   Future<Either<Failure, Unit>> sendPasswordResetEmail({required String email});
 

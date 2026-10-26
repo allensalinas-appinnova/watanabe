@@ -209,7 +209,75 @@ class AppLocalizationsPt extends AppLocalizations {
   String get createAccount => 'Criar conta';
 
   @override
-  String get continueAsGuest => 'Continuar como convidado';
+  String get continueAsGuest => 'Experimentar sem criar conta';
+
+  @override
+  String get guestAccountHint =>
+      'Seus dados ficam associados a esta sessão. Salve sua conta para recuperá-los em outros dispositivos.';
+
+  @override
+  String get guestSaveAccount => 'Salvar minha conta';
+
+  @override
+  String get guestUpgradeTitle => 'Salvar minha conta';
+
+  @override
+  String get guestUpgradeSubtitle =>
+      'Vincule um e-mail ou Google a esta sessão para proteger seus dados. Seu perfil e movimentos serão mantidos.';
+
+  @override
+  String get guestUpgradeEmailTitle => 'Criar acesso com e-mail';
+
+  @override
+  String get guestUpgradeGoogleButton => 'Vincular com Google';
+
+  @override
+  String get guestUpgradeConfirmPassword => 'Confirmar senha';
+
+  @override
+  String get guestUpgradePasswordMismatch => 'As senhas não coincidem.';
+
+  @override
+  String get guestUpgradeSuccess => 'Sua conta está protegida. Seus dados continuam nesta sessão.';
+
+  @override
+  String get guestUpgradeEmailSent =>
+      'Conta protegida. Enviamos um e-mail para verificar seu endereço; você pode continuar usando o app.';
+
+  @override
+  String get guestUpgradeEmailNotSent =>
+      'Sua conta está protegida, mas não foi possível enviar o e-mail de verificação. Você pode tentar novamente.';
+
+  @override
+  String get guestUpgradeResendVerification => 'Reenviar verificação';
+
+  @override
+  String get guestUpgradeAlreadyProtected => 'Esta sessão já tem um método de acesso vinculado.';
+
+  @override
+  String get guestUpgradeConflict =>
+      'Este e-mail ou conta já pertence a outra conta. Sua sessão de convidado e seus dados não foram alterados. Tente outra credencial.';
+
+  @override
+  String get guestUpgradeProviderLinked => 'Este método já está vinculado à sessão atual.';
+
+  @override
+  String get guestUpgradeCancelled =>
+      'O vínculo foi cancelado. Sua sessão de convidado continua ativa.';
+
+  @override
+  String get guestUpgradeUnavailable =>
+      'Este método de acesso não está disponível agora. Sua sessão continua ativa.';
+
+  @override
+  String get guestUpgradeWeakPassword => 'Escolha uma senha mais forte.';
+
+  @override
+  String get guestSignOutWarning =>
+      'Esta sessão de convidado não tem método de recuperação. Se você sair, poderá perder o acesso a estes dados. Salve sua conta antes para recuperá-los em outro dispositivo.';
+
+  @override
+  String get guestUpgradeBackToApp => 'Voltar ao aplicativo';
 
   @override
   String get authLoginTab => 'Entrar';

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/guest_account_upgrade_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_recovery_screen.dart';
 import '../../features/coach/domain/entities/coach_models.dart';
@@ -90,7 +91,7 @@ GoRouter _buildAppRouter() => GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/login',
   refreshListenable: AuthRefreshListenable(
-    FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).authStateChanges(),
+    FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).userChanges(),
     profileStream: (userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
   ),
   redirect: (context, state) async {
@@ -330,6 +331,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/settings/appearance',
       name: 'settings-appearance',
       builder: (context, state) => const AppearanceSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/secure-account',
+      name: 'settings-secure-account',
+      builder: (context, state) => const GuestAccountUpgradeScreen(),
     ),
     GoRoute(
       path: '/settings/reset-data',

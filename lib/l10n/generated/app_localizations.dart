@@ -481,8 +481,128 @@ abstract class AppLocalizations {
   /// No description provided for @continueAsGuest.
   ///
   /// In es, this message translates to:
-  /// **'Continuar como invitado'**
+  /// **'Probar sin crear cuenta'**
   String get continueAsGuest;
+
+  /// No description provided for @guestAccountHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus datos quedan asociados a esta sesión. Guarda tu cuenta para recuperarlos desde otros dispositivos.'**
+  String get guestAccountHint;
+
+  /// No description provided for @guestSaveAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar mi cuenta'**
+  String get guestSaveAccount;
+
+  /// No description provided for @guestUpgradeTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar mi cuenta'**
+  String get guestUpgradeTitle;
+
+  /// No description provided for @guestUpgradeSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Vincula un correo o Google a esta sesión para proteger tus datos. Se conservarán tu perfil y tus movimientos.'**
+  String get guestUpgradeSubtitle;
+
+  /// No description provided for @guestUpgradeEmailTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear acceso con correo'**
+  String get guestUpgradeEmailTitle;
+
+  /// No description provided for @guestUpgradeGoogleButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Vincular con Google'**
+  String get guestUpgradeGoogleButton;
+
+  /// No description provided for @guestUpgradeConfirmPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar contraseña'**
+  String get guestUpgradeConfirmPassword;
+
+  /// No description provided for @guestUpgradePasswordMismatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Las contraseñas no coinciden.'**
+  String get guestUpgradePasswordMismatch;
+
+  /// No description provided for @guestUpgradeSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuenta quedó protegida. Tus datos siguen en esta sesión.'**
+  String get guestUpgradeSuccess;
+
+  /// No description provided for @guestUpgradeEmailSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta protegida. Enviamos un correo para verificar tu dirección; puedes seguir usando la app.'**
+  String get guestUpgradeEmailSent;
+
+  /// No description provided for @guestUpgradeEmailNotSent.
+  ///
+  /// In es, this message translates to:
+  /// **'La cuenta quedó protegida, pero no pudimos enviar el correo de verificación. Puedes reintentarlo.'**
+  String get guestUpgradeEmailNotSent;
+
+  /// No description provided for @guestUpgradeResendVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'Reenviar verificación'**
+  String get guestUpgradeResendVerification;
+
+  /// No description provided for @guestUpgradeAlreadyProtected.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta sesión ya tiene un método de acceso vinculado.'**
+  String get guestUpgradeAlreadyProtected;
+
+  /// No description provided for @guestUpgradeConflict.
+  ///
+  /// In es, this message translates to:
+  /// **'Este correo o cuenta ya pertenece a otra cuenta. Tu sesión de invitado y sus datos no cambiaron. Prueba otra credencial.'**
+  String get guestUpgradeConflict;
+
+  /// No description provided for @guestUpgradeProviderLinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Este método ya está vinculado a la sesión actual.'**
+  String get guestUpgradeProviderLinked;
+
+  /// No description provided for @guestUpgradeCancelled.
+  ///
+  /// In es, this message translates to:
+  /// **'Se canceló la vinculación. Tu sesión de invitado sigue activa.'**
+  String get guestUpgradeCancelled;
+
+  /// No description provided for @guestUpgradeUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Este método de acceso no está disponible ahora. Tu sesión sigue activa.'**
+  String get guestUpgradeUnavailable;
+
+  /// No description provided for @guestUpgradeWeakPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige una contraseña más segura.'**
+  String get guestUpgradeWeakPassword;
+
+  /// No description provided for @guestSignOutWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta sesión de invitado no tiene acceso de recuperación. Si cierras sesión, podrías perder el acceso a estos datos. Guarda tu cuenta antes para recuperarlos en otro dispositivo.'**
+  String get guestSignOutWarning;
+
+  /// No description provided for @guestUpgradeBackToApp.
+  ///
+  /// In es, this message translates to:
+  /// **'Volver a la aplicación'**
+  String get guestUpgradeBackToApp;
 
   /// No description provided for @authLoginTab.
   ///

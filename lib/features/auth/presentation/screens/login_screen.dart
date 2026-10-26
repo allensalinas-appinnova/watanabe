@@ -234,6 +234,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                     ),
+                    Text(
+                      l10n.guestAccountHint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const SizedBox(height: 13),
                     Text(
                       l10n.authPrivacyNote,
