@@ -11,6 +11,7 @@ import '../../features/coach/domain/entities/coach_models.dart';
 import '../../features/coach/presentation/screens/coach_home_screen.dart';
 import '../../features/coach/presentation/screens/coach_review_screen.dart';
 import '../../features/coach/presentation/screens/coach_settings_screen.dart';
+import '../../features/commitments/presentation/debt_commitments_screen.dart';
 import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
 import '../../features/debts/presentation/debt_payment_picker_screen.dart';
@@ -215,6 +216,23 @@ GoRouter _buildAppRouter() => GoRouter(
               builder: (context, state) => const CanonicalBudgetsScreen(),
               routes: [
                 GoRoute(
+                  path: 'debt-payments',
+                  name: 'debt-commitments',
+                  builder: (context, state) => DebtCommitmentsScreen(
+                    initialMonthKey: state.uri.queryParameters['month'],
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'new',
+                      name: 'new-debt-commitment',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => DebtCommitmentFormScreen(
+                        initialDebtAccountId: state.uri.queryParameters['debtAccountId'],
+                      ),
+                    ),
+                  ],
+                ),
+                GoRoute(
                   path: 'tracking',
                   name: 'budget-tracking',
                   builder: (context, state) => CanonicalBudgetTrackingScreen(
@@ -287,6 +305,10 @@ GoRouter _buildAppRouter() => GoRouter(
         accountId: state.pathParameters['id'],
         action: state.pathParameters['action']!,
         originalOperationId: state.uri.queryParameters['original'],
+        commitmentId: state.uri.queryParameters['commitmentId'],
+        commitmentMonth: state.uri.queryParameters['month'],
+        commitmentAmountMinor: int.tryParse(state.uri.queryParameters['amountMinor'] ?? ''),
+        commitmentBankAccountId: state.uri.queryParameters['bankAccountId'],
         initialComponents: state.extra is List<FinancialOperation>
             ? state.extra! as List<FinancialOperation>
             : const [],

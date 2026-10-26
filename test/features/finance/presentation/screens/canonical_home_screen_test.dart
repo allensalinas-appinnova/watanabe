@@ -223,7 +223,11 @@ void main() {
     expect(find.textContaining('Archivada:'), findsNothing);
     expect(find.byKey(const ValueKey('home_income_summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_expense_summary')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const ValueKey('home_expense_budget_ratio')));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home_expense_budget_ratio')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.byKey(const ValueKey('home_expense_budget_ratio')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_income_budget_ratio')), findsOneWidget);
     expect(

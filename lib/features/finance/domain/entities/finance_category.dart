@@ -1,6 +1,6 @@
 enum CategoryType { income, expense }
 
-const currentCategoryCatalogVersion = 2;
+const currentCategoryCatalogVersion = 3;
 
 class FinanceCategory {
   const FinanceCategory({

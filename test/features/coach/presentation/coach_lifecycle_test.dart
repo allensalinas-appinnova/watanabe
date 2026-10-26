@@ -10,6 +10,8 @@ import 'package:personal_finance/features/coach/domain/entities/coach_models.dar
 import 'package:personal_finance/features/coach/domain/services/coach_notification_service.dart';
 import 'package:personal_finance/features/coach/presentation/providers/coach_providers.dart';
 import 'package:personal_finance/features/coach/presentation/widgets/coach_lifecycle.dart';
+import 'package:personal_finance/features/commitments/domain/commitment_repository.dart';
+import 'package:personal_finance/features/commitments/domain/debt_commitment.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
@@ -138,7 +140,11 @@ class _Harness {
     categoryCatalogVersion: 1,
   );
 
-  Future<void> mount(WidgetTester tester) async {
+  Future<void> mount(
+    WidgetTester tester, {
+    List<DebtCommitment> commitments = const [],
+    List<DebtCommitmentPaymentLink> commitmentPayments = const [],
+  }) async {
     final repository = repositoryFor();
     when(() => repository.watchPreferences(any())).thenAnswer((_) async* {
       yield preferences;
@@ -165,6 +171,10 @@ class _Harness {
             yield profile(uid);
             yield* profileUpdates.stream;
           }),
+          debtCommitmentsProvider.overrideWith((ref, uid) => Stream.value(commitments)),
+          debtCommitmentPaymentsProvider.overrideWith(
+            (ref, uid) => Stream.value(commitmentPayments),
+          ),
         ],
         child: ValueListenableBuilder<Locale>(
           valueListenable: locale,
@@ -237,6 +247,68 @@ void main() {
     await tester.pump(const Duration(minutes: 2));
     expect(h.service.replacements, hasLength(1));
     expect(h.container.read(coachSchedulingIssueProvider), isFalse);
+  });
+
+  testWidgets('debt reminders join the shared schedule and skip fully paid installments', (
+    tester,
+  ) async {
+    final h = _Harness();
+    await h.mount(
+      tester,
+      commitments: const [
+        DebtCommitment(
+          id: 'vehicle-loan',
+          debtAccountId: 'loan',
+          currency: 'COP',
+          amountMinor: 2400000,
+          firstDueMonth: '2026-10',
+          dueDay: 24,
+          remindersEnabled: true,
+        ),
+        DebtCommitment(
+          id: 'paid-loan',
+          debtAccountId: 'loan-2',
+          currency: 'COP',
+          amountMinor: 100000,
+          firstDueMonth: '2026-10',
+          dueDay: 25,
+          remindersEnabled: true,
+        ),
+      ],
+      commitmentPayments: const [
+        DebtCommitmentPaymentLink(
+          paymentId: 'paid-installment',
+          commitmentId: 'paid-loan',
+          monthKey: '2026-10',
+          amountMinor: 100000,
+        ),
+      ],
+    );
+
+    final notifications = h.service.replacements.single.notifications;
+    final debtNotifications = notifications
+        .where(
+          (item) =>
+              item.type == CoachNotificationType.debtBefore ||
+              item.type == CoachNotificationType.debtDue,
+        )
+        .toList();
+    expect(debtNotifications, hasLength(2));
+    expect(
+      debtNotifications.map((item) => item.type),
+      containsAll([
+        CoachNotificationType.debtBefore,
+        CoachNotificationType.debtDue,
+      ]),
+    );
+    expect(debtNotifications.every((item) => item.periodKey == '2026-10'), isTrue);
+    expect(debtNotifications.every((item) => item.id >= 19000), isTrue);
+    expect(
+      notifications.where(
+        (item) => item.periodKey == '2026-10' && item.type.name.startsWith('debt'),
+      ),
+      hasLength(2),
+    );
   });
 
   testWidgets('pending daily and confirmed weekly completions suppress their reminders', (

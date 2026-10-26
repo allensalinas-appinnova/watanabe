@@ -1,5 +1,5 @@
 export type Operation = {
-  type: "income" | "expense" | "transfer" | "expenseRefund" | "debtAdjustment";
+  type: "income" | "expense" | "transfer" | "expenseRefund" | "debtAdjustment" | "unallocatedDebtPayment";
   amountMinor: number;
   currency: string;
   monthKey: string;
@@ -13,6 +13,9 @@ export type Operation = {
   projectionDirection?: 1 | -1;
   balanceDeltaMinor?: number;
   dataGeneration?: number;
+  debtAccountId?: string;
+  debtKind?: string;
+  paymentId?: string;
   status: "pending" | "confirmed" | "rejected";
 };
 
@@ -58,7 +61,7 @@ export function maximumMinor(currency: string): number {
 }
 
 export function parseOperation(data: Record<string, unknown>): Operation {
-  if (!["income", "expense", "transfer", "expenseRefund", "debtAdjustment"].includes(String(data.type)) ||
+  if (!["income", "expense", "transfer", "expenseRefund", "debtAdjustment", "unallocatedDebtPayment"].includes(String(data.type)) ||
       !["pending", "confirmed", "rejected"].includes(String(data.status)) ||
       !validCurrency(data.currency) || !validMonth(data.monthKey)) {
     throw new ProjectionError("invalid_operation");
@@ -68,14 +71,15 @@ export function parseOperation(data: Record<string, unknown>): Operation {
   if (data.type === "transfer") {
     if (!validId(data.sourceAccountId) || !validId(data.destinationAccountId) ||
         data.sourceAccountId === data.destinationAccountId) throw new ProjectionError("invalid_transfer");
-  } else if (!validId(data.accountId) || (data.type !== "debtAdjustment" && !validId(data.categoryId))) {
+  } else if (!validId(data.accountId) || (!["debtAdjustment", "unallocatedDebtPayment"].includes(String(data.type)) && !validId(data.categoryId))) {
     throw new ProjectionError("invalid_operation_reference");
   }
   if (data.projectionDirection !== undefined && data.projectionDirection !== 1 && data.projectionDirection !== -1) throw new ProjectionError("invalid_direction");
   if (data.dataGeneration !== undefined && (!Number.isSafeInteger(data.dataGeneration) || Number(data.dataGeneration) < 0)) throw new ProjectionError("invalid_generation");
   if (data.type === "debtAdjustment" && Math.abs(checkedInteger(data.balanceDeltaMinor)) !== amount) throw new ProjectionError("invalid_adjustment_delta");
+  if (data.type === "unallocatedDebtPayment" && (!validId(data.debtAccountId) || !validId(data.paymentId))) throw new ProjectionError("invalid_unallocated_payment");
   if (data.budgetId !== undefined || data.budgetItemId !== undefined) {
-    if (!validId(data.budgetId) || !validId(data.budgetItemId) || data.type === "transfer" || data.type === "debtAdjustment") {
+    if (!validId(data.budgetId) || !validId(data.budgetItemId) || ["transfer", "debtAdjustment", "unallocatedDebtPayment"].includes(String(data.type))) {
       throw new ProjectionError("invalid_budget_reference");
     }
   }
@@ -95,6 +99,10 @@ export function calculateProjectionDeltas(previous: Operation | undefined, curre
       account(operation.accountId!, operation.balanceDeltaMinor! * direction * (operation.projectionDirection ?? 1));
       return;
     }
+    if (operation.type === "unallocatedDebtPayment") {
+      account(operation.accountId!, -amount);
+      return;
+    }
     const key = `${operation.monthKey}_${operation.currency}`;
     const summary = summaries.get(key) ?? {
       monthKey: operation.monthKey, currency: operation.currency,
@@ -112,7 +120,7 @@ export function calculateProjectionDeltas(previous: Operation | undefined, curre
       const signed = flow === "income" ? financialAmount : -financialAmount;
       summary.categories.set(operation.categoryId!, checkedInteger((summary.categories.get(operation.categoryId!) ?? 0) + signed));
       account(operation.accountId!, signed);
-      if (operation.budgetId && operation.budgetItemId) {
+    if (operation.budgetId && operation.budgetItemId) {
         const item = `${operation.budgetId}/${operation.budgetItemId}`;
         budgetItems.set(item, checkedInteger((budgetItems.get(item) ?? 0) + financialAmount));
       }

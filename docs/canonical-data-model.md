@@ -48,8 +48,9 @@ Onboarding creates a versioned per-user snapshot. On an authenticated session,
 the app non-blockingly synchronizes newly introduced defaults from the catalog;
 the operation is idempotent and adds only absent categories. User-renamed,
 customized, and archived categories are preserved. A failed sync does not block
-normal app use and can be retried. The catalog's `interest_fees` expense category
-is version 2 and does not relabel historical operations.
+normal app use and can be retried. Catalog version 2 introduced `interest_fees`;
+version 3 adds the `sports`, `hobbies`, and `subscriptions` expense categories.
+These updates do not relabel historical operations.
 
 ## Derived data
 

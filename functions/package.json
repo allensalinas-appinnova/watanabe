@@ -21,6 +21,7 @@
     "test:user-data-generation": "npm run build && node --test test/user_data_generation_test.mjs",
     "test:user-data-reset:callable": "npm run build && node --test test/user_data_reset_callable_test.mjs",
     "test:balance-adjustments:callable": "node --test test/balance_adjustment_callable_test.mjs",
+    "test:debt-commitments:callable": "node --test test/debt_commitments_callable_test.mjs",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "npm run build && firebase deploy --only functions"
   },

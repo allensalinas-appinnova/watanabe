@@ -14,6 +14,13 @@ void main() {
     expect(FinanceCategoryIcons.canonicalId('school'), 'education');
     expect(FinanceCategoryIcons.canonicalId('payments'), 'salary');
     expect(FinanceCategoryIcons.canonicalId('more_horiz'), 'other');
+    expect(FinanceCategoryIcons.canonicalId('movie'), 'entertainment');
+    expect(FinanceCategoryIcons.canonicalId('shopping_bag'), 'shopping');
+    expect(FinanceCategoryIcons.options, hasLength(30));
+    expect(
+      FinanceCategoryIcons.groups.values.expand((group) => group).toSet(),
+      hasLength(FinanceCategoryIcons.options.length),
+    );
     expect(FinanceCategoryIcons.canonicalId('custom-future-icon'), isNull);
     expect(FinanceCategoryIcons.canonicalId(null), isNull);
     expect(

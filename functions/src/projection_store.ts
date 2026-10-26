@@ -44,13 +44,18 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
   }
   for (const {previous, current} of changes) for (const operation of [previous, current]) {
     if (!operation || operation.status !== "confirmed") continue;
-    if (!allowDebt && (operation.projectionDirection !== undefined || ["expenseRefund", "debtAdjustment"].includes(operation.type))) throw new ProjectionError("debt_command_required");
+    if (!allowDebt && (operation.projectionDirection !== undefined || ["expenseRefund", "debtAdjustment", "unallocatedDebtPayment"].includes(operation.type))) throw new ProjectionError("debt_command_required");
     const ids = operation.type === "transfer" ? [operation.sourceAccountId!, operation.destinationAccountId!] : [operation.accountId!];
     for (const id of ids) {
       const account = records.get(`accounts/${id}`);
       if (!account) throw new ProjectionError("missing_account");
       if (!allowDebt && account.nature === "debt") throw new ProjectionError("debt_command_required");
       if (account.currency !== operation.currency) throw new ProjectionError("account_currency_mismatch");
+    }
+    if (operation.type === "unallocatedDebtPayment") {
+      if (!allowDebt || typeof operation.debtAccountId !== "string") throw new ProjectionError("debt_command_required");
+      const debt = records.get(`accounts/${operation.debtAccountId}`) ?? (await transaction.get(root.collection("accounts").doc(operation.debtAccountId))).data();
+      if (!debt || debt.nature !== "debt" || debt.currency !== operation.currency) throw new ProjectionError("invalid_unallocated_debt_reference");
     }
     if (operation.budgetId) {
       const budget = records.get(`budgets/${operation.budgetId}`);

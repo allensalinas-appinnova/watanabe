@@ -69,7 +69,7 @@ test('audit reports corrupted balances, missing summaries and excess values on i
   await root.collection('budgets').doc('budget').collection('items').doc('item').update({actualAmountMinor: 30});
   const before = await userDump(root);
   const report = await auditProjections(db, root.id);
-  assert.equal(report.complete, true);
+  assert.equal(report.complete, true, JSON.stringify(report.issues));
   assert.equal(auditExitCode(report), 2);
   assert.ok(report.differences.some((d) => d.document === 'accounts/cash' && d.expected === 3800 && d.actual === 999));
   assert.ok(report.differences.some((d) => d.document === 'monthlySummaries/2026-10_COP' && d.field === 'document'));

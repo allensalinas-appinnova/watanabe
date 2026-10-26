@@ -342,6 +342,7 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
                                         OperationType.transfer => l10n.transfer,
                                         OperationType.expenseRefund => l10n.debtRefund,
                                         OperationType.debtAdjustment => l10n.debtAdjust,
+                                        OperationType.unallocatedDebtPayment => l10n.unallocatedPaymentStatus,
                                       }
                                     : operation.description,
                                 style: Theme.of(context).textTheme.titleSmall,

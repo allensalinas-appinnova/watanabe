@@ -50,6 +50,7 @@ class ActivityReport {
           );
         case OperationType.transfer:
         case OperationType.debtAdjustment:
+        case OperationType.unallocatedDebtPayment:
           // Transfers move money between accounts; they are not income or expense.
           break;
       }
@@ -84,7 +85,9 @@ class ActivityReport {
     for (final operation in operations) {
       groups
           .putIfAbsent(
-            operation.debtCommandId == null
+            operation.paymentId != null
+                ? 'payment:${operation.paymentId}'
+                : operation.debtCommandId == null
                 ? 'operation:${operation.id}'
                 : 'command:${operation.debtCommandId}',
             () => [],

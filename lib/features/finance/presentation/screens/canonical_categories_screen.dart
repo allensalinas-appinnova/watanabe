@@ -160,6 +160,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
     final name = TextEditingController();
     var type = _selectedType;
     var icon = 'other';
+    String? selectedTemplate;
     int? colorValue;
     var isSaving = false;
     var errorMessage = '';
@@ -208,6 +209,50 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         ),
                       ),
                       const SizedBox(height: 16),
+                      if (type == CategoryType.expense) ...[
+                        _EditCategoryFieldLabel(label: l10n.categoryTemplatePrompt),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            _CategoryTemplateChip(
+                              key: const ValueKey('category_template_family'),
+                              label: l10n.categoryTemplateFamily,
+                              icon: 'family',
+                              selected: selectedTemplate == 'family',
+                              onPressed: () => setDialogState(() {
+                                selectedTemplate = 'family';
+                                name.text = l10n.categoryTemplateFamily;
+                                icon = 'family';
+                              }),
+                            ),
+                            _CategoryTemplateChip(
+                              key: const ValueKey('category_template_children'),
+                              label: l10n.categoryTemplateChildren,
+                              icon: 'children',
+                              selected: selectedTemplate == 'children',
+                              onPressed: () => setDialogState(() {
+                                selectedTemplate = 'children';
+                                name.text = l10n.categoryTemplateChildren;
+                                icon = 'children';
+                              }),
+                            ),
+                            _CategoryTemplateChip(
+                              key: const ValueKey('category_template_parents'),
+                              label: l10n.categoryTemplateParents,
+                              icon: 'parents',
+                              selected: selectedTemplate == 'parents',
+                              onPressed: () => setDialogState(() {
+                                selectedTemplate = 'parents';
+                                name.text = l10n.categoryTemplateParents;
+                                icon = 'parents';
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       _EditCategoryFieldLabel(label: l10n.categoryName),
                       const SizedBox(height: 8),
                       TextField(
@@ -215,7 +260,10 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                         controller: name,
                         autofocus: true,
                         textCapitalization: TextCapitalization.sentences,
-                        onChanged: (_) => setDialogState(() => errorMessage = ''),
+                        onChanged: (_) => setDialogState(() {
+                          errorMessage = '';
+                          selectedTemplate = null;
+                        }),
                         decoration: InputDecoration(
                           errorText: errorMessage == l10n.categoryNameRequired
                               ? errorMessage
@@ -254,7 +302,10 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                             ],
                             onChanged: isSaving
                                 ? null
-                                : (value) => setDialogState(() => type = value ?? type),
+                                : (value) => setDialogState(() {
+                                    type = value ?? type;
+                                    selectedTemplate = null;
+                                  }),
                           ),
                         ),
                       ),
@@ -820,15 +871,68 @@ String _categoryColorLabel(int? colorValue, AppLocalizations l10n) => switch (co
 
 String _categoryIconLabel(String? iconId, AppLocalizations l10n) =>
     switch (FinanceCategoryIcons.canonicalId(iconId)) {
-      'food' => l10n.categoryIconUtensils,
-      'housing' => l10n.categoryIconHouse,
-      'transport' => l10n.categoryIconCar,
-      'health' => l10n.categoryIconHeart,
-      'education' => l10n.categoryIconBook,
+      'food' => l10n.categoryIconFood,
+      'groceries' => l10n.categoryIconGroceries,
+      'housing' => l10n.categoryIconHousing,
+      'transport' => l10n.categoryIconTransport,
+      'car_maintenance' => l10n.categoryIconCarMaintenance,
+      'phone' => l10n.categoryIconPhone,
+      'utilities' => l10n.categoryIconUtilities,
+      'health' => l10n.categoryIconHealth,
+      'insurance' => l10n.categoryIconInsurance,
+      'education' => l10n.categoryIconEducation,
+      'family' => l10n.categoryIconFamily,
+      'children' => l10n.categoryIconChildren,
+      'parents' => l10n.categoryIconParents,
+      'pets' => l10n.categoryIconPets,
+      'sports' => l10n.categoryIconSports,
+      'hobbies' => l10n.categoryIconHobbies,
+      'subscriptions' => l10n.categoryIconSubscriptions,
+      'entertainment' => l10n.categoryIconEntertainment,
+      'travel' => l10n.categoryIconTravel,
+      'shopping' => l10n.categoryIconShopping,
+      'clothing' => l10n.categoryIconClothing,
+      'personal_care' => l10n.categoryIconPersonalCare,
+      'gift' => l10n.categoryIconGift,
       'interest' => l10n.categoryIconInterest,
       'salary' => l10n.categoryIconBriefcase,
+      'freelance' => l10n.categoryIconFreelance,
+      'business' => l10n.categoryIconBusiness,
+      'investment' => l10n.categoryIconInvestment,
+      'savings' => l10n.categoryIconSavings,
       _ => l10n.categoryIconTag,
     };
+
+class _CategoryTemplateChip extends StatelessWidget {
+  const _CategoryTemplateChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String label;
+  final String icon;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => ActionChip(
+    avatar: FinanceCategoryIcon(iconId: icon, size: 28, iconSize: 16),
+    label: Text(label),
+    tooltip: label,
+    onPressed: onPressed,
+    side: BorderSide(
+      color: selected
+          ? Theme.of(context).colorScheme.primary
+          : Theme.of(context).colorScheme.outlineVariant,
+    ),
+    backgroundColor: selected
+        ? Theme.of(context).colorScheme.secondaryContainer
+        : Theme.of(context).colorScheme.surface,
+  );
+}
 
 class _CategoriesError extends StatelessWidget {
   const _CategoriesError({required this.message, required this.retryLabel, required this.onRetry});

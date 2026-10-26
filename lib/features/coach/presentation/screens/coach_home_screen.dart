@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../finance/domain/entities/financial_operation.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../domain/entities/coach_models.dart';
 import '../../domain/usecases/coach_routine.dart';
@@ -26,6 +27,7 @@ class CoachHomeScreen extends ConsumerWidget {
     final preferences = ref.watch(coachPreferencesProvider(uid));
     final completions = ref.watch(coachCompletionsProvider(uid));
     final profile = ref.watch(canonicalUserProfileProvider(uid)).valueOrNull;
+    final recentOperations = ref.watch(canonicalRecentOperationsProvider(uid));
     final timeZone = profile?.timeZone ?? 'UTC';
     final routine = ref.watch(coachRoutineProvider);
     final loading = preferences.isLoading || completions.isLoading;
@@ -99,6 +101,56 @@ class CoachHomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+            recentOperations.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(),
+              ),
+              error: (_, _) => const SizedBox.shrink(),
+              data: (operations) {
+                final unresolved = operations
+                    .where(
+                      (operation) =>
+                          operation.type == OperationType.unallocatedDebtPayment &&
+                          operation.status == OperationStatus.confirmed &&
+                          operation.projectionDirection == 1 &&
+                          operation.allocationStatus == 'unallocated' &&
+                          operation.debtAccountId != null,
+                    )
+                    .toList(growable: false);
+                if (unresolved.isEmpty) return const SizedBox.shrink();
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.debtPaymentsToReview,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final operation in unresolved)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.pending_actions_outlined),
+                            title: Text(l10n.debtPayUnallocated),
+                            subtitle: Text(
+                              operation.occurredAt.toLocal().toString().split(' ').first,
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => context.push(
+                              '/debts/${operation.debtAccountId}/actions/allocatePayment',
+                              extra: [operation],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             _RoutineTile(

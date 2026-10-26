@@ -105,11 +105,42 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                           Text(
                             '${l.debtReferenceDate}: ${MaterialLocalizations.of(context).formatMediumDate(account.referenceAt!.toLocal())}',
                           ),
+                        if (account.isCreditCard &&
+                            (account.statementClosingDay != null ||
+                                account.paymentDueDay != null)) ...[
+                          const Divider(height: 24),
+                          Text(l.cardBillingCycle, style: Theme.of(context).textTheme.titleMedium),
+                          if (account.statementClosingDay != null)
+                            Text('${l.cardStatementClosingDay}: ${account.statementClosingDay}'),
+                          if (account.paymentDueDay != null)
+                            Text('${l.cardPaymentDueDay}: ${account.paymentDueDay}'),
+                        ],
+                        if (!account.isCreditCard && account.paymentDueDay != null) ...[
+                          const Divider(height: 24),
+                          Text(
+                            l.debtPaymentPlanning,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          Text('${l.debtPaymentDueDay}: ${account.paymentDueDay}'),
+                          Text(l.debtPaymentDayExplanation),
+                        ],
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (account.isCreditCard && account.status == 'active')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: FilledButton.icon(
+                      key: const ValueKey('debt_plan_payment'),
+                      onPressed: () => context.push(
+                        '/budgets/debt-payments/new?debtAccountId=${Uri.encodeQueryComponent(account.id)}',
+                      ),
+                      icon: const Icon(Icons.calendar_month),
+                      label: Text(l.cardPlanPayment),
+                    ),
+                  ),
                 if (account.status == 'active')
                   for (final action in [
                     if (account.isCreditCard) 'purchase' else 'disburse',
@@ -157,6 +188,22 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                               '${operation.occurredAt.toLocal()} · ${money(operation.amountMinor * operation.projectionDirection)}',
                             ),
                             children: [
+                              if (operation.type.name == 'unallocatedDebtPayment' &&
+                                  operation.projectionDirection == 1 &&
+                                  operation.allocationStatus == 'unallocated') ...[
+                                ListTile(
+                                  title: Text(l.unallocatedPaymentStatus),
+                                  subtitle: Text(l.unallocatedPaymentExplanation),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => context.push(
+                                    '/debts/${account.id}/actions/allocatePayment',
+                                    extra: [operation],
+                                  ),
+                                  icon: const Icon(Icons.rule_outlined),
+                                  label: Text(l.debtAllocatePayment),
+                                ),
+                              ],
                               if (!account.isCreditCard) ...[
                                 ListTile(
                                   title: Text(l.debtPrincipal),

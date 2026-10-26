@@ -242,6 +242,70 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('category templates are optional and remain editable', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _MockFinanceRepository();
+    when(
+      () => repository.createCategory(
+        any(),
+        name: any(named: 'name'),
+        type: any(named: 'type'),
+        icon: any(named: 'icon'),
+        colorValue: any(named: 'colorValue'),
+      ),
+    ).thenAnswer(
+      (_) async => const Right<Failure, FinanceCategory>(
+        FinanceCategory(
+          id: 'family-travel',
+          type: CategoryType.expense,
+          icon: 'children',
+          sortOrder: 9,
+          isSystem: false,
+          isArchived: false,
+          customName: 'Gastos de mis hijos',
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(subject(repository: repository));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('categories_create')));
+    await tester.pumpAndSettle();
+
+    final nameField = find.byKey(const ValueKey('category_create_name'));
+    expect(tester.widget<TextField>(nameField).controller!.text, isEmpty);
+    await tester.ensureVisible(find.byKey(const ValueKey('category_template_children')));
+    await tester.tap(find.byKey(const ValueKey('category_template_children')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(nameField).controller!.text, 'Hijos');
+    expect(
+      tester
+          .widget<FinanceCategoryIcon>(find.byKey(const ValueKey('category_icon_preview')))
+          .iconId,
+      'children',
+    );
+
+    await tester.enterText(nameField, 'Gastos de mis hijos');
+    await tester.ensureVisible(find.byKey(const ValueKey('category_create_save')));
+    await tester.tap(find.byKey(const ValueKey('category_create_save')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.createCategory(
+        'user-1',
+        name: 'Gastos de mis hijos',
+        type: CategoryType.expense,
+        icon: 'children',
+        colorValue: null,
+      ),
+    ).called(1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('create category uses the edit form visual system on compact screens', (
     tester,
   ) async {

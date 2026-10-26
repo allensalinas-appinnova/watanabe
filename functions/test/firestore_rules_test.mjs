@@ -59,6 +59,38 @@ test('debt accounts and command-owned operations reject every client write and a
   await assertFails(alice.doc('users/alice/debtCommands/receipt_0001').get());
 });
 
+test('debt commitments and payment links are owner-readable and server-write-only', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc('users/alice').set(userProfile());
+    await db.doc('users/alice/debtCommitments/vehicle').set({status: 'active', currency: 'COP'});
+    await db.doc('users/alice/debtCommitments/vehicle/versions/1').set({amountMinor: 240000000});
+    await db.doc('users/alice/debtCommitments/vehicle/occurrences/vehicle_2026-10').set({monthKey: '2026-10'});
+    await db.doc('users/alice/debtPayments/payment_0001').set({status: 'unallocated'});
+    await db.doc('users/alice/debtPaymentLinks/payment_0001').set({commitmentId: 'vehicle'});
+    await db.doc('users/alice/debtCommitmentCommands/command_0001').set({digest: 'private'});
+  });
+  const alice = environment.authenticatedContext('alice').firestore();
+  await assertSucceeds(alice.doc('users/alice/debtCommitments/vehicle').get());
+  await assertSucceeds(alice.doc('users/alice/debtCommitments/vehicle/versions/1').get());
+  await assertSucceeds(alice.doc('users/alice/debtCommitments/vehicle/occurrences/vehicle_2026-10').get());
+  await assertSucceeds(alice.doc('users/alice/debtPayments/payment_0001').get());
+  await assertSucceeds(alice.doc('users/alice/debtPaymentLinks/payment_0001').get());
+  for (const context of [alice, environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    await assertFails(context.doc('users/alice/debtCommitments/vehicle').set({status: 'active'}));
+    await assertFails(context.doc('users/alice/debtCommitments/vehicle/versions/2').set({amountMinor: 1}));
+    await assertFails(context.doc('users/alice/debtCommitments/vehicle/occurrences/vehicle_2026-11').set({skipped: true}));
+    await assertFails(context.doc('users/alice/debtPayments/payment_0002').set({status: 'allocated'}));
+    await assertFails(context.doc('users/alice/debtPaymentLinks/payment_0002').set({commitmentId: 'vehicle'}));
+    await assertFails(context.doc('users/alice/debtCommitmentCommands/command_0001').get());
+  }
+  for (const context of [environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    await assertFails(context.doc('users/alice/debtCommitments/vehicle').get());
+    await assertFails(context.doc('users/alice/debtPayments/payment_0001').get());
+    await assertFails(context.doc('users/alice/debtPaymentLinks/payment_0001').get());
+  }
+});
+
 test('user data generation is server-owned and invalidates stale writes after reset', async () => {
   const db = environment.authenticatedContext('alice').firestore();
   const profile = db.doc('users/alice');

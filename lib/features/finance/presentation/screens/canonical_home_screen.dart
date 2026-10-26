@@ -127,6 +127,11 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   ],
                   if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
                     CoachNextStepCard(userId: user.id, timeZone: profile?.timeZone ?? 'UTC'),
+                  if (homePreferences.shows(HomeDashboardWidget.debtCommitments))
+                    _DebtCommitmentsHomeCard(
+                      userId: user.id,
+                      amountsHidden: amountsHidden,
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Wrap(
@@ -304,6 +309,123 @@ class CanonicalHomeScreen extends ConsumerWidget {
                             }).toList(),
                           ),
                   ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DebtCommitmentsHomeCard extends ConsumerWidget {
+  const _DebtCommitmentsHomeCard({required this.userId, required this.amountsHidden});
+
+  final String userId;
+  final bool amountsHidden;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final commitments = ref.watch(debtCommitmentsProvider(userId));
+    final links = ref.watch(debtCommitmentPaymentsProvider(userId));
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    return commitments.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.only(top: 12),
+        child: _HomeSkeleton(height: 96, lines: 2),
+      ),
+      error: (_, _) => _ErrorCard(
+        message: l10n.genericError,
+        onRetry: () {
+          ref
+            ..invalidate(debtCommitmentsProvider(userId))
+            ..invalidate(debtCommitmentPaymentsProvider(userId));
+        },
+      ),
+      data: (allPlans) {
+        if (links.hasError) {
+          return _ErrorCard(
+            message: l10n.genericError,
+            onRetry: () => ref.invalidate(debtCommitmentPaymentsProvider(userId)),
+          );
+        }
+        if (links.isLoading) {
+          return const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: _HomeSkeleton(height: 96, lines: 2),
+          );
+        }
+        final plans = allPlans.where((item) => item.dueDateFor(monthKey) != null).toList()
+          ..sort(
+            (left, right) => left.dueDateFor(monthKey)!.compareTo(right.dueDateFor(monthKey)!),
+          );
+        final paymentLinks = links.requireValue;
+        final currencies = plans.map((plan) => plan.currency).toSet().toList()..sort();
+        final nextDue = plans.where((plan) {
+          final paid = paymentLinks
+              .where((link) => link.commitmentId == plan.id && link.monthKey == monthKey)
+              .fold<int>(0, (sum, link) => sum + link.amountMinor);
+          return paid < plan.amountMinor;
+        }).firstOrNull;
+        return Card(
+          margin: const EdgeInsets.only(top: 12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => context.go('/budgets/debt-payments'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.event_note_outlined, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          l10n.debtCommitmentsTitle,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (plans.isEmpty)
+                    Text(l10n.debtCommitmentsEmpty)
+                  else ...[
+                    for (final currency in currencies)
+                      Builder(
+                        builder: (context) {
+                          final currencyPlans = plans.where((plan) => plan.currency == currency);
+                          final planned = currencyPlans.fold<int>(
+                            0,
+                            (sum, plan) => sum + plan.amountMinor,
+                          );
+                          final paid = currencyPlans.fold<int>(
+                            0,
+                            (sum, plan) =>
+                                sum +
+                                paymentLinks
+                                    .where(
+                                      (link) =>
+                                          link.commitmentId == plan.id && link.monthKey == monthKey,
+                                    )
+                                    .fold<int>(0, (amount, link) => amount + link.amountMinor),
+                          );
+                          return Text(
+                            '$currency · ${l10n.debtCommitmentRemaining}: ${amountsHidden ? '••••' : _money((planned - paid).clamp(0, planned), currency)}',
+                          );
+                        },
+                      ),
+                    if (nextDue != null)
+                      Text(
+                        '${l10n.debtCommitmentNextDue}: ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(nextDue.dueDateFor(monthKey)!)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -865,12 +987,16 @@ class _OperationTile extends StatelessWidget {
     final title = isTransfer
         ? '${source?.name ?? l10n.sourceAccount} → ${destination?.name ?? l10n.destinationAccount}'
         : operation.description.isEmpty
-        ? (category?.customName ?? category?.id ?? (isIncome ? l10n.income : l10n.expense))
+        ? operation.type == OperationType.unallocatedDebtPayment
+              ? l10n.unallocatedPaymentStatus
+              : (category?.customName ?? category?.id ?? (isIncome ? l10n.income : l10n.expense))
         : operation.description;
     final subtitle = operation.type == OperationType.expenseRefund
         ? '${l10n.debtRefund} · $date'
         : operation.type == OperationType.debtAdjustment
         ? '${l10n.debtAdjust} · $date'
+        : operation.type == OperationType.unallocatedDebtPayment
+        ? '${l10n.unallocatedPaymentStatus} · $date'
         : isTransfer
         ? '${l10n.transferOperationLabel} · $date'
         : '${isIncome ? l10n.income : l10n.expense} · $date';

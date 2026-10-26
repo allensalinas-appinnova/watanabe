@@ -297,6 +297,45 @@ void main() {
     );
   });
 
+  testWidgets('limits item days to the selected month and clamps the draft on month change', (
+    tester,
+  ) async {
+    _setViewport(tester);
+    await tester.pumpWidget(subject(locale: const Locale('en')));
+    await tester.pumpAndSettle();
+
+    final daySelector = find.byKey(const ValueKey('budget_item_day_0'));
+    await tester.tap(daySelector);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Day 31'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Day 31'));
+    await tester.pumpAndSettle();
+
+    await _tap(tester, 'budget_month_selector');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_month_option_2')));
+    await tester.tap(find.byKey(const ValueKey('budget_month_confirm')));
+    await tester.pumpAndSettle();
+
+    final selector = find.byKey(const ValueKey('budget_item_day_0'));
+    expect(
+      tester
+          .widget<DropdownButtonFormField<int>>(
+            find.byKey(const ValueKey('day_of_month_budget_item_day_0_1_28_28')),
+          )
+          .initialValue,
+      28,
+    );
+    await tester.tap(selector);
+    await tester.pumpAndSettle();
+    expect(find.text('Day 28'), findsWidgets);
+    expect(find.text('Day 29'), findsNothing);
+  });
+
   testWidgets('explains when the selected flow has no categories', (tester) async {
     _setViewport(tester);
     await tester.pumpWidget(subject(categories: const []));

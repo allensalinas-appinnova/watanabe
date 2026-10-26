@@ -1,6 +1,6 @@
 enum CoachPermission { granted, denied, notDetermined, unsupported }
 
-enum CoachNotificationType { daily, weekly }
+enum CoachNotificationType { daily, weekly, debtBefore, debtDue }
 
 class CoachDeviceSettings {
   const CoachDeviceSettings({this.enabled = false, this.pausedUntil});

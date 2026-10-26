@@ -195,12 +195,15 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                     expenseLabel: l10n.expense,
                     incomeLabel: l10n.income,
                     isIncomeSelected: _type == OperationType.income,
-                    enabled: preset == null && widget.initialOperation?.debtCommandId == null,
-                    onChanged: (isIncome) => setState(() {
-                      _hasUnsavedChanges = true;
-                      _type = isIncome ? OperationType.income : OperationType.expense;
-                      _categoryId = null;
-                    }),
+                    enabled: preset == null && widget.initialOperation == null,
+                    onChanged: (isIncome) {
+                      if (widget.initialOperation != null) return;
+                      setState(() {
+                        _hasUnsavedChanges = true;
+                        _type = isIncome ? OperationType.income : OperationType.expense;
+                        _categoryId = null;
+                      });
+                    },
                   ),
                   if (preset != null) ...[
                     const SizedBox(height: 8),
@@ -353,6 +356,15 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                         label: Text(l10n.manageCategories),
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  FinanceLabeledField(
+                    label: l10n.descriptionOptional,
+                    child: TextField(
+                      key: const ValueKey('operation_description'),
+                      controller: _description,
+                      decoration: const InputDecoration(),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   ExpansionTile(
                     key: const ValueKey('operation_more_options'),
@@ -402,15 +414,6 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                               child: Text(TimeOfDay.fromDateTime(_occurredAt).format(context)),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      FinanceLabeledField(
-                        label: l10n.descriptionOptional,
-                        child: TextField(
-                          key: const ValueKey('operation_description'),
-                          controller: _description,
-                          decoration: const InputDecoration(),
                         ),
                       ),
                     ],

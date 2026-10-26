@@ -94,11 +94,18 @@ Evidencia: `lib/features/coach/` y [contrato y verificación](coach.md).
 
 El checkout incluye tarjetas de crédito, préstamos/créditos recibidos,
 desembolsos, pagos, cargos, devoluciones, ajustes y correcciones auditables.
-La implementación está detrás de controles de activación; no convierte cuentas
-antiguas y no admite amortización o intereses automáticos. La revisión de la
-callable en Cloud Run está lista; una llamada no autenticada fue rechazada como
-se espera. No se ha probado un comando financiero autenticado, por lo que la
-creación de deuda debe seguir deshabilitada hasta cualificar el cliente. Véase
+También incluye compromisos mensuales y el registro de pagos de préstamo con
+desglose pendiente. El pago provisional reduce dinero, pero no actualiza capital
+ni gastos hasta que el usuario distribuya sus componentes. La implementación no
+convierte cuentas antiguas y no admite amortización o intereses automáticos. La
+callable de deuda está desplegada habilitada en `lumiomoney`, junto con la nueva
+callable de compromisos, el trigger de proyecciones y las reglas. Se verificó
+que la callable nueva está lista y que una petición sin Firebase Auth recibe
+401; no se envió un comando financiero autenticado al proyecto real. El E2E
+Android con Auth/Firestore/Functions Emulator comprobó el ciclo de cuota de
+COP 2.400.000 y conciliación posterior, pero no recorre todavía la interfaz
+completa; la cualificación iOS de usuario y la entrega real de notificaciones
+siguen pendientes. Véase
 [estado y límites](debts.md).
 
 ### Importación asistida de correo

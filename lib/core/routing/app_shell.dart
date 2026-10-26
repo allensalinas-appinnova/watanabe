@@ -272,6 +272,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       OperationType.transfer => l10n.transferRegistered,
       OperationType.expenseRefund => l10n.debtRefund,
       OperationType.debtAdjustment => l10n.debtAdjust,
+      OperationType.unallocatedDebtPayment => l10n.unallocatedPaymentStatus,
     };
     final isVisibleInActivity =
         widget.navigationShell.currentIndex != 1 ||

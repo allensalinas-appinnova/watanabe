@@ -15,6 +15,8 @@ import '../../../../core/offline/sync_state.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/request_id.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../commitments/domain/commitment_repository.dart';
+import '../../../commitments/domain/debt_commitment.dart';
 import '../../domain/entities/activity_report.dart';
 import '../../domain/entities/appearance_preferences.dart';
 import '../../domain/entities/balance_adjustment.dart';
@@ -32,6 +34,19 @@ import '../../domain/repositories/canonical_finance_repository.dart';
 final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
   (ref) => getIt<CanonicalFinanceRepository>(),
 );
+
+final debtCommitmentsProvider = StreamProvider.family<List<DebtCommitment>, String>(
+  (ref, userId) => getIt.isRegistered<CommitmentRepository>()
+      ? getIt<CommitmentRepository>().watch(userId)
+      : Stream.value(const <DebtCommitment>[]),
+);
+
+final debtCommitmentPaymentsProvider =
+    StreamProvider.family<List<DebtCommitmentPaymentLink>, String>(
+      (ref, userId) => getIt.isRegistered<CommitmentRepository>()
+          ? getIt<CommitmentRepository>().watchPayments(userId)
+          : Stream.value(const <DebtCommitmentPaymentLink>[]),
+    );
 
 final firebaseObservabilityProvider = Provider<FirebaseObservability?>(
   (ref) => getIt.isRegistered<FirebaseObservability>() ? getIt<FirebaseObservability>() : null,

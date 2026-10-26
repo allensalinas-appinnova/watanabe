@@ -36,6 +36,53 @@ test('authentication and disabled activation fail before writing', async () => {
   assert.deepEqual(await userDump(root), before);
 });
 
+test('credit card billing days are optional, independently editable and clearable', async () => {
+  const root = await seed('billing-days');
+  const created = await execute(root, create({statementClosingDay: 20, paymentDueDay: 5}));
+  const id = created.accountId;
+  assert.equal((await account(root, id)).statementClosingDay, 20);
+  assert.equal((await account(root, id)).paymentDueDay, 5);
+
+  const update = {requestId: 'billing_update1', action: 'update', accountId: id, statementClosingDay: 25};
+  const updateReceipt = await execute(root, update);
+  assert.deepEqual(await execute(root, update), updateReceipt);
+  await assert.rejects(execute(root, {...update, requestId: 'billing_invalid1', statementClosingDay: 32}), {issue: 'debt-invalid-billing-day'});
+  await assert.rejects(execute(root, {...update, statementClosingDay: 24}), {issue: 'debt-request-conflict'});
+  let card = await account(root, id);
+  assert.equal(card.statementClosingDay, 25);
+  assert.equal(card.paymentDueDay, 5);
+  await execute(root, {requestId: 'billing_update2', action: 'update', accountId: id, paymentDueDay: null});
+  card = await account(root, id);
+  assert.equal(card.statementClosingDay, 25);
+  assert.equal(Object.hasOwn(card, 'paymentDueDay'), false);
+
+  await execute(root, {requestId: 'billing_update3', action: 'update', accountId: id, statementClosingDay: null, paymentDueDay: 31});
+  card = await account(root, id);
+  assert.equal(Object.hasOwn(card, 'statementClosingDay'), false);
+  assert.equal(card.paymentDueDay, 31);
+  await cleanAudit(root);
+});
+
+test('payment day is available for loans while statement closing day remains card-only', async () => {
+  const root = await seed('billing-validation');
+  for (const value of [0, 32, 1.5, '5', true]) {
+    await assert.rejects(execute(root, create({requestId: `invalid_day_${String(value).replace(/[^a-z0-9]/gi, '_')}`, paymentDueDay: value})), {issue: 'debt-invalid-billing-day'});
+  }
+  const bankLoan = await execute(root, create({requestId: 'bank_loan_due_1', product: 'bankLoan', debtMinor: undefined, principalMinor: 100, chargesMinor: 0, paymentDueDay: 31}));
+  assert.equal((await account(root, bankLoan.accountId)).paymentDueDay, 31);
+  await assert.rejects(execute(root, {requestId: 'bank_loan_statement1', action: 'update', accountId: bankLoan.accountId, statementClosingDay: 5}), {issue: 'debt-invalid-billing-day'});
+  await assert.rejects(execute(root, create({requestId: 'bank_loan_statement2', product: 'bankLoan', debtMinor: undefined, principalMinor: 100, chargesMinor: 0, statementClosingDay: null})), {issue: 'debt-invalid-billing-day'});
+  await execute(root, {requestId: 'bank_loan_due_clear1', action: 'update', accountId: bankLoan.accountId, paymentDueDay: null});
+  assert.equal(Object.hasOwn(await account(root, bankLoan.accountId), 'paymentDueDay'), false);
+
+  const personalLoan = await execute(root, create({requestId: 'personal_loan_due1', product: 'personalLoan', debtMinor: undefined, principalMinor: 100, chargesMinor: 0, paymentDueDay: 1}));
+  assert.equal((await account(root, personalLoan.accountId)).paymentDueDay, 1);
+  await execute(root, {requestId: 'personal_loan_due_update1', action: 'update', accountId: personalLoan.accountId, paymentDueDay: 15});
+  assert.equal((await account(root, personalLoan.accountId)).paymentDueDay, 15);
+  await assert.rejects(execute(root, {requestId: 'personal_loan_statement1', action: 'update', accountId: personalLoan.accountId, statementClosingDay: null}), {issue: 'debt-invalid-billing-day'});
+  await cleanAudit(root);
+});
+
 test('card purchase, payment, partial refunds, credit balance and duplicate trigger delivery', async () => {
   const root = await seed('card');
   const result = await execute(root, create({limitMinor: 1000}));
@@ -76,6 +123,37 @@ test('existing loans do not create income; installments recognize new charges on
   await execute(root, command(id, 'new_charge01', 'charge', {amountMinor: 100, categoryId: 'food'}));
   await execute(root, command(id, 'loan_payment2', 'pay', {amountMinor: 100, bankAccountId: 'bank', principalMinor: 0, previousChargesMinor: 100, newChargesMinor: 0}));
   assert.equal((await summary(root)).expenseMinor, 150);
+  await cleanAudit(root);
+});
+
+test('unallocated loan payment reduces cash only; later allocation is cash-neutral and recognizes the split once', async () => {
+  const root = await seed('unallocated-payment');
+  await root.collection('accounts').doc('bank').update({openingBalanceMinor: 5000000, currentBalanceMinor: 5000000});
+  const {accountId} = await execute(root, create({product: 'bankLoan', debtMinor: undefined, principalMinor: 20000000, chargesMinor: 0}));
+  const payment = command(accountId, 'payment_unalloc1', 'payUnallocated', {amountMinor: 2400000, bankAccountId: 'bank'});
+  await execute(root, payment);
+  assert.equal((await account(root, 'bank')).currentBalanceMinor, 2600000);
+  assert.equal((await account(root, accountId)).currentBalanceMinor, -20000000);
+  assert.equal((await account(root, accountId)).principalMinor, 20000000);
+  assert.equal((await summary(root)), undefined);
+  const record = (await root.collection('debtPayments').doc(payment.requestId).get()).data();
+  assert.equal(record.status, 'unallocated');
+  const provisional = await auditProjections(db, root.id);
+  assert.equal(provisional.complete, true, JSON.stringify(provisional.issues));
+  assert.deepEqual(provisional.differences, []);
+  const beforeAllocationBank = (await account(root, 'bank')).currentBalanceMinor;
+  await execute(root, {requestId: 'allocate_00001', action: 'allocatePayment', accountId,
+    paymentId: payment.requestId, occurredAt: date, principalMinor: 2000000,
+    previousChargesMinor: 0, newChargesMinor: 400000, categoryId: 'food'});
+  assert.equal((await account(root, 'bank')).currentBalanceMinor, beforeAllocationBank);
+  assert.equal((await account(root, accountId)).currentBalanceMinor, -18000000);
+  assert.equal((await account(root, accountId)).principalMinor, 18000000);
+  assert.equal((await account(root, accountId)).chargesMinor, 0);
+  assert.equal((await summary(root)).expenseMinor, 400000);
+  assert.equal((await root.collection('debtPayments').doc(payment.requestId).get()).data().status, 'allocated');
+  await assert.rejects(execute(root, {requestId: 'allocate_00002', action: 'allocatePayment', accountId,
+    paymentId: payment.requestId, occurredAt: date, principalMinor: 2000000,
+    previousChargesMinor: 0, newChargesMinor: 400000, categoryId: 'food'}), {issue: 'debt-payment-not-unallocated'});
   await cleanAudit(root);
 });
 

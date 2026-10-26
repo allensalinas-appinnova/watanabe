@@ -9,6 +9,7 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
+import '../../../../core/widgets/day_of_month_selector.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
@@ -43,7 +44,7 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
   final _formKey = GlobalKey<FormState>();
   final _description = TextEditingController();
   final _amount = TextEditingController();
-  final _day = TextEditingController();
+  int? _selectedDay = DateTime.now().day;
   BudgetItem? _loadedItem;
   String? _error;
   bool _saving = false;
@@ -55,24 +56,23 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
     super.initState();
     _description.addListener(_markChanged);
     _amount.addListener(_markChanged);
-    _day.addListener(_markChanged);
   }
 
   @override
   void dispose() {
     _description.dispose();
     _amount.dispose();
-    _day.dispose();
     super.dispose();
   }
 
-  void _populate(BudgetItem item, String currency) {
+  void _populate(BudgetItem item, String currency, int lastValidDay) {
     if (_loadedItem?.id == item.id) return;
     _loadedItem = item;
     _isPopulating = true;
     _description.text = item.description;
     _amount.text = _minorToInput(item.amountMinor, CurrencyFormatter.decimalDigits(currency));
-    _day.text = item.dayOfMonth.toString();
+    _selectedDay = item.dayOfMonth.clamp(1, lastValidDay);
+    _hasUnsavedChanges = item.dayOfMonth != _selectedDay;
     _isPopulating = false;
   }
 
@@ -94,14 +94,14 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
       _formKey.currentState!.validate();
       return;
     }
-    final day = int.tryParse(_day.text.trim());
     final monthParts = budget.monthKey.split('-');
     final lastValidDay = DateTime(
       int.parse(monthParts[0]),
       int.parse(monthParts[1]) + 1,
       0,
     ).day;
-    if (day == null || day < 1 || day > lastValidDay) {
+    final day = (_selectedDay ?? DateTime.now().day).clamp(1, lastValidDay);
+    if (day < 1 || day > lastValidDay) {
       setState(() => _error = l10n.budgetDayInvalidForMonth);
       return;
     }
@@ -192,12 +192,21 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                       orElse: () => null,
                     );
                     if (item == null) return _EditLoadError(message: l10n.genericError);
-                    _populate(item, budget.currency);
                   }
                   final loadedItem = item;
+                  final monthParts = budget.monthKey.split('-');
+                  final lastValidDay = DateTime(
+                    int.parse(monthParts[0]),
+                    int.parse(monthParts[1]) + 1,
+                    0,
+                  ).day;
+                  if (!widget.isCreating && item != null) {
+                    _populate(item, budget.currency, lastValidDay);
+                  }
                   final locale = Localizations.localeOf(context).toLanguageTag();
                   final month = DateFormatLocal.monthLabel(budget, locale);
                   final decimals = CurrencyFormatter.decimalDigits(budget.currency);
+                  final selectedDay = (_selectedDay ?? DateTime.now().day).clamp(1, lastValidDay);
                   return Column(
                     children: [
                       Expanded(
@@ -298,27 +307,26 @@ class _CanonicalBudgetItemEditScreenState extends ConsumerState<CanonicalBudgetI
                               const SizedBox(height: 16),
                               _LabeledInput(
                                 label: l10n.budgetExpectedDay,
-                                child: TextFormField(
+                                child: DayOfMonthSelector(
                                   key: ValueKey(
                                     widget.isCreating
                                         ? 'budget_item_create_day'
                                         : 'budget_item_edit_day',
                                   ),
-                                  controller: _day,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: const InputDecoration(),
-                                  validator: (value) {
-                                    final day = int.tryParse(value ?? '');
-                                    final monthParts = budget.monthKey.split('-');
-                                    final lastValidDay = DateTime(
-                                      int.parse(monthParts[0]),
-                                      int.parse(monthParts[1]) + 1,
-                                      0,
-                                    ).day;
-                                    return day == null || day < 1 || day > lastValidDay
-                                        ? l10n.budgetDayInvalidForMonth
-                                        : null;
+                                  fieldId: widget.isCreating
+                                      ? 'budget_item_create_day'
+                                      : 'budget_item_edit_day',
+                                  selectedDay: selectedDay,
+                                  maxDay: lastValidDay,
+                                  dayLabel: l10n.day,
+                                  enabled: !_saving,
+                                  onChanged: (day) {
+                                    if (day == null) return;
+                                    setState(() {
+                                      _selectedDay = day;
+                                      _hasUnsavedChanges = true;
+                                      _error = null;
+                                    });
                                   },
                                 ),
                               ),

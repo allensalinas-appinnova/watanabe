@@ -5,7 +5,8 @@ enum HomeDashboardWidget {
   expenseBudgetRatio('expenseBudgetRatio'),
   incomeBudgetRatio('incomeBudgetRatio'),
   recentActivity('recentActivity'),
-  coachNextStep('coachNextStep');
+  coachNextStep('coachNextStep'),
+  debtCommitments('debtCommitments');
 
   const HomeDashboardWidget(this.id);
   final String id;
@@ -21,6 +22,7 @@ class HomeDashboardPreferences {
       'incomeBudgetRatio',
       'recentActivity',
       'coachNextStep',
+      'debtCommitments',
     },
     this.hiddenBudgetCategoryIds = const {},
   });

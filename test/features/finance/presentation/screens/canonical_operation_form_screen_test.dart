@@ -13,6 +13,7 @@ import 'package:personal_finance/features/finance/presentation/models/budget_ite
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_operation_form_screen.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_transfer_screen.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/finance_components.dart';
 import 'package:personal_finance/features/finance/presentation/widgets/finance_popup_selector.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
@@ -40,6 +41,16 @@ void main() {
       ),
     );
     expect(find.byKey(const ValueKey('operation_time_selector')), findsOneWidget);
+  });
+
+  testWidgets('description is visible without expanding more options', (tester) async {
+    await _pumpOperationForm(tester, const [
+      FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash'),
+    ]);
+
+    expect(find.byKey(const ValueKey('operation_description')), findsOneWidget);
+    expect(find.byKey(const ValueKey('operation_more_options')), findsOneWidget);
+    expect(find.byKey(const ValueKey('operation_date_selector')), findsNothing);
   });
 
   testWidgets('edited operation keeps its saved local time and exposes a time picker', (
@@ -74,6 +85,60 @@ void main() {
     await tester.tap(timeSelector);
     await tester.pumpAndSettle();
     expect(find.byType(TimePickerDialog), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('editing an expense does not allow changing it to income', (tester) async {
+    final operation = FinancialOperation(
+      id: 'op-1',
+      type: OperationType.expense,
+      amountMinor: 2500,
+      currency: 'COP',
+      monthKey: '2026-10',
+      occurredAt: DateTime(2026, 10, 7).toUtc(),
+      status: OperationStatus.confirmed,
+      idempotencyKey: 'key-1',
+      accountId: 'cash',
+      categoryId: 'food',
+      description: 'Mercado',
+    );
+    await _pumpOperationForm(
+      tester,
+      const [FinanceAccount(id: 'cash', name: 'Efectivo', type: 'cash')],
+      initialOperation: operation,
+      categories: const [
+        FinanceCategory(
+          id: 'food',
+          type: CategoryType.expense,
+          icon: 'restaurant',
+          sortOrder: 0,
+          isSystem: true,
+          isArchived: false,
+        ),
+        FinanceCategory(
+          id: 'salary',
+          type: CategoryType.income,
+          icon: 'payments',
+          sortOrder: 1,
+          isSystem: true,
+          isArchived: false,
+        ),
+      ],
+    );
+
+    final selector = tester.widget<FinanceOperationTypeSelector>(
+      find.byType(FinanceOperationTypeSelector),
+    );
+    expect(selector.enabled, isFalse);
+    expect(selector.isIncomeSelected, isFalse);
+
+    await tester.tap(find.text('Income'));
+    await tester.pumpAndSettle();
+
+    final unchangedSelector = tester.widget<FinanceOperationTypeSelector>(
+      find.byType(FinanceOperationTypeSelector),
+    );
+    expect(unchangedSelector.isIncomeSelected, isFalse);
     expect(tester.takeException(), isNull);
   });
 

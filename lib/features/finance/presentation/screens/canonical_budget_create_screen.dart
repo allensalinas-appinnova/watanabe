@@ -9,6 +9,7 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
+import '../../../../core/widgets/day_of_month_selector.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget_command_failure.dart';
@@ -65,7 +66,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   _BudgetItemDraftControllers _newItem() {
     final item = _BudgetItemDraftControllers(
       id: _nextItemId++,
-      day: DateTime.now().day,
+      day: DateTime.now().day.clamp(1, _daysInSelectedMonth),
     );
     item.amount.addListener(_onAmountChanged);
     item.description.addListener(_onAmountChanged);
@@ -103,10 +104,15 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
       setState(() {
         _hasUnsavedChanges = true;
         _month = DateTime(selected.year, selected.month);
+        for (final item in _items) {
+          item.day = item.day.clamp(1, _daysInSelectedMonth);
+        }
         _errorMessage = null;
       });
     }
   }
+
+  int get _daysInSelectedMonth => DateTime(_month.year, _month.month + 1, 0).day;
 
   Future<void> _save(String userId, String currency, List<FinanceCategory> categories) async {
     final l10n = AppLocalizations.of(context);
@@ -448,6 +454,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                           item: _items[index],
                           index: index,
                           currency: currency,
+                          maxDay: _daysInSelectedMonth,
                           canRemove: _items.length > 1,
                           saving: _saving,
                           onRemove: () => _removeItem(_items[index]),
@@ -553,6 +560,7 @@ class _BudgetItemEditor extends StatelessWidget {
     required this.item,
     required this.index,
     required this.currency,
+    required this.maxDay,
     required this.canRemove,
     required this.saving,
     required this.onRemove,
@@ -563,6 +571,7 @@ class _BudgetItemEditor extends StatelessWidget {
   final _BudgetItemDraftControllers item;
   final int index;
   final String currency;
+  final int maxDay;
   final bool canRemove;
   final bool saving;
   final VoidCallback onRemove;
@@ -629,19 +638,18 @@ class _BudgetItemEditor extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            DropdownButton<int>(
-              key: ValueKey('budget_item_day_$index'),
-              value: item.day,
-              underline: const SizedBox.shrink(),
-              items: [
-                for (var day = 1; day <= 31; day++)
-                  DropdownMenuItem(value: day, child: Text('${l10n.day} $day')),
-              ],
-              onChanged: saving
-                  ? null
-                  : (day) {
-                      if (day != null) onDayChanged(day);
-                    },
+            Expanded(
+              child: DayOfMonthSelector(
+                key: ValueKey('budget_item_day_$index'),
+                fieldId: 'budget_item_day_$index',
+                selectedDay: item.day.clamp(1, maxDay),
+                maxDay: maxDay,
+                dayLabel: l10n.day,
+                enabled: !saving,
+                onChanged: (day) {
+                  if (day != null) onDayChanged(day);
+                },
+              ),
             ),
           ],
         ),

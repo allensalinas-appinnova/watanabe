@@ -175,6 +175,7 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
     HomeDashboardWidget.incomeBudgetRatio => l10n.homeWidgetIncomeBudget,
     HomeDashboardWidget.recentActivity => l10n.homeWidgetRecentActivity,
     HomeDashboardWidget.coachNextStep => l10n.coachHomeWidget,
+    HomeDashboardWidget.debtCommitments => l10n.debtCommitmentHomeWidget,
   };
 
   String _categoryName(List<FinanceCategory> categories, Budget budget) {

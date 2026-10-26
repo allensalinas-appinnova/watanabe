@@ -436,7 +436,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     // Keep the adjacent components of a payment together at a page boundary.
     // Receipts cap a command at four source rows (reversal + replacement).
     final commandId = records.lastOrNull?['debtCommandId'];
-    if (commandId is String && nextCursor != null) {
+    final paymentId = records.lastOrNull?['paymentId'];
+    if ((paymentId is String || commandId is String) && nextCursor != null) {
       for (var tail = 0; tail < 4 && nextCursor != null; tail++) {
         final cursor = nextCursor;
         final extra = await query
@@ -448,7 +449,11 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
           break;
         }
         final doc = extra.docs.single;
-        if (doc.data()['debtCommandId'] != commandId) break;
+        if (paymentId is String
+            ? doc.data()['paymentId'] != paymentId
+            : doc.data()['debtCommandId'] != commandId) {
+          break;
+        }
         final occurredAt = doc.data()['occurredAt'];
         if (occurredAt is! Timestamp) break;
         final data = doc.data();
@@ -465,8 +470,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   }
 
   bool _isDebtPaymentRecord(Map<String, dynamic> record) =>
-      record['debtCommandId'] is String &&
-      const {'pay', 'newChargePaid'}.contains(record['debtKind']);
+      (record['debtCommandId'] is String &&
+          const {'pay', 'newChargePaid'}.contains(record['debtKind'])) ||
+      record['type'] == 'unallocatedDebtPayment';
 
   @override
   Stream<List<Map<String, dynamic>>> watchLedgerEntries(String userId, String accountId) =>

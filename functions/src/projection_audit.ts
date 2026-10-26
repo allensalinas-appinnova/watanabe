@@ -27,7 +27,7 @@ export type AuditReport = {
 const fields: Record<string, string[]> = {
   accounts: ["currency", "openingBalanceMinor", "currentBalanceMinor", "nature", "type", "openingPrincipalMinor", "openingChargesMinor", "principalMinor", "chargesMinor"],
   categories: ["type"],
-  operations: ["type", "status", "amountMinor", "currency", "monthKey", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId", "debtAccountId", "principalDeltaMinor", "chargesDeltaMinor", "projectionDirection", "balanceDeltaMinor"],
+  operations: ["type", "status", "amountMinor", "currency", "monthKey", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId", "debtAccountId", "paymentId", "principalDeltaMinor", "chargesDeltaMinor", "projectionDirection", "balanceDeltaMinor"],
   monthlySummaries: ["monthKey", "currency", "incomeMinor", "expenseMinor", "transferInMinor", "transferOutMinor", "byCategory"],
   budgets: ["categoryId", "flowType", "currency"],
   items: ["actualAmountMinor"],
@@ -122,7 +122,7 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
         if (!expectedAccounts.has(accountId)) throw new ProjectionError("invalid_account_reference");
         if (account.currency !== operation.currency) throw new ProjectionError("account_currency_mismatch");
       }
-      if (operation.categoryId && operation.type !== "transfer") {
+      if (operation.categoryId && !["transfer", "unallocatedDebtPayment"].includes(operation.type)) {
         const category = snapshot.categories.get(operation.categoryId);
         if (!category) throw new ProjectionError("missing_category");
         if (category.type !== (operation.type === "expenseRefund" ? "expense" : operation.type)) throw new ProjectionError("category_type_mismatch");

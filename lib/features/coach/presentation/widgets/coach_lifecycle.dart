@@ -46,11 +46,13 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
   void _open(CoachNotificationTarget target) {
     if (!mounted || ref.read(authSessionProvider).value == null) return;
     final date = Uri.encodeQueryComponent(target.periodKey);
-    widget.onOpen(
-      target.type == CoachNotificationType.weekly
-          ? '/coach/weekly?date=$date'
-          : '/coach/daily?date=$date',
-    );
+    final location = switch (target.type) {
+      CoachNotificationType.weekly => '/coach/weekly?date=$date',
+      CoachNotificationType.daily => '/coach/daily?date=$date',
+      CoachNotificationType.debtBefore ||
+      CoachNotificationType.debtDue => '/budgets/debt-payments?month=$date',
+    };
+    widget.onOpen(location);
   }
 
   @override
@@ -94,6 +96,8 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
     final profile = ref.watch(canonicalUserProfileProvider(uid));
     final preferences = ref.watch(coachPreferencesProvider(uid));
     final completions = ref.watch(coachCompletionsProvider(uid));
+    final commitments = ref.watch(debtCommitmentsProvider(uid));
+    final commitmentPayments = ref.watch(debtCommitmentPaymentsProvider(uid));
     final device = ref.watch(coachDeviceSettingsProvider(uid));
     final permission = ref.watch(coachPermissionProvider);
     ref.watch(coachTickProvider);
@@ -102,6 +106,8 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         profile.value != null &&
         preferences.hasValue &&
         completions.hasValue &&
+        commitments.hasValue &&
+        commitmentPayments.hasValue &&
         device.hasValue &&
         permission.hasValue) {
       final signature = jsonEncode([
@@ -111,6 +117,15 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         preferences.requireValue.toMap(),
         completions.requireValue
             .map((item) => '${item.kind.name}:${item.periodKey}:${item.pending}')
+            .toList(),
+        commitments.requireValue
+            .map(
+              (item) =>
+                  '${item.id}:${item.amountMinor}:${item.remindersEnabled}:${item.pauseRanges}',
+            )
+            .toList(),
+        commitmentPayments.requireValue
+            .map((item) => '${item.paymentId}:${item.amountMinor}:${item.monthKey}')
             .toList(),
         device.requireValue.enabled,
         device.requireValue.pausedUntil?.toIso8601String(),
@@ -135,20 +150,68 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
                     zone: profile.value!.timeZone,
                     pausedUntil: device.requireValue.pausedUntil,
                   );
+              final routine = ref.read(coachRoutineProvider);
+              final zone = profile.value!.timeZone;
+              final now = routine.clock.now();
+              final start = routine.today(zone);
+              final debtByInstant = <DateTime, (CoachNotificationType, String)>{};
+              for (var offset = 0; offset < 29; offset++) {
+                final date = routine.shift(start, zone, offset);
+                final monthKey =
+                    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+                for (final commitment in commitments.requireValue) {
+                  if (!commitment.remindersEnabled) continue;
+                  final due = commitment.dueDateFor(monthKey);
+                  if (due == null) continue;
+                  final paid = commitmentPayments.requireValue
+                      .where(
+                        (link) => link.commitmentId == commitment.id && link.monthKey == monthKey,
+                      )
+                      .fold<int>(0, (sum, link) => sum + link.amountMinor);
+                  if (paid >= commitment.amountMinor) continue;
+                  for (final candidate in [
+                    (routine.shift(due, zone, -1), CoachNotificationType.debtBefore),
+                    (due, CoachNotificationType.debtDue),
+                  ]) {
+                    final instant = routine.calendar
+                        .at(zone, candidate.$1.year, candidate.$1.month, candidate.$1.day, 9)
+                        .toUtc();
+                    if (instant.isAfter(now) &&
+                        instant.difference(now) <= const Duration(days: 28)) {
+                      debtByInstant.putIfAbsent(instant, () => (candidate.$2, monthKey));
+                    }
+                  }
+                }
+              }
+              final notifications = <CoachNotification>[];
+              for (var index = 0; index < planned.length; index++) {
+                notifications.add(
+                  CoachNotification(
+                    id: 18000 + index,
+                    scheduledAt: planned[index].scheduledAt,
+                    type: planned[index].kind == CoachReviewKind.daily
+                        ? CoachNotificationType.daily
+                        : CoachNotificationType.weekly,
+                    periodKey: planned[index].periodKey,
+                    ownerToken: owner,
+                  ),
+                );
+              }
+              for (final entry in debtByInstant.entries) {
+                if (notifications.any((item) => item.scheduledAt == entry.key)) continue;
+                notifications.add(
+                  CoachNotification(
+                    id: 19000 + notifications.length,
+                    scheduledAt: entry.key,
+                    type: entry.value.$1,
+                    periodKey: entry.value.$2,
+                    ownerToken: owner,
+                  ),
+                );
+              }
               await service.replaceSchedule(
                 uid,
-                [
-                  for (var index = 0; index < planned.length; index++)
-                    CoachNotification(
-                      id: 18000 + index,
-                      scheduledAt: planned[index].scheduledAt,
-                      type: planned[index].kind == CoachReviewKind.daily
-                          ? CoachNotificationType.daily
-                          : CoachNotificationType.weekly,
-                      periodKey: planned[index].periodKey,
-                      ownerToken: owner,
-                    ),
-                ],
+                notifications,
                 title: l10n.coachNotificationTitle,
                 body: l10n.coachNotificationBody,
               );

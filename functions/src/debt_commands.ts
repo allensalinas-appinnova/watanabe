@@ -4,6 +4,15 @@ import {calculateProjectionDeltas, checkedInteger, maximumMinor, parseOperation,
 import {prepareProjectionWrites} from "./projection_store";
 
 type Data = Record<string, unknown>;
+function commitmentPaused(plan: Data, month: string): boolean {
+  if (Array.isArray(plan.pauseRanges) && plan.pauseRanges.some((raw) => {
+    if (!raw || typeof raw !== "object") return false;
+    const range = raw as Data;
+    return typeof range.fromMonth === "string" && month >= range.fromMonth &&
+      (typeof range.untilMonth !== "string" || month < range.untilMonth);
+  })) return true;
+  return typeof plan.pausedFromMonth === "string" && month >= plan.pausedFromMonth;
+}
 type Status = "unauthenticated" | "invalid-argument" | "failed-precondition" | "already-exists" | "not-found";
 export class DebtCommandError extends Error {
   constructor(readonly issue: string, readonly status: Status = "invalid-argument") { super(issue); }
@@ -51,7 +60,7 @@ function month(date: Timestamp, zone: unknown): string {
 type DebtOperation = Operation & Data & {debtAccountId: string; principalDeltaMinor: number; chargesDeltaMinor: number};
 export type DebtResult = {requestId: string; accountId: string; operationIds: string[]; overLimit: boolean};
 
-/** Online-only command boundary. Disabled by default until the updated client is qualified. */
+/** Online-only authenticated command boundary for debt operations. */
 export async function executeDebtCommand(db: Firestore, uid: string | undefined, payload: unknown,
   policy: {enabled: boolean} = {enabled: false}): Promise<DebtResult> {
   if (!uid || !validId(uid)) fail("session-expired", "unauthenticated");
@@ -84,7 +93,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     let account: Data;
     let createAccount = false;
     if (creating) {
-      only(input, ["requestId", "expectedGeneration", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "mode", "bankAccountId", "description"]);
+      only(input, ["requestId", "expectedGeneration", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "statementClosingDay", "paymentDueDay", "mode", "bankAccountId", "description"]);
       if (existing) fail("account-exists", "already-exists");
       if (!["creditCard", "bankLoan", "personalLoan"].includes(String(input.product))) fail("invalid-product");
       if (!validCurrency(input.currency)) fail("invalid-currency");
@@ -112,6 +121,16 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       if (input.lastFour !== undefined) {
         if (!card || typeof input.lastFour !== "string" || !/^\d{4}$/.test(input.lastFour)) fail("invalid-last-four");
         account.lastFour = input.lastFour;
+      }
+      if (input.statementClosingDay !== undefined) {
+        const value = input.statementClosingDay;
+        if (!card || (value !== null && (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > 31))) fail("invalid-billing-day");
+        if (value !== null) account.statementClosingDay = value;
+      }
+      if (input.paymentDueDay !== undefined && input.paymentDueDay !== null) {
+        const value = input.paymentDueDay;
+        if (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > 31) fail("invalid-billing-day");
+        account.paymentDueDay = value;
       }
       createAccount = true;
     } else {
@@ -163,8 +182,27 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       if (!plan || !item || plan.status === "archived" || item.status === "archived" || plan.monthKey !== operation.monthKey || plan.flowType !== "expense" || plan.categoryId !== operation.categoryId || plan.currency !== currency) fail("budget-incompatible", "failed-precondition");
       operation.budgetId = budgetId; operation.budgetItemId = itemId;
     };
+    const linkCommitment = async (data: Data, paymentId: string, amountMinor: number) => {
+      if (data.commitmentId === undefined && data.commitmentMonth === undefined) return;
+      if (data.commitmentId === undefined || data.commitmentMonth === undefined) fail("commitment-reference-required");
+      const commitmentId = id(data.commitmentId);
+      if (typeof data.commitmentMonth !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.commitmentMonth)) fail("commitment-month-invalid");
+      const commitmentRef = root.collection("debtCommitments").doc(commitmentId);
+      const plan = (await tx.get(commitmentRef)).data();
+      if (!plan || plan.status !== "active" || plan.debtAccountId !== accountId || plan.currency !== currency ||
+          data.commitmentMonth < String(plan.firstDueMonth) || (plan.lastDueMonth && data.commitmentMonth > String(plan.lastDueMonth)) ||
+          commitmentPaused(plan, data.commitmentMonth)) fail("commitment-incompatible", "failed-precondition");
+      const occurrence = await tx.get(commitmentRef.collection("occurrences").doc(`${commitmentId}_${data.commitmentMonth}`));
+      if (occurrence.data()?.skipped === true) fail("commitment-occurrence-skipped", "failed-precondition");
+      const linkRef = root.collection("debtPaymentLinks").doc(paymentId);
+      if ((await tx.get(linkRef)).exists) fail("payment-already-linked", "already-exists");
+      extraWrites.push(() => tx.create(linkRef, {paymentId, commitmentId, monthKey: data.commitmentMonth,
+        amountMinor, currency, dataGeneration: generation, createdAt: now}));
+      extraWrites.push(() => tx.set(commitmentRef.collection("occurrences").doc(`${commitmentId}_${data.commitmentMonth}`),
+        {monthKey: data.commitmentMonth, paymentIds: FieldValue.arrayUnion(paymentId), updatedAt: now, dataGeneration: generation}, {merge: true}));
+    };
     const build = async (data: Data) => {
-      only(data, ["requestId", "expectedGeneration", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor"]);
+      only(data, ["requestId", "expectedGeneration", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor", "paymentId", "commitmentId", "commitmentMonth"]);
       const occurredAt = at(data.occurredAt);
       const kind = String(data.action);
       if (["purchase", "charge"].includes(kind)) {
@@ -186,6 +224,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         const total = amount(data.amountMinor, currency);
         if (!total) fail("invalid-amount");
         const bankId = await bank(data.bankAccountId, occurredAt);
+        const firstOperationIndex = operations.length;
         if (card) {
           if ([data.principalMinor, data.previousChargesMinor, data.newChargesMinor].some((v) => v !== undefined)) fail("invalid-components");
           const operation = base(data, kind, "transfer", total, occurredAt);
@@ -196,11 +235,13 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
           if (principal + charges + fresh !== total) fail("payment-split-required");
           if (principal + charges) {
             const operation = base(data, kind, "transfer", principal + charges, occurredAt);
+            operation.paymentId = typeof data.paymentId === "string" ? id(data.paymentId) : String(data.requestId);
             operation.sourceAccountId = bankId; operation.destinationAccountId = accountId;
             operation.principalDeltaMinor = -principal; operation.chargesDeltaMinor = -charges; operations.push(operation);
           }
           if (fresh) {
             const operation = base(data, "newChargePaid", "expense", fresh, occurredAt);
+            operation.paymentId = typeof data.paymentId === "string" ? id(data.paymentId) : String(data.requestId);
             operation.accountId = bankId; operation.categoryId = await category(data.categoryId);
             // Counterparty references keep all components discoverable by the
             // existing account filter; only accountId has a ledger effect here.
@@ -208,6 +249,31 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
             await budget(data, operation); operations.push(operation);
           }
         }
+        const paymentId = typeof data.paymentId === "string" ? id(data.paymentId) : String(input.requestId);
+        if (data.paymentId === undefined) extraWrites.push(() => tx.create(root.collection("debtPayments").doc(paymentId), {
+          paymentId, debtAccountId: accountId, bankAccountId: bankId, amountMinor: total,
+          currency, occurredAt, status: "allocated", operationIds: operations.slice(firstOperationIndex).map((operation) => operation.idempotencyKey),
+          dataGeneration: generation, createdAt: now,
+        }));
+        await linkCommitment(data, paymentId, total);
+      } else if (kind === "payUnallocated") {
+        if (card) fail("loan-required");
+        const total = amount(data.amountMinor, currency);
+        if (!total) fail("invalid-amount");
+        const bankId = await bank(data.bankAccountId, occurredAt);
+        const operation = base(data, kind, "unallocatedDebtPayment", total, occurredAt);
+        operation.accountId = bankId;
+        operation.sourceAccountId = bankId;
+        operation.destinationAccountId = accountId;
+        operation.paymentId = String(data.requestId);
+        operation.allocationStatus = "unallocated";
+        operations.push(operation);
+        extraWrites.push(() => tx.create(root.collection("debtPayments").doc(String(data.requestId)), {
+          paymentId: String(data.requestId), debtAccountId: accountId, bankAccountId: bankId,
+          amountMinor: total, currency, occurredAt, operationId: operation.idempotencyKey,
+          status: "unallocated", dataGeneration: generation, createdAt: now,
+        }));
+        await linkCommitment(data, String(data.requestId), total);
       } else if (kind === "refund") {
         if (!card) fail("card-required");
         const originalId = id(data.originalOperationId);
@@ -251,6 +317,33 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     };
     if (creating && input.mode === "received") {
       await build({action: "disburse", occurredAt: input.referenceAt, bankAccountId: input.bankAccountId, amountMinor: input.principalMinor, description: input.description});
+    } else if (!creating && action === "allocatePayment") {
+      only(input, ["requestId", "expectedGeneration", "action", "accountId", "paymentId", "amountMinor", "occurredAt", "principalMinor", "previousChargesMinor", "newChargesMinor", "categoryId", "budgetId", "budgetItemId", "description"]);
+      if (card) fail("loan-required");
+      const paymentId = id(input.paymentId);
+      const paymentRef = root.collection("debtPayments").doc(paymentId);
+      const payment = (await tx.get(paymentRef)).data();
+      if (!payment || payment.debtAccountId !== accountId || payment.status !== "unallocated") fail("payment-not-unallocated", "failed-precondition");
+      const originalRef = root.collection("operations").doc(id(payment.operationId));
+      const original = (await tx.get(originalRef)).data();
+      if (!original || original.type !== "unallocatedDebtPayment" || original.projectionDirection === -1) fail("invalid-payment-reference", "failed-precondition");
+      const total = checkedInteger(payment.amountMinor);
+      if (input.amountMinor !== undefined && input.amountMinor !== total) fail("payment-amount-immutable", "failed-precondition");
+      const principal = amount(input.principalMinor, currency), previousCharges = amount(input.previousChargesMinor, currency), newCharges = amount(input.newChargesMinor, currency);
+      if (principal + previousCharges + newCharges !== total) fail("payment-split-required");
+      const reversal = {...original, idempotencyKey: `debt_${requestId}_0`, debtCommandId: requestId,
+        projectionDirection: -1, reversalOf: payment.operationId, createdAt: now, updatedAt: now} as unknown as DebtOperation;
+      operations.push(reversal);
+      await build({
+        action: "pay", occurredAt: payment.occurredAt instanceof Timestamp ? payment.occurredAt.toDate().toISOString() : input.occurredAt,
+        amountMinor: total, bankAccountId: payment.bankAccountId, principalMinor: principal,
+        previousChargesMinor: previousCharges, newChargesMinor: newCharges, categoryId: input.categoryId,
+        budgetId: input.budgetId, budgetItemId: input.budgetItemId, description: input.description, paymentId,
+      });
+      extraWrites.push(() => tx.update(paymentRef, {status: "allocated", allocationRequestId: requestId,
+        principalMinor: principal, previousChargesMinor: previousCharges, newChargesMinor: newCharges,
+        allocatedAt: now, updatedAt: now}));
+      extraWrites.push(() => tx.update(originalRef, {allocationStatus: "allocated", allocatedAt: now}));
     } else if (!creating && (action === "reverse" || action === "correct")) {
       only(input, ["requestId", "expectedGeneration", "action", "accountId", "originalRequestId", "replacement", "description"]);
       const originalId = id(input.originalRequestId);
@@ -293,7 +386,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         account = cached;
       }
     } else if (!creating && action === "update") {
-      only(input, ["requestId", "expectedGeneration", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard"]);
+      only(input, ["requestId", "expectedGeneration", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard", "statementClosingDay", "paymentDueDay"]);
       if (input.name !== undefined) account.name = text(input.name, 80, true);
       if (input.creditor !== undefined) account.creditor = text(input.creditor, 120);
       if (input.lastFour !== undefined) {
@@ -301,6 +394,16 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         account.lastFour = input.lastFour || FieldValue.delete();
       }
       if (input.limitMinor !== undefined) { if (!card) fail("invalid-limit"); account.limitMinor = input.limitMinor === null ? FieldValue.delete() : amount(input.limitMinor, currency); }
+      if (Object.hasOwn(input, "statementClosingDay")) {
+        const value = input.statementClosingDay;
+        if (!card || (value !== null && (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > 31))) fail("invalid-billing-day");
+        account.statementClosingDay = value === null ? FieldValue.delete() : value;
+      }
+      if (Object.hasOwn(input, "paymentDueDay")) {
+        const value = input.paymentDueDay;
+        if (value !== null && (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > 31)) fail("invalid-billing-day");
+        account.paymentDueDay = value === null ? FieldValue.delete() : value;
+      }
       if (input.includeInDashboard !== undefined) { if (typeof input.includeInDashboard !== "boolean") fail("invalid-visibility"); account.includeInDashboard = input.includeInDashboard; }
     } else if (!creating && action === "archive") {
       only(input, ["requestId", "expectedGeneration", "action", "accountId"]);
@@ -308,6 +411,10 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       account.status = "archived"; account.archivedAt = now;
     } else if (!creating) await build(input);
 
+    if (!creating && (action === "adjust" || action === "archive")) {
+      const pending = await tx.get(root.collection("debtPayments").where("debtAccountId", "==", accountId).where("status", "==", "unallocated").limit(1));
+      if (!pending.empty) fail("unallocated-payment-exists", "failed-precondition");
+    }
     let balance = checkedInteger(account.currentBalanceMinor), principal = checkedInteger(account.principalMinor), charges = checkedInteger(account.chargesMinor);
     for (const operation of operations) {
       parseOperation(operation);

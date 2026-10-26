@@ -9,5 +9,5 @@ fi
 npm --prefix functions run build
 npx -y firebase-tools@latest emulators:exec --project demo-clearbudget --only firestore \
   "node --test functions/test/debt_commands_test.mjs functions/test/projection_store_test.mjs functions/test/projection_audit_test.mjs && node functions/test/firestore_rules_test.mjs"
-DEBTS_ENABLED=true npx -y firebase-tools@latest emulators:exec --project demo-clearbudget --only auth,firestore,functions \
-  "node --test functions/test/debt_callable_test.mjs functions/test/projection_trigger_test.mjs"
+npx -y firebase-tools@latest emulators:exec --project demo-clearbudget --only auth,firestore,functions \
+  "node --test functions/test/debt_callable_test.mjs functions/test/debt_commitments_callable_test.mjs functions/test/projection_trigger_test.mjs"

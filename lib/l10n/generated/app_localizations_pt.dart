@@ -2028,4 +2028,258 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get resetPendingCheckFailure =>
       'Não foi possível verificar os movimentos pendentes. Tente novamente antes de reiniciar.';
+
+  @override
+  String get unallocatedPaymentStatus => 'Registrado · falta detalhamento';
+
+  @override
+  String get unallocatedPaymentExplanation =>
+      'A saída de dinheiro já foi registrada. O saldo do crédito e as despesas serão atualizados quando você concluir o detalhamento.';
+
+  @override
+  String get debtPayUnallocated => 'Completarei o detalhamento depois';
+
+  @override
+  String get debtAllocatePayment => 'Concluir detalhamento';
+
+  @override
+  String get debtCommitmentsTitle => 'Pagamentos de dívidas';
+
+  @override
+  String get debtCommitmentsTab => 'Pagamentos de dívidas';
+
+  @override
+  String get budgetsTab => 'Orçamentos';
+
+  @override
+  String get debtCommitmentReminders => 'Lembretes locais';
+
+  @override
+  String get debtCommitmentsEmpty => 'Você ainda não planejou pagamentos de dívidas.';
+
+  @override
+  String get debtCommitmentCreate => 'Planejar pagamento';
+
+  @override
+  String get debtCommitmentAmount => 'Valor mensal previsto';
+
+  @override
+  String get debtCommitmentDueDay => 'Dia do vencimento';
+
+  @override
+  String get debtCommitmentFirstMonth => 'Primeiro vencimento';
+
+  @override
+  String get debtCommitmentLastMonth => 'Último mês (opcional)';
+
+  @override
+  String get debtCommitmentMonthlyPlanned => 'Previsto para este mês';
+
+  @override
+  String get debtCommitmentPaid => 'Pagamentos registrados';
+
+  @override
+  String get debtCommitmentRemaining => 'Falta pagar';
+
+  @override
+  String get debtCommitmentStatusUpcoming => 'Próximo';
+
+  @override
+  String get debtCommitmentStatusDue => 'Pendente';
+
+  @override
+  String get debtCommitmentStatusPartial => 'Parcialmente pago';
+
+  @override
+  String get debtCommitmentStatusPaid => 'Pago';
+
+  @override
+  String get debtCommitmentStatusMissed => 'Atrasado';
+
+  @override
+  String get debtCommitmentStatusSkipped => 'Ignorado';
+
+  @override
+  String get debtCommitmentStatusPaused => 'Pausado';
+
+  @override
+  String get debtPaymentAllocationChoice => 'Você sabe como o pagamento está dividido?';
+
+  @override
+  String get debtPaymentKnownSplit => 'Sim, vou informar o detalhamento';
+
+  @override
+  String get previousMonth => 'Mês anterior';
+
+  @override
+  String get nextMonth => 'Próximo mês';
+
+  @override
+  String get debtCommitmentHomeWidget => 'Pagamentos de dívidas';
+
+  @override
+  String get debtCommitmentNextDue => 'Próximo vencimento';
+
+  @override
+  String get debtPaymentsToReview => 'Pagamentos para revisar';
+
+  @override
+  String get unallocatedDebtPayment => 'Pagamento de crédito sem detalhamento';
+
+  @override
+  String get debtCommitmentSkip => 'Ignorar esta parcela';
+
+  @override
+  String get debtCommitmentSkipConfirm =>
+      'Esta parcela será marcada como ignorada e não alterará pagamentos de outros meses.';
+
+  @override
+  String get debtCommitmentPause => 'Pausar pagamentos futuros';
+
+  @override
+  String get debtCommitmentResume => 'Retomar pagamentos futuros';
+
+  @override
+  String get debtCommitmentConfirmSkip => 'Ignorar parcela';
+
+  @override
+  String get categoryIconGroceries => 'Mercado';
+
+  @override
+  String get categoryIconCarMaintenance => 'Manutenção do veículo';
+
+  @override
+  String get categoryIconPhone => 'Telefone';
+
+  @override
+  String get categoryIconUtilities => 'Serviços públicos';
+
+  @override
+  String get categoryIconInsurance => 'Seguros';
+
+  @override
+  String get categoryIconFamily => 'Família';
+
+  @override
+  String get categoryIconChildren => 'Filhos';
+
+  @override
+  String get categoryIconParents => 'Pais';
+
+  @override
+  String get categoryIconPets => 'Animais de estimação';
+
+  @override
+  String get categoryIconSports => 'Esportes';
+
+  @override
+  String get categoryIconHobbies => 'Passatempos';
+
+  @override
+  String get categoryIconSubscriptions => 'Assinaturas';
+
+  @override
+  String get categoryIconEntertainment => 'Entretenimento';
+
+  @override
+  String get categoryIconTravel => 'Viagens';
+
+  @override
+  String get categoryIconShopping => 'Compras';
+
+  @override
+  String get categoryIconClothing => 'Roupas';
+
+  @override
+  String get categoryIconPersonalCare => 'Cuidados pessoais';
+
+  @override
+  String get categoryIconGift => 'Presentes';
+
+  @override
+  String get categoryIconFreelance => 'Trabalho autônomo';
+
+  @override
+  String get categoryIconBusiness => 'Negócios';
+
+  @override
+  String get categoryIconInvestment => 'Investimentos';
+
+  @override
+  String get categoryIconSavings => 'Economias';
+
+  @override
+  String get categoryIconGroupDaily => 'Dia a dia';
+
+  @override
+  String get categoryIconGroupWellbeing => 'Bem-estar e família';
+
+  @override
+  String get categoryIconGroupLifestyle => 'Estilo de vida';
+
+  @override
+  String get categoryIconGroupMoney => 'Dinheiro';
+
+  @override
+  String get categoryIconSearchHint => 'Buscar ícones';
+
+  @override
+  String get categoryIconNoResults => 'Nenhum ícone encontrado.';
+
+  @override
+  String get categoryTemplatePrompt => 'Ideias opcionais';
+
+  @override
+  String get categoryTemplateFamily => 'Família';
+
+  @override
+  String get categoryTemplateChildren => 'Filhos';
+
+  @override
+  String get categoryTemplateParents => 'Pais';
+
+  @override
+  String get cardBillingCycle => 'Ciclo de faturamento';
+
+  @override
+  String get cardBillingCycleExplanation =>
+      'O fechamento encerra o período da fatura. O dia de pagamento ajuda no planejamento; confirme a data exata na sua fatura.';
+
+  @override
+  String get cardStatementClosingDay => 'Dia de fechamento';
+
+  @override
+  String get cardPaymentDueDay => 'Dia habitual de pagamento';
+
+  @override
+  String get notConfigured => 'Não configurado';
+
+  @override
+  String get cardPlanPayment => 'Planejar pagamento';
+
+  @override
+  String cardUpcomingDueSuggestion(Object day) {
+    return 'Dia de pagamento sugerido: $day. Confira sua fatura.';
+  }
+
+  @override
+  String get cardUseSuggestedDueDay => 'Usar sugestão do cartão';
+
+  @override
+  String get debtPaymentPlanning => 'Planejamento de pagamentos';
+
+  @override
+  String get debtPaymentDueDay => 'Dia habitual de pagamento';
+
+  @override
+  String get debtPaymentDayExplanation =>
+      'Esta é uma referência para planejamento. Confirme o vencimento no contrato ou extrato.';
+
+  @override
+  String debtUpcomingPaymentSuggestion(Object day) {
+    return 'Dia de pagamento sugerido: $day. Confirme a data com a instituição.';
+  }
+
+  @override
+  String get debtUseSuggestedPaymentDay => 'Usar dia habitual de pagamento';
 }

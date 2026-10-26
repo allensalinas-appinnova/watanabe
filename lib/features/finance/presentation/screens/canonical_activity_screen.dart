@@ -493,6 +493,7 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
               paymentType: l10n.activityCsvPaymentType,
               cardPayment: l10n.debtPaymentCard,
               loanPayment: l10n.debtPaymentLoan,
+              unallocatedDebtPayment: l10n.unallocatedPaymentStatus,
             ),
           );
           final now = DateTime.now();
@@ -1042,6 +1043,8 @@ class _ActivityOperationCard extends StatelessWidget {
                   ? l10n.debtRefund
                   : operation.type == OperationType.debtAdjustment
                   ? l10n.debtAdjust
+                  : operation.type == OperationType.unallocatedDebtPayment
+                  ? l10n.unallocatedDebtPayment
                   : isTransfer
                   ? l10n.transferOperationLabel
                   : isIncome
@@ -1065,7 +1068,9 @@ class _ActivityOperationCard extends StatelessWidget {
         : '− $amount';
     final occurredAt = operation.occurredAt.toLocal();
     final dateTime = DateFormat.yMMMd(locale).add_Hm().format(occurredAt);
-    final typeAndDate = '$typeLabel · $dateTime';
+    final typeAndDate = operation.type == OperationType.unallocatedDebtPayment
+        ? '$typeLabel · ${l10n.unallocatedPaymentStatus} · $dateTime'
+        : '$typeLabel · $dateTime';
     final semanticLabel = '$title, $typeAndDate, $accountDetail, $signedAmount';
 
     return Semantics(

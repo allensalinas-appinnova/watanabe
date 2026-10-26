@@ -1,8 +1,11 @@
 # Debt accounts and manual financing
 
-Status: implementation in the working tree based on `e23b6ba`, alongside
-pre-existing Coach and email-import work. Real-project activation remains gated
-on updated-client qualification. No existing account is converted or migrated.
+Status: debt accounts, monthly payment commitments and unallocated loan
+payments are implemented. The credit-card billing-day metadata change in this
+iteration was deployed to `lumiomoney` through `functions:mutateDebt`; the
+callable rejects unauthenticated calls. This statement does not certify the
+deployment state of other debt/commitment services. No existing account is
+converted or migrated.
 
 ## Financial contract
 
@@ -62,8 +65,8 @@ rows, allowing repeated corrections without reactivating older reversals. Undoin
 a command cannot leave negative principal or unpaid charges. Adjustments store
 previous and target signed balances and component snapshots.
 
-Source operations use `income`, `expense`, `transfer`, `expenseRefund` and
-`debtAdjustment`. Server-only metadata includes `debtCommandId`, `debtAccountId`,
+Source operations use `income`, `expense`, `transfer`, `expenseRefund`,
+`debtAdjustment` and `unallocatedDebtPayment`. Server-only metadata includes `debtCommandId`, `debtAccountId`,
 `debtKind`, component deltas, `projectionDirection` and reversal/refund references.
 The read-only projection audit reconstructs debt balances and loan components
 from opening values and source operations; it does not trust cached components.
@@ -133,7 +136,108 @@ Home separates money, debt and card credits per currency inside the existing
 customizable/private balance surface. Recorded net position is explicitly not
 described as complete wealth. No currency conversion occurs.
 
+## Monthly debt commitments and unallocated payments
+
+`lib/features/commitments/` adds monthly plans linked to one active debt
+account. A plan specifies an expected amount, first due month, due day, optional
+end month and usual bank account. Due days are clamped to the final calendar
+day for short months. A commitment is an intention only: it never initiates a
+bank transfer or creates a payment automatically. The Plan section opens the
+debt-payment list, where the user can inspect a month, create a plan, record a
+payment, pause future occurrences or skip a selected month.
+
+The two payment dimensions are independent:
+
+| Dimension | States | Meaning |
+| --- | --- | --- |
+| Installment fulfillment | upcoming, due, partially paid, paid, missed, skipped or paused | How much of the expected amount has a linked payment |
+| Loan allocation | allocated or unallocated | Whether the bank outflow has been distributed across principal and charges |
+
+An unallocated payment is financially confirmed, not an outbox sync state. The
+server writes an `unallocatedDebtPayment` operation and a `debtPayments` record
+with status `unallocated`. It reduces the source money balance by the full
+outflow, but does not change debt principal, accrued charges, budgets, or income
+and expense summaries. The recorded debt balance therefore remains stale until
+allocation; the interface must communicate that the financial position is
+incomplete.
+
+Later allocation preserves payment identity and original payment date. In one
+transaction, the server reverses the provisional ledger effect and writes the
+final principal/previous-charge/new-charge components. The net additional bank
+effect is zero; new charges are recognized as expense once, while principal and
+already-accrued charges are not. `mutateDebt` handles `payUnallocated` and
+`allocatePayment`; `mutateDebtCommitment` handles plan creation, versioned
+edits, pausing, skipping and payment linkage. Both derive the owner from Firebase
+Auth, validate `dataGeneration`, and use stable `requestId` receipts.
+`functions/src/debt_commands.ts` blocks debt adjustment and archive while an
+unallocated payment remains.
+
+| Current state | Event | Guard | Next state | Effects |
+| --- | --- | --- | --- | --- |
+| Plan absent | Create plan | Authenticated owner; active same-currency debt and optional active money account | Active plan, version 1 | Creates plan and initial version; no ledger entries |
+| Active plan | Edit | Valid effective month and compatible references | Active plan, new version | Preserves the earlier version |
+| Active plan | Pause/resume | Valid month boundary | Active with a pause range | Suppresses future occurrences only |
+| Open installment | Skip | No linked payment exists | Skipped | Records deterministic occurrence |
+| Open installment | Link payment | Same debt/currency; payment not linked; month in plan range | Linked installment | Adds a stable link; creates no financial operation |
+| Loan payment draft | Submit without split | Valid debt, source account, currency and amount | Confirmed, allocation unallocated | Debits money only; does not update debt or expense projections |
+| Unallocated payment | Allocate | Components sum to original outflow; generation is current | Confirmed, allocation allocated | Reverses provisional effect and posts components atomically |
+
+Backend callable behavior is covered by
+`functions/test/debt_commitments_callable_test.mjs` and the unallocated payment
+acceptance scenario in `functions/test/debt_commands_test.mjs`. Month-end and
+occurrence status behavior is covered in
+`test/features/commitments/domain/debt_commitment_test.dart`. This working tree
+currently includes the Plan debt-payment screen, Home summary, loan allocation
+choice and Coach pending-allocation entry. Not yet qualified: complete Android
+and iOS user-flow E2E, edit-from-UI/version selection for historical months,
+UI linking of an existing payment, complete historical Coach review query,
+cross-month report/CSV reconciliation, and automated/device tests of the shared
+debt/Coach reminder schedule.
+
+The commitment form permits opting into local reminders. The current scheduler
+includes debt due-date notices in the same replacement schedule as Coach,
+using the profile time zone at 09:00 on the day before and due date. Fully paid
+occurrences are omitted; tapping a reminder opens that month in Plan. Notices
+remain subject to local permission, device pause, app refresh and OS limits.
+The debt-specific schedule is not yet independently covered by automated or
+device-delivery tests.
+
 ## Verification and activation
+
+### Current qualification (2026-10-26)
+
+`flutter analyze` is clean and all 340 Flutter tests pass. The Android
+integration test `integration_test/debt_commitment_flow_test.dart` passed against
+Auth, Firestore and Functions Emulator in `demo-clearbudget`. It created a
+synthetic COP 20,000,000 loan and COP 2,400,000 monthly commitment, recorded the
+payment without allocation, and then allocated COP 2,000,000 to principal and
+COP 400,000 to new charges. The bank remained at COP 2,600,000 after allocation,
+the principal became COP 18,000,000, and the monthly expense was COP 400,000.
+This test exercises Firebase-backed repositories/callables, not the full screen
+interaction flow.
+
+`bash tool/run_debt_tests.sh` passes the debt/projection/audit, Firestore Rules
+and callable suites. `flutter build ios --simulator --no-codesign` and
+`flutter build web` both succeeded; Android debug was built and installed by the
+integration test. No iOS user-flow E2E or real notification-delivery test was
+run.
+
+Deployment to `lumiomoney` completed on 2026-10-26 for `mutateDebt`,
+`mutateDebtCommitment`, `processOperation` and Firestore Rules. The ready
+Cloud Run revisions are `mutatedebt-00007-kiq`,
+`mutatedebtcommitment-00003-sir` and `processoperation-00009-miv`. The new
+callable's Cloud Run invoker check was disabled to match the existing Firebase
+callables; its handler still requires Firebase Auth. An unauthenticated callable
+request returned HTTP 401 `UNAUTHENTICATED` (`commitment-session-expired`). No
+authenticated financial command was sent to the real project and no real
+financial operation was created. The end-to-end financial evidence above is
+from `demo-clearbudget` only.
+
+### Historical rollout evidence (2026-10-22 to 2026-10-23)
+
+The following paragraphs are retained as historical evidence from the earlier
+debt-account rollout. They do not describe deployment state or qualification of
+monthly commitments in the current checkout.
 
 Qualification run on 2026-10-22: `flutter analyze` reported no issues and all
 298 Flutter tests passed. The debt backend suite passed 30 command/projection/
@@ -151,16 +255,16 @@ their startup health checks. A controlled redeployment on 2026-10-22 created
 `latestReadyRevisionName`; `Ready`, `ConfigurationsReady` and `RoutesReady` are
 all true. An unauthenticated HTTPS POST returned callable JSON `401
 UNAUTHENTICATED` with `debt-session-expired`, confirming the endpoint reaches the
-Auth guard. The deployed environment remains `DEBTS_ENABLED=false`. This resolves
-the Cloud Run readiness blocker, but does not qualify an authenticated financial
-command or authorize enabling debt creation. Keep it disabled until the updated
-client is installed and qualified. The deployed Rules backup from before this
-release is in ignored `.local/firebase-deployments/`.
+Auth guard. At that historical time, the deployed environment had
+`DEBTS_ENABLED=false`. That state was later superseded in source: `functions/src/index.ts`
+now calls `executeDebtCommand(..., {enabled: true})`; do not treat the 2026-10-22
+setting as current. The deployed Rules backup from before that rollout is in
+ignored `.local/firebase-deployments/`.
 
-The Android release APK build is currently blocked because no release signing
+At that historical time, the Android release APK build was blocked because no release signing
 `storeFile` is configured. The emulator debug build and E2E pass; no release
-keystore was generated. Keep debt creation disabled until a signed client is
-available and qualified.
+keystore was generated. Re-check current signing configuration before relying
+on this as the current build status.
 
 Relevant checks:
 
@@ -171,9 +275,8 @@ bash tool/run_debt_tests.sh
 E2E_TEST_FILE=integration_test/debt_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
 ```
 
-All automated financial tests require `demo-clearbudget`. Only that exact project
-inside Functions Emulator enables the debt server automatically. Real projects
-default to `DEBTS_ENABLED=false`. Local Node 26 may be selected by Emulator when
+All automated financial tests require `demo-clearbudget`. The development
+callable currently invokes the debt command as enabled. Local Node 26 may be selected by Emulator when
 Node 22 is unavailable; deployed Functions target Node 22. Do not equate this
 with Node-22-local qualification.
 
@@ -200,10 +303,29 @@ before release in ignored `.local/firebase-deployments/`. Verify actual callable
 Auth responses, not just deployment status. Never create real financial records
 as a smoke test without a separate explicit confirmation.
 
-Before activation, install and qualify the updated client. Client creation is
-also hidden unless built with `--dart-define=DEBTS_ENABLED=true`. Older clients
-cannot interpret new source types. When disabling server commands later, retain
+Before releasing the new commitment command, install and qualify a compatible
+client. No `DEBTS_ENABLED` client compile-time gate was found in the current
+source. Older clients cannot interpret new source types. When disabling server commands later, retain
 the compatible trigger, rules and readers: reverting to an old reader/trigger
 after debt records exist is not a safe rollback. No mass migration, repair,
 automatic interest, amortization, recurring installments, FX, lending-to-others
 or Gmail debt import is included.
+
+### Credit-card billing-cycle planning
+
+Cards may optionally store `statementClosingDay` and `paymentDueDay` as nominal
+calendar days from 1 to 31. Bank and personal loans may also store
+`paymentDueDay`; statement closing day remains card-only. These dates are
+planning references: confirm the definitive due date with the lender or on the
+statement. Short months clamp the nominal day to their final calendar day;
+holidays and weekends are not shifted.
+
+The debt detail displays configured payment days; cards also display the
+statement closing day and link to the existing debt-payment commitment form.
+For a new commitment, the payment day and next nominal date are suggested using
+the profile time zone. Users can change the month and day independently, and an
+explicit action restores the selected debt's suggestion. The amount remains
+user-entered. Saving or editing these dates does not create or modify a
+commitment, occurrence, payment, or reminder; each commitment keeps its own
+schedule. Omitted fields are preserved and explicit `null` clears only the
+specified field.

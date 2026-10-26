@@ -37,6 +37,7 @@ class ActivityCsvLabels {
     this.paymentType = 'Payment type',
     this.cardPayment = 'Credit card payment',
     this.loanPayment = 'Loan payment',
+    this.unallocatedDebtPayment = 'Debt payment pending allocation',
   });
 
   final String date;
@@ -68,6 +69,7 @@ class ActivityCsvLabels {
   final String paymentType;
   final String cardPayment;
   final String loanPayment;
+  final String unallocatedDebtPayment;
 }
 
 abstract final class ActivityCsvExporter {
@@ -111,6 +113,7 @@ abstract final class ActivityCsvExporter {
               OperationType.transfer => labels.transfer,
               OperationType.expenseRefund => labels.expenseRefund,
               OperationType.debtAdjustment => labels.debtAdjustment,
+              OperationType.unallocatedDebtPayment => labels.unallocatedDebtPayment,
             },
             operation.description,
             operation.type == OperationType.transfer

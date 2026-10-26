@@ -7,6 +7,7 @@ import '../../../core/utils/async_value_extensions.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/money_parser.dart';
 import '../../../core/utils/request_id.dart';
+import '../../../core/widgets/day_of_month_selector.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../finance/domain/entities/finance_account.dart';
@@ -25,6 +26,8 @@ String debtActionLabel(AppLocalizations l, String action) => switch (action) {
   'update' => l.editAccount,
   'purchase' => l.debtPurchase,
   'pay' => l.debtPay,
+  'payUnallocated' => l.debtPay,
+  'allocatePayment' => l.debtAllocatePayment,
   'charge' => l.debtCharge,
   'disburse' => l.debtDisburse,
   'refund' => l.debtRefund,
@@ -40,11 +43,19 @@ class DebtFormScreen extends ConsumerStatefulWidget {
     this.action = 'create',
     this.originalOperationId,
     this.initialComponents = const [],
+    this.commitmentId,
+    this.commitmentMonth,
+    this.commitmentAmountMinor,
+    this.commitmentBankAccountId,
   });
   final String? accountId;
   final String action;
   final String? originalOperationId;
   final List<FinancialOperation> initialComponents;
+  final String? commitmentId;
+  final String? commitmentMonth;
+  final int? commitmentAmountMinor;
+  final String? commitmentBankAccountId;
   @override
   ConsumerState<DebtFormScreen> createState() => _DebtFormScreenState();
 }
@@ -56,7 +67,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   String _product = 'creditCard', _currency = 'COP', _mode = 'existing';
   String? _bankId, _categoryId;
   late DateTime _date;
-  bool _saving = false, _dirty = false, _initialized = false;
+  bool _saving = false, _dirty = false, _initialized = false, _deferAllocation = false;
   bool _includeInDashboard = true;
   String? _error;
   TextEditingController field(String key, [String initial = '']) =>
@@ -165,6 +176,26 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       field('name', account?.name ?? '');
       field('creditor', account?.creditor ?? '');
       field('lastFour', account?.lastFour ?? '');
+      field('statementClosingDay', account?.statementClosingDay?.toString() ?? '');
+      field('paymentDueDay', account?.paymentDueDay?.toString() ?? '');
+      if (widget.commitmentAmountMinor != null) {
+        final decimals = CurrencyFormatter.decimalDigits(_currency);
+        field(
+          'amountMinor',
+          decimals == 0
+              ? '${widget.commitmentAmountMinor}'
+              : (widget.commitmentAmountMinor! / 100).toStringAsFixed(decimals),
+        );
+        if (accounts.any(
+          (candidate) =>
+              candidate.id == widget.commitmentBankAccountId &&
+              !candidate.isDebt &&
+              candidate.status == 'active' &&
+              candidate.currency == _currency,
+        )) {
+          _bankId = widget.commitmentBankAccountId;
+        }
+      }
       if (account?.limitMinor != null) {
         field(
           'limitMinor',
@@ -201,14 +232,19 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         widget.action == 'pay' || widget.action == 'disburse' || (_create && _mode == 'received');
     final categoryNeeded =
         ['purchase', 'charge'].contains(widget.action) ||
-        (widget.action == 'pay' && !_card && _hasPositiveNewCharges);
+        ((widget.action == 'pay' && !_deferAllocation && !_card ||
+                widget.action == 'allocatePayment') &&
+            _hasPositiveNewCharges);
     final validCategories = categories
         .where((c) => c.type.name == 'expense' && !c.isArchived)
         .toList();
     final suggestedCategory = validCategories.where((category) => category.id == 'interest_fees');
     final suggestedCategoryId = suggestedCategory.isEmpty ? null : suggestedCategory.first.id;
     final shouldSuggestFeesCategory =
-        widget.action == 'charge' || (widget.action == 'pay' && !_card && _hasPositiveNewCharges);
+        widget.action == 'charge' ||
+        ((widget.action == 'pay' && !_deferAllocation && !_card ||
+                widget.action == 'allocatePayment') &&
+            _hasPositiveNewCharges);
     if (shouldSuggestFeesCategory &&
         _categoryId == null &&
         suggestedCategoryId != null &&
@@ -378,6 +414,33 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                   if (_card) ...[
                     input('lastFour', l.debtLastFour, optional: true),
                     input('limitMinor', l.debtLimit, money: true, optional: true),
+                    const SizedBox(height: 12),
+                    Text(l.cardBillingCycle, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(l.cardBillingCycleExplanation),
+                    const SizedBox(height: 12),
+                    _billingDaySelector(
+                      key: 'statementClosingDay',
+                      label: l.cardStatementClosingDay,
+                      unsetLabel: l.notConfigured,
+                    ),
+                    const SizedBox(height: 8),
+                    _billingDaySelector(
+                      key: 'paymentDueDay',
+                      label: l.cardPaymentDueDay,
+                      unsetLabel: l.notConfigured,
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 12),
+                    Text(l.debtPaymentPlanning, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(l.debtPaymentDayExplanation),
+                    const SizedBox(height: 12),
+                    _billingDaySelector(
+                      key: 'paymentDueDay',
+                      label: l.debtPaymentDueDay,
+                      unsetLabel: l.notConfigured,
+                    ),
                   ],
                 ],
                 if (!['update', 'archive'].contains(widget.action)) ...[
@@ -434,9 +497,52 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (['purchase', 'charge', 'pay', 'disburse', 'refund'].contains(widget.action))
+                if ([
+                  'purchase',
+                  'charge',
+                  'pay',
+                  'payUnallocated',
+                  'disburse',
+                  'refund',
+                ].contains(widget.action))
                   input('amountMinor', l.amount, money: true),
                 if (widget.action == 'pay' && !_card) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    l.debtPaymentAllocationChoice,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<bool>(
+                    groupValue: _deferAllocation,
+                    onChanged: (value) {
+                      if (_saving || value == null) return;
+                      setState(() {
+                        _deferAllocation = value;
+                        _dirty = true;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        RadioListTile<bool>(
+                          value: false,
+                          title: Text(l.debtPaymentKnownSplit),
+                        ),
+                        RadioListTile<bool>(
+                          value: true,
+                          title: Text(l.debtPayUnallocated),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_deferAllocation)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(l.unallocatedPaymentExplanation),
+                    ),
+                ],
+                if ((widget.action == 'pay' && !_deferAllocation ||
+                        widget.action == 'allocatePayment') &&
+                    !_card) ...[
                   input('principalMinor', l.debtPrincipal, money: true, initial: '0'),
                   input('previousChargesMinor', l.debtPreviousCharges, money: true, initial: '0'),
                   input('newChargesMinor', l.debtNewCharges, money: true, initial: '0'),
@@ -537,11 +643,35 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     return negative ? -minor : minor;
   }
 
+  Widget _billingDaySelector({
+    required String key,
+    required String label,
+    required String unsetLabel,
+  }) {
+    final controller = field(key);
+    return DayOfMonthSelector(
+      key: ValueKey('debt_$key'),
+      fieldId: 'debt_$key',
+      selectedDay: int.tryParse(controller.text),
+      label: label,
+      unsetLabel: unsetLabel,
+      dayLabel: AppLocalizations.of(context).day,
+      enabled: !_saving,
+      onChanged: (value) => setState(() {
+        controller.text = value?.toString() ?? '';
+        _dirty = true;
+      }),
+    );
+  }
+
   Future<void> _save(String uid, List<FinanceAccount> banks) async {
     if (!_form.currentState!.validate()) return;
     final l = AppLocalizations.of(context);
+    final commandAction = widget.action == 'pay' && _deferAllocation
+        ? 'payUnallocated'
+        : widget.action;
     final data = <String, Object?>{
-      'action': widget.action,
+      'action': commandAction,
       if (!_create) 'accountId': widget.accountId,
     };
     if (_create || widget.action == 'update') {
@@ -554,6 +684,20 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         data['limitMinor'] = _money('limitMinor');
       }
       if (_card && !_create && field('limitMinor').text.trim().isEmpty) data['limitMinor'] = null;
+      if (_card) {
+        final value = field('statementClosingDay').text.trim();
+        if (_create) {
+          if (value.isNotEmpty) data['statementClosingDay'] = int.parse(value);
+        } else {
+          data['statementClosingDay'] = value.isEmpty ? null : int.parse(value);
+        }
+      }
+      final paymentDay = field('paymentDueDay').text.trim();
+      if (_create) {
+        if (paymentDay.isNotEmpty) data['paymentDueDay'] = int.parse(paymentDay);
+      } else {
+        data['paymentDueDay'] = paymentDay.isEmpty ? null : int.parse(paymentDay);
+      }
       if (_create) {
         data.addAll({
           'product': _product,
@@ -569,12 +713,12 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         }
       }
     }
-    if (!['create', 'update', 'archive'].contains(widget.action)) {
+    if (!['create', 'update', 'archive', 'allocatePayment'].contains(widget.action)) {
       data['occurredAt'] = _date.toUtc().toIso8601String();
       data['description'] = field('description').text;
     }
     if (_bankId != null &&
-        (widget.action == 'pay' ||
+        (['pay', 'payUnallocated'].contains(commandAction) ||
             widget.action == 'disburse' ||
             (_create && _mode == 'received'))) {
       data['bankAccountId'] = _bankId;
@@ -582,12 +726,36 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     final categoryRequired =
         widget.action == 'purchase' ||
         widget.action == 'charge' ||
-        (widget.action == 'pay' && !_card && _money('newChargesMinor') > 0);
+        ((widget.action == 'pay' && !_deferAllocation && !_card ||
+                widget.action == 'allocatePayment') &&
+            _money('newChargesMinor') > 0);
     if (categoryRequired && _categoryId != null) data['categoryId'] = _categoryId;
-    if (['purchase', 'charge', 'pay', 'disburse', 'refund'].contains(widget.action)) {
+    if (widget.commitmentId != null && ['pay', 'payUnallocated'].contains(commandAction)) {
+      data['commitmentId'] = widget.commitmentId;
+      data['commitmentMonth'] = widget.commitmentMonth;
+    }
+    if ([
+      'purchase',
+      'charge',
+      'pay',
+      'payUnallocated',
+      'disburse',
+      'refund',
+    ].contains(commandAction)) {
       data['amountMinor'] = _money('amountMinor');
     }
-    if (widget.action == 'pay' && !_card) {
+    if (widget.action == 'allocatePayment') {
+      data['paymentId'] =
+          widget.initialComponents.firstOrNull?.paymentId ??
+          widget.initialComponents.firstOrNull?.debtCommandId;
+      if (data['paymentId'] == null) {
+        setState(() => _error = l.debtErrorReference);
+        return;
+      }
+      data['amountMinor'] = _money('amountMinor');
+    }
+    if ((widget.action == 'pay' && !_deferAllocation || widget.action == 'allocatePayment') &&
+        !_card) {
       final split = DebtPaymentSplit(
         principalMinor: _money('principalMinor'),
         previousChargesMinor: _money('previousChargesMinor'),
@@ -629,11 +797,17 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
             children: [
               Text(debtActionLabel(l, widget.action)),
               if (bankName.isNotEmpty) Text('${l.debtBank}: $bankName'),
-              for (final entry in data.entries.where((e) => e.key.endsWith('Minor')))
+              for (final entry in data.entries.where(
+                (e) => e.key.endsWith('Minor') && e.value is int,
+              ))
                 Text(
                   '${_amountLabel(l, entry.key)}: ${CurrencyFormatter.formatMinor(entry.value! as int, _currency)}',
                 ),
-              if (widget.action == 'pay' && !_card) Text(l.debtNewChargesExpenseNote),
+              if ((widget.action == 'pay' && !_deferAllocation ||
+                      widget.action == 'allocatePayment') &&
+                  !_card)
+                Text(l.debtNewChargesExpenseNote),
+              if (commandAction == 'payUnallocated') Text(l.unallocatedPaymentExplanation),
               Text(l.debtOnline),
             ],
           ),

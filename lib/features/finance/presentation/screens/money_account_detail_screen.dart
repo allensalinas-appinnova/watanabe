@@ -196,6 +196,7 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
         OperationType.transfer => l10n.transferOperationLabel,
         OperationType.expenseRefund => l10n.debtRefund,
         OperationType.debtAdjustment => l10n.debtAdjust,
+        OperationType.unallocatedDebtPayment => l10n.unallocatedDebtPayment,
       };
 
   String _accountTypeLabel(AppLocalizations l10n, String type) => switch (type.toLowerCase()) {
@@ -208,7 +209,9 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
   String _signedAmount(FinancialOperation operation) {
     final sign = switch (operation.type) {
       OperationType.income || OperationType.expenseRefund => '+',
-      OperationType.expense || OperationType.debtAdjustment => '−',
+      OperationType.expense ||
+      OperationType.debtAdjustment ||
+      OperationType.unallocatedDebtPayment => '−',
       OperationType.transfer => operation.sourceAccountId == widget.accountId ? '−' : '+',
     };
     return '$sign${CurrencyFormatter.formatMinor(operation.amountMinor, operation.currency)}';

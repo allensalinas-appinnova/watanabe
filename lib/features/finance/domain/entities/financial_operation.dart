@@ -1,4 +1,11 @@
-enum OperationType { income, expense, transfer, expenseRefund, debtAdjustment }
+enum OperationType {
+  income,
+  expense,
+  transfer,
+  expenseRefund,
+  debtAdjustment,
+  unallocatedDebtPayment,
+}
 
 enum OperationStatus { pending, confirmed, rejected }
 
@@ -32,6 +39,8 @@ class FinancialOperation {
     this.balanceDeltaMinor,
     this.previousBalanceMinor,
     this.targetBalanceMinor,
+    this.paymentId,
+    this.allocationStatus,
   });
 
   final String id;
@@ -62,6 +71,8 @@ class FinancialOperation {
   final int? balanceDeltaMinor;
   final int? previousBalanceMinor;
   final int? targetBalanceMinor;
+  final String? paymentId;
+  final String? allocationStatus;
 
   int get recognizedIncomeMinor =>
       type == OperationType.income ? amountMinor * projectionDirection : 0;
@@ -74,5 +85,5 @@ class FinancialOperation {
   bool get isTransfer => type == OperationType.transfer;
 
   bool get isDebtPaymentComponent =>
-      debtCommandId != null && const {'pay', 'newChargePaid'}.contains(debtKind);
+      debtCommandId != null && const {'pay', 'newChargePaid', 'payUnallocated'}.contains(debtKind);
 }

@@ -571,6 +571,8 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     limitMinor: (data['limitMinor'] as num?)?.toInt(),
     creditor: data['creditor'] as String?,
     lastFour: data['lastFour'] as String?,
+    statementClosingDay: (data['statementClosingDay'] as num?)?.toInt(),
+    paymentDueDay: (data['paymentDueDay'] as num?)?.toInt(),
   );
 
   FinancialOperation _operation(Map<String, dynamic> data) => FinancialOperation(
@@ -602,6 +604,8 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     balanceDeltaMinor: (data['balanceDeltaMinor'] as num?)?.toInt(),
     previousBalanceMinor: (data['previousBalanceMinor'] as num?)?.toInt(),
     targetBalanceMinor: (data['targetBalanceMinor'] as num?)?.toInt(),
+    paymentId: data['paymentId'] as String?,
+    allocationStatus: data['allocationStatus'] as String?,
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
   );

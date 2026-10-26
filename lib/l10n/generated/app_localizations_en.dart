@@ -2017,4 +2017,258 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get resetPendingCheckFailure =>
       'We couldn\'t verify pending operations. Try again before resetting.';
+
+  @override
+  String get unallocatedPaymentStatus => 'Recorded · allocation needed';
+
+  @override
+  String get unallocatedPaymentExplanation =>
+      'The cash outflow is already recorded. The loan balance and expenses will update after you complete the allocation.';
+
+  @override
+  String get debtPayUnallocated => 'I\'ll complete the split later';
+
+  @override
+  String get debtAllocatePayment => 'Complete allocation';
+
+  @override
+  String get debtCommitmentsTitle => 'Debt payments';
+
+  @override
+  String get debtCommitmentsTab => 'Debt payments';
+
+  @override
+  String get budgetsTab => 'Budgets';
+
+  @override
+  String get debtCommitmentReminders => 'Local reminders';
+
+  @override
+  String get debtCommitmentsEmpty => 'You haven\'t planned any debt payments yet.';
+
+  @override
+  String get debtCommitmentCreate => 'Plan a payment';
+
+  @override
+  String get debtCommitmentAmount => 'Expected monthly amount';
+
+  @override
+  String get debtCommitmentDueDay => 'Due day';
+
+  @override
+  String get debtCommitmentFirstMonth => 'First due month';
+
+  @override
+  String get debtCommitmentLastMonth => 'Last month (optional)';
+
+  @override
+  String get debtCommitmentMonthlyPlanned => 'Planned this month';
+
+  @override
+  String get debtCommitmentPaid => 'Payments recorded';
+
+  @override
+  String get debtCommitmentRemaining => 'Remaining';
+
+  @override
+  String get debtCommitmentStatusUpcoming => 'Upcoming';
+
+  @override
+  String get debtCommitmentStatusDue => 'Due';
+
+  @override
+  String get debtCommitmentStatusPartial => 'Partially paid';
+
+  @override
+  String get debtCommitmentStatusPaid => 'Paid';
+
+  @override
+  String get debtCommitmentStatusMissed => 'Overdue';
+
+  @override
+  String get debtCommitmentStatusSkipped => 'Skipped';
+
+  @override
+  String get debtCommitmentStatusPaused => 'Paused';
+
+  @override
+  String get debtPaymentAllocationChoice => 'Do you know how the payment is split?';
+
+  @override
+  String get debtPaymentKnownSplit => 'Yes, I\'ll enter the allocation';
+
+  @override
+  String get previousMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
+
+  @override
+  String get debtCommitmentHomeWidget => 'Debt payments';
+
+  @override
+  String get debtCommitmentNextDue => 'Next due date';
+
+  @override
+  String get debtPaymentsToReview => 'Payments to review';
+
+  @override
+  String get unallocatedDebtPayment => 'Loan payment without breakdown';
+
+  @override
+  String get debtCommitmentSkip => 'Skip this installment';
+
+  @override
+  String get debtCommitmentSkipConfirm =>
+      'This installment will be marked as skipped and will not change payments in other months.';
+
+  @override
+  String get debtCommitmentPause => 'Pause future payments';
+
+  @override
+  String get debtCommitmentResume => 'Resume future payments';
+
+  @override
+  String get debtCommitmentConfirmSkip => 'Skip installment';
+
+  @override
+  String get categoryIconGroceries => 'Groceries';
+
+  @override
+  String get categoryIconCarMaintenance => 'Vehicle maintenance';
+
+  @override
+  String get categoryIconPhone => 'Phone';
+
+  @override
+  String get categoryIconUtilities => 'Utilities';
+
+  @override
+  String get categoryIconInsurance => 'Insurance';
+
+  @override
+  String get categoryIconFamily => 'Family';
+
+  @override
+  String get categoryIconChildren => 'Children';
+
+  @override
+  String get categoryIconParents => 'Parents';
+
+  @override
+  String get categoryIconPets => 'Pets';
+
+  @override
+  String get categoryIconSports => 'Sports';
+
+  @override
+  String get categoryIconHobbies => 'Hobbies';
+
+  @override
+  String get categoryIconSubscriptions => 'Subscriptions';
+
+  @override
+  String get categoryIconEntertainment => 'Entertainment';
+
+  @override
+  String get categoryIconTravel => 'Travel';
+
+  @override
+  String get categoryIconShopping => 'Shopping';
+
+  @override
+  String get categoryIconClothing => 'Clothing';
+
+  @override
+  String get categoryIconPersonalCare => 'Personal care';
+
+  @override
+  String get categoryIconGift => 'Gifts';
+
+  @override
+  String get categoryIconFreelance => 'Freelance';
+
+  @override
+  String get categoryIconBusiness => 'Business';
+
+  @override
+  String get categoryIconInvestment => 'Investments';
+
+  @override
+  String get categoryIconSavings => 'Savings';
+
+  @override
+  String get categoryIconGroupDaily => 'Everyday';
+
+  @override
+  String get categoryIconGroupWellbeing => 'Wellbeing and family';
+
+  @override
+  String get categoryIconGroupLifestyle => 'Lifestyle';
+
+  @override
+  String get categoryIconGroupMoney => 'Money';
+
+  @override
+  String get categoryIconSearchHint => 'Search icons';
+
+  @override
+  String get categoryIconNoResults => 'No matching icons.';
+
+  @override
+  String get categoryTemplatePrompt => 'Optional ideas';
+
+  @override
+  String get categoryTemplateFamily => 'Family';
+
+  @override
+  String get categoryTemplateChildren => 'Children';
+
+  @override
+  String get categoryTemplateParents => 'Parents';
+
+  @override
+  String get cardBillingCycle => 'Billing cycle';
+
+  @override
+  String get cardBillingCycleExplanation =>
+      'The closing day ends the statement period. The payment day helps with planning; confirm the exact date on your statement.';
+
+  @override
+  String get cardStatementClosingDay => 'Statement closing day';
+
+  @override
+  String get cardPaymentDueDay => 'Usual payment day';
+
+  @override
+  String get notConfigured => 'Not set';
+
+  @override
+  String get cardPlanPayment => 'Plan payment';
+
+  @override
+  String cardUpcomingDueSuggestion(Object day) {
+    return 'Suggested payment day: $day. Check your statement.';
+  }
+
+  @override
+  String get cardUseSuggestedDueDay => 'Use card suggestion';
+
+  @override
+  String get debtPaymentPlanning => 'Payment planning';
+
+  @override
+  String get debtPaymentDueDay => 'Usual payment day';
+
+  @override
+  String get debtPaymentDayExplanation =>
+      'This is a planning reference. Confirm the due date in your loan agreement or statement.';
+
+  @override
+  String debtUpcomingPaymentSuggestion(Object day) {
+    return 'Suggested payment day: $day. Confirm the date with your lender.';
+  }
+
+  @override
+  String get debtUseSuggestedPaymentDay => 'Use usual payment day';
 }

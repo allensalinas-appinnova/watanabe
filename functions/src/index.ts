@@ -9,18 +9,26 @@ import {defineString} from "firebase-functions/params";
 import {EmailImportError, executeEmailImportCommand, listEmailImportCandidates} from "./email_imports";
 import {DebtCommandError, executeDebtCommand} from "./debt_commands";
 import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
+import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitments";
 
 initializeApp();
 
-const debtsEnabled = defineString("DEBTS_ENABLED", {default: "false"});
 export const mutateDebt = onCall({region: "us-central1", timeoutSeconds: 60, memory: "512MiB"}, async (request) => {
   try {
-    const syntheticEmulator = process.env.FUNCTIONS_EMULATOR === "true" && process.env.GCLOUD_PROJECT === "demo-clearbudget";
-    return await executeDebtCommand(getFirestore(), request.auth?.uid, request.data, {enabled: syntheticEmulator || debtsEnabled.value() === "true"});
+    return await executeDebtCommand(getFirestore(), request.auth?.uid, request.data, {enabled: true});
   } catch (error) {
     if (error instanceof DebtCommandError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     // Never include financial values, names, references, or raw errors in telemetry.
     throw new HttpsError("internal", "debt-command-failed", {issue: "debt-command-failed"});
+  }
+});
+
+export const mutateDebtCommitment = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+  try {
+    return await executeDebtCommitmentCommand(getFirestore(), request.auth?.uid, request.data);
+  } catch (error) {
+    if (error instanceof DebtCommitmentError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    throw new HttpsError("internal", "commitment-command-failed", {issue: "commitment-command-failed"});
   }
 });
 

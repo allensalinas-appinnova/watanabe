@@ -99,7 +99,7 @@ service cloud.firestore {
           data.homePreferences.widgets is map &&
           data.homePreferences.widgets.keys().hasOnly([
             'totalBalance', 'incomeSummary', 'expenseSummary',
-            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity', 'coachNextStep'
+            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity', 'coachNextStep', 'debtCommitments'
           ]) &&
           required(data.homePreferences.widgets, [
             'totalBalance', 'incomeSummary', 'expenseSummary',
@@ -113,6 +113,8 @@ service cloud.firestore {
           data.homePreferences.widgets.recentActivity is bool &&
           (!('coachNextStep' in data.homePreferences.widgets) ||
             data.homePreferences.widgets.coachNextStep is bool) &&
+          (!('debtCommitments' in data.homePreferences.widgets) ||
+            data.homePreferences.widgets.debtCommitments is bool) &&
           data.homePreferences.hiddenBudgetCategoryIds is list &&
           data.homePreferences.hiddenBudgetCategoryIds.size() <= 100 &&
           data.homePreferences.hiddenBudgetCategoryIds.toSet().size() ==
@@ -184,6 +186,15 @@ service cloud.firestore {
       match /emailImportCommands/{id} { allow read, write: if false; }
       match /emailImportSources/{id} { allow read, write: if false; }
       match /emailImportReferences/{id} { allow read, write: if false; }
+      match /debtCommitmentCommands/{id} { allow read, write: if false; }
+      match /debtCommitments/{commitmentId} {
+        allow read: if owner(uid);
+        allow write: if false;
+        match /versions/{versionId} { allow read: if owner(uid); allow write: if false; }
+        match /occurrences/{occurrenceId} { allow read: if owner(uid); allow write: if false; }
+      }
+      match /debtPayments/{paymentId} { allow read: if owner(uid); allow write: if false; }
+      match /debtPaymentLinks/{paymentId} { allow read: if owner(uid); allow write: if false; }
       allow read: if owner(uid);
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',

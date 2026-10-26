@@ -85,6 +85,7 @@ void main() {
   Widget subject({
     Widget initial = const CanonicalBudgetDetailScreen(budgetId: 'budget-1'),
     Locale locale = const Locale('es'),
+    Budget budget = _budget,
     List<BudgetItem> items = _items,
     double textScale = 1,
     bool editFails = false,
@@ -127,7 +128,7 @@ void main() {
         authSessionProvider.overrideWith(
           (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: false)),
         ),
-        canonicalBudgetProvider.overrideWith((ref, input) => Stream.value(_budget)),
+        canonicalBudgetProvider.overrideWith((ref, input) => Stream.value(budget)),
         canonicalFinanceRepositoryItemsProvider.overrideWith((ref, input) => Stream.value(items)),
         canonicalCategoriesProvider.overrideWith((ref, userId) => Stream.value([_category])),
         canonicalMonthlySummaryProvider.overrideWith((ref, input) => Stream.value(_summary)),
@@ -190,7 +191,7 @@ void main() {
       'Servicios públicos',
     );
     await tester.enterText(find.byKey(const ValueKey('budget_item_create_amount')), '45000');
-    await tester.enterText(find.byKey(const ValueKey('budget_item_create_day')), '12');
+    await _selectDay(tester, 28);
     tester.binding.focusManager.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('budget_item_create_save')));
@@ -204,7 +205,7 @@ void main() {
           that: isA<CanonicalBudgetItemDraft>()
               .having((draft) => draft.description, 'description', 'Servicios públicos')
               .having((draft) => draft.amountMinor, 'amountMinor', 45000)
-              .having((draft) => draft.dayOfMonth, 'dayOfMonth', 12),
+              .having((draft) => draft.dayOfMonth, 'dayOfMonth', 28),
         ),
       ),
     ).called(1);
@@ -217,6 +218,67 @@ void main() {
       ),
     );
     expect(find.byKey(const ValueKey('budget_detail_category')), findsOneWidget);
+  });
+
+  testWidgets('expected day options are limited to the selected budget month', (tester) async {
+    const februaryBudget = Budget(
+      id: 'budget-1',
+      categoryId: 'food',
+      flowType: BudgetFlowType.expense,
+      monthKey: '2027-02',
+      currency: 'COP',
+      plannedAmountMinor: 420000,
+      status: 'active',
+    );
+    await tester.pumpWidget(
+      subject(
+        budget: februaryBudget,
+        initial: const CanonicalBudgetItemEditScreen(budgetId: 'budget-1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dayPicker = find.byKey(const ValueKey('budget_item_create_day'));
+    await tester.tap(dayPicker);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Día 28'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Día 28'), findsOneWidget);
+    expect(find.text('Día 29'), findsNothing);
+    expect(find.text('Día 31'), findsNothing);
+  });
+
+  testWidgets('expected day options include leap day only in leap years', (tester) async {
+    const leapFebruaryBudget = Budget(
+      id: 'budget-1',
+      categoryId: 'food',
+      flowType: BudgetFlowType.expense,
+      monthKey: '2028-02',
+      currency: 'COP',
+      plannedAmountMinor: 420000,
+      status: 'active',
+    );
+    await tester.pumpWidget(
+      subject(
+        budget: leapFebruaryBudget,
+        initial: const CanonicalBudgetItemEditScreen(budgetId: 'budget-1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dayPicker = find.byKey(const ValueKey('budget_item_create_day'));
+    await tester.tap(dayPicker);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Día 29'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Día 29'), findsOneWidget);
+    expect(find.text('Día 30'), findsNothing);
   });
 
   testWidgets('validates a new item and preserves fields after a recoverable error', (
@@ -245,7 +307,6 @@ void main() {
       'Água',
     );
     await tester.enterText(find.byKey(const ValueKey('budget_item_create_amount')), '45000');
-    await tester.enterText(find.byKey(const ValueKey('budget_item_create_day')), '12');
     tester.binding.focusManager.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('budget_item_create_save')));
@@ -338,7 +399,6 @@ void main() {
       'Mercado quincenal',
     );
     await tester.enterText(find.byKey(const ValueKey('budget_item_edit_amount')), '300000');
-    await tester.enterText(find.byKey(const ValueKey('budget_item_edit_day')), '20');
     await tester.ensureVisible(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.pumpAndSettle();
@@ -386,7 +446,7 @@ void main() {
     );
   });
 
-  testWidgets('validates description and day and renders Portuguese with enlarged text', (
+  testWidgets('validates description and renders Portuguese with enlarged text', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 760);
@@ -406,12 +466,19 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('budget_item_edit_description')), '');
-    await tester.enterText(find.byKey(const ValueKey('budget_item_edit_day')), '32');
     await tester.ensureVisible(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.pumpAndSettle();
     expect(find.text('Informe uma descrição.'), findsOneWidget);
-    expect(find.text('Escolha um dia existente no mês selecionado.'), findsWidgets);
+    expect(find.byKey(const ValueKey('budget_item_edit_day')), findsOneWidget);
     verifyNever(() => actions.updateBudgetItem(any(), any(), any()));
   });
+}
+
+Future<void> _selectDay(WidgetTester tester, int day) async {
+  final picker = find.byKey(const ValueKey('budget_item_create_day'));
+  await tester.tap(picker);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Día $day'));
+  await tester.pumpAndSettle();
 }

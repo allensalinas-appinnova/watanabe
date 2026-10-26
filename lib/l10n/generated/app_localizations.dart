@@ -3735,6 +3735,498 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No pudimos verificar los movimientos pendientes. Inténtalo de nuevo antes de reiniciar.'**
   String get resetPendingCheckFailure;
+
+  /// No description provided for @unallocatedPaymentStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrado · falta desglose'**
+  String get unallocatedPaymentStatus;
+
+  /// No description provided for @unallocatedPaymentExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'La salida de dinero ya está registrada. El saldo del crédito y los gastos se actualizarán cuando completes el desglose.'**
+  String get unallocatedPaymentExplanation;
+
+  /// No description provided for @debtPayUnallocated.
+  ///
+  /// In es, this message translates to:
+  /// **'Completaré el desglose después'**
+  String get debtPayUnallocated;
+
+  /// No description provided for @debtAllocatePayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Completar desglose'**
+  String get debtAllocatePayment;
+
+  /// No description provided for @debtCommitmentsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos de deudas'**
+  String get debtCommitmentsTitle;
+
+  /// No description provided for @debtCommitmentsTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos de deudas'**
+  String get debtCommitmentsTab;
+
+  /// No description provided for @budgetsTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuestos'**
+  String get budgetsTab;
+
+  /// No description provided for @debtCommitmentReminders.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios locales'**
+  String get debtCommitmentReminders;
+
+  /// No description provided for @debtCommitmentsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no has planificado pagos de deudas.'**
+  String get debtCommitmentsEmpty;
+
+  /// No description provided for @debtCommitmentCreate.
+  ///
+  /// In es, this message translates to:
+  /// **'Planificar pago'**
+  String get debtCommitmentCreate;
+
+  /// No description provided for @debtCommitmentAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Importe mensual previsto'**
+  String get debtCommitmentAmount;
+
+  /// No description provided for @debtCommitmentDueDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Día de vencimiento'**
+  String get debtCommitmentDueDay;
+
+  /// No description provided for @debtCommitmentFirstMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Primer vencimiento'**
+  String get debtCommitmentFirstMonth;
+
+  /// No description provided for @debtCommitmentLastMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Último mes (opcional)'**
+  String get debtCommitmentLastMonth;
+
+  /// No description provided for @debtCommitmentMonthlyPlanned.
+  ///
+  /// In es, this message translates to:
+  /// **'Previsto para este mes'**
+  String get debtCommitmentMonthlyPlanned;
+
+  /// No description provided for @debtCommitmentPaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagado en cuotas'**
+  String get debtCommitmentPaid;
+
+  /// No description provided for @debtCommitmentRemaining.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta por cubrir'**
+  String get debtCommitmentRemaining;
+
+  /// No description provided for @debtCommitmentStatusUpcoming.
+  ///
+  /// In es, this message translates to:
+  /// **'Próximo'**
+  String get debtCommitmentStatusUpcoming;
+
+  /// No description provided for @debtCommitmentStatusDue.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get debtCommitmentStatusDue;
+
+  /// No description provided for @debtCommitmentStatusPartial.
+  ///
+  /// In es, this message translates to:
+  /// **'Parcialmente pagado'**
+  String get debtCommitmentStatusPartial;
+
+  /// No description provided for @debtCommitmentStatusPaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagado'**
+  String get debtCommitmentStatusPaid;
+
+  /// No description provided for @debtCommitmentStatusMissed.
+  ///
+  /// In es, this message translates to:
+  /// **'Vencido'**
+  String get debtCommitmentStatusMissed;
+
+  /// No description provided for @debtCommitmentStatusSkipped.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitido'**
+  String get debtCommitmentStatusSkipped;
+
+  /// No description provided for @debtCommitmentStatusPaused.
+  ///
+  /// In es, this message translates to:
+  /// **'Pausado'**
+  String get debtCommitmentStatusPaused;
+
+  /// No description provided for @debtPaymentAllocationChoice.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Conoces cómo se distribuye el pago?'**
+  String get debtPaymentAllocationChoice;
+
+  /// No description provided for @debtPaymentKnownSplit.
+  ///
+  /// In es, this message translates to:
+  /// **'Sí, ingresaré el desglose'**
+  String get debtPaymentKnownSplit;
+
+  /// No description provided for @previousMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Mes anterior'**
+  String get previousMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Mes siguiente'**
+  String get nextMonth;
+
+  /// No description provided for @debtCommitmentHomeWidget.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos de deudas'**
+  String get debtCommitmentHomeWidget;
+
+  /// No description provided for @debtCommitmentNextDue.
+  ///
+  /// In es, this message translates to:
+  /// **'Próximo vencimiento'**
+  String get debtCommitmentNextDue;
+
+  /// No description provided for @debtPaymentsToReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos por revisar'**
+  String get debtPaymentsToReview;
+
+  /// No description provided for @unallocatedDebtPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago de crédito sin desglose'**
+  String get unallocatedDebtPayment;
+
+  /// No description provided for @debtCommitmentSkip.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitir esta cuota'**
+  String get debtCommitmentSkip;
+
+  /// No description provided for @debtCommitmentSkipConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta cuota se marcará como omitida y no reducirá tus pagos de otros meses.'**
+  String get debtCommitmentSkipConfirm;
+
+  /// No description provided for @debtCommitmentPause.
+  ///
+  /// In es, this message translates to:
+  /// **'Pausar futuras'**
+  String get debtCommitmentPause;
+
+  /// No description provided for @debtCommitmentResume.
+  ///
+  /// In es, this message translates to:
+  /// **'Reanudar futuras'**
+  String get debtCommitmentResume;
+
+  /// No description provided for @debtCommitmentConfirmSkip.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitir cuota'**
+  String get debtCommitmentConfirmSkip;
+
+  /// No description provided for @categoryIconGroceries.
+  ///
+  /// In es, this message translates to:
+  /// **'Mercado'**
+  String get categoryIconGroceries;
+
+  /// No description provided for @categoryIconCarMaintenance.
+  ///
+  /// In es, this message translates to:
+  /// **'Mantenimiento del vehículo'**
+  String get categoryIconCarMaintenance;
+
+  /// No description provided for @categoryIconPhone.
+  ///
+  /// In es, this message translates to:
+  /// **'Teléfono'**
+  String get categoryIconPhone;
+
+  /// No description provided for @categoryIconUtilities.
+  ///
+  /// In es, this message translates to:
+  /// **'Servicios'**
+  String get categoryIconUtilities;
+
+  /// No description provided for @categoryIconInsurance.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguros'**
+  String get categoryIconInsurance;
+
+  /// No description provided for @categoryIconFamily.
+  ///
+  /// In es, this message translates to:
+  /// **'Familia'**
+  String get categoryIconFamily;
+
+  /// No description provided for @categoryIconChildren.
+  ///
+  /// In es, this message translates to:
+  /// **'Hijos'**
+  String get categoryIconChildren;
+
+  /// No description provided for @categoryIconParents.
+  ///
+  /// In es, this message translates to:
+  /// **'Padres'**
+  String get categoryIconParents;
+
+  /// No description provided for @categoryIconPets.
+  ///
+  /// In es, this message translates to:
+  /// **'Mascotas'**
+  String get categoryIconPets;
+
+  /// No description provided for @categoryIconSports.
+  ///
+  /// In es, this message translates to:
+  /// **'Deportes'**
+  String get categoryIconSports;
+
+  /// No description provided for @categoryIconHobbies.
+  ///
+  /// In es, this message translates to:
+  /// **'Pasatiempos'**
+  String get categoryIconHobbies;
+
+  /// No description provided for @categoryIconSubscriptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Suscripciones'**
+  String get categoryIconSubscriptions;
+
+  /// No description provided for @categoryIconEntertainment.
+  ///
+  /// In es, this message translates to:
+  /// **'Entretenimiento'**
+  String get categoryIconEntertainment;
+
+  /// No description provided for @categoryIconTravel.
+  ///
+  /// In es, this message translates to:
+  /// **'Viajes'**
+  String get categoryIconTravel;
+
+  /// No description provided for @categoryIconShopping.
+  ///
+  /// In es, this message translates to:
+  /// **'Compras'**
+  String get categoryIconShopping;
+
+  /// No description provided for @categoryIconClothing.
+  ///
+  /// In es, this message translates to:
+  /// **'Ropa'**
+  String get categoryIconClothing;
+
+  /// No description provided for @categoryIconPersonalCare.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuidado personal'**
+  String get categoryIconPersonalCare;
+
+  /// No description provided for @categoryIconGift.
+  ///
+  /// In es, this message translates to:
+  /// **'Regalos'**
+  String get categoryIconGift;
+
+  /// No description provided for @categoryIconFreelance.
+  ///
+  /// In es, this message translates to:
+  /// **'Trabajo independiente'**
+  String get categoryIconFreelance;
+
+  /// No description provided for @categoryIconBusiness.
+  ///
+  /// In es, this message translates to:
+  /// **'Negocio'**
+  String get categoryIconBusiness;
+
+  /// No description provided for @categoryIconInvestment.
+  ///
+  /// In es, this message translates to:
+  /// **'Inversiones'**
+  String get categoryIconInvestment;
+
+  /// No description provided for @categoryIconSavings.
+  ///
+  /// In es, this message translates to:
+  /// **'Ahorros'**
+  String get categoryIconSavings;
+
+  /// No description provided for @categoryIconGroupDaily.
+  ///
+  /// In es, this message translates to:
+  /// **'Vida diaria'**
+  String get categoryIconGroupDaily;
+
+  /// No description provided for @categoryIconGroupWellbeing.
+  ///
+  /// In es, this message translates to:
+  /// **'Bienestar y familia'**
+  String get categoryIconGroupWellbeing;
+
+  /// No description provided for @categoryIconGroupLifestyle.
+  ///
+  /// In es, this message translates to:
+  /// **'Estilo de vida'**
+  String get categoryIconGroupLifestyle;
+
+  /// No description provided for @categoryIconGroupMoney.
+  ///
+  /// In es, this message translates to:
+  /// **'Dinero'**
+  String get categoryIconGroupMoney;
+
+  /// No description provided for @categoryIconSearchHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar íconos'**
+  String get categoryIconSearchHint;
+
+  /// No description provided for @categoryIconNoResults.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay íconos que coincidan.'**
+  String get categoryIconNoResults;
+
+  /// No description provided for @categoryTemplatePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Ideas opcionales'**
+  String get categoryTemplatePrompt;
+
+  /// No description provided for @categoryTemplateFamily.
+  ///
+  /// In es, this message translates to:
+  /// **'Familia'**
+  String get categoryTemplateFamily;
+
+  /// No description provided for @categoryTemplateChildren.
+  ///
+  /// In es, this message translates to:
+  /// **'Hijos'**
+  String get categoryTemplateChildren;
+
+  /// No description provided for @categoryTemplateParents.
+  ///
+  /// In es, this message translates to:
+  /// **'Padres'**
+  String get categoryTemplateParents;
+
+  /// No description provided for @cardBillingCycle.
+  ///
+  /// In es, this message translates to:
+  /// **'Ciclo de facturación'**
+  String get cardBillingCycle;
+
+  /// No description provided for @cardBillingCycleExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'El corte cierra el periodo del extracto. El día de pago orienta la planificación; confirma la fecha definitiva en tu extracto.'**
+  String get cardBillingCycleExplanation;
+
+  /// No description provided for @cardStatementClosingDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Día de corte'**
+  String get cardStatementClosingDay;
+
+  /// No description provided for @cardPaymentDueDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Día habitual de pago'**
+  String get cardPaymentDueDay;
+
+  /// No description provided for @notConfigured.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin configurar'**
+  String get notConfigured;
+
+  /// No description provided for @cardPlanPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Planificar pago'**
+  String get cardPlanPayment;
+
+  /// No description provided for @cardUpcomingDueSuggestion.
+  ///
+  /// In es, this message translates to:
+  /// **'Sugerencia de día de pago: {day}. Revisa tu extracto.'**
+  String cardUpcomingDueSuggestion(Object day);
+
+  /// No description provided for @cardUseSuggestedDueDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar sugerencia de la tarjeta'**
+  String get cardUseSuggestedDueDay;
+
+  /// No description provided for @debtPaymentPlanning.
+  ///
+  /// In es, this message translates to:
+  /// **'Planificación de pagos'**
+  String get debtPaymentPlanning;
+
+  /// No description provided for @debtPaymentDueDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Día habitual de pago'**
+  String get debtPaymentDueDay;
+
+  /// No description provided for @debtPaymentDayExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Es una referencia para planificar. Confirma la fecha de vencimiento en tu contrato o extracto.'**
+  String get debtPaymentDayExplanation;
+
+  /// No description provided for @debtUpcomingPaymentSuggestion.
+  ///
+  /// In es, this message translates to:
+  /// **'Día de pago sugerido: {day}. Confirma la fecha con tu entidad.'**
+  String debtUpcomingPaymentSuggestion(Object day);
+
+  /// No description provided for @debtUseSuggestedPaymentDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar día habitual de pago'**
+  String get debtUseSuggestedPaymentDay;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

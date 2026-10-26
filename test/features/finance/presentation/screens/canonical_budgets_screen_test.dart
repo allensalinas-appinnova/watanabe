@@ -196,6 +196,11 @@ void main() {
     expect(find.text('Tus presupuestos'), findsOneWidget);
     expect(find.text('Aún no tienes presupuestos'), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_empty_create')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budgets_manage_categories')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.byKey(const ValueKey('budgets_manage_categories')), findsOneWidget);
     expect(find.byKey(const ValueKey('budgets_create_button')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('budget_empty_create')));

@@ -18,6 +18,8 @@ class FinanceAccount {
     this.limitMinor,
     this.creditor,
     this.lastFour,
+    this.statementClosingDay,
+    this.paymentDueDay,
   });
 
   final String id;
@@ -38,6 +40,8 @@ class FinanceAccount {
   final int? limitMinor;
   final String? creditor;
   final String? lastFour;
+  final int? statementClosingDay;
+  final int? paymentDueDay;
 
   bool get isDebt => nature == 'debt';
   bool get isCreditCard => isDebt && type == 'creditCard';

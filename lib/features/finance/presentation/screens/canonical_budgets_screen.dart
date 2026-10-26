@@ -163,6 +163,15 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
                         ),
                       ),
                       const SizedBox(height: 16),
+                      SegmentedButton<bool>(
+                        segments: [
+                          ButtonSegment(value: false, label: Text(l10n.budgetsTab)),
+                          ButtonSegment(value: true, label: Text(l10n.debtCommitmentsTab)),
+                        ],
+                        selected: const {false},
+                        onSelectionChanged: (_) => context.push('/budgets/debt-payments'),
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         l10n.budgetMonth.toUpperCase(),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(

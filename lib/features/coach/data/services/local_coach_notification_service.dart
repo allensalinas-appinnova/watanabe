@@ -80,6 +80,8 @@ class LocalCoachNotificationService implements CoachNotificationService {
       final parsedType = switch (type) {
         'daily' => CoachNotificationType.daily,
         'weekly' => CoachNotificationType.weekly,
+        'debtBefore' => CoachNotificationType.debtBefore,
+        'debtDue' => CoachNotificationType.debtDue,
         _ => null,
       };
       if (parsedType == null) return null;

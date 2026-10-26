@@ -16,6 +16,8 @@ import '../../features/coach/data/repositories/firestore_coach_repository.dart';
 import '../../features/coach/data/services/local_coach_notification_service.dart';
 import '../../features/coach/domain/repositories/coach_repository.dart';
 import '../../features/coach/domain/services/coach_notification_service.dart';
+import '../../features/commitments/data/firebase_commitment_repository.dart';
+import '../../features/commitments/domain/commitment_repository.dart';
 import '../../features/debts/data/firebase_debt_repository.dart';
 import '../../features/debts/domain/debt_repository.dart';
 import '../../features/finance/data/datasources/balance_adjustment_service.dart';
@@ -75,6 +77,15 @@ Future<void> configureDependencies({
           getIt<FirebaseAuth>(),
           getIt<FirebaseFirestore>(),
         ),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<CommitmentRepository>()) {
+    getIt.registerLazySingleton<CommitmentRepository>(
+      () => FirebaseCommitmentRepository(
+        firestore: getIt<FirebaseFirestore>(),
+        functions: FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        auth: getIt<FirebaseAuth>(),
       ),
     );
   }
