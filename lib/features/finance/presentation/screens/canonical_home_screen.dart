@@ -133,7 +133,8 @@ class CanonicalHomeScreen extends ConsumerWidget {
                       amountsHidden: amountsHidden,
                     ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
+                    key: const ValueKey('home_debt_account_shortcuts'),
+                    padding: const EdgeInsets.only(top: 12, bottom: 16),
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -370,6 +371,7 @@ class _DebtCommitmentsHomeCard extends ConsumerWidget {
           return paid < plan.amountMinor;
         }).firstOrNull;
         return Card(
+          key: const ValueKey('home_debt_commitments_card'),
           margin: const EdgeInsets.only(top: 12),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),

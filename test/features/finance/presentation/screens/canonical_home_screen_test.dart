@@ -217,6 +217,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('home_dashboard_title')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home_credit_cards_shortcut')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final debtCommitmentsCard = find.byKey(const ValueKey('home_debt_commitments_card'));
+    final debtAccountShortcuts = find.byKey(const ValueKey('home_credit_cards_shortcut'));
+    expect(
+      tester.getTopLeft(debtAccountShortcuts).dy - tester.getBottomLeft(debtCommitmentsCard).dy,
+      greaterThanOrEqualTo(12),
+    );
     expect(find.byKey(const ValueKey('home_balance_card')), findsOneWidget);
     expect(find.textContaining('Banco1:'), findsOneWidget);
     expect(find.textContaining('Oculta:'), findsNothing);
