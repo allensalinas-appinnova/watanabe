@@ -10,8 +10,23 @@ import {EmailImportError, executeEmailImportCommand, listEmailImportCandidates} 
 import {DebtCommandError, executeDebtCommand} from "./debt_commands";
 import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
 import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitments";
+import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_registry";
 
 initializeApp();
+
+export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, async (request) => {
+  if (request.auth?.token.firebase?.sign_in_provider === "anonymous") {
+    throw new HttpsError("permission-denied", "registered-account-required", {issue: "registered-account-required"});
+  }
+  try {
+    return await executeDeviceRegistryCommand(getFirestore(), request.auth?.uid, request.data);
+  } catch (error) {
+    if (error instanceof DeviceRegistryError) {
+      throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    }
+    throw new HttpsError("internal", "device-registry-failed", {issue: "device-registry-failed"});
+  }
+});
 
 export const mutateDebt = onCall({region: "us-central1", timeoutSeconds: 60, memory: "512MiB"}, async (request) => {
   try {

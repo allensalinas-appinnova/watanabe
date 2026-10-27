@@ -719,4 +719,23 @@
   ,"debtPaymentDayExplanation": "Es una referencia para planificar. Confirma la fecha de vencimiento en tu contrato o extracto."
   ,"debtUpcomingPaymentSuggestion": "Día de pago sugerido: {day}. Confirma la fecha con tu entidad."
   ,"debtUseSuggestedPaymentDay": "Usar día habitual de pago"
+  ,"myDevicesTitle": "Mis dispositivos"
+  ,"myDevicesRegisteredOnly": "El registro de instalaciones está disponible para cuentas registradas."
+  ,"myDevicesDescription": "Estas son las instalaciones de la app usadas recientemente con tu cuenta. Una instalación no siempre equivale a un dispositivo físico distinto."
+  ,"myDevicesRetention": "Las instalaciones se eliminan después de 90 días sin actividad. Quitar una de esta lista no cierra su sesión; podría aparecer de nuevo si se usa la app."
+  ,"myDevicesActiveCount": "Instalaciones activas: {count}"
+  ,"@myDevicesActiveCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"myDevicesEmpty": "Todavía no hay instalaciones activas registradas."
+  ,"myDevicesLastSeen": "Última actividad: {date}"
+  ,"@myDevicesLastSeen": {"placeholders": {"date": {"type": "String"}}}
+  ,"myDevicesAndroid": "Android"
+  ,"myDevicesIos": "iPhone o iPad"
+  ,"myDevicesWeb": "Navegador web"
+  ,"myDevicesUnknown": "Plataforma desconocida"
+  ,"myDevicesRemove": "Quitar"
+  ,"myDevicesRemoveTitle": "¿Quitar esta instalación?"
+  ,"myDevicesRemoveWarning": "Esto solo elimina su registro de la lista. No cierra la sesión de forma remota. Si se vuelve a usar, podría registrarse otra vez."
+  ,"myDevicesRemoved": "Instalación quitada de la lista."
+  ,"myDevicesLoadError": "No pudimos cargar tus instalaciones."
+  ,"retry": "Reintentar"
 }

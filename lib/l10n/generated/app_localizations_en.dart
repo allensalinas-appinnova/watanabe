@@ -2271,4 +2271,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get debtUseSuggestedPaymentDay => 'Use usual payment day';
+
+  @override
+  String get myDevicesTitle => 'My devices';
+
+  @override
+  String get myDevicesRegisteredOnly => 'Device registration is available for registered accounts.';
+
+  @override
+  String get myDevicesDescription =>
+      'These are app installations recently used with your account. An installation is not necessarily a separate physical device.';
+
+  @override
+  String get myDevicesRetention =>
+      'Installations are removed after 90 days without activity. Removing one here does not sign it out; it may appear again when the app is used.';
+
+  @override
+  String myDevicesActiveCount(int count) {
+    return 'Active installations: $count';
+  }
+
+  @override
+  String get myDevicesEmpty => 'No active installations are registered yet.';
+
+  @override
+  String myDevicesLastSeen(String date) {
+    return 'Last activity: $date';
+  }
+
+  @override
+  String get myDevicesAndroid => 'Android';
+
+  @override
+  String get myDevicesIos => 'iPhone or iPad';
+
+  @override
+  String get myDevicesWeb => 'Web browser';
+
+  @override
+  String get myDevicesUnknown => 'Unknown platform';
+
+  @override
+  String get myDevicesRemove => 'Remove';
+
+  @override
+  String get myDevicesRemoveTitle => 'Remove this installation?';
+
+  @override
+  String get myDevicesRemoveWarning =>
+      'This only removes its entry from this list. It does not remotely sign out the app. If it is used again, it may be registered again.';
+
+  @override
+  String get myDevicesRemoved => 'Installation removed from the list.';
+
+  @override
+  String get myDevicesLoadError => 'We couldn\'t load your installations.';
 }

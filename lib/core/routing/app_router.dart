@@ -15,6 +15,7 @@ import '../../features/commitments/presentation/debt_commitments_screen.dart';
 import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
 import '../../features/debts/presentation/debt_payment_picker_screen.dart';
+import '../../features/devices/presentation/my_devices_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
@@ -353,6 +354,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/settings/appearance',
       name: 'settings-appearance',
       builder: (context, state) => const AppearanceSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/devices',
+      name: 'settings-devices',
+      builder: (context, state) => const MyDevicesScreen(),
     ),
     GoRoute(
       path: '/settings/secure-account',

@@ -719,4 +719,23 @@
   ,"debtPaymentDayExplanation": "This is a planning reference. Confirm the due date in your loan agreement or statement."
   ,"debtUpcomingPaymentSuggestion": "Suggested payment day: {day}. Confirm the date with your lender."
   ,"debtUseSuggestedPaymentDay": "Use usual payment day"
+  ,"myDevicesTitle": "My devices"
+  ,"myDevicesRegisteredOnly": "Device registration is available for registered accounts."
+  ,"myDevicesDescription": "These are app installations recently used with your account. An installation is not necessarily a separate physical device."
+  ,"myDevicesRetention": "Installations are removed after 90 days without activity. Removing one here does not sign it out; it may appear again when the app is used."
+  ,"myDevicesActiveCount": "Active installations: {count}"
+  ,"@myDevicesActiveCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"myDevicesEmpty": "No active installations are registered yet."
+  ,"myDevicesLastSeen": "Last activity: {date}"
+  ,"@myDevicesLastSeen": {"placeholders": {"date": {"type": "String"}}}
+  ,"myDevicesAndroid": "Android"
+  ,"myDevicesIos": "iPhone or iPad"
+  ,"myDevicesWeb": "Web browser"
+  ,"myDevicesUnknown": "Unknown platform"
+  ,"myDevicesRemove": "Remove"
+  ,"myDevicesRemoveTitle": "Remove this installation?"
+  ,"myDevicesRemoveWarning": "This only removes its entry from this list. It does not remotely sign out the app. If it is used again, it may be registered again."
+  ,"myDevicesRemoved": "Installation removed from the list."
+  ,"myDevicesLoadError": "We couldn't load your installations."
+  ,"retry": "Retry"
 }

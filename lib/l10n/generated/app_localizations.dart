@@ -4227,6 +4227,102 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Usar día habitual de pago'**
   String get debtUseSuggestedPaymentDay;
+
+  /// No description provided for @myDevicesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Mis dispositivos'**
+  String get myDevicesTitle;
+
+  /// No description provided for @myDevicesRegisteredOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'El registro de instalaciones está disponible para cuentas registradas.'**
+  String get myDevicesRegisteredOnly;
+
+  /// No description provided for @myDevicesDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Estas son las instalaciones de la app usadas recientemente con tu cuenta. Una instalación no siempre equivale a un dispositivo físico distinto.'**
+  String get myDevicesDescription;
+
+  /// No description provided for @myDevicesRetention.
+  ///
+  /// In es, this message translates to:
+  /// **'Las instalaciones se eliminan después de 90 días sin actividad. Quitar una de esta lista no cierra su sesión; podría aparecer de nuevo si se usa la app.'**
+  String get myDevicesRetention;
+
+  /// No description provided for @myDevicesActiveCount.
+  ///
+  /// In es, this message translates to:
+  /// **'Instalaciones activas: {count}'**
+  String myDevicesActiveCount(int count);
+
+  /// No description provided for @myDevicesEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no hay instalaciones activas registradas.'**
+  String get myDevicesEmpty;
+
+  /// No description provided for @myDevicesLastSeen.
+  ///
+  /// In es, this message translates to:
+  /// **'Última actividad: {date}'**
+  String myDevicesLastSeen(String date);
+
+  /// No description provided for @myDevicesAndroid.
+  ///
+  /// In es, this message translates to:
+  /// **'Android'**
+  String get myDevicesAndroid;
+
+  /// No description provided for @myDevicesIos.
+  ///
+  /// In es, this message translates to:
+  /// **'iPhone o iPad'**
+  String get myDevicesIos;
+
+  /// No description provided for @myDevicesWeb.
+  ///
+  /// In es, this message translates to:
+  /// **'Navegador web'**
+  String get myDevicesWeb;
+
+  /// No description provided for @myDevicesUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Plataforma desconocida'**
+  String get myDevicesUnknown;
+
+  /// No description provided for @myDevicesRemove.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar'**
+  String get myDevicesRemove;
+
+  /// No description provided for @myDevicesRemoveTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar esta instalación?'**
+  String get myDevicesRemoveTitle;
+
+  /// No description provided for @myDevicesRemoveWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Esto solo elimina su registro de la lista. No cierra la sesión de forma remota. Si se vuelve a usar, podría registrarse otra vez.'**
+  String get myDevicesRemoveWarning;
+
+  /// No description provided for @myDevicesRemoved.
+  ///
+  /// In es, this message translates to:
+  /// **'Instalación quitada de la lista.'**
+  String get myDevicesRemoved;
+
+  /// No description provided for @myDevicesLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos cargar tus instalaciones.'**
+  String get myDevicesLoadError;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

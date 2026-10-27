@@ -70,6 +70,15 @@ class CanonicalMoreScreen extends ConsumerWidget {
             icon: const Icon(Icons.palette_outlined),
             label: Text(l10n.appearanceTitle),
           ),
+          if (user != null && !isGuest) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const ValueKey('settings_my_devices'),
+              onPressed: () => context.push('/settings/devices'),
+              icon: const Icon(Icons.devices_outlined),
+              label: Text(l10n.myDevicesTitle),
+            ),
+          ],
           const SizedBox(height: 32),
           Text(
             l10n.moreManagement,

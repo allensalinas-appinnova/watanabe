@@ -195,6 +195,8 @@ service cloud.firestore {
       }
       match /debtPayments/{paymentId} { allow read: if owner(uid); allow write: if false; }
       match /debtPaymentLinks/{paymentId} { allow read: if owner(uid); allow write: if false; }
+      // Installation metadata is readable by its owner and mutated only by manageDevice.
+      match /devices/{installationId} { allow read: if owner(uid); allow write: if false; }
       allow read: if owner(uid);
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',

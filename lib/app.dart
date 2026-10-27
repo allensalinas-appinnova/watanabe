@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/coach/presentation/widgets/coach_lifecycle.dart';
+import 'features/devices/presentation/device_registry_lifecycle.dart';
 import 'features/finance/domain/entities/appearance_preferences.dart';
 import 'features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -32,9 +33,11 @@ class PersonalFinanceApp extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: appRouter,
-      builder: (context, child) => CoachLifecycle(
-        onOpen: (location) => appRouter.push(location),
-        child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => DeviceRegistryLifecycle(
+        child: CoachLifecycle(
+          onOpen: (location) => appRouter.push(location),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }

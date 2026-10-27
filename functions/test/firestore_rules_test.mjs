@@ -573,3 +573,26 @@ test('command receipts cannot be read or changed by any client', async () => {
     await assertFails(receipt.delete());
   }
 });
+
+test('device registrations are readable only by their owner and are server-write-only', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('users/alice/devices/phone-installation').set({
+      installationId: 'phone-installation', platform: 'ios',
+      createdAt: Timestamp.now(), lastSeenAt: Timestamp.now(), expiresAt: Timestamp.now(),
+    });
+  });
+  const owner = environment.authenticatedContext('alice').firestore();
+  const other = environment.authenticatedContext('bob').firestore();
+  const anonymous = environment.unauthenticatedContext().firestore();
+  await assertSucceeds(owner.doc('users/alice/devices/phone-installation').get());
+  await assertSucceeds(owner.collection('users/alice/devices').get());
+  for (const client of [owner, other, anonymous]) {
+    await assertFails(client.doc('users/alice/devices/forged').set({
+      installationId: 'forged', platform: 'android',
+      createdAt: Timestamp.now(), lastSeenAt: Timestamp.now(), expiresAt: Timestamp.now(),
+    }));
+    await assertFails(client.doc('users/alice/devices/phone-installation').delete());
+  }
+  await assertFails(other.doc('users/alice/devices/phone-installation').get());
+  await assertFails(anonymous.collection('users/alice/devices').get());
+});

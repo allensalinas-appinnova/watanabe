@@ -2282,4 +2282,60 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get debtUseSuggestedPaymentDay => 'Usar dia habitual de pagamento';
+
+  @override
+  String get myDevicesTitle => 'Meus dispositivos';
+
+  @override
+  String get myDevicesRegisteredOnly =>
+      'O registro de instalações está disponível para contas registradas.';
+
+  @override
+  String get myDevicesDescription =>
+      'Estas são as instalações do app usadas recentemente com sua conta. Uma instalação não corresponde necessariamente a um dispositivo físico diferente.';
+
+  @override
+  String get myDevicesRetention =>
+      'As instalações são removidas após 90 dias sem atividade. Remover uma entrada daqui não encerra a sessão; ela poderá aparecer novamente se o app for usado.';
+
+  @override
+  String myDevicesActiveCount(int count) {
+    return 'Instalações ativas: $count';
+  }
+
+  @override
+  String get myDevicesEmpty => 'Ainda não há instalações ativas registradas.';
+
+  @override
+  String myDevicesLastSeen(String date) {
+    return 'Última atividade: $date';
+  }
+
+  @override
+  String get myDevicesAndroid => 'Android';
+
+  @override
+  String get myDevicesIos => 'iPhone ou iPad';
+
+  @override
+  String get myDevicesWeb => 'Navegador da web';
+
+  @override
+  String get myDevicesUnknown => 'Plataforma desconhecida';
+
+  @override
+  String get myDevicesRemove => 'Remover';
+
+  @override
+  String get myDevicesRemoveTitle => 'Remover esta instalação?';
+
+  @override
+  String get myDevicesRemoveWarning =>
+      'Isso remove apenas o registro da lista. Não encerra a sessão remotamente. Se o app for usado novamente, a instalação poderá ser registrada outra vez.';
+
+  @override
+  String get myDevicesRemoved => 'Instalação removida da lista.';
+
+  @override
+  String get myDevicesLoadError => 'Não foi possível carregar suas instalações.';
 }

@@ -20,6 +20,8 @@ import '../../features/commitments/data/firebase_commitment_repository.dart';
 import '../../features/commitments/domain/commitment_repository.dart';
 import '../../features/debts/data/firebase_debt_repository.dart';
 import '../../features/debts/domain/debt_repository.dart';
+import '../../features/devices/data/firebase_device_registry_repository.dart';
+import '../../features/devices/domain/device_registry_repository.dart';
 import '../../features/finance/data/datasources/balance_adjustment_service.dart';
 import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
@@ -86,6 +88,16 @@ Future<void> configureDependencies({
         firestore: getIt<FirebaseFirestore>(),
         functions: FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
         auth: getIt<FirebaseAuth>(),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<DeviceRegistryRepository>()) {
+    getIt.registerLazySingleton<DeviceRegistryRepository>(
+      () => FirebaseDeviceRegistryRepository(
+        firestore: getIt<FirebaseFirestore>(),
+        functions: FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        auth: getIt<FirebaseAuth>(),
+        preferences: getIt<SharedPreferences>(),
       ),
     );
   }
