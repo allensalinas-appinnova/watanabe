@@ -196,10 +196,17 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                                   subtitle: Text(l.unallocatedPaymentExplanation),
                                 ),
                                 TextButton.icon(
-                                  onPressed: () => context.push(
-                                    '/debts/${account.id}/actions/allocatePayment',
-                                    extra: [operation],
-                                  ),
+                                  onPressed: () {
+                                    final paymentId =
+                                        operation.paymentId ?? operation.debtCommandId;
+                                    context.push(
+                                      Uri(
+                                        path: '/debts/${account.id}/actions/allocatePayment',
+                                        queryParameters: {'paymentId': ?paymentId},
+                                      ).toString(),
+                                      extra: [operation],
+                                    );
+                                  },
                                   icon: const Icon(Icons.rule_outlined),
                                   label: Text(l.debtAllocatePayment),
                                 ),

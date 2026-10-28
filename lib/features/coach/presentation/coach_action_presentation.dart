@@ -53,14 +53,13 @@ String coachActionBody(
       if (!amountsHidden && action.remainingMinor != null)
         l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
     ].join(' · '),
-    CoachActionKind.budgetReached => amountsHidden ||
-            action.plannedMinor == null ||
-            action.paidMinor == null
-        ? l10n.coachActionBudgetBody
-        : l10n.coachActionBudgetProgress(
-            money(action.paidMinor!, action.currency ?? 'COP'),
-            money(action.plannedMinor!, action.currency ?? 'COP'),
-          ),
+    CoachActionKind.budgetReached =>
+      amountsHidden || action.plannedMinor == null || action.paidMinor == null
+          ? l10n.coachActionBudgetBody
+          : l10n.coachActionBudgetProgress(
+              money(action.paidMinor!, action.currency ?? 'COP'),
+              money(action.plannedMinor!, action.currency ?? 'COP'),
+            ),
     CoachActionKind.weeklyReview => l10n.coachWeeklyIntro,
     CoachActionKind.dailyReview => l10n.coachReviewIntro,
     CoachActionKind.configureRoutines => l10n.coachRoutineInvite,
@@ -95,7 +94,11 @@ String coachActionRoute(CoachAction action) {
         queryParameters: query,
       ).toString();
     case CoachActionKind.unallocatedPayment:
-      return '/debts/${action.debtAccountId}/actions/allocatePayment';
+      final paymentId = action.operation?.paymentId ?? action.operation?.debtCommandId;
+      return Uri(
+        path: '/debts/${action.debtAccountId}/actions/allocatePayment',
+        queryParameters: {'paymentId': ?paymentId},
+      ).toString();
     case CoachActionKind.budgetReached:
       return action.budgetId == null
           ? '/budgets/tracking?month=${action.monthKey ?? ''}'

@@ -12,6 +12,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../finance/domain/entities/finance_account.dart';
 import '../../finance/domain/entities/financial_operation.dart';
+import '../../finance/domain/entities/operation_page.dart';
 import '../../finance/presentation/models/picker_usage_order.dart';
 import '../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../finance/presentation/widgets/finance_account_option.dart';
@@ -20,6 +21,31 @@ import '../../finance/presentation/widgets/finance_popup_selector.dart';
 import '../domain/debt_command.dart';
 import 'debt_error_message.dart';
 import 'debt_providers.dart';
+
+final unallocatedDebtPaymentProvider = FutureProvider.autoDispose
+    .family<FinancialOperation?, ({String uid, String accountId, String paymentId})>((
+      ref,
+      key,
+    ) async {
+      final repository = ref.read(canonicalFinanceRepositoryProvider);
+      OperationPageCursor? cursor;
+      do {
+        final result = await repository.fetchOperationsPage(
+          key.uid,
+          accountId: key.accountId,
+          debtPaymentsOnly: true,
+          cursor: cursor,
+        );
+        final page = result.match((failure) => throw StateError(failure.message), (page) => page);
+        for (final operation in page.items) {
+          if (operation.paymentId == key.paymentId && operation.allocationStatus == 'unallocated') {
+            return operation;
+          }
+        }
+        cursor = page.nextCursor;
+      } while (cursor != null);
+      return null;
+    });
 
 String debtActionLabel(AppLocalizations l, String action) => switch (action) {
   'create' => l.debtAdd,
@@ -42,6 +68,7 @@ class DebtFormScreen extends ConsumerStatefulWidget {
     this.accountId,
     this.action = 'create',
     this.originalOperationId,
+    this.paymentId,
     this.initialComponents = const [],
     this.commitmentId,
     this.commitmentMonth,
@@ -51,6 +78,7 @@ class DebtFormScreen extends ConsumerStatefulWidget {
   final String? accountId;
   final String action;
   final String? originalOperationId;
+  final String? paymentId;
   final List<FinancialOperation> initialComponents;
   final String? commitmentId;
   final String? commitmentMonth;
@@ -69,6 +97,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   late DateTime _date;
   bool _saving = false, _dirty = false, _initialized = false, _deferAllocation = false;
   bool _includeInDashboard = true;
+  bool _allocationSeeded = false;
   String? _error;
   TextEditingController field(String key, [String initial = '']) =>
       _fields.putIfAbsent(key, () => TextEditingController(text: initial));
@@ -167,6 +196,59 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         ),
       );
     }
+    final operationFromExtra = widget.initialComponents.firstOrNull;
+    final requestedPaymentId =
+        widget.paymentId ?? operationFromExtra?.paymentId ?? operationFromExtra?.debtCommandId;
+    final allocationState =
+        widget.action == 'allocatePayment' &&
+            operationFromExtra == null &&
+            requestedPaymentId != null
+        ? ref.watch(
+            unallocatedDebtPaymentProvider((
+              uid: user.id,
+              accountId: widget.accountId!,
+              paymentId: requestedPaymentId,
+            )),
+          )
+        : null;
+    if (widget.action == 'allocatePayment' && operationFromExtra == null) {
+      if (requestedPaymentId == null) {
+        return Scaffold(
+          appBar: FinanceRouteHeader(
+            title: l.debtAllocatePayment,
+            backLabel: l.cancel,
+            onBack: () => popOrGo(context, '/accounts'),
+          ),
+          body: Center(child: Text(l.debtErrorReference)),
+        );
+      }
+      if (allocationState!.isLoading) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (allocationState.hasError || allocationState.valueOrNull == null) {
+        return Scaffold(
+          appBar: FinanceRouteHeader(
+            title: l.debtAllocatePayment,
+            backLabel: l.cancel,
+            onBack: () => popOrGo(context, '/accounts'),
+          ),
+          body: Center(
+            child: allocationState.hasError
+                ? TextButton(
+                    onPressed: () => ref.invalidate(
+                      unallocatedDebtPaymentProvider((
+                        uid: user.id,
+                        accountId: widget.accountId!,
+                        paymentId: requestedPaymentId,
+                      )),
+                    ),
+                    child: Text(l.retry),
+                  )
+                : Text(l.debtErrorReference),
+          ),
+        );
+      }
+    }
     if (!_initialized) {
       _initialized = true;
       final profile = profileState.valueOrNull;
@@ -213,6 +295,26 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
               ? '$target'
               : (target / 100).toStringAsFixed(2),
         );
+      }
+    }
+    if (widget.action == 'allocatePayment' && !_allocationSeeded) {
+      final source = operationFromExtra ?? allocationState?.valueOrNull;
+      if (source != null) {
+        _allocationSeeded = true;
+        _currency = source.currency;
+        _date = source.occurredAt.toLocal();
+        final decimals = CurrencyFormatter.decimalDigits(source.currency);
+        field(
+          'amountMinor',
+          decimals == 0
+              ? '${source.amountMinor}'
+              : (source.amountMinor / 100).toStringAsFixed(decimals),
+        );
+        field('principalMinor', '0');
+        field('previousChargesMinor', '0');
+        field('newChargesMinor', '0');
+        _bankId = source.sourceAccountId ?? source.accountId;
+        _categoryId = null;
       }
     }
     final categoriesState = ref.watch(canonicalCategoriesProvider(user.id));
@@ -745,9 +847,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       data['amountMinor'] = _money('amountMinor');
     }
     if (widget.action == 'allocatePayment') {
-      data['paymentId'] =
-          widget.initialComponents.firstOrNull?.paymentId ??
-          widget.initialComponents.firstOrNull?.debtCommandId;
+      final source = widget.initialComponents.firstOrNull;
+      data['paymentId'] = widget.paymentId ?? source?.paymentId ?? source?.debtCommandId;
       if (data['paymentId'] == null) {
         setState(() => _error = l.debtErrorReference);
         return;
@@ -829,7 +930,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
           uid,
           DebtCommand(
             requestId: _requestId,
-            fields: widget.initialComponents.isEmpty
+            fields: widget.action == 'allocatePayment' || widget.initialComponents.isEmpty
                 ? data
                 : {
                     'action': 'correct',

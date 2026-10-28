@@ -144,9 +144,11 @@ test('unallocated loan payment reduces cash only; later allocation is cash-neutr
   assert.equal(provisional.complete, true, JSON.stringify(provisional.issues));
   assert.deepEqual(provisional.differences, []);
   const beforeAllocationBank = (await account(root, 'bank')).currentBalanceMinor;
-  await execute(root, {requestId: 'allocate_00001', action: 'allocatePayment', accountId,
+  const allocationCommand = {requestId: 'allocate_00001', action: 'allocatePayment', accountId,
     paymentId: payment.requestId, occurredAt: date, principalMinor: 2000000,
-    previousChargesMinor: 0, newChargesMinor: 400000, categoryId: 'food'});
+    previousChargesMinor: 0, newChargesMinor: 400000, categoryId: 'food'};
+  const allocationReceipt = await execute(root, allocationCommand);
+  assert.deepEqual(await execute(root, allocationCommand), allocationReceipt);
   assert.equal((await account(root, 'bank')).currentBalanceMinor, beforeAllocationBank);
   assert.equal((await account(root, accountId)).currentBalanceMinor, -18000000);
   assert.equal((await account(root, accountId)).principalMinor, 18000000);

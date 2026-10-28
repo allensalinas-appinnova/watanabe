@@ -329,10 +329,17 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
                                   ),
                                 ),
                                 trailing: const Icon(Icons.chevron_right),
-                                onTap: () => context.push(
-                                  '/debts/${operation.debtAccountId}/actions/allocatePayment',
-                                  extra: [operation],
-                                ),
+                                onTap: () {
+                                  final paymentId = operation.paymentId ?? operation.debtCommandId;
+                                  context.push(
+                                    Uri(
+                                      path:
+                                          '/debts/${operation.debtAccountId}/actions/allocatePayment',
+                                      queryParameters: {'paymentId': ?paymentId},
+                                    ).toString(),
+                                    extra: [operation],
+                                  );
+                                },
                               ),
                           ],
                         ),

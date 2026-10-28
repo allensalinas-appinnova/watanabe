@@ -12,6 +12,7 @@ import 'package:personal_finance/features/debts/presentation/debt_form_screen.da
 import 'package:personal_finance/features/debts/presentation/debt_providers.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
+import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
@@ -32,6 +33,8 @@ Widget subject(
   List<FinanceCategory>? categories,
   String action = 'create',
   String? accountId,
+  String? paymentId,
+  List<FinancialOperation> initialComponents = const [],
 }) => ProviderScope(
   overrides: [
     authSessionProvider.overrideWith(
@@ -67,11 +70,288 @@ Widget subject(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
       child: child!,
     ),
-    home: DebtFormScreen(action: action, accountId: accountId),
+    home: DebtFormScreen(
+      action: action,
+      accountId: accountId,
+      paymentId: paymentId,
+      initialComponents: initialComponents,
+    ),
   ),
 );
 
 void main() {
+  testWidgets(
+    'allocating an unallocated loan payment sends allocatePayment and keeps retry identity',
+    (
+      tester,
+    ) async {
+      final repository = FailingRepository();
+      final payment = FinancialOperation(
+        id: 'unallocated-operation',
+        type: OperationType.unallocatedDebtPayment,
+        amountMinor: 2400000,
+        currency: 'COP',
+        monthKey: '2026-10',
+        occurredAt: DateTime(2026, 10, 28),
+        status: OperationStatus.confirmed,
+        idempotencyKey: 'payment-request',
+        accountId: 'loan',
+        sourceAccountId: 'bank',
+        debtCommandId: 'payment-request',
+        debtAccountId: 'loan',
+        debtKind: 'payUnallocated',
+        paymentId: 'payment-request',
+        allocationStatus: 'unallocated',
+      );
+      await tester.pumpWidget(
+        subject(
+          const Locale('es'),
+          repository,
+          action: 'allocatePayment',
+          accountId: 'loan',
+          initialComponents: [payment],
+          accounts: const [
+            FinanceAccount(
+              id: 'loan',
+              name: 'Crédito QA',
+              type: 'bankLoan',
+              nature: 'debt',
+              currentBalanceMinor: -20000000,
+              principalMinor: 20000000,
+              chargesMinor: 0,
+            ),
+            FinanceAccount(id: 'bank', name: 'Cuenta QA', type: 'checking'),
+          ],
+          categories: const [
+            FinanceCategory(
+              id: 'interest_fees',
+              type: CategoryType.expense,
+              icon: 'percent',
+              sortOrder: 0,
+              isSystem: true,
+              isArchived: false,
+              customName: 'Intereses y comisiones',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Crédito QA'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('debt_principalMinor')), '2000000');
+      await tester.enterText(find.byKey(const ValueKey('debt_previousChargesMinor')), '0');
+      await tester.enterText(find.byKey(const ValueKey('debt_newChargesMinor')), '400000');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('debt_save')),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+      tester.testTextInput.hide();
+      await tester.drag(find.byKey(const ValueKey('debt_form_list')), const Offset(0, -180));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('debt_save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+
+      expect(repository.commands, hasLength(1));
+      final command = repository.commands.single;
+      expect(command.fields['action'], 'allocatePayment');
+      expect(command.fields['accountId'], 'loan');
+      expect(command.fields['paymentId'], 'payment-request');
+      expect(command.fields['amountMinor'], 2400000);
+      expect(command.fields['principalMinor'], 2000000);
+      expect(command.fields['previousChargesMinor'], 0);
+      expect(command.fields['newChargesMinor'], 400000);
+      expect(command.fields['categoryId'], 'interest_fees');
+      expect(command.fields.containsKey('replacement'), isFalse);
+      expect(find.byKey(const ValueKey('debt_newChargesMinor')), findsOneWidget);
+
+      // A recoverable failure keeps the draft and the same idempotency key.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('debt_save')),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      tester.testTextInput.hide();
+      await tester.drag(find.byKey(const ValueKey('debt_form_list')), const Offset(0, -180));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('debt_save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      expect(repository.commands, hasLength(2));
+      expect(repository.commands.last.requestId, command.requestId);
+      expect(repository.commands.last.fields['principalMinor'], 2000000);
+      expect(repository.commands.last.fields['newChargesMinor'], 400000);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('allocation can load its source by payment ID when route extra is absent', (
+    tester,
+  ) async {
+    final repository = FailingRepository();
+    final payment = FinancialOperation(
+      id: 'unallocated-operation',
+      type: OperationType.unallocatedDebtPayment,
+      amountMinor: 2400000,
+      currency: 'COP',
+      monthKey: '2026-10',
+      occurredAt: DateTime(2026, 10, 28),
+      status: OperationStatus.confirmed,
+      idempotencyKey: 'payment-request',
+      accountId: 'loan',
+      debtCommandId: 'payment-request',
+      debtAccountId: 'loan',
+      debtKind: 'payUnallocated',
+      paymentId: 'payment-request',
+      allocationStatus: 'unallocated',
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          unallocatedDebtPaymentProvider((
+            uid: 'test',
+            accountId: 'loan',
+            paymentId: 'payment-request',
+          )).overrideWith((ref) async => payment),
+          authSessionProvider.overrideWith(
+            (ref) => Stream.value(const AuthUser(id: 'test', isAnonymous: true)),
+          ),
+          canonicalAccountsProvider('test').overrideWith(
+            (ref) => Stream.value(const [
+              FinanceAccount(
+                id: 'loan',
+                name: 'Crédito QA',
+                type: 'bankLoan',
+                nature: 'debt',
+                currentBalanceMinor: -20000000,
+                principalMinor: 20000000,
+                chargesMinor: 0,
+              ),
+            ]),
+          ),
+          canonicalRecentOperationsProvider('test').overrideWith((ref) => Stream.value(const [])),
+          canonicalCategoriesProvider('test').overrideWith(
+            (ref) => Stream.value(const [
+              FinanceCategory(
+                id: 'interest_fees',
+                type: CategoryType.expense,
+                icon: 'percent',
+                sortOrder: 0,
+                isSystem: true,
+                isArchived: false,
+                customName: 'Intereses y comisiones',
+              ),
+            ]),
+          ),
+          canonicalUserProfileProvider('test').overrideWith((ref) => Stream.value(null)),
+          debtRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          locale: const Locale('es'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const DebtFormScreen(
+            action: 'allocatePayment',
+            accountId: 'loan',
+            paymentId: 'payment-request',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Crédito QA'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('debt_principalMinor')), '2000000');
+    await tester.enterText(find.byKey(const ValueKey('debt_previousChargesMinor')), '0');
+    await tester.enterText(find.byKey(const ValueKey('debt_newChargesMinor')), '400000');
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('debt_save')),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    tester.testTextInput.hide();
+    await tester.tap(find.byKey(const ValueKey('debt_save')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(repository.commands, hasLength(1));
+    expect(repository.commands.single.fields['action'], 'allocatePayment');
+    expect(repository.commands.single.fields['paymentId'], 'payment-request');
+    expect(repository.commands.single.fields['amountMinor'], 2400000);
+    expect(repository.commands.single.fields['principalMinor'], 2000000);
+    expect(repository.commands.single.fields['newChargesMinor'], 400000);
+    expect(repository.commands.single.fields['categoryId'], 'interest_fees');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('editing debt operation components still sends a correct command', (tester) async {
+    final repository = FailingRepository();
+    final purchase = FinancialOperation(
+      id: 'purchase-operation',
+      type: OperationType.expense,
+      amountMinor: 120000,
+      currency: 'COP',
+      monthKey: '2026-10',
+      occurredAt: DateTime(2026, 10, 20),
+      status: OperationStatus.confirmed,
+      idempotencyKey: 'purchase-operation',
+      accountId: 'card',
+      debtCommandId: 'purchase-command',
+      debtAccountId: 'card',
+      debtKind: 'purchase',
+    );
+    await tester.pumpWidget(
+      subject(
+        const Locale('es'),
+        repository,
+        action: 'purchase',
+        accountId: 'card',
+        initialComponents: [purchase],
+        accounts: const [
+          FinanceAccount(
+            id: 'card',
+            name: 'Tarjeta QA',
+            type: 'creditCard',
+            nature: 'debt',
+            currentBalanceMinor: -120000,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('debt_category_selector_tap')),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('debt_category_selector_tap')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_popup_option_food')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('debt_save')),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('debt_save')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+    await tester.pumpAndSettle();
+
+    final command = repository.commands.single;
+    expect(command.fields['action'], 'correct');
+    expect(command.fields['accountId'], 'card');
+    expect(command.fields['originalRequestId'], 'purchase-command');
+    expect((command.fields['replacement'] as Map)['action'], 'purchase');
+  });
+
   testWidgets('loan payment refuses an incomplete split without sending or losing its draft', (
     tester,
   ) async {

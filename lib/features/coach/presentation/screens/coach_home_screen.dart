@@ -443,9 +443,13 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
         onTap: () {
           unawaited(ref.read(firebaseObservabilityProvider)?.logEvent('coach_action_opened'));
           if (item.operation != null) {
+            final paymentId = item.operation!.paymentId ?? item.operation!.debtCommandId;
             unawaited(
               context.push<void>(
-                '/debts/${item.debtAccountId}/actions/allocatePayment',
+                Uri(
+                  path: '/debts/${item.debtAccountId}/actions/allocatePayment',
+                  queryParameters: {'paymentId': ?paymentId},
+                ).toString(),
                 extra: [item.operation],
               ),
             );

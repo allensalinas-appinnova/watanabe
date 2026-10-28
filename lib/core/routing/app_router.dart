@@ -306,6 +306,7 @@ GoRouter _buildAppRouter() => GoRouter(
         accountId: state.pathParameters['id'],
         action: state.pathParameters['action']!,
         originalOperationId: state.uri.queryParameters['original'],
+        paymentId: state.uri.queryParameters['paymentId'],
         commitmentId: state.uri.queryParameters['commitmentId'],
         commitmentMonth: state.uri.queryParameters['month'],
         commitmentAmountMinor: int.tryParse(state.uri.queryParameters['amountMinor'] ?? ''),
