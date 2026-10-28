@@ -41,12 +41,13 @@ void main() {
     Locale locale = const Locale('es'),
     double textScale = 1,
     String? initialSection,
+    List<FinanceAccount> accounts = _accounts,
   }) => ProviderScope(
     overrides: [
       authSessionProvider.overrideWith(
         (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
       ),
-      canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(_accounts)),
+      canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(accounts)),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -67,7 +68,9 @@ void main() {
     ),
   );
 
-  testWidgets('renders account cards and the full-width primary action', (tester) async {
+  testWidgets('renders account cards without repeating account actions in the list', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -79,6 +82,7 @@ void main() {
     expect(find.text('LumioMoney'), findsNothing);
     expect(find.text('Cuentas y deudas'), findsOneWidget);
     expect(find.text('Dinero, tarjetas y préstamos en un solo lugar'), findsOneWidget);
+    expect(find.text('Agregar cuenta o deuda'), findsOneWidget);
     expect(find.text('COP · Cuenta de ahorros'), findsOneWidget);
     expect(find.text('COP · Efectivo'), findsOneWidget);
     expect(find.text('Tarjetas de crédito'), findsOneWidget);
@@ -94,10 +98,11 @@ void main() {
     expect(firstCard.left, 24);
     expect(firstCard.width, 342);
     expect(firstCard.height, 82);
-    expect(secondCard.top - firstCard.bottom, greaterThan(18));
-    expect(find.text('Agregar gasto'), findsWidgets);
-    expect(find.text('Agregar ingreso'), findsWidgets);
-    expect(find.text('Mover dinero'), findsWidgets);
+    expect(secondCard.top - firstCard.bottom, greaterThanOrEqualTo(18));
+    expect(find.text('Agregar gasto'), findsNothing);
+    expect(find.text('Agregar ingreso'), findsNothing);
+    expect(find.text('Mover dinero'), findsNothing);
+    expect(find.byKey(const ValueKey('accounts_add_button')).hitTestable(), findsOneWidget);
     expect(addButton.left, 24);
     expect(addButton.width, 342);
     expect(addButton.height, 52);
@@ -116,7 +121,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Contas e dívidas'), findsOneWidget);
-    expect(find.text('Adicionar conta'), findsOneWidget);
+    expect(find.text('Adicionar conta ou dívida'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -130,7 +135,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Agregar cuenta opens creation instead of matching the dynamic account id', (
+  testWidgets('the overview add action offers money, card, or loan creation', (
     tester,
   ) async {
     final router = GoRouter(
@@ -153,6 +158,12 @@ void main() {
             ),
           ],
         ),
+        GoRoute(
+          path: '/debts/new',
+          builder: (context, state) => Scaffold(
+            body: Text('debt form: ${state.uri.queryParameters['product']}'),
+          ),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -167,6 +178,7 @@ void main() {
         ],
         child: MaterialApp.router(
           routerConfig: router,
+          locale: const Locale('es'),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -179,12 +191,202 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const ValueKey('accounts_add_button')));
     await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('accounts_create_money')), findsOneWidget);
+    expect(find.byKey(const ValueKey('accounts_create_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('accounts_create_loan')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('accounts_create_money')));
     await tester.pumpAndSettle();
 
     expect(find.text('account creation form'), findsOneWidget);
     expect(find.text('account detail: new'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'fixed add action remains visible with many accounts and opens the selected product',
+    (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final manyAccounts = List.generate(
+        25,
+        (index) => FinanceAccount(
+          id: 'account-$index',
+          name: 'Cuenta $index',
+          type: 'creditCard',
+          currency: 'COP',
+          nature: 'debt',
+          currentBalanceMinor: -10000,
+        ),
+      );
+      final router = GoRouter(
+        initialLocation: '/accounts?section=cards',
+        routes: [
+          GoRoute(
+            path: '/accounts',
+            builder: (context, state) => CanonicalAccountsScreen(
+              initialSection: state.uri.queryParameters['section'],
+            ),
+          ),
+          GoRoute(
+            path: '/debts/new',
+            builder: (context, state) => Scaffold(
+              body: Text('debt form: ${state.uri.queryParameters['product']}'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authSessionProvider.overrideWith(
+              (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
+            ),
+            canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(manyAccounts)),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('es'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tarjetas de crédito'), findsOneWidget);
+      expect(find.text('Agregar tarjeta'), findsOneWidget);
+      expect(find.byKey(const ValueKey('accounts_add_button')).hitTestable(), findsOneWidget);
+      final addButtonTop = tester.getTopLeft(find.byKey(const ValueKey('accounts_add_button'))).dy;
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -1000));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('accounts_add_button')).hitTestable(), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('accounts_add_button'))).dy,
+        addButtonTop,
+      );
+      await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('debt form: creditCard'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('the Loans section opens the existing loan form with a loan preselected', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/accounts?section=loans',
+      routes: [
+        GoRoute(
+          path: '/accounts',
+          builder: (context, state) => CanonicalAccountsScreen(
+            initialSection: state.uri.queryParameters['section'],
+          ),
+        ),
+        GoRoute(
+          path: '/debts/new',
+          builder: (context, state) => Scaffold(
+            body: Text('debt form: ${state.uri.queryParameters['product']}'),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authSessionProvider.overrideWith(
+            (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
+          ),
+          canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(_accounts)),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          locale: const Locale('es'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Agregar crédito o préstamo'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('debt form: bankLoan'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the Money section opens the existing account form directly', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/accounts?section=money',
+      routes: [
+        GoRoute(
+          path: '/accounts',
+          builder: (context, state) => CanonicalAccountsScreen(
+            initialSection: state.uri.queryParameters['section'],
+          ),
+          routes: [
+            GoRoute(
+              path: 'new',
+              name: 'new-account',
+              builder: (context, state) => const Scaffold(body: Text('account creation form')),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authSessionProvider.overrideWith(
+            (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: true)),
+          ),
+          canonicalAccountsProvider.overrideWith((ref, userId) => Stream.value(_accounts)),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          locale: const Locale('es'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Agregar cuenta'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('account creation form'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

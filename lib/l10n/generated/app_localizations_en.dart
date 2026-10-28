@@ -757,6 +757,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addAccount => 'Add account';
 
   @override
+  String get addCreditCard => 'Add credit card';
+
+  @override
+  String get accountsAddEntry => 'Add account or debt';
+
+  @override
+  String get addLoan => 'Add loan';
+
+  @override
+  String get registerMovement => 'Register';
+
+  @override
+  String get showAccountBalances => 'Show balances by account';
+
+  @override
+  String get hideAccountBalances => 'Hide balances by account';
+
+  @override
   String get cashAccountType => 'Cash';
 
   @override

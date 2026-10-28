@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/routing/global_fab_visibility.dart';
 import '../../core/utils/async_value_extensions.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
@@ -25,15 +24,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  final _addMovementFocus = FocusNode(debugLabel: 'globalAddMovement');
   bool _showingSheet = false;
   bool _openingForm = false;
-
-  @override
-  void dispose() {
-    _addMovementFocus.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +44,6 @@ class _AppShellState extends ConsumerState<AppShell> {
             )),
           )
         : null;
-    final showFab = ref.watch(globalFabVisibleProvider);
     final pendingOperations = ref.watch(pendingOperationsProvider).valueOrNull ?? const [];
     final activePending = pendingOperations
         .where((operation) => operation.status == 'pending' || operation.status == 'syncing')
@@ -66,10 +57,10 @@ class _AppShellState extends ConsumerState<AppShell> {
       '/budgets',
       '/coach',
     }.contains(widget.currentLocation);
-    final hideFabForConsultation =
-        widget.currentLocation.endsWith('/debt') ||
-        widget.currentLocation == '/budgets/tracking' ||
-        RegExp(r'^/budgets/[^/]+$').hasMatch(widget.currentLocation);
+    final showRegisterAction =
+        (widget.currentLocation == '/home' || widget.currentLocation == '/activity') &&
+        !_showingSheet &&
+        !_openingForm;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -168,49 +159,34 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
-      floatingActionButton:
-          _showingSheet ||
-              _openingForm ||
-              hideFabForConsultation ||
-              widget.navigationShell.currentIndex > 1
-          ? null
-          : ExcludeSemantics(
-              excluding: !showFab,
-              child: IgnorePointer(
-                ignoring: !showFab,
-                child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  offset: showFab ? Offset.zero : const Offset(0, 1.5),
-                  child: AnimatedOpacity(
-                    key: const ValueKey('global_add_operation_visibility'),
-                    duration: const Duration(milliseconds: 180),
-                    opacity: showFab ? 1 : 0,
-                    child: Semantics(
-                      button: true,
-                      label: AppLocalizations.of(context).addMovement,
-                      child: FloatingActionButton(
-                        key: const ValueKey('global_add_operation'),
-                        focusNode: _addMovementFocus,
-                        tooltip: AppLocalizations.of(context).addMovement,
-                        onPressed: _openMovementActions,
-                        child: const Icon(Icons.add),
-                      ),
-                    ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showRegisterAction)
+            Material(
+              color: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(24, 8, 24, 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('global_add_operation'),
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                    onPressed: _openMovementActions,
+                    icon: const Icon(Icons.add),
+                    label: Text(AppLocalizations.of(context).registerMovement),
                   ),
                 ),
               ),
             ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: FinanceBottomNavigation(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          ref.read(globalFabVisibleProvider.notifier).setVisible(true);
-          widget.navigationShell.goBranch(
-            index,
-            initialLocation: index == widget.navigationShell.currentIndex,
-          );
-        },
+          FinanceBottomNavigation(
+            selectedIndex: widget.navigationShell.currentIndex,
+            onDestinationSelected: (index) => widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -221,7 +197,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     final action = await MovementActionSheet.show(context);
     if (!mounted) return;
     setState(() => _showingSheet = false);
-    _addMovementFocus.requestFocus();
     if (action == null) return;
 
     final route = switch (action) {

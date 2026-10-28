@@ -229,6 +229,12 @@ void main() {
       greaterThanOrEqualTo(12),
     );
     expect(find.byKey(const ValueKey('home_balance_card')), findsOneWidget);
+    expect(find.textContaining('Banco1:'), findsNothing);
+    expect(find.textContaining('Oculta:'), findsNothing);
+    expect(find.textContaining('Archivada:'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('home_toggle_account_breakdown')));
+    await tester.tap(find.byKey(const ValueKey('home_toggle_account_breakdown')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Banco1:'), findsOneWidget);
     expect(find.textContaining('Oculta:'), findsNothing);
     expect(find.textContaining('Archivada:'), findsNothing);

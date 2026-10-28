@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -97,212 +96,209 @@ class _CanonicalBudgetsScreenState extends ConsumerState<CanonicalBudgetsScreen>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: GlobalFabScrollObserver(
-          child: budgetsState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stackTrace) => _LoadError(
-              message: l10n.genericError,
-              retryLabel: l10n.retry,
-              onRetry: () => ref.invalidate(budgetProvider),
-            ),
-            data: (allBudgets) {
-              if (summaries.values.any((summary) => summary.hasError)) {
-                return _LoadError(
-                  message: l10n.genericError,
-                  retryLabel: l10n.retry,
-                  onRetry: () {
-                    for (final currency in currencies) {
-                      ref.invalidate(
-                        canonicalMonthlySummaryProvider(
-                          (userId: user.id, monthKey: monthKey, currency: currency),
-                        ),
-                      );
-                    }
+        child: budgetsState.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => _LoadError(
+            message: l10n.genericError,
+            retryLabel: l10n.retry,
+            onRetry: () => ref.invalidate(budgetProvider),
+          ),
+          data: (allBudgets) {
+            if (summaries.values.any((summary) => summary.hasError)) {
+              return _LoadError(
+                message: l10n.genericError,
+                retryLabel: l10n.retry,
+                onRetry: () {
+                  for (final currency in currencies) {
+                    ref.invalidate(
+                      canonicalMonthlySummaryProvider(
+                        (userId: user.id, monthKey: monthKey, currency: currency),
+                      ),
+                    );
+                  }
+                },
+              );
+            }
+
+            final categories = categoriesState.valueOrNull ?? const <FinanceCategory>[];
+            final mergedBudgets = <Budget>[
+              ...allBudgets,
+              for (final budget in _justCreatedBudgets.values)
+                if (budget.monthKey == monthKey && !allBudgets.any((item) => item.id == budget.id))
+                  budget,
+            ];
+            final visibleBudgets = mergedBudgets
+                .where(
+                  (budget) => switch (_filter) {
+                    _BudgetFilter.all => true,
+                    _BudgetFilter.expenses => budget.flowType == BudgetFlowType.expense,
+                    _BudgetFilter.income => budget.flowType == BudgetFlowType.income,
                   },
-                );
-              }
+                )
+                .toList();
+            final isEmptyForMonth = mergedBudgets.isEmpty;
 
-              final categories = categoriesState.valueOrNull ?? const <FinanceCategory>[];
-              final mergedBudgets = <Budget>[
-                ...allBudgets,
-                for (final budget in _justCreatedBudgets.values)
-                  if (budget.monthKey == monthKey &&
-                      !allBudgets.any((item) => item.id == budget.id))
-                    budget,
-              ];
-              final visibleBudgets = mergedBudgets
-                  .where(
-                    (budget) => switch (_filter) {
-                      _BudgetFilter.all => true,
-                      _BudgetFilter.expenses => budget.flowType == BudgetFlowType.expense,
-                      _BudgetFilter.income => budget.flowType == BudgetFlowType.income,
-                    },
-                  )
-                  .toList();
-              final isEmptyForMonth = mergedBudgets.isEmpty;
-
-              return Stack(
-                children: [
-                  ListView(
-                    key: const ValueKey('budget_monthly_list'),
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 104),
-                    children: [
-                      Text(
-                        l10n.budgetsTitle,
-                        key: const ValueKey('budgets_title'),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
+            return Stack(
+              children: [
+                ListView(
+                  key: const ValueKey('budget_monthly_list'),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 104),
+                  children: [
+                    Text(
+                      l10n.budgetsTitle,
+                      key: const ValueKey('budgets_title'),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.budgetsSubtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(value: false, label: Text(l10n.budgetsTab)),
+                        ButtonSegment(value: true, label: Text(l10n.debtCommitmentsTab)),
+                      ],
+                      selected: const {false},
+                      onSelectionChanged: (_) => context.push('/budgets/debt-payments'),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.budgetMonth.toUpperCase(),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        key: const ValueKey('budget_list_month'),
+                        onPressed: _chooseMonth,
+                        style: OutlinedButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          foregroundColor: Theme.of(context).colorScheme.onSurface,
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.budgetsSubtitle,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SegmentedButton<bool>(
-                        segments: [
-                          ButtonSegment(value: false, label: Text(l10n.budgetsTab)),
-                          ButtonSegment(value: true, label: Text(l10n.debtCommitmentsTab)),
-                        ],
-                        selected: const {false},
-                        onSelectionChanged: (_) => context.push('/budgets/debt-payments'),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.budgetMonth.toUpperCase(),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          key: const ValueKey('budget_list_month'),
-                          onPressed: _chooseMonth,
-                          style: OutlinedButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            foregroundColor: Theme.of(context).colorScheme.onSurface,
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.outlineVariant,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(DateFormat.yMMMM(_localeName).format(_selectedMonth)),
                             ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(DateFormat.yMMMM(_localeName).format(_selectedMonth)),
-                              ),
-                              Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      _filters(l10n),
+                    ),
+                    const SizedBox(height: 10),
+                    _filters(l10n),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton.icon(
+                        key: const ValueKey('budgets_view_tracking'),
+                        onPressed: () => context.push('/budgets/tracking?month=$monthKey'),
+                        icon: const Icon(Icons.insights_outlined),
+                        label: Text(l10n.viewBudgetTracking),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.budgetsForMonth,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (isEmptyForMonth)
+                      _EmptyBudgets(
+                        title: l10n.budgetEmptyTitle,
+                        message: l10n.budgetEmptyMessage,
+                        createLabel: l10n.createBudget,
+                        onCreate: _createBudget,
+                      )
+                    else if (visibleBudgets.isEmpty)
+                      _FilteredEmpty(
+                        title: l10n.budgetFilteredEmptyTitle,
+                        message: l10n.budgetFilteredEmptyMessage,
+                        resetLabel: l10n.budgetFilterReset,
+                        onReset: () => setState(() => _filter = _BudgetFilter.all),
+                      )
+                    else
+                      ...visibleBudgets.map((budget) {
+                        final summary = summaries[budget.currency]?.valueOrNull;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _BudgetSummaryCard(
+                            key: ValueKey('budget_card_${budget.id}'),
+                            budget: budget,
+                            category: _categoryName(categories, budget.categoryId),
+                            categoryIcon: _categoryIcon(categories, budget.categoryId),
+                            categoryColorValue: _categoryColorValue(
+                              categories,
+                              budget.categoryId,
+                            ),
+                            summary: summary,
+                            isSummaryLoading: summaries[budget.currency]?.isLoading ?? false,
+                            locale: _localeName,
+                            l10n: l10n,
+                            onTap: () => context.push('/budgets/${budget.id}'),
+                          ),
+                        );
+                      }),
+                    if (!isEmptyForMonth) ...[
                       const SizedBox(height: 8),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
                         child: TextButton.icon(
-                          key: const ValueKey('budgets_view_tracking'),
-                          onPressed: () => context.push('/budgets/tracking?month=$monthKey'),
-                          icon: const Icon(Icons.insights_outlined),
-                          label: Text(l10n.viewBudgetTracking),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        l10n.budgetsForMonth,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (isEmptyForMonth)
-                        _EmptyBudgets(
-                          title: l10n.budgetEmptyTitle,
-                          message: l10n.budgetEmptyMessage,
-                          createLabel: l10n.createBudget,
-                          onCreate: _createBudget,
-                        )
-                      else if (visibleBudgets.isEmpty)
-                        _FilteredEmpty(
-                          title: l10n.budgetFilteredEmptyTitle,
-                          message: l10n.budgetFilteredEmptyMessage,
-                          resetLabel: l10n.budgetFilterReset,
-                          onReset: () => setState(() => _filter = _BudgetFilter.all),
-                        )
-                      else
-                        ...visibleBudgets.map((budget) {
-                          final summary = summaries[budget.currency]?.valueOrNull;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _BudgetSummaryCard(
-                              key: ValueKey('budget_card_${budget.id}'),
-                              budget: budget,
-                              category: _categoryName(categories, budget.categoryId),
-                              categoryIcon: _categoryIcon(categories, budget.categoryId),
-                              categoryColorValue: _categoryColorValue(
-                                categories,
-                                budget.categoryId,
-                              ),
-                              summary: summary,
-                              isSummaryLoading: summaries[budget.currency]?.isLoading ?? false,
-                              locale: _localeName,
-                              l10n: l10n,
-                              onTap: () => context.push('/budgets/${budget.id}'),
-                            ),
-                          );
-                        }),
-                      if (!isEmptyForMonth) ...[
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: TextButton.icon(
-                            key: const ValueKey('budgets_create_button'),
-                            onPressed: _createBudget,
-                            icon: const Icon(Icons.add),
-                            label: Text(l10n.createBudget),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 52,
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          key: const ValueKey('budgets_manage_categories'),
-                          onPressed: () => context.push('/categories'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.onSurface,
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.outlineVariant,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(l10n.manageCategories),
+                          key: const ValueKey('budgets_create_button'),
+                          onPressed: _createBudget,
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.createBudget),
                         ),
                       ),
                     ],
-                  ),
-                ],
-              );
-            },
-          ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 52,
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        key: const ValueKey('budgets_manage_categories'),
+                        onPressed: () => context.push('/categories'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.onSurface,
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(l10n.manageCategories),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

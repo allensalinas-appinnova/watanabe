@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/offline/pending_operation_queue.dart';
 import 'package:personal_finance/core/routing/app_shell.dart';
-import 'package:personal_finance/core/routing/global_fab_visibility.dart';
 import 'package:personal_finance/core/utils/async_value_extensions.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
@@ -225,7 +224,7 @@ void main() {
     }
   });
 
-  testWidgets('global add action hides while the active section scrolls and returns at idle', (
+  testWidgets('fixed register action remains pinned while the active section scrolls', (
     tester,
   ) async {
     final router = _router(initialLocation: '/home', scrollableHome: true);
@@ -233,19 +232,21 @@ void main() {
     await tester.pumpWidget(_app(router));
     await tester.pumpAndSettle();
 
-    final fabVisibility = find.byKey(const ValueKey('global_add_operation_visibility'));
-    expect(tester.widget<AnimatedOpacity>(fabVisibility).opacity, 1);
+    final registerAction = find.byKey(const ValueKey('global_add_operation'));
+    final topBeforeScroll = tester.getTopLeft(registerAction).dy;
+    expect(registerAction.hitTestable(), findsOneWidget);
 
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('scrollable_home_fixture'))),
     );
     await gesture.moveBy(const Offset(0, -180));
     await tester.pumpAndSettle();
-    expect(tester.widget<AnimatedOpacity>(fabVisibility).opacity, 0);
+    expect(registerAction.hitTestable(), findsOneWidget);
+    expect(tester.getTopLeft(registerAction).dy, topBeforeScroll);
 
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(tester.widget<AnimatedOpacity>(fabVisibility).opacity, 1);
+    expect(registerAction.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -525,12 +526,10 @@ class _ScrollableHomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: GlobalFabScrollObserver(
-      child: ListView.builder(
-        key: const ValueKey('scrollable_home_fixture'),
-        itemCount: 30,
-        itemBuilder: (context, index) => SizedBox(height: 56, child: Text('row $index')),
-      ),
+    body: ListView.builder(
+      key: const ValueKey('scrollable_home_fixture'),
+      itemCount: 30,
+      itemBuilder: (context, index) => SizedBox(height: 56, child: Text('row $index')),
     ),
   );
 }

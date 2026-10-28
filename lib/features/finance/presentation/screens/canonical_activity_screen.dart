@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/offline/sync_state.dart';
-import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -95,325 +94,321 @@ class _CanonicalActivityScreenState extends ConsumerState<CanonicalActivityScree
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () => ref.read(pagerProvider.notifier).refresh(),
-          child: GlobalFabScrollObserver(
-            child: CustomScrollView(
-              key: const ValueKey('canonical_activity_scroll_view'),
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.activity,
-                          key: const ValueKey('activity_title'),
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
+          child: CustomScrollView(
+            key: const ValueKey('canonical_activity_scroll_view'),
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.activity,
+                        key: const ValueKey('activity_title'),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(height: 4),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.activitySubtitle,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _ActivityTypeFilters(
+                        selectedType: selectedType,
+                        debtPaymentsOnly: debtPaymentsOnly,
+                        adjustmentsOnly: adjustmentsOnly,
+                        onSelected: (type) {
+                          ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
+                          ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
+                          if (selectedType == type) return;
+                          for (final filter in const <OperationType?>[
+                            null,
+                            OperationType.income,
+                            OperationType.expense,
+                            OperationType.transfer,
+                          ]) {
+                            ref.invalidate(
+                              operationsPagerProvider((
+                                userId: user.id,
+                                type: filter,
+                                debtPaymentsOnly: false,
+                              )),
+                            );
+                          }
+                          ref.read(activityTypeFilterProvider.notifier).select(type);
+                          if (_scrollController.hasClients) _scrollController.jumpTo(0);
+                        },
+                        onDebtPaymentsSelected: () {
+                          ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
+                          ref.read(activityTypeFilterProvider.notifier).select(null);
+                          ref.read(activityDebtPaymentsOnlyProvider.notifier).select(true);
+                          invalidateOperationLists(ref, user.id);
+                          ref.invalidate(reportProvider);
+                          if (_scrollController.hasClients) _scrollController.jumpTo(0);
+                        },
+                        onAdjustmentsSelected: (value) {
+                          ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(value);
+                          if (value) {
+                            ref.read(activityTypeFilterProvider.notifier).select(null);
+                            ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
+                          }
+                          ref.invalidate(reportProvider);
+                          if (_scrollController.hasClients) _scrollController.jumpTo(0);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _ActivityQueryFilterButton(
+                        accountLabel: _activityAccountLabel(
+                          accounts,
+                          queryFilters.accountIds,
+                          l10n,
+                        ),
+                        periodLabel: _activityPeriodLabel(queryFilters, context),
+                        onPressed: () => context.push('/activity/filters'),
+                      ),
+                      if (queryFilters.hasBeenApplied) ...[
+                        const SizedBox(height: 8),
                         Text(
-                          l10n.activitySubtitle,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          l10n.activityFilterSelectedDetails(
+                            _activityAccountLabel(
+                              accounts,
+                              queryFilters.accountIds,
+                              l10n,
+                            ),
+                            _activityPeriodRangeLabel(queryFilters, context),
+                          ),
+                          key: const ValueKey('activity_filter_summary'),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _ActivityTypeFilters(
-                          selectedType: selectedType,
-                          debtPaymentsOnly: debtPaymentsOnly,
-                          adjustmentsOnly: adjustmentsOnly,
-                          onSelected: (type) {
-                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
-                            ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
-                            if (selectedType == type) return;
-                            for (final filter in const <OperationType?>[
-                              null,
-                              OperationType.income,
-                              OperationType.expense,
-                              OperationType.transfer,
-                            ]) {
-                              ref.invalidate(
-                                operationsPagerProvider((
-                                  userId: user.id,
-                                  type: filter,
-                                  debtPaymentsOnly: false,
-                                )),
-                              );
-                            }
-                            ref.read(activityTypeFilterProvider.notifier).select(type);
-                            if (_scrollController.hasClients) _scrollController.jumpTo(0);
-                          },
-                          onDebtPaymentsSelected: () {
-                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(false);
-                            ref.read(activityTypeFilterProvider.notifier).select(null);
-                            ref.read(activityDebtPaymentsOnlyProvider.notifier).select(true);
-                            invalidateOperationLists(ref, user.id);
-                            ref.invalidate(reportProvider);
-                            if (_scrollController.hasClients) _scrollController.jumpTo(0);
-                          },
-                          onAdjustmentsSelected: (value) {
-                            ref.read(activityBalanceAdjustmentsOnlyProvider.notifier).select(value);
-                            if (value) {
-                              ref.read(activityTypeFilterProvider.notifier).select(null);
-                              ref.read(activityDebtPaymentsOnlyProvider.notifier).select(false);
-                            }
-                            ref.invalidate(reportProvider);
-                            if (_scrollController.hasClients) _scrollController.jumpTo(0);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        _ActivityQueryFilterButton(
-                          accountLabel: _activityAccountLabel(
-                            accounts,
-                            queryFilters.accountIds,
-                            l10n,
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                  child: report.when(
+                    loading: () => const _ActivityReportLoading(),
+                    error: (_, _) => _ActivityReportError(
+                      message: l10n.genericError,
+                      retryLabel: l10n.retry,
+                      onRetry: () => ref.invalidate(reportProvider),
+                    ),
+                    data: (value) => _ActivityReportSummary(
+                      report: value,
+                      selectedType: selectedType,
+                    ),
+                  ),
+                ),
+              ),
+              if (syncStatus != null &&
+                  (syncStatus.pending > 0 || syncStatus.syncing > 0 || syncStatus.rejected > 0))
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                    child: _ActivitySyncBanner(
+                      status: syncStatus,
+                      issue: firstSyncFailure(
+                        pendingOperations.map((operation) => operation.lastError),
+                      ),
+                      onRetry: () => ref.read(canonicalActionsProvider).syncPending(user.id),
+                    ),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
+                  child: _ActivityMovementsHeader(
+                    report: report,
+                    onExport:
+                        report.valueOrNull == null ||
+                            (report.valueOrNull!.operations.isEmpty &&
+                                report.valueOrNull!.adjustments.isEmpty)
+                        ? null
+                        : () => _showExportReview(
+                            userId: user.id,
+                            accounts: accounts,
+                            categories: categories,
+                            report: report.valueOrNull!,
+                            queryFilters: queryFilters,
+                            selectedType: selectedType,
+                            adjustmentsOnly: adjustmentsOnly,
+                            l10n: l10n,
                           ),
-                          periodLabel: _activityPeriodLabel(queryFilters, context),
-                          onPressed: () => context.push('/activity/filters'),
+                  ),
+                ),
+              ),
+              if (report.valueOrNull?.adjustments.isNotEmpty == true) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+                    child: Text(
+                      l10n.activityBalanceAdjustmentsHeader,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  sliver: SliverList.builder(
+                    itemCount: report.valueOrNull!.adjustments.length,
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _BalanceAdjustmentCard(
+                        key: ValueKey(
+                          'balance_adjustment_${report.valueOrNull!.adjustments[index].requestId}_${report.valueOrNull!.adjustments[index].adjustment.accountId}',
                         ),
-                        if (queryFilters.hasBeenApplied) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.activityFilterSelectedDetails(
-                              _activityAccountLabel(
-                                accounts,
-                                queryFilters.accountIds,
-                                l10n,
-                              ),
-                              _activityPeriodRangeLabel(queryFilters, context),
-                            ),
-                            key: const ValueKey('activity_filter_summary'),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                        entry: report.valueOrNull!.adjustments[index],
+                        accounts: accounts,
+                        locale: Localizations.localeOf(context).toString(),
+                        l10n: l10n,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (adjustmentsOnly)
+                if ((report.valueOrNull?.adjustments.isEmpty ?? true) &&
+                    (report.valueOrNull?.operations.isEmpty ?? true))
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ActivityMessage(message: l10n.activityBalanceAdjustmentsEmpty),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    sliver: SliverList.list(
+                      children: [
+                        for (final operation
+                            in report.valueOrNull?.operations ?? const <FinancialOperation>[])
+                          _ActivityOperationCard(
+                            operation: operation,
+                            accounts: accounts,
+                            categories: categories,
+                            locale: Localizations.localeOf(context).toString(),
+                            l10n: l10n,
                           ),
-                        ],
                       ],
                     ),
+                  )
+              else
+                pager.when(
+                  loading: () => const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: CircularProgressIndicator()),
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-                    child: report.when(
-                      loading: () => const _ActivityReportLoading(),
-                      error: (_, _) => _ActivityReportError(
-                        message: l10n.genericError,
-                        retryLabel: l10n.retry,
-                        onRetry: () => ref.invalidate(reportProvider),
-                      ),
-                      data: (value) => _ActivityReportSummary(
-                        report: value,
-                        selectedType: selectedType,
-                      ),
+                  error: (_, _) => SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ActivityMessage(
+                      message: l10n.genericError,
+                      actionLabel: l10n.retry,
+                      onAction: () => ref.read(pagerProvider.notifier).refresh(),
                     ),
                   ),
-                ),
-                if (syncStatus != null &&
-                    (syncStatus.pending > 0 || syncStatus.syncing > 0 || syncStatus.rejected > 0))
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                      child: _ActivitySyncBanner(
-                        status: syncStatus,
-                        issue: firstSyncFailure(
-                          pendingOperations.map((operation) => operation.lastError),
-                        ),
-                        onRetry: () => ref.read(canonicalActionsProvider).syncPending(user.id),
-                      ),
-                    ),
-                  ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
-                    child: _ActivityMovementsHeader(
-                      report: report,
-                      onExport:
-                          report.valueOrNull == null ||
-                              (report.valueOrNull!.operations.isEmpty &&
-                                  report.valueOrNull!.adjustments.isEmpty)
-                          ? null
-                          : () => _showExportReview(
-                              userId: user.id,
-                              accounts: accounts,
-                              categories: categories,
-                              report: report.valueOrNull!,
-                              queryFilters: queryFilters,
-                              selectedType: selectedType,
-                              adjustmentsOnly: adjustmentsOnly,
-                              l10n: l10n,
-                            ),
-                    ),
-                  ),
-                ),
-                if (report.valueOrNull?.adjustments.isNotEmpty == true) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-                      child: Text(
-                        l10n.activityBalanceAdjustmentsHeader,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                    sliver: SliverList.builder(
-                      itemCount: report.valueOrNull!.adjustments.length,
-                      itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _BalanceAdjustmentCard(
-                          key: ValueKey(
-                            'balance_adjustment_${report.valueOrNull!.adjustments[index].requestId}_${report.valueOrNull!.adjustments[index].adjustment.accountId}',
-                          ),
-                          entry: report.valueOrNull!.adjustments[index],
-                          accounts: accounts,
-                          locale: Localizations.localeOf(context).toString(),
-                          l10n: l10n,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                if (adjustmentsOnly)
-                  if ((report.valueOrNull?.adjustments.isEmpty ?? true) &&
-                      (report.valueOrNull?.operations.isEmpty ?? true))
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _ActivityMessage(message: l10n.activityBalanceAdjustmentsEmpty),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 104),
-                      sliver: SliverList.list(
-                        children: [
-                          for (final operation
-                              in report.valueOrNull?.operations ?? const <FinancialOperation>[])
-                            _ActivityOperationCard(
-                              operation: operation,
-                              accounts: accounts,
-                              categories: categories,
-                              locale: Localizations.localeOf(context).toString(),
-                              l10n: l10n,
-                            ),
-                        ],
-                      ),
-                    )
-                else
-                  pager.when(
-                    loading: () => const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (_, _) => SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _ActivityMessage(
-                        message: l10n.genericError,
-                        actionLabel: l10n.retry,
-                        onAction: () => ref.read(pagerProvider.notifier).refresh(),
-                      ),
-                    ),
-                    data: (page) {
-                      final groups = ActivityReport.groupOperations(page.items);
-                      return page.items.isEmpty
-                          ? SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: _ActivityMessage(message: l10n.noTransactions),
-                            )
-                          : SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 104),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    if (index >= groups.length) {
-                                      return SizedBox(
-                                        height: 64,
-                                        child: Center(
-                                          child: page.errorMessage == null
-                                              ? const CircularProgressIndicator()
-                                              : TextButton(
-                                                  onPressed: () =>
-                                                      ref.read(pagerProvider.notifier).loadMore(),
-                                                  child: Text(l10n.retry),
-                                                ),
-                                        ),
-                                      );
-                                    }
-                                    if (groups[index].length > 1) {
-                                      return Card(
-                                        child: ExpansionTile(
-                                          key: ValueKey(
-                                            'activity_command_${groups[index].first.debtCommandId}',
-                                          ),
-                                          title: Text(
-                                            _debtPaymentLabel(
-                                                  groups[index].first,
-                                                  accounts,
-                                                  l10n,
-                                                ) ??
-                                                l10n.debtComponents,
-                                          ),
-                                          subtitle: Text(
-                                            '${DateFormat.yMMMd(
-                                              Localizations.localeOf(context).toString(),
-                                            ).format(groups[index].first.occurredAt.toLocal())} · '
-                                            '${CurrencyFormatter.formatMinor(
-                                              groups[index].fold<int>(
-                                                0,
-                                                (total, operation) => total + operation.amountMinor * operation.projectionDirection,
-                                              ).abs(),
-                                              groups[index].first.currency,
-                                              locale: Localizations.localeOf(context).toString(),
-                                            )}',
-                                          ),
-                                          children: [
-                                            for (final operation in groups[index])
-                                              _ActivityOperationCard(
-                                                operation: operation,
-                                                accounts: accounts,
-                                                categories: categories,
-                                                locale: Localizations.localeOf(context).toString(),
-                                                l10n: l10n,
+                  data: (page) {
+                    final groups = ActivityReport.groupOperations(page.items);
+                    return page.items.isEmpty
+                        ? SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _ActivityMessage(message: l10n.noTransactions),
+                          )
+                        : SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  if (index >= groups.length) {
+                                    return SizedBox(
+                                      height: 64,
+                                      child: Center(
+                                        child: page.errorMessage == null
+                                            ? const CircularProgressIndicator()
+                                            : TextButton(
+                                                onPressed: () =>
+                                                    ref.read(pagerProvider.notifier).loadMore(),
+                                                child: Text(l10n.retry),
                                               ),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: _ActivityOperationCard(
-                                        key: ValueKey(
-                                          'activity_operation_${groups[index].first.id}',
-                                        ),
-                                        operation: groups[index].first,
-                                        accounts: accounts,
-                                        categories: categories,
-                                        locale: Localizations.localeOf(context).toString(),
-                                        l10n: l10n,
                                       ),
                                     );
-                                  },
-                                  childCount:
-                                      groups.length +
-                                      (page.hasMore ||
-                                              page.isLoadingMore ||
-                                              page.errorMessage != null
-                                          ? 1
-                                          : 0),
-                                ),
+                                  }
+                                  if (groups[index].length > 1) {
+                                    return Card(
+                                      child: ExpansionTile(
+                                        key: ValueKey(
+                                          'activity_command_${groups[index].first.debtCommandId}',
+                                        ),
+                                        title: Text(
+                                          _debtPaymentLabel(
+                                                groups[index].first,
+                                                accounts,
+                                                l10n,
+                                              ) ??
+                                              l10n.debtComponents,
+                                        ),
+                                        subtitle: Text(
+                                          '${DateFormat.yMMMd(
+                                            Localizations.localeOf(context).toString(),
+                                          ).format(groups[index].first.occurredAt.toLocal())} · '
+                                          '${CurrencyFormatter.formatMinor(
+                                            groups[index].fold<int>(
+                                              0,
+                                              (total, operation) => total + operation.amountMinor * operation.projectionDirection,
+                                            ).abs(),
+                                            groups[index].first.currency,
+                                            locale: Localizations.localeOf(context).toString(),
+                                          )}',
+                                        ),
+                                        children: [
+                                          for (final operation in groups[index])
+                                            _ActivityOperationCard(
+                                              operation: operation,
+                                              accounts: accounts,
+                                              categories: categories,
+                                              locale: Localizations.localeOf(context).toString(),
+                                              l10n: l10n,
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _ActivityOperationCard(
+                                      key: ValueKey(
+                                        'activity_operation_${groups[index].first.id}',
+                                      ),
+                                      operation: groups[index].first,
+                                      accounts: accounts,
+                                      categories: categories,
+                                      locale: Localizations.localeOf(context).toString(),
+                                      l10n: l10n,
+                                    ),
+                                  );
+                                },
+                                childCount:
+                                    groups.length +
+                                    (page.hasMore || page.isLoadingMore || page.errorMessage != null
+                                        ? 1
+                                        : 0),
                               ),
-                            );
-                    },
-                  ),
-              ],
-            ),
+                            ),
+                          );
+                  },
+                ),
+            ],
           ),
         ),
       ),

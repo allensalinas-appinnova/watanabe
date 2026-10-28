@@ -54,10 +54,10 @@ void main() {
     expect(find.byKey(const ValueKey('onboarding_account_name')), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('onboarding_account_name')), 'Cuenta inicial');
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
-    await _pumpUntil(tester, find.byKey(const ValueKey('home_add_income')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
 
     final userId = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser!.uid;
-    await tester.tap(find.byKey(const ValueKey('home_accounts_nav')));
+    await tester.tap(find.byKey(const ValueKey('finance_nav_accounts')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     const cases = [
@@ -86,6 +86,8 @@ void main() {
     final ids = <String, String>{};
     for (final accountCase in cases) {
       await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('accounts_create_money')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('account_name_field')),

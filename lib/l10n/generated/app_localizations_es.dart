@@ -764,6 +764,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addAccount => 'Agregar cuenta';
 
   @override
+  String get addCreditCard => 'Agregar tarjeta';
+
+  @override
+  String get accountsAddEntry => 'Agregar cuenta o deuda';
+
+  @override
+  String get addLoan => 'Agregar crédito o préstamo';
+
+  @override
+  String get registerMovement => 'Registrar';
+
+  @override
+  String get showAccountBalances => 'Ver saldos por cuenta';
+
+  @override
+  String get hideAccountBalances => 'Ocultar saldos por cuenta';
+
+  @override
   String get cashAccountType => 'Efectivo';
 
   @override

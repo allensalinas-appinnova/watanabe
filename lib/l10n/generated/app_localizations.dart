@@ -1420,6 +1420,42 @@ abstract class AppLocalizations {
   /// **'Agregar cuenta'**
   String get addAccount;
 
+  /// No description provided for @addCreditCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar tarjeta'**
+  String get addCreditCard;
+
+  /// No description provided for @accountsAddEntry.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar cuenta o deuda'**
+  String get accountsAddEntry;
+
+  /// No description provided for @addLoan.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar crédito o préstamo'**
+  String get addLoan;
+
+  /// No description provided for @registerMovement.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar'**
+  String get registerMovement;
+
+  /// No description provided for @showAccountBalances.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver saldos por cuenta'**
+  String get showAccountBalances;
+
+  /// No description provided for @hideAccountBalances.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocultar saldos por cuenta'**
+  String get hideAccountBalances;
+
   /// No description provided for @cashAccountType.
   ///
   /// In es, this message translates to:

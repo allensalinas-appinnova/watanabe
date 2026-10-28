@@ -67,6 +67,7 @@ class DebtFormScreen extends ConsumerStatefulWidget {
     super.key,
     this.accountId,
     this.action = 'create',
+    this.initialProduct,
     this.originalOperationId,
     this.paymentId,
     this.initialComponents = const [],
@@ -77,6 +78,7 @@ class DebtFormScreen extends ConsumerStatefulWidget {
   });
   final String? accountId;
   final String action;
+  final String? initialProduct;
   final String? originalOperationId;
   final String? paymentId;
   final List<FinancialOperation> initialComponents;
@@ -253,7 +255,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       _initialized = true;
       final profile = profileState.valueOrNull;
       _currency = account?.currency ?? profile?.defaultCurrency ?? 'COP';
-      _product = account?.type ?? 'creditCard';
+      _product = account?.type ?? widget.initialProduct ?? 'creditCard';
       _includeInDashboard = account?.includeInDashboard ?? true;
       field('name', account?.name ?? '');
       field('creditor', account?.creditor ?? '');

@@ -299,7 +299,12 @@ GoRouter _buildAppRouter() => GoRouter(
         ),
       ],
     ),
-    GoRoute(path: '/debts/new', builder: (context, state) => const DebtFormScreen()),
+    GoRoute(
+      path: '/debts/new',
+      builder: (context, state) => DebtFormScreen(
+        initialProduct: state.uri.queryParameters['product'],
+      ),
+    ),
     GoRoute(
       path: '/debts/:id/actions/:action',
       builder: (context, state) => DebtFormScreen(

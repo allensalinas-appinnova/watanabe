@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
-import '../../../../core/routing/global_fab_visibility.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -54,194 +53,220 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: GlobalFabScrollObserver(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 104),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.accountsTitle,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.accountsTitle,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.accountsSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.accountsSubtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
                 ),
-                const SizedBox(height: 24),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _sectionChip(l10n.accountsSectionOverview, 'overview'),
-                      _sectionChip(l10n.accountsSectionMoney, 'money'),
-                      _sectionChip(l10n.accountsSectionCards, 'cards'),
-                      _sectionChip(l10n.accountsSectionLoans, 'loans'),
-                    ],
-                  ),
+              ),
+              const SizedBox(height: 24),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _sectionChip(l10n.accountsSectionOverview, 'overview'),
+                    _sectionChip(l10n.accountsSectionMoney, 'money'),
+                    _sectionChip(l10n.accountsSectionCards, 'cards'),
+                    _sectionChip(l10n.accountsSectionLoans, 'loans'),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                accounts.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, _) => _AccountsError(
-                    message: l10n.genericError,
-                    retryLabel: l10n.retry,
-                    onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
-                  ),
-                  data: (allItems) {
-                    final items = _visibleAccounts(allItems);
-                    return allItems.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            child: Text(
-                              l10n.createFirstAccount,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+              ),
+              const SizedBox(height: 16),
+              accounts.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => _AccountsError(
+                  message: l10n.genericError,
+                  retryLabel: l10n.retry,
+                  onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                ),
+                data: (allItems) {
+                  final items = _visibleAccounts(allItems);
+                  return allItems.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Text(
+                            l10n.createFirstAccount,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
-                          )
-                        : items.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            child: Text(
-                              l10n.accountsSectionEmpty,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                          ),
+                        )
+                      : items.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            l10n.accountsSectionEmpty,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
-                          )
-                        : Column(
-                            children: [
-                              for (var index = 0; index < items.length; index++) ...[
-                                if (index > 0) const SizedBox(height: 18),
-                                if (index == 0 ||
-                                    items[index].isDebt != items[index - 1].isDebt ||
-                                    items[index].isCreditCard != items[index - 1].isCreditCard)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: Align(
-                                      alignment: AlignmentDirectional.centerStart,
-                                      child: Text(
-                                        items[index].isCreditCard
-                                            ? l10n.debtCards
-                                            : items[index].isDebt
-                                            ? l10n.debtLoans
-                                            : l10n.debtMoney,
-                                        style: Theme.of(context).textTheme.titleMedium,
-                                      ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (var index = 0; index < items.length; index++) ...[
+                              if (index > 0) const SizedBox(height: 18),
+                              if (index == 0 ||
+                                  items[index].isDebt != items[index - 1].isDebt ||
+                                  items[index].isCreditCard != items[index - 1].isCreditCard)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: Text(
+                                      items[index].isCreditCard
+                                          ? l10n.debtCards
+                                          : items[index].isDebt
+                                          ? l10n.debtLoans
+                                          : l10n.debtMoney,
+                                      style: Theme.of(context).textTheme.titleMedium,
                                     ),
                                   ),
-                                _AccountCard(
-                                  account: items[index],
-                                  subtitle: _accountSubtitle(l10n, items[index]),
-                                  balance: CurrencyFormatter.formatMinor(
-                                    items[index].isDebt
-                                        ? (items[index].creditBalanceMinor > 0
-                                              ? items[index].creditBalanceMinor
-                                              : items[index].debtMinor)
-                                        : items[index].currentBalanceMinor,
-                                    items[index].currency,
-                                  ),
-                                  editLabel: items[index].isDebt
-                                      ? l10n.debtTitle
-                                      : l10n.editAccount,
-                                  archiveLabel: l10n.archive,
-                                  adjustBalanceLabel: l10n.adjustAccountBalance,
-                                  onEdit: () => _editAccount(context, items[index]),
-                                  onOpen: () => _openAccount(context, items[index]),
-                                  onAdjustBalance:
-                                      items[index].status == 'active' && !items[index].isDebt
-                                      ? () => _adjustBalance(
-                                          context,
-                                          ref,
-                                          user.id,
-                                          items[index],
-                                          items,
-                                        )
-                                      : null,
-                                  onArchive: () => items[index].isDebt
-                                      ? context.push('/debts/${items[index].id}/actions/archive')
-                                      : _archiveAccount(context, ref, user.id, items[index]),
                                 ),
-                                if (!items[index].isDebt)
-                                  Padding(
-                                    padding: const EdgeInsetsDirectional.only(start: 8, top: 4),
-                                    child: Wrap(
-                                      spacing: 8,
-                                      children: [
-                                        TextButton.icon(
-                                          onPressed: () => context.push(
-                                            '/operations/new?type=expense&accountId=${items[index].id}',
-                                          ),
-                                          icon: const Icon(Icons.add_circle_outline),
-                                          label: Text(l10n.addExpense),
-                                        ),
-                                        TextButton.icon(
-                                          onPressed: () => context.push(
-                                            '/operations/new?type=income&accountId=${items[index].id}',
-                                          ),
-                                          icon: const Icon(Icons.south_west),
-                                          label: Text(l10n.addIncome),
-                                        ),
-                                        TextButton.icon(
-                                          onPressed: () => context.push(
-                                            '/transfers/new?sourceAccountId=${items[index].id}',
-                                          ),
-                                          icon: const Icon(Icons.swap_horiz),
-                                          label: Text(l10n.moveMoney),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
+                              _AccountCard(
+                                account: items[index],
+                                subtitle: _accountSubtitle(l10n, items[index]),
+                                balance: CurrencyFormatter.formatMinor(
+                                  items[index].isDebt
+                                      ? (items[index].creditBalanceMinor > 0
+                                            ? items[index].creditBalanceMinor
+                                            : items[index].debtMinor)
+                                      : items[index].currentBalanceMinor,
+                                  items[index].currency,
+                                ),
+                                editLabel: items[index].isDebt ? l10n.debtTitle : l10n.editAccount,
+                                archiveLabel: l10n.archive,
+                                adjustBalanceLabel: l10n.adjustAccountBalance,
+                                onEdit: () => _editAccount(context, items[index]),
+                                onOpen: () => _openAccount(context, items[index]),
+                                onAdjustBalance:
+                                    items[index].status == 'active' && !items[index].isDebt
+                                    ? () => _adjustBalance(
+                                        context,
+                                        ref,
+                                        user.id,
+                                        items[index],
+                                        items,
+                                      )
+                                    : null,
+                                onArchive: () => items[index].isDebt
+                                    ? context.push('/debts/${items[index].id}/actions/archive')
+                                    : _archiveAccount(context, ref, user.id, items[index]),
+                              ),
                             ],
-                          );
-                  },
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => context.push('/debts/new'),
-                      child: Text(l10n.debtAdd),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 42),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    key: const ValueKey('accounts_add_button'),
-                    onPressed: () => _showCreate(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.onSurface,
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      minimumSize: const Size.fromHeight(52),
-                    ),
-                    child: Text(l10n.addAccount),
-                  ),
-                ),
-              ],
-            ),
+                          ],
+                        );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: _buildAddAction(context, l10n),
+    );
+  }
+
+  Widget _buildAddAction(BuildContext context, AppLocalizations l10n) {
+    final (label, icon) = switch (_section) {
+      'cards' => (l10n.addCreditCard, Icons.credit_card_outlined),
+      'loans' => (l10n.addLoan, Icons.account_balance_outlined),
+      'overview' => (l10n.accountsAddEntry, Icons.add),
+      _ => (l10n.addAccount, Icons.add),
+    };
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        ),
+        padding: const EdgeInsetsDirectional.fromSTEB(24, 8, 24, 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            key: const ValueKey('accounts_add_button'),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            onPressed: () => _openCreateAction(context),
+            icon: Icon(icon),
+            label: Text(label),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _openCreateAction(BuildContext context) async {
+    switch (_section) {
+      case 'money':
+        _showCreate(context);
+      case 'cards':
+        await context.push('/debts/new?product=creditCard');
+      case 'loans':
+        await context.push('/debts/new?product=bankLoan');
+      default:
+        final type = await showModalBottomSheet<String>(
+          context: context,
+          useSafeArea: true,
+          showDragHandle: true,
+          builder: (sheetContext) {
+            final l10n = AppLocalizations.of(sheetContext);
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.addMovementChoiceTitle, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  _CreateChoice(
+                    key: const ValueKey('accounts_create_money'),
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: l10n.addAccount,
+                    onTap: () => Navigator.of(sheetContext).pop('money'),
+                  ),
+                  _CreateChoice(
+                    key: const ValueKey('accounts_create_card'),
+                    icon: Icons.credit_card_outlined,
+                    label: l10n.debtCreditCard,
+                    onTap: () => Navigator.of(sheetContext).pop('card'),
+                  ),
+                  _CreateChoice(
+                    key: const ValueKey('accounts_create_loan'),
+                    icon: Icons.account_balance_outlined,
+                    label: l10n.debtLoans,
+                    onTap: () => Navigator.of(sheetContext).pop('loan'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+        if (!context.mounted || type == null) return;
+        if (type == 'money') {
+          _showCreate(context);
+        } else if (type == 'card') {
+          await context.push('/debts/new?product=creditCard');
+        } else {
+          await context.push('/debts/new?product=bankLoan');
+        }
+    }
   }
 
   Widget _sectionChip(String label, String section) => Padding(
@@ -360,6 +385,22 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
       }
     }
   }
+}
+
+class _CreateChoice extends StatelessWidget {
+  const _CreateChoice({required this.icon, required this.label, required this.onTap, super.key});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+    title: Text(label),
+    minTileHeight: 56,
+    onTap: onTap,
+  );
 }
 
 class _AccountCard extends StatelessWidget {
