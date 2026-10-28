@@ -59,6 +59,25 @@ test('debt accounts and command-owned operations reject every client write and a
   await assertFails(alice.doc('users/alice/debtCommands/receipt_0001').get());
 });
 
+test('admin portal collections are callable-only and unavailable to every direct client', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc('adminOperators/owner').set({email: 'admin@example.test', role: 'owner', status: 'active'});
+    await db.doc('adminDailyMetrics/latest').set({generatedAt: Timestamp.now(), metrics: {authUserCount: 1}});
+    await db.doc('adminAudit/event_001').set({actorUid: 'owner', action: 'overview.read', createdAt: Timestamp.now()});
+  });
+  for (const context of [environment.authenticatedContext('owner').firestore(),
+    environment.authenticatedContext('alice').firestore(), environment.unauthenticatedContext().firestore()]) {
+    for (const path of ['adminOperators/owner', 'adminDailyMetrics/latest', 'adminAudit/event_001']) {
+      await assertFails(context.doc(path).get());
+      await assertFails(context.doc(path).set({forged: true}));
+    }
+    for (const collection of ['adminOperators', 'adminDailyMetrics', 'adminAudit']) {
+      await assertFails(context.collection(collection).get());
+    }
+  }
+});
+
 test('debt commitments and payment links are owner-readable and server-write-only', async () => {
   await environment.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -304,6 +323,45 @@ test('user data is isolated and authenticated catalog reads are allowed', async 
   await assertSucceeds(alice.collection('categoryCatalog').doc('food').get());
   await assertSucceeds(alice.collection('users').doc('alice').set(userProfile()));
   await assertFails(bob.collection('users').doc('alice').get());
+});
+
+test('default categories must be written in bounded batches to respect rules access limits', async () => {
+  const categoryIds = Array.from({length: 20}, (_, index) => `default_${index}`);
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    await admin.doc('users/alice').set({...userProfile(), onboardingStatus: 'in_progress'});
+    for (const [index, id] of categoryIds.entries()) {
+      await admin.doc(`categoryCatalog/${id}`).set({id, type: index % 2 === 0 ? 'expense' : 'income'});
+    }
+  });
+
+  const alice = environment.authenticatedContext('alice').firestore();
+  const categories = alice.collection('users/alice/categories');
+  const categoryData = (id, index) => ({
+    catalogId: id,
+    type: index % 2 === 0 ? 'expense' : 'income',
+    name: id,
+    icon: 'more_horiz',
+    sortOrder: index,
+    isSystem: true,
+    isArchived: false,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    dataGeneration: 0,
+  });
+
+  const oversizedBatch = alice.batch();
+  categoryIds.forEach((id, index) => oversizedBatch.set(categories.doc(id), categoryData(id, index)));
+  await assertFails(oversizedBatch.commit());
+
+  for (let start = 0; start < categoryIds.length; start += 8) {
+    const batch = alice.batch();
+    categoryIds.slice(start, start + 8).forEach((id, offset) => {
+      const index = start + offset;
+      batch.set(categories.doc(id), categoryData(id, index));
+    });
+    await assertSucceeds(batch.commit());
+  }
 });
 
 test('home preferences are owner-updatable, typed, bounded, and cannot add profile fields', async () => {

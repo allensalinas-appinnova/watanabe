@@ -17,6 +17,9 @@ rules_version = '2';
 // must use callable responses so email evidence never enters persistent cache.
 // Debt accounts (nature=debt), debtCommands, debtReversals and debtRefunds are
 // server-owned. Only mutateDebt may change balances, components or source ops.
+// Admin portal: adminOperators, adminDailyMetrics and adminAudit are server-only.
+// Admin reads are made through authenticated, allowlisted callable DTOs; device
+// records may optionally include appVersion/buildNumber (legacy values omitted).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -128,6 +131,12 @@ service cloud.firestore {
           data.appearancePreferences.mode in ['system', 'light', 'dark'] &&
           data.appearancePreferences.palette in ['lumio', 'classicBlue', 'ocean', 'plum']);
     }
+
+    // Administrative collections are never directly accessible to app clients.
+    // All portal reads go through Functions, which verifies an active operator.
+    match /adminOperators/{path=**} { allow read, write: if false; }
+    match /adminDailyMetrics/{path=**} { allow read, write: if false; }
+    match /adminAudit/{path=**} { allow read, write: if false; }
 
     function validCoachHour(value) {
       return value is int && value >= 0 && value <= 23;

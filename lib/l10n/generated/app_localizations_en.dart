@@ -327,6 +327,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authNetworkError => 'No connection. Check your internet and try again.';
 
   @override
+  String get authProviderUnavailable =>
+      'This sign-in option is currently unavailable. Choose another option or contact support.';
+
+  @override
   String get authTagline => 'Clarity for every peso.';
 
   @override
@@ -395,6 +399,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firstAccountName => 'Name of your first account';
+
+  @override
+  String get onboardingPreferencesSection => 'Preferences';
+
+  @override
+  String get onboardingAccountSection => 'Your first account';
+
+  @override
+  String get onboardingAccountExplanation =>
+      'An account is where you keep or use money: cash, checking, or savings. You can add more later.';
+
+  @override
+  String get onboardingAccountNameLabel => 'Name to identify it';
+
+  @override
+  String get onboardingAccountNameHelper =>
+      'This name helps you recognize it. You can change it later.';
+
+  @override
+  String get onboardingWalletAccountName => 'My wallet';
+
+  @override
+  String get onboardingCheckingAccountName => 'My checking account';
+
+  @override
+  String get onboardingSavingsAccountName => 'My savings';
+
+  @override
+  String get onboardingCurrentBalance => 'Current balance (optional)';
+
+  @override
+  String get onboardingCurrentBalanceHelper =>
+      'This is what you have in this account today; it is not income.';
+
+  @override
+  String get onboardingCreateAccount => 'Create my account';
 
   @override
   String get continueAction => 'Continue';

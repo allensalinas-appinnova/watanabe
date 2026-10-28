@@ -781,6 +781,7 @@ class CanonicalFinanceActions {
 
   Future<void> createAccount(
     String userId, {
+    String? accountId,
     required String name,
     required String type,
     required String currency,
@@ -788,6 +789,7 @@ class CanonicalFinanceActions {
   }) async {
     final result = await _repository.createAccount(
       userId,
+      accountId: accountId,
       name: name,
       type: type,
       currency: currency,
@@ -972,8 +974,12 @@ class CanonicalFinanceActions {
     });
   }
 
-  Future<void> updateOperation(String userId, FinancialOperation operation) async {
-    final result = await _repository.updateOperation(userId, operation);
+  Future<void> updateOperation(
+    String userId,
+    FinancialOperation operation, {
+    required String requestId,
+  }) async {
+    final result = await _repository.updateOperation(userId, operation, requestId: requestId);
     result.match((failure) => throw Exception(failure.message), (_) {});
   }
 

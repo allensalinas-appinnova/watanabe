@@ -700,6 +700,12 @@ abstract class AppLocalizations {
   /// **'No hay conexión. Revisa tu internet e inténtalo de nuevo.'**
   String get authNetworkError;
 
+  /// No description provided for @authProviderUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta opción de acceso no está disponible. Elige otra o contacta a soporte.'**
+  String get authProviderUnavailable;
+
   /// No description provided for @authTagline.
   ///
   /// In es, this message translates to:
@@ -831,6 +837,72 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Nombre de tu primera cuenta'**
   String get firstAccountName;
+
+  /// No description provided for @onboardingPreferencesSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Preferencias'**
+  String get onboardingPreferencesSection;
+
+  /// No description provided for @onboardingAccountSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu primera cuenta'**
+  String get onboardingAccountSection;
+
+  /// No description provided for @onboardingAccountExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Una cuenta representa dónde guardas o usas dinero: efectivo, cuenta corriente o ahorros. Puedes agregar más después.'**
+  String get onboardingAccountExplanation;
+
+  /// No description provided for @onboardingAccountNameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre para identificarla'**
+  String get onboardingAccountNameLabel;
+
+  /// No description provided for @onboardingAccountNameHelper.
+  ///
+  /// In es, this message translates to:
+  /// **'Este nombre solo te ayuda a reconocerla. Puedes cambiarlo después.'**
+  String get onboardingAccountNameHelper;
+
+  /// No description provided for @onboardingWalletAccountName.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi billetera'**
+  String get onboardingWalletAccountName;
+
+  /// No description provided for @onboardingCheckingAccountName.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi cuenta corriente'**
+  String get onboardingCheckingAccountName;
+
+  /// No description provided for @onboardingSavingsAccountName.
+  ///
+  /// In es, this message translates to:
+  /// **'Mis ahorros'**
+  String get onboardingSavingsAccountName;
+
+  /// No description provided for @onboardingCurrentBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo actual (opcional)'**
+  String get onboardingCurrentBalance;
+
+  /// No description provided for @onboardingCurrentBalanceHelper.
+  ///
+  /// In es, this message translates to:
+  /// **'Es lo que tienes hoy en esta cuenta; no es un ingreso.'**
+  String get onboardingCurrentBalanceHelper;
+
+  /// No description provided for @onboardingCreateAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear mi cuenta'**
+  String get onboardingCreateAccount;
 
   /// No description provided for @continueAction.
   ///

@@ -191,6 +191,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   @override
   Future<Either<Failure, FinanceAccount>> createAccount(
     String userId, {
+    String? accountId,
     required String name,
     required String type,
     required String currency,
@@ -201,6 +202,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
         _account(
           await _remoteDataSource.createAccount(
             userId,
+            accountId: accountId,
             name: name,
             type: type,
             currency: currency,
@@ -366,10 +368,11 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   @override
   Future<Either<Failure, Unit>> updateOperation(
     String userId,
-    FinancialOperation operation,
-  ) async {
+    FinancialOperation operation, {
+    required String requestId,
+  }) async {
     try {
-      await _remoteDataSource.updateOperation(userId, operation);
+      await _remoteDataSource.updateOperation(userId, operation, requestId: requestId);
       return const Right(unit);
     } catch (error) {
       return Left(FirebaseFailureMapper.fromException(error));
@@ -606,6 +609,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     targetBalanceMinor: (data['targetBalanceMinor'] as num?)?.toInt(),
     paymentId: data['paymentId'] as String?,
     allocationStatus: data['allocationStatus'] as String?,
+    revision: (data['revision'] as num? ?? 0).toInt(),
     createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
     updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
   );

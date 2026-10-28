@@ -23,12 +23,18 @@ ios/Runner/GoogleService-Info.plist
 !.vscode/launch.json
 
 # Firebase Functions
+.firebase/
 functions/node_modules/
 functions/lib/
 functions/.env
 functions/.env.*
 /.local/projection-audits/
 /.local/firebase-deployments/
+admin_portal/node_modules/
+admin_portal/dist/
+admin_portal/*.tsbuildinfo
+admin_portal/.env.local
+admin_portal/.env.*.local
 
 # Generated files
 *.g.dart

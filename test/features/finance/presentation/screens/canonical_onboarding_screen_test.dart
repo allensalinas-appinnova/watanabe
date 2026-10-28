@@ -26,31 +26,97 @@ void main() {
     ),
   );
 
-  testWidgets('validates the first account name inline before continuing', (
-    tester,
-  ) async {
+  testWidgets('prefills wallet name and validates it only when the user clears it', (tester) async {
     await tester.pumpWidget(buildSubject());
 
     expect(find.text('Prepara tu espacio'), findsOneWidget);
     expect(find.text('Elige tus preferencias. Puedes cambiarlas después.'), findsOneWidget);
 
-    final continueButton = tester.widget<FilledButton>(
+    expect(find.text('Tu primera cuenta'), findsOneWidget);
+    expect(
+      find.text(
+        'Una cuenta representa dónde guardas o usas dinero: efectivo, cuenta corriente o ahorros. Puedes agregar más después.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'Mi billetera',
+    );
+    expect(find.byKey(const ValueKey('onboarding_current_balance')), findsOneWidget);
+
+    final createButton = tester.widget<FilledButton>(
       find.byKey(const ValueKey('onboarding_continue')),
     );
-    expect(continueButton.onPressed, isNotNull);
+    expect(createButton.onPressed, isNotNull);
+    await tester.enterText(find.byKey(const ValueKey('onboarding_account_name')), '');
     await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
     await tester.pump();
     expect(find.text('Escribe el nombre de tu primera cuenta.'), findsOneWidget);
+  });
 
-    await tester.enterText(
-      find.byKey(const ValueKey('onboarding_account_name')),
-      'Cuenta principal',
+  testWidgets('type updates the suggested name until the user edits it', (tester) async {
+    await tester.pumpWidget(buildSubject());
+    final type = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('onboarding_account_type')),
     );
-    await tester.pump();
 
+    type.onChanged?.call('checking');
+    await tester.pump();
     expect(
-      tester.widget<FilledButton>(find.byKey(const ValueKey('onboarding_continue'))).onPressed,
-      isNotNull,
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'Mi cuenta corriente',
+    );
+
+    await tester.enterText(find.byKey(const ValueKey('onboarding_account_name')), 'Nómina');
+    final updatedType = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('onboarding_account_type')),
+    );
+    updatedType.onChanged?.call('savings');
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'Nómina',
+    );
+  });
+
+  testWidgets('language change localizes the suggested account name until edited', (tester) async {
+    await tester.pumpWidget(buildSubject());
+    final language = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('onboarding_language')),
+    );
+
+    language.onChanged?.call('en');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'My wallet',
+    );
+
+    await tester.enterText(find.byKey(const ValueKey('onboarding_account_name')), 'Caja');
+    final portugueseLanguage = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('onboarding_language')),
+    );
+    portugueseLanguage.onChanged?.call('pt');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'Caja',
     );
   });
 
@@ -80,26 +146,28 @@ void main() {
     final country = tester.getRect(find.byKey(const ValueKey('onboarding_country')));
     final currency = tester.getRect(find.byKey(const ValueKey('onboarding_currency')));
     final timezone = tester.getRect(find.byKey(const ValueKey('onboarding_timezone')));
-    final accountName = tester.getRect(find.byKey(const ValueKey('onboarding_account_name')));
     final button = tester.getRect(find.byKey(const ValueKey('onboarding_continue')));
 
     expect(language.top, greaterThanOrEqualTo(0));
     expect(country.top, greaterThan(language.bottom));
     expect(currency.top, greaterThan(country.bottom));
     expect(timezone.top, greaterThan(currency.bottom));
-    expect(accountName.top, greaterThan(timezone.bottom));
-    expect(accountName.bottom, lessThan(button.top));
-    expect(accountName.bottom, lessThanOrEqualTo(844));
+    expect(timezone.top, greaterThan(currency.bottom));
     expect(button.left, closeTo(24, 1));
     expect(button.right, closeTo(366, 1));
-    expect(find.text('Continuar'), findsOneWidget);
+    expect(find.text('Crear mi cuenta'), findsOneWidget);
+
+    final accountNameFinder = find.byKey(const ValueKey('onboarding_account_name'));
+    await tester.ensureVisible(accountNameFinder);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(accountNameFinder).bottom, lessThanOrEqualTo(844));
 
     await tester.enterText(
       find.byKey(const ValueKey('onboarding_account_name')),
       'Cuenta principal',
     );
     await tester.pump();
-    final label = tester.getRect(find.text('Continuar'));
+    final label = tester.getRect(find.text('Crear mi cuenta'));
     expect(label.center.dx, closeTo(button.center.dx, 1));
     expect(tester.takeException(), isNull);
   });

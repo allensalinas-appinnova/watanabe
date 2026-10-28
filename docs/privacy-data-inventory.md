@@ -15,4 +15,18 @@ Users can remove an installation record in Settings → My devices. This removes
 - No full IP, phone model, advertising ID, email, or financial data is added to the installation record.
 - Registry writes are server-only; users can read their own device records.
 - Registration failure does not block sign-in or financial functionality.
+
+## Internal administration portal
+
+The private Firebase Hosting portal is restricted by server-verified Google
+identity and an operator record. Its callables return an allowlisted subset of
+Firebase Auth metadata, profile/onboarding state, and installation metadata;
+they do not read or return accounts, operations, budgets, categories, balances,
+or debt records. Portal lookups record the operator UID, action, optional target
+UID, timestamp, and a 180-day expiry. Daily operational aggregates include
+registered Auth users, profiles, onboarding completion, and active installation
+platform/version distributions; operator and explicitly configured test UIDs
+are excluded. Aggregate records expire after 400 days. These internal records
+are inaccessible to app clients through Firestore rules. The portal is
+diagnostic only and does not suspend users, revoke sessions, or change data.
 - Retention is 90 days after the last registered activity, subject to asynchronous Firestore TTL processing.

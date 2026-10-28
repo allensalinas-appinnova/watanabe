@@ -13,6 +13,18 @@ import '../../domain/entities/operation_page.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import 'balance_adjustment_service.dart';
 import 'budget_command_service.dart';
+import 'operation_correction_service.dart';
+
+// Each category write evaluates the user profile and its global catalog entry
+// in Firestore Rules. Keep batches well below the 20-call atomic-write limit.
+const _categoryWriteBatchSize = 8;
+
+Iterable<List<T>> _chunked<T>(List<T> values, int size) sync* {
+  for (var start = 0; start < values.length; start += size) {
+    final end = (start + size < values.length) ? start + size : values.length;
+    yield values.sublist(start, end);
+  }
+}
 
 class RemoteOperationPage {
   const RemoteOperationPage({required this.records, this.nextCursor});
@@ -64,6 +76,7 @@ abstract interface class CanonicalFinanceRemoteDataSource {
 
   Future<Map<String, dynamic>> createAccount(
     String userId, {
+    String? accountId,
     required String name,
     required String type,
     required String currency,
@@ -108,7 +121,11 @@ abstract interface class CanonicalFinanceRemoteDataSource {
 
   Future<Map<String, dynamic>> createTransfer(String userId, TransferDraft draft);
 
-  Future<void> updateOperation(String userId, FinancialOperation operation);
+  Future<void> updateOperation(
+    String userId,
+    FinancialOperation operation, {
+    required String requestId,
+  });
 
   Future<void> deleteOperation(String userId, String operationId);
 
@@ -164,13 +181,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required FirebaseFirestore firestore,
     required BudgetCommandService budgetCommands,
     BalanceAdjustmentService? balanceAdjustments,
+    FirebaseOperationCorrectionService? operationCorrections,
   }) : _firestore = firestore,
        _budgetCommands = budgetCommands,
-       _balanceAdjustments = balanceAdjustments;
+       _balanceAdjustments = balanceAdjustments,
+       _operationCorrections = operationCorrections;
 
   final FirebaseFirestore _firestore;
   final BudgetCommandService _budgetCommands;
   final BalanceAdjustmentService? _balanceAdjustments;
+  final FirebaseOperationCorrectionService? _operationCorrections;
 
   CollectionReference<Map<String, dynamic>> _userCollection(String userId, String name) =>
       _firestore.collection('users').doc(userId).collection(name);
@@ -236,26 +256,33 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         .get();
     final existing = await _userCollection(userId, 'categories').get();
     final existingIds = existing.docs.map((doc) => doc.id).toSet();
-    final categoryBatch = _firestore.batch();
+    final categoryWrites = <(DocumentReference<Map<String, dynamic>>, Map<String, dynamic>)>[];
     for (final document in catalog.docs) {
       if (existingIds.contains(document.id)) continue;
       final data = document.data();
       final labels = Map<String, dynamic>.from(data['labels'] as Map? ?? const {});
       final localizedName = labels[locale.split('-').first] as String? ?? labels['en'] as String?;
-      categoryBatch.set(_userCollection(userId, 'categories').doc(document.id), {
-        'catalogId': document.id,
-        'type': data['type'],
-        'name': localizedName ?? data['translationKey'],
-        'icon': data['icon'],
-        'sortOrder': data['sortOrder'] ?? 0,
-        'isSystem': true,
-        'isArchived': false,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'dataGeneration': generation,
-      });
+      categoryWrites.add((
+        _userCollection(userId, 'categories').doc(document.id),
+        {
+          'catalogId': document.id,
+          'type': data['type'],
+          'name': localizedName ?? data['translationKey'],
+          'icon': data['icon'],
+          'sortOrder': data['sortOrder'] ?? 0,
+          'isSystem': true,
+          'isArchived': false,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'dataGeneration': generation,
+        },
+      ));
     }
-    if (catalog.docs.any((document) => !existingIds.contains(document.id))) {
+    for (final chunk in _chunked(categoryWrites, _categoryWriteBatchSize)) {
+      final categoryBatch = _firestore.batch();
+      for (final (reference, data) in chunk) {
+        categoryBatch.set(reference, data);
+      }
       await categoryBatch.commit();
     }
 
@@ -286,45 +313,58 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         .get();
     final categories = _userCollection(userId, 'categories');
     final profile = _userDocument(userId);
-    final refs = catalog.docs.map((document) => categories.doc(document.id)).toList();
+    final documents = catalog.docs;
+
+    // A single transaction for the full catalog can exceed Firestore Rules'
+    // access-call budget. Commit bounded, idempotent chunks and advance the
+    // catalog version only after every chunk has succeeded.
+    for (final chunk in _chunked(documents, _categoryWriteBatchSize)) {
+      await _firestore.runTransaction((transaction) async {
+        final profileSnapshot = await transaction.get(profile);
+        final profileData = profileSnapshot.data();
+        if (!profileSnapshot.exists) throw StateError('user-profile-missing');
+        if (profileData?['resetStatus'] == 'resetting') {
+          throw StateError('user-reset-in-progress');
+        }
+        final generation = (profileData?['dataGeneration'] as num? ?? 0).toInt();
+        final snapshots = <DocumentSnapshot<Map<String, dynamic>>>[];
+        for (final document in chunk) {
+          snapshots.add(await transaction.get(categories.doc(document.id)));
+        }
+        for (var index = 0; index < chunk.length; index++) {
+          if (snapshots[index].exists) continue;
+          final data = chunk[index].data();
+          final labels = Map<String, dynamic>.from(data['labels'] as Map? ?? const {});
+          final name = labels[locale.split('-').first] as String? ?? labels['en'] as String?;
+          transaction.set(categories.doc(chunk[index].id), {
+            'catalogId': chunk[index].id,
+            'type': data['type'],
+            'name': name ?? data['translationKey'],
+            'icon': data['icon'],
+            'sortOrder': data['sortOrder'] ?? 0,
+            'isSystem': true,
+            'isArchived': false,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            'dataGeneration': generation,
+          });
+        }
+      });
+    }
 
     await _firestore.runTransaction((transaction) async {
-      final snapshots = <DocumentSnapshot<Map<String, dynamic>>>[];
-      for (final reference in refs) {
-        snapshots.add(await transaction.get(reference));
-      }
       final profileSnapshot = await transaction.get(profile);
       final profileData = profileSnapshot.data();
       if (!profileSnapshot.exists) throw StateError('user-profile-missing');
-      if (profileData?['resetStatus'] == 'resetting') throw StateError('user-reset-in-progress');
-      final generation = (profileData?['dataGeneration'] as num? ?? 0).toInt();
-      for (var index = 0; index < catalog.docs.length; index++) {
-        if (snapshots[index].exists) continue;
-        final data = catalog.docs[index].data();
-        final labels = Map<String, dynamic>.from(data['labels'] as Map? ?? const {});
-        final name = labels[locale.split('-').first] as String? ?? labels['en'] as String?;
-        transaction.set(refs[index], {
-          'catalogId': catalog.docs[index].id,
-          'type': data['type'],
-          'name': name ?? data['translationKey'],
-          'icon': data['icon'],
-          'sortOrder': data['sortOrder'] ?? 0,
-          'isSystem': true,
-          'isArchived': false,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'dataGeneration': generation,
-        });
+      if (profileData?['resetStatus'] == 'resetting') {
+        throw StateError('user-reset-in-progress');
       }
-      if (profileSnapshot.exists) {
-        final currentVersion = (profileSnapshot.data()?['categoryCatalogVersion'] as num? ?? 1)
-            .toInt();
-        if (currentVersion < catalogVersion) {
-          transaction.update(profile, {
-            'categoryCatalogVersion': catalogVersion,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
+      final currentVersion = (profileData?['categoryCatalogVersion'] as num? ?? 1).toInt();
+      if (currentVersion < catalogVersion) {
+        transaction.update(profile, {
+          'categoryCatalogVersion': catalogVersion,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
       }
     });
   }
@@ -552,6 +592,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   @override
   Future<Map<String, dynamic>> createAccount(
     String userId, {
+    String? accountId,
     required String name,
     required String type,
     required String currency,
@@ -564,7 +605,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         !_validCurrency(currency)) {
       throw ArgumentError('Invalid account data.');
     }
-    final ref = _userCollection(userId, 'accounts').doc();
+    final ref = _userCollection(userId, 'accounts').doc(accountId);
     final data = {
       'name': name.trim(),
       'type': type,
@@ -578,8 +619,16 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       'updatedAt': FieldValue.serverTimestamp(),
       'dataGeneration': generation,
     };
-    await ref.set(data);
-    return {...data, 'id': ref.id};
+    if (accountId == null) {
+      await ref.set(data);
+      return {...data, 'id': ref.id};
+    }
+    return _firestore.runTransaction((transaction) async {
+      final existing = await transaction.get(ref);
+      if (existing.exists) return {...existing.data()!, 'id': ref.id};
+      transaction.set(ref, data);
+      return {...data, 'id': ref.id};
+    });
   }
 
   @override
@@ -799,12 +848,26 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   }
 
   @override
-  Future<void> updateOperation(String userId, FinancialOperation operation) =>
-      _userCollection(userId, 'operations').doc(operation.id).update({
-        'description': operation.description.trim(),
-        'status': operation.status.name,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+  Future<void> updateOperation(
+    String userId,
+    FinancialOperation operation, {
+    required String requestId,
+  }) {
+    final service = _operationCorrections;
+    if (service == null) throw StateError('operation-correction-service-not-configured');
+    return service.execute(userId, {
+      'requestId': requestId,
+      'expectedRevision': operation.revision,
+      'operationId': operation.id,
+      'amountMinor': operation.amountMinor,
+      'currency': operation.currency,
+      'accountId': operation.accountId,
+      'categoryId': operation.categoryId,
+      'monthKey': operation.monthKey,
+      'occurredAt': operation.occurredAt.toUtc().toIso8601String(),
+      'description': operation.description,
+    });
+  }
 
   @override
   Future<void> deleteOperation(String userId, String operationId) =>

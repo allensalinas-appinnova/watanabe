@@ -113,6 +113,21 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
     const eventGeneration = current?.dataGeneration ?? previous?.dataGeneration ?? 0;
     if (eventGeneration !== generation) return;
     if ((await transaction.get(marker)).exists) return;
+    // Firestore delivers at-least-once events without an ordering guarantee.
+    // A delayed create/update event must not project a historical snapshot after
+    // a newer correction has already applied its deltas synchronously.
+    const operationId = event.current?.id ?? event.previous?.id;
+    if (operationId && validId(operationId)) {
+      const liveSnapshot = await transaction.get(root.collection("operations").doc(operationId));
+      const live = liveSnapshot.data();
+      if (current && !liveSnapshot.exists) return;
+      if (liveSnapshot.exists) {
+        const eventRevision = Number.isSafeInteger(event.current?.revision) ? event.current!.revision as number : 0;
+        const liveRevision = Number.isSafeInteger(live?.revision) ? live!.revision as number : 0;
+        if (liveRevision > eventRevision || (typeof live?.operationEditCommandId === "string" &&
+            live.operationEditCommandId !== event.current?.operationEditCommandId)) return;
+      }
+    }
     // A server-owned receipt proves the synchronous command applied projections.
     // Never skip merely because a document claims it has been processed.
     const debtRecords = [event.previous, event.current].filter((row) => row?.debtCommandId);
@@ -123,6 +138,13 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
         if (receipt.data()?.projectionsApplied !== true || !receipt.data()?.operationIds?.includes(row!.idempotencyKey)) throw new ProjectionError("missing_debt_receipt");
       }
       return;
+    }
+    const editCommandId = event.current?.operationEditCommandId;
+    if (typeof editCommandId === "string") {
+      const correction = await transaction.get(root.collection("operationCorrections").doc(editCommandId));
+      const receipt = correction.data();
+      if (receipt?.projectionsApplied === true && receipt.projectionDigest === event.current?.operationProjectionDigest &&
+          receipt.revision === event.current?.revision && receipt.status === event.current?.status) return;
     }
     const write = await prepareProjectionWrites(transaction, root, [{previous, current}]);
     write();

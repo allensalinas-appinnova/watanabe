@@ -45,7 +45,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              next.failure is NetworkFailure ? l10n.authNetworkError : l10n.authActionFailed,
+              next.failure is NetworkFailure
+                  ? l10n.authNetworkError
+                  : next.failure?.technicalCode == 'operation-not-allowed'
+                  ? l10n.authProviderUnavailable
+                  : l10n.authActionFailed,
             ),
           ),
         );

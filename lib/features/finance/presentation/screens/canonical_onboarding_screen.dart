@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/authenticated_route_resolver.dart';
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
+import '../../../../core/utils/money_parser.dart';
+import '../../../../core/utils/request_id.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/canonical_finance_providers.dart';
@@ -19,11 +22,17 @@ class CanonicalOnboardingScreen extends ConsumerStatefulWidget {
 class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final account = TextEditingController();
+  final balance = TextEditingController(text: '0');
+  final _accountId = newRequestId();
   String locale = 'es';
   String country = 'CO';
   String currency = 'COP';
   String timeZone = 'America/Bogota';
+  String accountType = 'cash';
+  bool _accountNameEdited = false;
+  bool _initializedAccountName = false;
   bool saving = false;
+  String? _error;
 
   @override
   void initState() {
@@ -33,6 +42,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
   @override
   void dispose() {
     account.dispose();
+    balance.dispose();
     super.dispose();
   }
 
@@ -44,6 +54,10 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
       child: Builder(
         builder: (localizedContext) {
           final l10n = AppLocalizations.of(localizedContext);
+          if (!_initializedAccountName) {
+            account.text = _suggestedAccountName(l10n);
+            _initializedAccountName = true;
+          }
           return Scaffold(
             resizeToAvoidBottomInset: true,
             body: SafeArea(
@@ -88,6 +102,8 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                       ),
                                     ),
                                     const SizedBox(height: 28),
+                                    _sectionTitle(context, l10n.onboardingPreferencesSection),
+                                    const SizedBox(height: 14),
                                     _preferenceField<String>(
                                       key: const ValueKey('onboarding_language'),
                                       label: l10n.language,
@@ -97,7 +113,18 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                         DropdownMenuItem(value: 'pt', child: Text('Português')),
                                         DropdownMenuItem(value: 'en', child: Text('English')),
                                       ],
-                                      onChanged: (value) => setState(() => locale = value ?? 'es'),
+                                      onChanged: (value) {
+                                        final selectedLocale = value ?? 'es';
+                                        setState(() => locale = selectedLocale);
+                                        AppLocalizations.delegate.load(Locale(selectedLocale)).then(
+                                          (localized) {
+                                            if (!mounted || _accountNameEdited) return;
+                                            setState(() {
+                                              account.text = _suggestedAccountName(localized);
+                                            });
+                                          },
+                                        );
+                                      },
                                     ),
                                     const SizedBox(height: 12),
                                     _preferenceField<String>(
@@ -158,10 +185,40 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                       onChanged: (value) =>
                                           setState(() => timeZone = value ?? 'America/Bogota'),
                                     ),
+                                    const SizedBox(height: 20),
+                                    const Divider(),
                                     const SizedBox(height: 12),
-                                    _fieldLabel(context, l10n.firstAccountName),
+                                    _sectionTitle(context, l10n.onboardingAccountSection),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      l10n.onboardingAccountExplanation,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    DropdownButtonFormField<String>(
+                                      key: const ValueKey('onboarding_account_type'),
+                                      initialValue: accountType,
+                                      isExpanded: true,
+                                      decoration: _inputDecoration().copyWith(
+                                        labelText: l10n.accountType,
+                                      ),
+                                      items: [
+                                        _accountTypeItem('cash', l10n.cashAccountType),
+                                        _accountTypeItem('checking', l10n.checkingAccountType),
+                                        _accountTypeItem('savings', l10n.savingsAccountType),
+                                      ],
+                                      onChanged: saving
+                                          ? null
+                                          : (value) => setState(() {
+                                              accountType = value ?? 'cash';
+                                              _refreshSuggestedName(l10n);
+                                            }),
+                                    ),
+                                    const SizedBox(height: 12),
                                     Semantics(
-                                      label: l10n.firstAccountName,
+                                      label: l10n.onboardingAccountNameLabel,
                                       textField: true,
                                       child: TextFormField(
                                         key: const ValueKey('onboarding_account_name'),
@@ -169,13 +226,52 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                         textCapitalization: TextCapitalization.sentences,
                                         textInputAction: TextInputAction.done,
                                         onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-                                        decoration: _inputDecoration(),
+                                        onChanged: (_) => _accountNameEdited = true,
+                                        decoration: _inputDecoration().copyWith(
+                                          labelText: l10n.onboardingAccountNameLabel,
+                                          helperText: l10n.onboardingAccountNameHelper,
+                                        ),
                                         validator: (value) => FinanceInputValidators.requiredText(
                                           value,
                                           l10n.onboardingAccountRequired,
                                         ),
                                       ),
                                     ),
+                                    const SizedBox(height: 14),
+                                    TextFormField(
+                                      key: const ValueKey('onboarding_current_balance'),
+                                      controller: balance,
+                                      keyboardType: TextInputType.numberWithOptions(
+                                        decimal: CurrencyFormatter.decimalDigits(currency) > 0,
+                                      ),
+                                      textInputAction: TextInputAction.done,
+                                      decoration: _inputDecoration().copyWith(
+                                        labelText: l10n.onboardingCurrentBalance,
+                                        prefixText: '$currency ',
+                                        helperText: l10n.onboardingCurrentBalanceHelper,
+                                      ),
+                                      validator: (value) => value?.trim().isEmpty ?? true
+                                          ? null
+                                          : FinanceInputValidators.amount(
+                                              value,
+                                              currency,
+                                              l10n,
+                                              allowZero: true,
+                                            ),
+                                    ),
+                                    if (_error != null) ...[
+                                      const SizedBox(height: 12),
+                                      Semantics(
+                                        key: const ValueKey('onboarding_save_error'),
+                                        liveRegion: true,
+                                        child: Text(
+                                          _error!,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.error,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -194,7 +290,7 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
                                         dimension: 20,
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       )
-                                    : Text(l10n.continueAction),
+                                    : Text(l10n.onboardingCreateAccount),
                               ),
                             ),
                           ),
@@ -234,6 +330,38 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
     );
   }
 
+  Widget _sectionTitle(BuildContext context, String title) => Text(
+    title,
+    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+  );
+
+  DropdownMenuItem<String> _accountTypeItem(String value, String label) => DropdownMenuItem(
+    value: value,
+    child: Row(
+      children: [
+        Icon(_accountTypeIcon(value), size: 22),
+        const SizedBox(width: 12),
+        Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ],
+    ),
+  );
+
+  IconData _accountTypeIcon(String type) => switch (type) {
+    'checking' => Icons.account_balance_outlined,
+    'savings' => Icons.savings_outlined,
+    _ => Icons.account_balance_wallet_outlined,
+  };
+
+  String _suggestedAccountName(AppLocalizations l10n) => switch (accountType) {
+    'checking' => l10n.onboardingCheckingAccountName,
+    'savings' => l10n.onboardingSavingsAccountName,
+    _ => l10n.onboardingWalletAccountName,
+  };
+
+  void _refreshSuggestedName(AppLocalizations l10n) {
+    if (!_accountNameEdited) account.text = _suggestedAccountName(l10n);
+  }
+
   Widget _fieldLabel(BuildContext context, String label) => Padding(
     padding: const EdgeInsets.only(bottom: 7),
     child: Text(
@@ -269,7 +397,10 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
     final user =
         ref.read(authSessionProvider).valueOrNull ?? ref.read(authRepositoryProvider).currentUser;
     if (user == null || account.text.trim().isEmpty) return;
-    setState(() => saving = true);
+    setState(() {
+      saving = true;
+      _error = null;
+    });
     try {
       await ref.read(bootstrapCategoriesProvider)(
         user.id,
@@ -282,18 +413,19 @@ class _CanonicalOnboardingScreenState extends ConsumerState<CanonicalOnboardingS
           .read(canonicalActionsProvider)
           .createAccount(
             user.id,
+            accountId: _accountId,
             name: account.text,
-            type: 'cash',
+            type: accountType,
             currency: currency,
-            openingBalanceMinor: 0,
+            openingBalanceMinor: balance.text.trim().isEmpty
+                ? 0
+                : MoneyParser.minorUnits(balance.text, currency, allowZero: true),
           );
       invalidateCachedUserProfile(user.id);
       if (mounted) context.go('/home');
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).genericError)),
-        );
+        setState(() => _error = AppLocalizations.of(context).genericError);
       }
     } finally {
       if (mounted) setState(() => saving = false);

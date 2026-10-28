@@ -51,10 +51,21 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 3));
 
     expect(find.byKey(const ValueKey('onboarding_account_name')), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('onboarding_account_name')),
-      'Cuenta UI',
+    await tester.tap(find.byKey(const ValueKey('onboarding_account_type')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cuenta corriente').last);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('onboarding_account_name')))
+          .controller!
+          .text,
+      'Mi cuenta corriente',
     );
+    final balanceField = find.byKey(const ValueKey('onboarding_current_balance'));
+    await tester.ensureVisible(balanceField);
+    await tester.pumpAndSettle();
+    await tester.enterText(balanceField, '85000');
     await tester.pump();
     final continueButton = tester.widget<FilledButton>(
       find.byKey(const ValueKey('onboarding_continue')),
@@ -75,6 +86,13 @@ void main() {
       final profile = await diagnosticUser.get();
       final accounts = await diagnosticUser.collection('accounts').get();
       final categories = await diagnosticUser.collection('categories').get();
+      final accountRows = accounts.docs;
+      expect(accountRows, hasLength(1));
+      expect(accountRows.single.data()['type'], 'checking');
+      expect(accountRows.single.data()['name'], 'Mi cuenta corriente');
+      expect(accountRows.single.data()['openingBalanceMinor'], 85000);
+      expect(accountRows.single.data()['currentBalanceMinor'], 85000);
+      expect((await diagnosticUser.collection('operations').get()).docs, isEmpty);
       debugPrint(
         'ONBOARDING_DIAGNOSTIC profile=${profile.data()?['onboardingStatus']} '
         'accounts=${accounts.docs.length} categories=${categories.docs.length}',

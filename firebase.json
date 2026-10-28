@@ -9,6 +9,17 @@
   "functions": {
     "source": "functions"
   },
+  "hosting": {
+    "site": "lumiomoney-admin",
+    "public": "admin_portal/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{"source": "**", "destination": "/index.html"}],
+    "headers": [
+      {"source": "/", "headers": [{"key": "Cache-Control", "value": "no-store"}, {"key": "X-Content-Type-Options", "value": "nosniff"}, {"key": "X-Frame-Options", "value": "DENY"}, {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"}, {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"}]},
+      {"source": "/index.html", "headers": [{"key": "Cache-Control", "value": "no-store"}, {"key": "X-Content-Type-Options", "value": "nosniff"}, {"key": "X-Frame-Options", "value": "DENY"}, {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"}, {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"}]},
+      {"source": "/assets/**", "headers": [{"key": "Cache-Control", "value": "public,max-age=31536000,immutable"}]}
+    ]
+  },
   "emulators": {
     "auth": {
       "port": 59199

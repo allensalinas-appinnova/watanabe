@@ -25,6 +25,7 @@ import '../../features/devices/domain/device_registry_repository.dart';
 import '../../features/finance/data/datasources/balance_adjustment_service.dart';
 import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
+import '../../features/finance/data/datasources/operation_correction_service.dart';
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
 import '../../features/finance/data/datasources/user_data_reset_service.dart';
 import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
@@ -167,6 +168,14 @@ Future<void> configureDependencies({
         firestore: getIt(),
         budgetCommands: getIt(),
         balanceAdjustments: getIt(),
+        operationCorrections: FirebaseOperationCorrectionService(
+          functions: FirebaseFunctions.instanceFor(
+            app: FirebaseBootstrap.app,
+            region: 'us-central1',
+          ),
+          auth: getIt<FirebaseAuth>(),
+          firestore: getIt<FirebaseFirestore>(),
+        ),
       ),
     );
   }

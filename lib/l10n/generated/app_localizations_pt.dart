@@ -329,6 +329,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get authNetworkError => 'Sem conexão. Verifique sua internet e tente novamente.';
 
   @override
+  String get authProviderUnavailable =>
+      'Esta opção de acesso não está disponível. Escolha outra ou entre em contato com o suporte.';
+
+  @override
   String get authTagline => 'Clareza para cada real.';
 
   @override
@@ -397,6 +401,42 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get firstAccountName => 'Nome da sua primeira conta';
+
+  @override
+  String get onboardingPreferencesSection => 'Preferências';
+
+  @override
+  String get onboardingAccountSection => 'Sua primeira conta';
+
+  @override
+  String get onboardingAccountExplanation =>
+      'Uma conta representa onde você guarda ou usa dinheiro: dinheiro em espécie, conta corrente ou poupança. Você pode adicionar outras depois.';
+
+  @override
+  String get onboardingAccountNameLabel => 'Nome para identificar';
+
+  @override
+  String get onboardingAccountNameHelper =>
+      'Este nome ajuda você a reconhecê-la. Você pode alterá-lo depois.';
+
+  @override
+  String get onboardingWalletAccountName => 'Minha carteira';
+
+  @override
+  String get onboardingCheckingAccountName => 'Minha conta corrente';
+
+  @override
+  String get onboardingSavingsAccountName => 'Minhas economias';
+
+  @override
+  String get onboardingCurrentBalance => 'Saldo atual (opcional)';
+
+  @override
+  String get onboardingCurrentBalanceHelper =>
+      'É o que você tem nesta conta hoje; não é uma receita.';
+
+  @override
+  String get onboardingCreateAccount => 'Criar minha conta';
 
   @override
   String get continueAction => 'Continuar';

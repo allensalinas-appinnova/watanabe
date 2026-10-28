@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/error/failure.dart';
@@ -44,6 +45,8 @@ class FirebaseDeviceRegistryRepository implements DeviceRegistryRepository {
                   platform: data['platform'] as String? ?? 'unknown',
                   createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
                   lastSeenAt: (data['lastSeenAt'] as Timestamp?)?.toDate(),
+                  appVersion: data['appVersion'] as String?,
+                  buildNumber: data['buildNumber'] as String?,
                 );
               })
               .where(
@@ -63,10 +66,13 @@ class FirebaseDeviceRegistryRepository implements DeviceRegistryRepository {
     if (user == null || user.isAnonymous) return const Right(null);
     try {
       final installationId = await _installationId();
+      final packageInfo = await PackageInfo.fromPlatform();
       await _functions.httpsCallable('manageDevice').call<Map<String, dynamic>>({
         'action': 'register',
         'installationId': installationId,
         'platform': _platform,
+        'appVersion': packageInfo.version,
+        'buildNumber': packageInfo.buildNumber,
       });
       return const Right(null);
     } on Object catch (error) {

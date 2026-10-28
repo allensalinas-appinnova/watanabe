@@ -10,6 +10,7 @@ import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../core/utils/money_parser.dart';
+import '../../../../core/utils/request_id.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../debts/domain/debt_command.dart';
@@ -57,6 +58,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   String? _accountId;
   String? _categoryId;
   String? _idempotencyKey;
+  String? _editRequestId;
+  String? _editRequestSignature;
   bool _saving = false;
   bool _hasUnsavedChanges = false;
   DateTime _occurredAt = DateTime.now();
@@ -532,6 +535,19 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     );
     try {
       if (existing != null) {
+        final editSignature = [
+          draft.amountMinor,
+          draft.currency,
+          draft.accountId,
+          draft.categoryId,
+          draft.monthKey,
+          draft.occurredAt.millisecondsSinceEpoch,
+          draft.description.trim(),
+        ].join('|');
+        if (_editRequestSignature != editSignature) {
+          _editRequestSignature = editSignature;
+          _editRequestId = newRequestId();
+        }
         await ref
             .read(canonicalActionsProvider)
             .updateOperation(
@@ -552,8 +568,14 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                 budgetItemId: existing.budgetItemId,
                 createdAt: existing.createdAt,
                 updatedAt: existing.updatedAt,
+                revision: existing.revision,
               ),
+              requestId: _editRequestId!,
             );
+        ref
+          ..invalidate(canonicalAccountsProvider(userId))
+          ..invalidate(activityReportProvider(userId));
+        invalidateOperationLists(ref, userId);
         await _popAfterSave();
       } else {
         final status = await ref.read(canonicalActionsProvider).createOperation(userId, draft);

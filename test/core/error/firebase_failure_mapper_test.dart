@@ -26,4 +26,13 @@ void main() {
     expect(failure.message, isNot(contains('permission-denied')));
     expect(failure.technicalCode, 'permission-denied');
   });
+
+  test('retains the operation-not-allowed code for a disabled sign-in provider', () {
+    final failure = FirebaseFailureMapper.fromException(
+      FirebaseAuthException(code: 'operation-not-allowed'),
+    );
+
+    expect(failure, isA<AuthFailure>());
+    expect(failure.technicalCode, 'operation-not-allowed');
+  });
 }

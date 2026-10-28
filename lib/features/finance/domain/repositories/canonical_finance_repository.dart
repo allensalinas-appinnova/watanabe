@@ -131,6 +131,7 @@ abstract interface class CanonicalFinanceRepository {
 
   Future<Either<Failure, FinanceAccount>> createAccount(
     String userId, {
+    String? accountId,
     required String name,
     required String type,
     required String currency,
@@ -178,8 +179,9 @@ abstract interface class CanonicalFinanceRepository {
 
   Future<Either<Failure, Unit>> updateOperation(
     String userId,
-    FinancialOperation operation,
-  );
+    FinancialOperation operation, {
+    required String requestId,
+  });
 
   Future<Either<Failure, Unit>> deleteOperation(String userId, String operationId);
 

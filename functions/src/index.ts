@@ -11,6 +11,8 @@ import {DebtCommandError, executeDebtCommand} from "./debt_commands";
 import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
 import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitments";
 import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_registry";
+import {executeOperationCorrection, OperationCorrectionError} from "./operation_corrections";
+export {adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
 
 initializeApp();
 
@@ -25,6 +27,17 @@ export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, 
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }
     throw new HttpsError("internal", "device-registry-failed", {issue: "device-registry-failed"});
+  }
+});
+
+export const mutateOperation = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+  try {
+    return await executeOperationCorrection(getFirestore(), request.auth?.uid, request.data);
+  } catch (error) {
+    if (error instanceof OperationCorrectionError) {
+      throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    }
+    throw new HttpsError("internal", "operation-correction-failed", {issue: "operation-correction-failed"});
   }
 });
 
