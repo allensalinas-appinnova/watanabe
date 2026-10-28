@@ -5,17 +5,17 @@ summary: Atomic financial projections, isolated verification and read-only discr
 
 # Projection integrity and read-only diagnosis
 
-Updated: 2026-10-22.
+Updated: 2026-10-28.
 
-## Current working-tree follow-up (not deployed)
+## Current contract
 
 The 2026-10-22 deployment below is historical evidence for that revision only.
-The current working tree adds a `mutateOperation` transaction path and a
+The current backend includes a `mutateOperation` transaction path and a
 first-command legacy gate: it audits before stamping projection digests, and
 stops without repair if differences exist. See
 [operation command integrity](operation-commands.md) for the new behavior and
-coordinated rollout requirements. No production deployment or real-user audit
-has been performed for this follow-up.
+coordinated rollout requirements and the verified publication record. A clean
+audit enables migration; a discrepancy is not permission to repair a user's data.
 
 Canonical confirmed operations are the ledger. Account balances, monthly
 summaries and linked budget-item actuals are derived views. The event adapter
@@ -50,8 +50,8 @@ npx -y firebase-tools@latest deploy --only functions:processOperation --project 
 
 Failed events can now retry automatically. Monitor persistent projection
 validation failures rather than assuming retries repair invalid references or
-historical data. Operational alerting and a reviewed repair procedure remain
-future work.
+historical data. General-purpose repair and operational alerting remain future
+work; the narrow owner-authorized technical-repair workflow is described below.
 
 ## Run the isolated checks
 
@@ -94,9 +94,10 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:59180 \
 `--project` and `--user` are mandatory; neither is inferred from Firebase CLI
 aliases or ambient credentials. Demo projects require an emulator endpoint;
 an emulator endpoint requires a demo project. Without an emulator, an explicit
-real project uses the operator's existing ADC access. This delivery does not
-run against real projects. Prefer a read-only IAM identity for later operator
-use. There is no apply, repair, write or deployment option.
+real project uses the operator's existing ADC access and requires an explicitly
+scoped diagnostic request. Automated tests must never use that path. Prefer a
+read-only IAM identity for diagnosis. The audit CLI has no apply, repair, write
+or deployment option.
 
 `--output` accepts a JSON **filename**, not a path. Reports are created under
 `.local/projection-audits/`, ignored by Git, with owner-only file permissions.
@@ -153,8 +154,53 @@ this first version still retains the selected records in memory. Unreferenced
 item subcollections under physically deleted parent budgets are outside the
 scan; application budgets are archived, not deleted.
 
-Historical repair, scheduled reconciliation, operational alerts, deployment
-and real-project acceptance remain separate work.
+## Explicitly authorized technical repair
+
+`reconcileProjectionRepair` in `functions/src/projection_reconciliation.ts` is
+an operator-only library, not a deployed callable, an automatic migration, or
+an option on the read-only audit CLI. Use it only after the owner explicitly
+approves a reviewed repair plan and the affected values. Do not infer that a
+record is a technical repair from its ID or free-text reason.
+
+An actual financial balance adjustment belongs in `balanceAdjustments`: its
+delta contributes to the reconstructed balance. A technical correction of a
+previously duplicated projection is different: adding its delta to the ledger
+again would overstate available money. Correcting an account cache alone can
+also leave the corresponding expense and category totals inconsistent.
+
+The narrow repair flow requires a complete audit, a fixed snapshot fingerprint,
+the expected data generation, an explicitly identified legacy technical repair,
+and an exact reviewed list of remaining summary differences. In one transaction
+it archives the complete original adjustment under `projectionRepairs`, removes
+that record from financial adjustments, updates only reviewed expense/category
+summary fields and saves before/after diagnostics and the preserved balances.
+It refuses account, operation, ledger or budget changes, an active reset or
+migration, a stale snapshot, unexplained differences, or an incomplete result.
+The archive preserves provenance; it is not a second monetary adjustment.
+
+Keep plans and diagnostics under the ignored `.local/projection-audits/`
+directory with owner-only permissions, never in source control or CI artifacts.
+The stable request ID and command digest make a lost response or concurrent
+retry idempotent; reusing that ID with different content fails. No Rules or
+Functions deployment is required to execute this operator-only library using
+authorized administrative credentials. It does not set the migration version:
+the normal financial command must still pass its own clean audit.
+
+Synthetic coverage in `functions/test/projection_reconciliation_test.mjs`
+verifies preserved balances/history, archive provenance, exact summary repair,
+lost responses/concurrent retries, stale generation/snapshots, resets, refusal
+to reinterpret genuine adjustments, and successful budget-income synchronization
+after migration without duplication from delayed triggers. Run it through
+`bash tool/run_projection_tests.sh` against `demo-clearbudget` only.
+
+On 2026-10-28, an owner-authorized repair was applied separately to the affected
+live account. A subsequent retry used the phone's existing queued command and
+original ID. The operation, linked budget actual, account balance and single
+ledger entry were verified, and the final read-only audit reported no issues or
+differences. This was an expressly authorized recovery, not an automated test
+against live data. No new Functions or Rules were deployed for the recovery.
+
+Scheduled reconciliation and operational alerts remain separate work.
 
 References: [Firestore event delivery and limitations](https://firebase.google.com/docs/functions/firestore-events#limitations),
 [Functions Emulator](https://firebase.google.com/docs/emulator-suite/connect_functions).

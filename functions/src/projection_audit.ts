@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import {FieldPath, type DocumentReference, type Firestore, type QueryDocumentSnapshot} from "firebase-admin/firestore";
+import {FieldPath, type DocumentReference, type Firestore, type QueryDocumentSnapshot, type Transaction} from "firebase-admin/firestore";
 import {calculateProjectionDeltas, checkedInteger, maximumMinor, operationProjectionDigest, parseOperation, ProjectionError, validCurrency, validId, validMonth} from "./projection_model";
 
 type RecordData = Record<string, unknown>;
@@ -14,13 +14,13 @@ export type AuditSnapshot = {
   balanceAdjustments: Map<string, RecordData>;
   fingerprint: string;
 };
-type Difference = {document: string; field: string; expected: number | string; actual: number | string | null};
+export type ProjectionDifference = {document: string; field: string; expected: number | string; actual: number | string | null};
 type Issue = {document: string; code: string};
 export type AuditReport = {
   version: 1;
   complete: boolean;
   counts: {accounts: number; operations: number; confirmed: number; summaries: number; items: number; differences: number; issues: number};
-  differences: Difference[];
+  differences: ProjectionDifference[];
   issues: Issue[];
 };
 
@@ -37,50 +37,52 @@ const fields: Record<string, string[]> = {
 /** All pages in each pass use one read-only transaction snapshot. */
 export async function readAuditSnapshot(db: Firestore, userId: string): Promise<AuditSnapshot> {
   if (!validId(userId)) throw new ProjectionError("invalid_user");
-  return db.runTransaction(async (transaction) => {
-    const root = db.doc(`users/${userId}`);
-    const versions: string[] = [];
-    const profile = await transaction.get(root);
-    versions.push(`user:${profile.updateTime?.valueOf() ?? "missing"}`);
-    const read = async (parent: DocumentReference, collection: string): Promise<Map<string, RecordData>> => {
-      const records = new Map<string, RecordData>();
-      let cursor: QueryDocumentSnapshot | undefined;
-      for (;;) {
-        let query = parent.collection(collection).orderBy(FieldPath.documentId()).limit(500).select(...fields[collection]);
-        if (cursor) query = query.startAfter(cursor);
-        const page = await transaction.get(query);
-        for (const doc of page.docs) {
-          records.set(doc.id, doc.data());
-          versions.push(`${doc.ref.path}:${doc.updateTime.valueOf()}`);
-        }
-        if (page.size < 500) return records;
-        cursor = page.docs.at(-1);
+  return db.runTransaction((transaction) => readAuditSnapshotInTransaction(transaction, db.doc(`users/${userId}`)), {readOnly: true});
+}
+
+/** Shares the same snapshot and read locks with an explicitly authorized repair. */
+export async function readAuditSnapshotInTransaction(transaction: Transaction, root: DocumentReference): Promise<AuditSnapshot> {
+  const versions: string[] = [];
+  const profile = await transaction.get(root);
+  versions.push(`user:${profile.updateTime?.valueOf() ?? "missing"}`);
+  const read = async (parent: DocumentReference, collection: string): Promise<Map<string, RecordData>> => {
+    const records = new Map<string, RecordData>();
+    let cursor: QueryDocumentSnapshot | undefined;
+    for (;;) {
+      let query = parent.collection(collection).orderBy(FieldPath.documentId()).limit(500).select(...fields[collection]);
+      if (cursor) query = query.startAfter(cursor);
+      const page = await transaction.get(query);
+      for (const doc of page.docs) {
+        records.set(doc.id, doc.data());
+        versions.push(`${doc.ref.path}:${doc.updateTime.valueOf()}`);
       }
-    };
-    const accounts = await read(root, "accounts");
-    const categories = await read(root, "categories");
-    const operations = await read(root, "operations");
-    const summaries = await read(root, "monthlySummaries");
-    const balanceAdjustments = await read(root, "balanceAdjustments");
-    const budgets = await read(root, "budgets");
-    const items = new Map<string, RecordData>();
-    // Include missing parent documents that still own item subcollections.
-    const budgetIds = new Set(budgets.keys());
-    for (const operation of operations.values()) if (validId(operation.budgetId)) budgetIds.add(operation.budgetId);
-    for (const id of [...budgetIds].sort()) {
-      const children = await read(root.collection("budgets").doc(id), "items");
-      for (const [itemId, data] of children) items.set(`${id}/${itemId}`, data);
+      if (page.size < 500) return records;
+      cursor = page.docs.at(-1);
     }
-    return {
-      userExists: profile.exists, accounts, categories, operations, summaries, budgets, items, balanceAdjustments,
-      fingerprint: createHash("sha256").update(versions.sort().join("\n")).digest("hex"),
-    };
-  }, {readOnly: true});
+  };
+  const accounts = await read(root, "accounts");
+  const categories = await read(root, "categories");
+  const operations = await read(root, "operations");
+  const summaries = await read(root, "monthlySummaries");
+  const balanceAdjustments = await read(root, "balanceAdjustments");
+  const budgets = await read(root, "budgets");
+  const items = new Map<string, RecordData>();
+  // Include missing parent documents that still own item subcollections.
+  const budgetIds = new Set(budgets.keys());
+  for (const operation of operations.values()) if (validId(operation.budgetId)) budgetIds.add(operation.budgetId);
+  for (const id of [...budgetIds].sort()) {
+    const children = await read(root.collection("budgets").doc(id), "items");
+    for (const [itemId, data] of children) items.set(`${id}/${itemId}`, data);
+  }
+  return {
+    userExists: profile.exists, accounts, categories, operations, summaries, budgets, items, balanceAdjustments,
+    fingerprint: createHash("sha256").update(versions.sort().join("\n")).digest("hex"),
+  };
 }
 
 /** Rebuilds expectations from the ledger, never from existing projection values. */
 export function compareProjections(snapshot: AuditSnapshot): AuditReport {
-  const differences: Difference[] = [];
+  const differences: ProjectionDifference[] = [];
   const issues: Issue[] = [];
   const expectedAccounts = new Map<string, number>();
   const expectedSummaries = new Map<string, RecordData>();

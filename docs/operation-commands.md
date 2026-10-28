@@ -5,8 +5,9 @@ summary: Server-owned financial mutations, offline retries and guarded legacy pr
 
 # Operation commands and balance integrity
 
-Updated: 2026-10-28. The operation command backend is deployed to `lumiomoney`;
-the Firestore Rules cutoff and compatible client release are still pending.
+Updated: 2026-10-28. The operation command backend and Firestore Rules cutoff
+are deployed to `lumiomoney`; compatible client distribution and adoption
+verification are still pending.
 
 ## Source of truth and writes
 
@@ -54,6 +55,13 @@ difference, it records a sanitized issue and stops without changing balances,
 summaries or budgets. Operators should use the diagnostic flow in
 [projection-audit.md](projection-audit.md); this migration is not a repair.
 
+An owner-authorized technical repair is a separate operator workflow, documented
+in [projection-audit.md](projection-audit.md#explicitly-authorized-technical-repair).
+It archives a misclassified cache repair outside financial adjustments, preserves
+account balances and source operations, and corrects only reviewed summary
+differences. Never add another monetary adjustment or set the migration version
+to bypass this gate.
+
 Adjustments also use a transaction against the same account documents, so a
 concurrent operation conflicts and retries against the updated balance. An
 adjustment is blocked until the account's legacy projection state passes the
@@ -69,21 +77,32 @@ Flutter tests and static analysis. Emulator fixtures are synthetic; they do
 not establish that a real user's projections are consistent. On 2026-10-28,
 `mutateOperation`, `processOperation`, `mutateDebt`, `mutateEmailImport`,
 `mutateBudget`, `adjustAccountBalances` and `resetUserData` were deployed to
-`lumiomoney` in `us-central1` and confirmed present with Firebase CLI. No
-real-user audit or financial write, Firestore Rules deployment, or client-store
-release was performed for this change.
+`lumiomoney` in `us-central1` and confirmed present with Firebase CLI. This initial
+Functions publication did not include the Rules cutoff or a client-store release.
 
-Remaining production rollout:
+Later on 2026-10-28, at the founder's explicit request, the Firestore Rules
+cutoff was published using `firebase deploy --only firestore:rules --project
+lumiomoney --non-interactive`. All 24 Firestore Rules tests passed in
+`demo-clearbudget` before publication. Compilation succeeded with warnings about
+unused helper functions and their references. A post-deployment readback from
+`lumiomoney` matched the local `firestore.rules` source. The previous rules were
+saved in an ignored `.dart_tool/firestore-rules-before-cutoff-*.rules` backup.
+Only Firestore Rules were published; Functions and indexes were not redeployed.
 
-1. Distribute the compatible client and monitor adoption. The updated Functions
-   are already live, while current Firestore Rules continue to permit legacy
-   clients to drain their direct-write outboxes.
-2. Coordinate a compatibility window and ensure queued operations can drain or
-   be safely migrated. The Rules cutoff blocks direct writes from older clients.
-3. Deploy the Firestore Rules cutoff only after that compatibility gate is met.
-4. Observe migration outcomes and run read-only diagnostics for any profile
+This publication did not verify client distribution/adoption, audit a real user,
+or send a financial command to the live project. Older clients can no longer
+write operations or ledger entries directly and must be updated to synchronize.
+
+Remaining production follow-up:
+
+1. Distribute/install the compatible client and monitor adoption and rejected
+   synchronization attempts from earlier versions.
+2. Preserve existing offline drafts. Synchronize or migrate them through the
+   updated client's callable path with their original IDs and data generation;
+   legacy direct-write outboxes cannot drain through the published Rules.
+3. Observe migration outcomes and run read-only diagnostics for any profile
    blocked by a discrepancy. Do not repair or adjust balances automatically.
-5. Verify authenticated callable access and a synthetic/test-account workflow
+4. Verify authenticated callable access and a synthetic/test-account workflow
    separately from a real financial operation.
 
 Do not restore direct client writes as a rollback. If rollout must pause, keep
