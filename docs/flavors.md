@@ -82,6 +82,23 @@ configura firma de desarrollo en Xcode; lista su ID con `flutter devices` y
 pásalo al script. Si Flutter no está en `PATH`, configura `FLUTTER_BIN`.
 El script valida el ID del proyecto y siempre desactiva los emuladores.
 
+Para una revisión manual en un iPhone conectado con Flutter Driver, usa el
+entry point QA aislado:
+
+```bash
+FLUTTER_BIN=/Users/allensalinas/dev/tools/flutter/bin/flutter \
+  bash tool/run_ios_qa.sh <iphone-device-id>
+```
+
+Este comando valida que el archivo local `config/firebase.dev.json` apunte a
+`lumiomoney`, desactiva explícitamente los emuladores y lanza
+`test_driver/main_qa.dart`. Ese entry point solo permite modo debug y habilita la
+extensión necesaria para inspección e interacción táctil; `lib/main.dart` y los
+builds de distribución no la incluyen. Úsalo únicamente con una cuenta QA
+autorizada y datos sintéticos. No ejecutes `integration_test` ni suites
+automatizadas contra el Firebase real; para ellas usa exclusivamente
+`demo-clearbudget`.
+
 ## Ejecutar en Android contra el nuevo Firebase
 
 Los Dart defines Android locales se guardan en

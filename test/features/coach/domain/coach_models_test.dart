@@ -3,6 +3,26 @@ import 'package:personal_finance/features/coach/domain/entities/coach_models.dar
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 
 void main() {
+  test('routine preferences preserve explicit choice and infer legacy reminder choice', () {
+    final legacy = CoachRoutinePreferences.fromProfile(
+      null,
+      legacy: const CoachPreferences(dailyEnabled: true),
+    );
+    expect(legacy.configured, isTrue);
+    expect(legacy.dailyEnabled, isTrue);
+    expect(legacy.weeklyEnabled, isFalse);
+
+    final explicit = CoachRoutinePreferences.fromProfile(
+      const {'configured': true, 'dailyEnabled': false, 'weeklyEnabled': true},
+      legacy: const CoachPreferences(dailyEnabled: true),
+    );
+    expect(explicit.configured, isTrue);
+    expect(explicit.dailyEnabled, isFalse);
+    expect(explicit.weeklyEnabled, isTrue);
+    expect(CoachRoutinePreferences.fromProfile(null).configured, isFalse);
+    expect(CoachRoutinePreferences.fromProfile(explicit.toMap()).toMap(), explicit.toMap());
+  });
+
   test('pending metadata is transient, preserved by copyWith, and never deserialized as data', () {
     const defaults = CoachPreferences();
     expect(defaults.hasPendingWrites, false);

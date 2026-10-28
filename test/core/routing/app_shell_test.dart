@@ -215,6 +215,7 @@ void main() {
 
     for (final index in [1, 2, 3, 4, 0]) {
       await _selectTab(tester, index);
+      expect(find.byKey(const ValueKey('global_settings_action')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('global_settings_action')));
       await tester.pumpAndSettle();
       expect(find.text('Settings route'), findsOneWidget);

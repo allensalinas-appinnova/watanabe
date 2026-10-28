@@ -8,6 +8,7 @@ class FinanceRouteHeader extends StatelessWidget implements PreferredSizeWidget 
     required this.onBack,
     this.backButtonKey,
     this.titleKey,
+    this.actions = const [],
     super.key,
   });
 
@@ -16,6 +17,7 @@ class FinanceRouteHeader extends StatelessWidget implements PreferredSizeWidget 
   final VoidCallback onBack;
   final Key? backButtonKey;
   final Key? titleKey;
+  final List<Widget> actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(52);
@@ -33,6 +35,7 @@ class FinanceRouteHeader extends StatelessWidget implements PreferredSizeWidget 
     ),
     title: Text(title, key: titleKey),
     titleSpacing: 0,
+    actions: actions,
     backgroundColor: Theme.of(context).colorScheme.surface,
     surfaceTintColor: Colors.transparent,
   );

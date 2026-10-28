@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -95,13 +97,27 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
     }
     setState(() {
       _saving = false;
-      result.match((_) => _failed = true, (value) => _saved = value);
+      result.match((_) => _failed = true, (value) {
+        _saved = value;
+        if (value == CoachWriteState.confirmed) {
+          unawaited(
+            ref
+                .read(firebaseObservabilityProvider)
+                ?.logEvent(
+                  widget.kind == CoachReviewKind.daily
+                      ? 'coach_daily_review_completed'
+                      : 'coach_weekly_review_completed',
+                ),
+          );
+        }
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final amountsHidden = ref.watch(coachAmountsHiddenProvider);
     final uid = ref.watch(authSessionProvider).value?.id;
     if (_activeUid != uid) {
       _activeUid = uid;
@@ -132,6 +148,18 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
       title: title,
       backLabel: l10n.back,
       onBack: () => popOrGo(context, '/coach'),
+      actions: weekly
+          ? [
+              IconButton(
+                tooltip: l10n.coachToggleAmounts,
+                onPressed: () =>
+                    ref.read(coachAmountsHiddenProvider.notifier).setHidden(!amountsHidden),
+                icon: Icon(
+                  amountsHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                ),
+              ),
+            ]
+          : const [],
     );
     if (uid == null) {
       return Scaffold(
@@ -180,6 +208,7 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
     final end = routine.shift(start, zone, weekly ? 7 : 1);
     final request = (userId: uid, startAt: start.toUtc(), endAtExclusive: end.toUtc());
     final report = ref.watch(coachReportProvider(request));
+    final unallocated = ref.watch(coachUnallocatedPaymentsProvider(uid));
     final completions = ref.watch(coachCompletionsProvider(uid));
     final selectedCompletion = ref.watch(
       coachSelectedCompletionProvider((userId: uid, kind: widget.kind, periodKey: key)),
@@ -194,7 +223,7 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
         matching?.pending == true || (_saved == CoachWriteState.pending && matching == null);
     final locale = Localizations.localeOf(context).toString();
     String money(int amount, String currency) =>
-        CurrencyFormatter.formatMinor(amount, currency, locale: locale);
+        amountsHidden ? '••••••' : CurrencyFormatter.formatMinor(amount, currency, locale: locale);
     final categories = ref.watch(canonicalCategoriesProvider(uid)).value ?? const [];
     String category(String id) =>
         categories.where((item) => item.id == id).firstOrNull?.customName ?? l10n.category;
@@ -269,6 +298,72 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(l10n.coachCached),
                     ),
+                  if (weekly && (value.pendingCount > 0 || value.rejectedCount > 0))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(l10n.coachIncompleteInfo),
+                    ),
+                  if (weekly && unallocated.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(l10n.coachReadFailure),
+                    ),
+                  if (weekly &&
+                      unallocated.hasValue &&
+                      unallocated.requireValue.operations.isNotEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(l10n.coachIncompleteInfo),
+                            for (final operation in unallocated.requireValue.operations.take(3))
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.pending_actions_outlined),
+                                title: Text(l10n.coachActionUnallocatedTitle),
+                                subtitle: Text(
+                                  DateFormat.yMMMd(locale).format(
+                                    routine.calendar.local(operation.occurredAt, zone),
+                                  ),
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => context.push(
+                                  '/debts/${operation.debtAccountId}/actions/allocatePayment',
+                                  extra: [operation],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (weekly && value.topCategoriesByCurrency.isNotEmpty)
+                    Card(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final currency
+                                in value.topCategoriesByCurrency.keys.toList()..sort())
+                              if (value.topCategoriesByCurrency[currency]!.isNotEmpty)
+                                Text(
+                                  l10n.coachWeeklyCategoryInsight(
+                                    category(
+                                      value.topCategoriesByCurrency[currency]!.first.categoryId,
+                                    ),
+                                    money(
+                                      value.topCategoriesByCurrency[currency]!.first.amountMinor,
+                                      currency,
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ),
+                      ),
+                    ),
                   _metric(context, l10n.coachConfirmedCount, '${value.confirmedCount}'),
                   if (value.pendingCount > 0)
                     _metric(context, l10n.coachPendingCount, '${value.pendingCount}'),
@@ -342,7 +437,8 @@ class _CoachReviewScreenState extends ConsumerState<CoachReviewScreen> {
                                         OperationType.transfer => l10n.transfer,
                                         OperationType.expenseRefund => l10n.debtRefund,
                                         OperationType.debtAdjustment => l10n.debtAdjust,
-                                        OperationType.unallocatedDebtPayment => l10n.unallocatedPaymentStatus,
+                                        OperationType.unallocatedDebtPayment =>
+                                          l10n.unallocatedPaymentStatus,
                                       }
                                     : operation.description,
                                 style: Theme.of(context).textTheme.titleSmall,

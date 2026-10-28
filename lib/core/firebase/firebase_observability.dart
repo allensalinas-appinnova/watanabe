@@ -58,6 +58,11 @@ class FirebaseObservability {
     'budget_created',
     'transfer_created',
     'sync_rejected',
+    'coach_opened',
+    'coach_action_opened',
+    'coach_routine_configured',
+    'coach_daily_review_completed',
+    'coach_weekly_review_completed',
   };
 
   final AppEnvironment environment;

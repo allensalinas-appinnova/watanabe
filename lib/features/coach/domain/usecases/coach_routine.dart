@@ -57,6 +57,53 @@ class CoachRoutine {
   bool completed(Iterable<CoachCompletion> completions, CoachReviewKind kind, String key) =>
       completions.any((item) => item.kind == kind && item.periodKey == key);
 
+  bool dailyReviewIsDue({
+    required DateTime today,
+    required DateTime nowLocal,
+    required CoachPreferences preferences,
+    required Iterable<CoachCompletion> completions,
+    required String periodKey,
+  }) {
+    if (!preferences.dailyWeekdays.contains(today.weekday) ||
+        completed(completions, CoachReviewKind.daily, periodKey)) {
+      return false;
+    }
+    final scheduled = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      preferences.dailyHour,
+      preferences.dailyMinute,
+    );
+    return !nowLocal.isBefore(scheduled);
+  }
+
+  bool weeklyReviewIsDue({
+    required DateTime today,
+    required DateTime nowLocal,
+    required CoachPreferences preferences,
+    required Iterable<CoachCompletion> completions,
+    required String periodKey,
+  }) {
+    if (completed(completions, CoachReviewKind.weekly, periodKey)) return false;
+    final monday = DateTime(today.year, today.month, today.day - today.weekday + 1);
+    final scheduledDay = DateTime(
+      monday.year,
+      monday.month,
+      monday.day + preferences.weeklyWeekday - 1,
+    );
+    if (today.isBefore(scheduledDay)) return false;
+    if (today.isAfter(scheduledDay)) return true;
+    final scheduled = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      preferences.weeklyHour,
+      preferences.weeklyMinute,
+    );
+    return !nowLocal.isBefore(scheduled);
+  }
+
   List<CoachReminderPlan> plan({
     required CoachPreferences preferences,
     required Iterable<CoachCompletion> completions,

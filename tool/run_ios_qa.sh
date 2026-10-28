@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
+
+config_file="${FIREBASE_CONFIG_FILE:-config/firebase.dev.json}"
+if [[ ! -f "$config_file" ]]; then
+  echo "Missing $config_file. See docs/flavors.md for Firebase setup." >&2
+  exit 1
+fi
+
+project_id="$(sed -n 's/.*"FIREBASE_DEV_PROJECT_ID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$config_file")"
+if [[ "$project_id" != "lumiomoney" ]]; then
+  echo "Refusing to run QA client: expected Firebase project lumiomoney." >&2
+  exit 1
+fi
+
+for key in FIREBASE_DEV_API_KEY FIREBASE_DEV_APP_ID FIREBASE_DEV_MESSAGING_SENDER_ID FIREBASE_DEV_STORAGE_BUCKET; do
+  if ! rg -q "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" "$config_file"; then
+    echo "Missing or empty required Firebase setting: $key" >&2
+    exit 1
+  fi
+done
+
+device_id="${1:-}"
+if [[ -z "$device_id" ]]; then
+  echo "Usage: bash tool/run_ios_qa.sh <iPhone-device-id>" >&2
+  exit 2
+fi
+
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+if [[ ! -d "$DEVELOPER_DIR" ]]; then
+  echo "Xcode not found at $DEVELOPER_DIR. Set DEVELOPER_DIR to the Xcode Developer directory." >&2
+  exit 1
+fi
+
+flutter_bin="${FLUTTER_BIN:-flutter}"
+echo "Running debug-only Flutter Driver QA client against $project_id."
+"$flutter_bin" run -d "$device_id" --target=test_driver/main_qa.dart \
+  --dart-define=APP_ENV=dev \
+  --dart-define=USE_FIREBASE_EMULATORS=false \
+  --dart-define-from-file="$config_file"

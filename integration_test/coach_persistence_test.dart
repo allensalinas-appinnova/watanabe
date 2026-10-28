@@ -161,6 +161,69 @@ void main() {
   );
 
   testWidgets(
+    'routine choices persist independently from notification preferences and sync offline',
+    (tester) async {
+      final events = StreamIterator(repository.watchRoutinePreferences(profile.id));
+      addTearDown(events.cancel);
+      final defaults = await _next(events, (_) => true);
+      expect(defaults.configured, isFalse);
+      expect(defaults.dailyEnabled, isFalse);
+      expect(defaults.weeklyEnabled, isFalse);
+
+      const selected = CoachRoutinePreferences(
+        configured: true,
+        dailyEnabled: true,
+        weeklyEnabled: true,
+      );
+      final saved = await repository.saveRoutinePreferences(profile.id, selected);
+      saved.match((failure) => fail(failure.message), (state) {
+        expect(state, CoachWriteState.confirmed);
+      });
+      final online = await _next(
+        events,
+        (value) => value.dailyEnabled && value.weeklyEnabled && !value.hasPendingWrites,
+      );
+      expect(online.hasPendingWrites, isFalse);
+      var persisted = await profile.get(const GetOptions(source: Source.server));
+      expect(persisted.data()!['coachRoutinePreferences'], selected.toMap());
+      expect(persisted.data()!.containsKey('coachPreferences'), isFalse);
+
+      await firestore.disableNetwork();
+      const offlineSelection = CoachRoutinePreferences(
+        configured: true,
+        dailyEnabled: false,
+        weeklyEnabled: true,
+      );
+      final queued = await repository.saveRoutinePreferences(profile.id, offlineSelection);
+      queued.match((failure) => fail(failure.message), (state) {
+        expect(state, CoachWriteState.pending);
+      });
+      final pending = await _next(
+        events,
+        (value) => !value.dailyEnabled && value.weeklyEnabled && value.hasPendingWrites,
+      );
+      expect(pending.configured, isTrue);
+      final cached = await profile.get(const GetOptions(source: Source.cache));
+      expect(cached.data()!['coachRoutinePreferences'], offlineSelection.toMap());
+      expect(cached.metadata.hasPendingWrites, isTrue);
+
+      await firestore.enableNetwork();
+      await firestore.waitForPendingWrites().timeout(_wait);
+      final acknowledged = await _next(
+        events,
+        (value) => !value.dailyEnabled && value.weeklyEnabled && !value.hasPendingWrites,
+      );
+      expect(acknowledged.toMap(), offlineSelection.toMap());
+      persisted = await profile.get(const GetOptions(source: Source.server));
+      expect(persisted.data()!['coachRoutinePreferences'], offlineSelection.toMap());
+      expect(persisted.data()!['locale'], 'es');
+      expect(persisted.data()!['createdAt'], isA<Timestamp>());
+      expect(persisted.data()!.containsKey('coachPreferences'), isFalse);
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+
+  testWidgets(
     'repository completions replay, filter periods and transition pending metadata on reconnect',
     (
       tester,
@@ -205,8 +268,9 @@ void main() {
           .get(const GetOptions(source: Source.server));
       expect(
         serverCompletion.data()!.keys,
-        unorderedEquals(['periodKey', 'kind', 'noMovements', 'reviewedAt']),
+        unorderedEquals(['periodKey', 'kind', 'noMovements', 'reviewedAt', 'dataGeneration']),
       );
+      expect(serverCompletion.data()!['dataGeneration'], 0);
       expect(serverCompletion.data()!['reviewedAt'], isA<Timestamp>());
 
       await firestore.disableNetwork();

@@ -1791,7 +1791,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachNoRecords => 'No transactions recorded for this period.';
 
   @override
-  String get coachAllCurrent => 'Your routine is up to date.';
+  String get coachAllCurrent => 'There is no priority step right now.';
 
   @override
   String get coachDailyAction => 'Review my transactions';
@@ -2366,4 +2366,179 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDevicesLoadError => 'We couldn\'t load your installations.';
+
+  @override
+  String get coachScreenSubtitle => 'One step at a time to understand your money.';
+
+  @override
+  String get coachDataCached => 'Some data is from this device and may be incomplete.';
+
+  @override
+  String get coachDataFresh => 'Data is up to date';
+
+  @override
+  String get coachWhyThis => 'Why am I seeing this?';
+
+  @override
+  String get coachActionSyncTitle => 'Review a rejected transaction';
+
+  @override
+  String get coachActionSyncBody => 'A transaction could not sync. Review it before trying again.';
+
+  @override
+  String coachActionDueTitle(String account) {
+    return 'Your $account payment needs attention';
+  }
+
+  @override
+  String get coachActionDueBody =>
+      'There is an amount left to record for this planned payment. This does not confirm that your lender considers it overdue.';
+
+  @override
+  String coachActionUpcomingTitle(String account) {
+    return 'Your $account payment is coming up';
+  }
+
+  @override
+  String get coachActionUnallocatedTitle => 'Complete a payment\'s details';
+
+  @override
+  String get coachActionUnallocatedBody =>
+      'The money leaving your account is already recorded. Allocate the payment to update the loan and expenses.';
+
+  @override
+  String get coachActionBudgetTitle => 'An expense budget has reached its limit';
+
+  @override
+  String get coachActionBudgetBody =>
+      'Transactions linked to this budget have reached the planned amount.';
+
+  @override
+  String coachActionBudgetProgress(String actual, String planned) {
+    return 'Transactions linked to this budget total $actual against $planned planned.';
+  }
+
+  @override
+  String get coachReviewBudget => 'Review budget';
+
+  @override
+  String get coachActionWeeklyTitle => 'Review the week that just ended';
+
+  @override
+  String get coachActionDailyTitle => 'Complete today\'s check-in';
+
+  @override
+  String get coachActionConfigureTitle => 'Choose a routine that works for you';
+
+  @override
+  String get coachActionCurrentBody =>
+      'You can review your transactions or week whenever you like.';
+
+  @override
+  String get coachActionExplain =>
+      'This suggestion is based on your confirmed records and the routine you chose. It does not make payments or change your data.';
+
+  @override
+  String get coachPaymentsSection => 'Payments to review';
+
+  @override
+  String get coachSeeMore => 'See all';
+
+  @override
+  String coachPaymentDue(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String coachPaymentRecordedDate(String date) {
+    return 'Payment recorded $date';
+  }
+
+  @override
+  String coachCommitmentProgress(String paid, String planned) {
+    return 'You have recorded $paid of the $planned planned for this payment.';
+  }
+
+  @override
+  String coachPaymentRemaining(String amount) {
+    return '$amount left to record';
+  }
+
+  @override
+  String get coachReviewPayment => 'Review payment';
+
+  @override
+  String get coachCompleteAllocation => 'Complete allocation';
+
+  @override
+  String get coachWeeklyUnderstanding => 'Understand your week';
+
+  @override
+  String coachWeeklyCategoryInsight(String category, String amount) {
+    return 'Your highest net spending category was $category: $amount.';
+  }
+
+  @override
+  String get coachIncompleteInfo =>
+      'Some transactions are still syncing or payments need allocation; totals may be incomplete.';
+
+  @override
+  String get coachReviewFullWeek => 'Review full week';
+
+  @override
+  String get coachRoutineTitle => 'Your routine';
+
+  @override
+  String get coachRoutineInvite =>
+      'Turn on one or both routines to track them here. You can complete reviews without enabling notifications.';
+
+  @override
+  String get coachRoutineDaily => 'I want to review my transactions every day';
+
+  @override
+  String get coachRoutineWeekly => 'I want to review my finances every week';
+
+  @override
+  String get coachRoutineStart => 'Turn on tracking';
+
+  @override
+  String get coachRoutineLater => 'Not now';
+
+  @override
+  String get coachRoutineOff => 'No routines are active; you can review whenever you like.';
+
+  @override
+  String get coachRoutineOn => 'Tracking is on. Notifications are configured separately.';
+
+  @override
+  String get coachRoutineNotDue => 'Not due yet; you can still review manually.';
+
+  @override
+  String get coachRoutineNotConfigured => 'Routine not set up; you can review whenever you like.';
+
+  @override
+  String get coachOpenDaily => 'Open daily check-in';
+
+  @override
+  String get coachOpenWeekly => 'Open weekly review';
+
+  @override
+  String get coachRoutineSaveError =>
+      'Could not save your routine. Your selection is preserved; try again.';
+
+  @override
+  String get coachNoPaymentsToReview => 'No upcoming payments or allocations need review.';
+
+  @override
+  String get coachReportIncomplete =>
+      'The week may be incomplete because some data is cached or still syncing.';
+
+  @override
+  String get coachToggleAmounts => 'Show or hide amounts';
+
+  @override
+  String get coachAmountsHidden => 'Amounts are hidden';
+
+  @override
+  String get showLess => 'Show less';
 }

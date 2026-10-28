@@ -483,6 +483,75 @@ void main() {
     await feed.close();
   });
 
+  test('routine preferences infer legacy reminder choices but respect explicit new choices', () async {
+    final feed = StreamController<DocumentSnapshot<Map<String, dynamic>>>();
+    when(() => user.snapshots(includeMetadataChanges: true)).thenAnswer((_) => feed.stream);
+    final doc = MockDocumentSnapshot();
+    when(() => doc.metadata).thenReturn(metadata);
+    when(doc.data).thenReturn({
+      'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
+    });
+    final values = <CoachRoutinePreferences>[];
+    final subscription = repository.watchRoutinePreferences('alice').listen(values.add);
+    feed.add(doc);
+    await Future<void>.delayed(Duration.zero);
+    expect(values.single.configured, isTrue);
+    expect(values.single.dailyEnabled, isTrue);
+    when(doc.data).thenReturn({
+      'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
+      'coachRoutinePreferences': const CoachRoutinePreferences(
+        configured: true,
+        weeklyEnabled: true,
+      ).toMap(),
+    });
+    feed.add(doc);
+    await Future<void>.delayed(Duration.zero);
+    expect(values.last.dailyEnabled, isFalse);
+    expect(values.last.weeklyEnabled, isTrue);
+    await subscription.cancel();
+    await feed.close();
+  });
+
+  test('unallocated payment watch includes old records and reports cache freshness', () async {
+    final payments = MockCollection();
+    final pendingQuery = MockQuery();
+    final feed = StreamController<QuerySnapshot<Map<String, dynamic>>>();
+    when(() => user.collection('debtPayments')).thenReturn(payments);
+    when(() => payments.where('status', isEqualTo: 'unallocated')).thenReturn(pendingQuery);
+    when(() => pendingQuery.snapshots(includeMetadataChanges: true)).thenAnswer((_) => feed.stream);
+    when(() => metadata.isFromCache).thenReturn(true);
+    final doc = MockQueryDocument();
+    when(() => doc.id).thenReturn('payment-2020');
+    when(doc.data).thenReturn({
+      'paymentId': 'payment-2020',
+      'debtAccountId': 'loan-1',
+      'bankAccountId': 'cash-1',
+      'amountMinor': 450000,
+      'currency': 'COP',
+      'occurredAt': Timestamp.fromDate(DateTime.utc(2020, 2, 3)),
+      'status': 'unallocated',
+    });
+    when(() => doc.metadata).thenReturn(metadata);
+    final snapshot = MockSnapshot();
+    when(() => snapshot.metadata).thenReturn(metadata);
+    when(() => snapshot.docs).thenReturn([doc]);
+    final values = <CoachUnallocatedPayments>[];
+    final subscription = repository.watchUnallocatedPayments('alice').listen(values.add);
+    feed.add(snapshot);
+    await Future<void>.delayed(Duration.zero);
+    expect(values.single.freshness, CoachFreshness.cached);
+    expect(values.single.operations, hasLength(1));
+    final payment = values.single.operations.single;
+    expect(payment.idempotencyKey, 'payment-2020');
+    expect(payment.debtAccountId, 'loan-1');
+    expect(payment.accountId, 'cash-1');
+    expect(payment.monthKey, '2020-02');
+    expect(payment.allocationStatus, 'unallocated');
+    verify(() => payments.where('status', isEqualTo: 'unallocated')).called(1);
+    await subscription.cancel();
+    await feed.close();
+  });
+
   testWidgets('stalled default read falls back to cache and retains cached freshness', (
     tester,
   ) async {

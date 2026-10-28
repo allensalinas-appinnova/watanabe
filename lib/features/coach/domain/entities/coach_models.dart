@@ -85,6 +85,95 @@ class CoachPreferences {
   );
 }
 
+/// In-app financial review routines, intentionally independent of notification
+/// permission and delivery preferences.
+class CoachRoutinePreferences {
+  const CoachRoutinePreferences({
+    this.configured = false,
+    this.dailyEnabled = false,
+    this.weeklyEnabled = false,
+    this.hasPendingWrites = false,
+  });
+
+  factory CoachRoutinePreferences.fromProfile(
+    Object? value, {
+    CoachPreferences legacy = const CoachPreferences(),
+    bool hasPendingWrites = false,
+  }) {
+    if (value is Map) {
+      return CoachRoutinePreferences(
+        configured: value['configured'] == true,
+        dailyEnabled: value['dailyEnabled'] == true,
+        weeklyEnabled: value['weeklyEnabled'] == true,
+        hasPendingWrites: hasPendingWrites,
+      );
+    }
+    // Older profiles used reminder preferences as their only indication of
+    // whether the user had chosen a routine.
+    if (legacy.dailyEnabled || legacy.weeklyEnabled) {
+      return CoachRoutinePreferences(
+        configured: true,
+        dailyEnabled: legacy.dailyEnabled,
+        weeklyEnabled: legacy.weeklyEnabled,
+        hasPendingWrites: hasPendingWrites,
+      );
+    }
+    return CoachRoutinePreferences(hasPendingWrites: hasPendingWrites);
+  }
+
+  final bool configured;
+  final bool dailyEnabled;
+  final bool weeklyEnabled;
+  final bool hasPendingWrites;
+
+  Map<String, Object?> toMap() => {
+    'configured': configured,
+    'dailyEnabled': dailyEnabled,
+    'weeklyEnabled': weeklyEnabled,
+  };
+
+  CoachRoutinePreferences copyWith({
+    bool? configured,
+    bool? dailyEnabled,
+    bool? weeklyEnabled,
+    bool? hasPendingWrites,
+  }) => CoachRoutinePreferences(
+    configured: configured ?? this.configured,
+    dailyEnabled: dailyEnabled ?? this.dailyEnabled,
+    weeklyEnabled: weeklyEnabled ?? this.weeklyEnabled,
+    hasPendingWrites: hasPendingWrites ?? this.hasPendingWrites,
+  );
+}
+
+class CoachBudgetProgress {
+  const CoachBudgetProgress({
+    required this.budgetId,
+    required this.categoryId,
+    required this.currency,
+    required this.plannedMinor,
+    required this.actualMinor,
+    required this.active,
+    this.cached = false,
+  });
+
+  final String budgetId;
+  final String categoryId;
+  final String currency;
+  final int plannedMinor;
+  final int actualMinor;
+  final bool active;
+  final bool cached;
+}
+
+class CoachUnallocatedPayments {
+  const CoachUnallocatedPayments({
+    required this.operations,
+    this.freshness = CoachFreshness.fresh,
+  });
+  final List<FinancialOperation> operations;
+  final CoachFreshness freshness;
+}
+
 enum CoachReviewKind { daily, weekly }
 
 enum CoachWriteState { confirmed, pending }

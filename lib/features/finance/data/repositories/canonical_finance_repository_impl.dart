@@ -20,6 +20,7 @@ import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../datasources/budget_command_failure_mapper.dart';
 import '../datasources/canonical_finance_remote_data_source.dart';
+import '../mappers/financial_operation_firestore_mapper.dart';
 import '../mappers/firestore_date_mapper.dart';
 
 class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
@@ -578,41 +579,8 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     paymentDueDay: (data['paymentDueDay'] as num?)?.toInt(),
   );
 
-  FinancialOperation _operation(Map<String, dynamic> data) => FinancialOperation(
-    id: data['id'] as String,
-    type: OperationType.values.byName(data['type'] as String? ?? 'expense'),
-    amountMinor: (data['amountMinor'] as num? ?? 0).toInt(),
-    currency: data['currency'] as String? ?? 'COP',
-    monthKey: data['monthKey'] as String? ?? '',
-    occurredAt:
-        FirestoreDateMapper.toDateTime(data['occurredAt']) ??
-        DateTime.fromMillisecondsSinceEpoch(0),
-    status: OperationStatus.values.byName(data['status'] as String? ?? 'confirmed'),
-    idempotencyKey: data['idempotencyKey'] as String? ?? data['id'] as String,
-    categoryId: data['categoryId'] as String?,
-    accountId: data['accountId'] as String?,
-    sourceAccountId: data['sourceAccountId'] as String?,
-    destinationAccountId: data['destinationAccountId'] as String?,
-    budgetId: data['budgetId'] as String?,
-    budgetItemId: data['budgetItemId'] as String?,
-    description: data['description'] as String? ?? '',
-    debtCommandId: data['debtCommandId'] as String?,
-    debtAccountId: data['debtAccountId'] as String?,
-    debtKind: data['debtKind'] as String?,
-    originalOperationId: data['originalOperationId'] as String?,
-    reversalOf: data['reversalOf'] as String?,
-    projectionDirection: (data['projectionDirection'] as num? ?? 1).toInt(),
-    principalDeltaMinor: (data['principalDeltaMinor'] as num? ?? 0).toInt(),
-    chargesDeltaMinor: (data['chargesDeltaMinor'] as num? ?? 0).toInt(),
-    balanceDeltaMinor: (data['balanceDeltaMinor'] as num?)?.toInt(),
-    previousBalanceMinor: (data['previousBalanceMinor'] as num?)?.toInt(),
-    targetBalanceMinor: (data['targetBalanceMinor'] as num?)?.toInt(),
-    paymentId: data['paymentId'] as String?,
-    allocationStatus: data['allocationStatus'] as String?,
-    revision: (data['revision'] as num? ?? 0).toInt(),
-    createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
-    updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
-  );
+  FinancialOperation _operation(Map<String, dynamic> data) =>
+      FinancialOperationFirestoreMapper.fromMap(data['id'] as String, data);
 
   LedgerEntry _ledgerEntry(Map<String, dynamic> data) => LedgerEntry(
     id: data['id'] as String,

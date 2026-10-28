@@ -10,6 +10,7 @@ import 'package:personal_finance/features/coach/domain/entities/coach_models.dar
 import 'package:personal_finance/features/coach/domain/repositories/coach_repository.dart';
 import 'package:personal_finance/features/coach/domain/usecases/coach_routine.dart';
 import 'package:personal_finance/features/coach/presentation/providers/coach_providers.dart';
+import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
@@ -58,6 +59,22 @@ MockCoachRepository repositoryFor({
     ),
   ).thenAnswer((_) => const Stream.empty());
   when(() => repository.watchPreferences(any())).thenAnswer((_) => Stream.value(preferences));
+  when(() => repository.watchRoutinePreferences(any())).thenAnswer(
+    (_) => Stream.value(CoachRoutinePreferences.fromProfile(null, legacy: preferences)),
+  );
+  when(() => repository.watchUnallocatedPayments(any())).thenAnswer(
+    (_) => Stream.value(
+      CoachUnallocatedPayments(
+        operations: operations
+            .where((value) => value.type == OperationType.unallocatedDebtPayment)
+            .toList(),
+        freshness: freshness,
+      ),
+    ),
+  );
+  when(() => repository.watchBudgetProgress(any(), any())).thenAnswer(
+    (_) => Stream.value(const <CoachBudgetProgress>[]),
+  );
   when(
     () => repository.watchCompletions(any(), since: any(named: 'since')),
   ).thenAnswer((_) => Stream.value(completions));
@@ -88,12 +105,16 @@ MockCoachRepository repositoryFor({
   when(
     () => repository.savePreferences(any(), any()),
   ).thenAnswer((_) async => const Right(CoachWriteState.confirmed));
+  when(
+    () => repository.saveRoutinePreferences(any(), any()),
+  ).thenAnswer((_) async => const Right(CoachWriteState.confirmed));
   return repository;
 }
 
 void registerCoachFallbacks() {
   registerFallbackValue(DateTime.utc(2026));
   registerFallbackValue(const CoachPreferences());
+  registerFallbackValue(const CoachRoutinePreferences());
   registerFallbackValue(CoachReviewKind.daily);
 }
 
@@ -138,6 +159,10 @@ Future<void> pumpCoach(
           ),
         ),
         canonicalCategoriesProvider.overrideWith((ref, uid) => Stream.value(const [])),
+        canonicalAccountsProvider.overrideWith(
+          (ref, uid) => Stream.value(const <FinanceAccount>[]),
+        ),
+        pendingOperationsProvider.overrideWith((ref) => Stream.value(const [])),
       ],
       child: MaterialApp(
         theme: AppTheme.light,

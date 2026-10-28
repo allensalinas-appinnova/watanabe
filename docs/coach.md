@@ -1,14 +1,17 @@
-# Coach: daily check-in and weekly review
+# Coach: actionable guidance, daily check-in and weekly review
 
 ## User functionality and delivery boundary
 
-Coach offers a daily check-in to record movements or confirm that there were
-none, plus a weekly review of the user's finances. Daily and weekly reminders
-can be enabled independently and scheduled at local hours/minutes; daily
-reminders use selected ISO weekdays (Monday = 1, Sunday = 7). Home can show or
-hide the optional next-step widget. Completing a check-in or review records
-that period's completion; it does not create or modify financial movements,
-balances, budgets, ledger entries or summaries.
+Coach is an action-oriented hub: it explains one shared next step on Home and
+Coach, surfaces upcoming debt commitments and unallocated debt payments, and
+offers weekly observations alongside daily and weekly reviews. Daily and
+weekly review routines are user-selected independently of operating-system
+notification permission. Local reminders remain optional and can be enabled
+independently, scheduled at local hours/minutes; daily reminders use selected
+ISO weekdays (Monday = 1, Sunday = 7). Home can show or hide the optional
+next-step widget. Completing a check-in or review records that period's
+completion; it does not create or modify financial movements, balances,
+budgets, ledger entries or summaries.
 
 This document defines the shared contract for the integrated app, Firestore
 rules, rule tests and repository persistence tests. Platform behavior remains
@@ -27,6 +30,48 @@ visual acceptance is separate from these Figma references.
 | Weekly review | `590:1060` |
 | Next-step card | `591:1072`, in Home `329:23` |
 | Empty state | `590:1062` |
+| Actionable Coach hub (proposal) | `617:970` |
+| Compact Home next step (proposal) | `620:982` |
+| Weekly review hierarchy (proposal) | `620:1006` |
+
+The three new proposal frames are on `07 P0 Screens`; they do not modify
+`00 Current Baseline`. They preserve the existing Inter/Material 3 system,
+palette roles and financial semantics.
+
+## Actionable overview contract
+
+`CoachOverviewCalculator` is the shared pure-domain decision engine. Home and
+Coach consume the same `coachOverviewProvider`; the UI localizes typed action
+and insight identifiers rather than constructing financial decisions in
+widgets. Current priority is rejected sync, due current-month commitment,
+unallocated payment, commitment due within seven days, reached positive expense
+budget, selected weekly review, selected daily review, routine invitation, and
+neutral status. A commitment appears as “no payment recorded” rather than as a
+claim that the bank considers it overdue. Only current and next-month
+occurrences are candidates; older months remain in Plan and never accumulate
+as Coach tasks.
+
+Weekly observations are limited to verifiable facts: net top spending
+category per currency (including refunds and reversals), a reached budget, and
+incomplete information. Budget progress sums only movements linked to the
+budget item; the category's unrelated transactions are not attributed to it.
+Unavailable sources remain loading/error states, and cached data is marked as
+possibly incomplete. The report uses the shared financial-operation mapper so
+Coach and Activity retain debt metadata, reversals and operation grouping.
+
+The optional `users/{uid}.coachRoutinePreferences` map contains exactly
+`configured`, `dailyEnabled`, and `weeklyEnabled` booleans. If it is missing,
+older profiles infer a chosen routine from enabled legacy reminder settings;
+otherwise the Coach offers an invitation. Choosing or suspending an in-app
+review routine does not request notification permission. It gates only the
+matching routine reminders; debt commitment reminders remain independently
+controlled. Manual daily and weekly reviews remain available at all times.
+
+Coach amount privacy is a device-local presentation preference, separate from
+Home's amount visibility. Analytics uses only allowlisted event names for
+opening Coach, opening an action, choosing a routine, and completing a review;
+no transaction amounts, descriptions, account names or financial identifiers
+are attached.
 
 ## Local reminders and synchronization contract
 
@@ -87,6 +132,29 @@ the user's path can filter/order by `periodKey` or document ID. Unscoped
 collection-group queries are not supported. Profile access remains owner-only.
 
 ## QA and deployment evidence
+
+Latest actionable-Coach verification on 2026-10-28:
+
+- `flutter analyze`: no issues. Full `flutter test`: **389 tests passed**;
+  focused Coach and shell tests also cover opt-in routine setup in Spanish,
+  English and Portuguese, selected daily/weekly combinations, preserving
+  existing preferences, and the single global Settings entry point.
+- Android persistence integration: **3 test cases passed** on `emulator-5554`
+  against Auth and Firestore Emulator using synthetic `demo-clearbudget` users.
+  This includes independent routine choices and their offline-to-server
+  acknowledgment. It did not use real Firebase or create financial records.
+- Firestore Rules Emulator: **25 tests passed**. `firestore.rules` was then
+  deployed to `lumiomoney` with
+  `firebase deploy --only firestore:rules --project lumiomoney --non-interactive`;
+  Firebase confirmed the rules release. No Functions or indexes were deployed.
+- Android debug and iOS simulator builds succeeded. A debug QA build was also
+  installed and launched on the physical iPhone on 2026-10-28. With the
+  existing QA profile, Coach showed its saved routines, the Settings action
+  opened the shared Configuration screen, and the app reported healthy with
+  no runtime errors. The QA profile and its financial data were not changed.
+  The first-time invitation state was verified in widget tests rather than by
+  changing the real QA profile. This does not certify notification delivery.
+- `git diff --check` passed; hot reload succeeded on the connected iPhone.
 
 - Static checks: `node --check functions/test/firestore_rules_test.mjs` and
   `git diff --check` passed on 2026-10-22. These do not compile Firestore rules.

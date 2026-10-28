@@ -8,6 +8,9 @@ abstract interface class CoachRepository {
   Stream<CoachWriteFailure> watchWriteFailures(String uid);
 
   Stream<CoachPreferences> watchPreferences(String uid);
+  Stream<CoachRoutinePreferences> watchRoutinePreferences(String uid);
+  Stream<CoachUnallocatedPayments> watchUnallocatedPayments(String uid);
+  Stream<List<CoachBudgetProgress>> watchBudgetProgress(String uid, String monthKey);
   Stream<List<CoachCompletion>> watchCompletions(String uid, {required DateTime since});
   Stream<CoachCompletion?> watchCompletion(
     String uid, {
@@ -24,6 +27,10 @@ abstract interface class CoachRepository {
   Future<Either<Failure, CoachWriteState>> savePreferences(
     String uid,
     CoachPreferences preferences,
+  );
+  Future<Either<Failure, CoachWriteState>> saveRoutinePreferences(
+    String uid,
+    CoachRoutinePreferences preferences,
   );
   Future<Either<Failure, CoachWriteState>> complete(
     String uid, {

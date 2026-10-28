@@ -176,6 +176,16 @@ service cloud.firestore {
           validCoachHour(data.coachPreferences.weeklyHour) &&
           validCoachMinute(data.coachPreferences.weeklyMinute));
     }
+    function validCoachRoutinePreferences(data) {
+      let fields = ['configured', 'dailyEnabled', 'weeklyEnabled'];
+      return !('coachRoutinePreferences' in data) ||
+        (data.coachRoutinePreferences is map &&
+          data.coachRoutinePreferences.keys().hasOnly(fields) &&
+          required(data.coachRoutinePreferences, fields) &&
+          data.coachRoutinePreferences.configured is bool &&
+          data.coachRoutinePreferences.dailyEnabled is bool &&
+          data.coachRoutinePreferences.weeklyEnabled is bool);
+    }
     function validCoachCompletion(data, periodKey, kind) {
       return required(data, ['periodKey', 'kind', 'noMovements', 'reviewedAt']) &&
         data.keys().hasOnly(['periodKey', 'kind', 'noMovements', 'reviewedAt', 'dataGeneration']) &&
@@ -212,15 +222,20 @@ service cloud.firestore {
       allow create: if owner(uid) && request.resource.data.keys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
         'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt', 'coachPreferences',
+        'coachRoutinePreferences',
         'appearancePreferences', 'dataGeneration'
       ]) && required(request.resource.data, ['locale', 'countryCode', 'timeZone', 'defaultCurrency', 'onboardingStatus', 'categoryCatalogVersion', 'createdAt', 'updatedAt']) &&
         request.resource.data.get('dataGeneration', 0) == 0 &&
-        validCoachPreferences(request.resource.data) && validAppearancePreferences(request.resource.data);
+        validCoachPreferences(request.resource.data) &&
+        validCoachRoutinePreferences(request.resource.data) &&
+        validAppearancePreferences(request.resource.data);
       allow update: if owner(uid) && resource.data.get('resetStatus', 'ready') == 'ready' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'locale', 'countryCode', 'timeZone', 'defaultCurrency',
         'onboardingStatus', 'categoryCatalogVersion', 'homePreferences', 'coachPreferences',
+        'coachRoutinePreferences',
         'appearancePreferences', 'updatedAt', 'dataGeneration'
       ]) && validHomePreferences(request.resource.data) && validCoachPreferences(request.resource.data) &&
+        validCoachRoutinePreferences(request.resource.data) &&
         validAppearancePreferences(request.resource.data) &&
         request.resource.data.get('dataGeneration', 0) == resource.data.get('dataGeneration', 0);
       allow delete: if false;

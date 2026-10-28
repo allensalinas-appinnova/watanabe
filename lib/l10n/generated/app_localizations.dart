@@ -3301,7 +3301,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachAllCurrent.
   ///
   /// In es, this message translates to:
-  /// **'Tu rutina está al día.'**
+  /// **'No hay un paso prioritario ahora.'**
   String get coachAllCurrent;
 
   /// No description provided for @coachDailyAction.
@@ -4395,6 +4395,306 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No pudimos cargar tus instalaciones.'**
   String get myDevicesLoadError;
+
+  /// No description provided for @coachScreenSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Un paso a la vez para entender tu dinero.'**
+  String get coachScreenSubtitle;
+
+  /// No description provided for @coachDataCached.
+  ///
+  /// In es, this message translates to:
+  /// **'Algunos datos vienen de este dispositivo y podrían estar incompletos.'**
+  String get coachDataCached;
+
+  /// No description provided for @coachDataFresh.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos actualizados'**
+  String get coachDataFresh;
+
+  /// No description provided for @coachWhyThis.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Por qué lo veo?'**
+  String get coachWhyThis;
+
+  /// No description provided for @coachActionSyncTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa un movimiento rechazado'**
+  String get coachActionSyncTitle;
+
+  /// No description provided for @coachActionSyncBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Un movimiento no se pudo sincronizar. Revísalo antes de volver a intentar.'**
+  String get coachActionSyncBody;
+
+  /// No description provided for @coachActionDueTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuota de {account} requiere atención'**
+  String coachActionDueTitle(String account);
+
+  /// No description provided for @coachActionDueBody.
+  ///
+  /// In es, this message translates to:
+  /// **'La cuota tiene un importe pendiente de registrar. Esto no confirma una mora con tu entidad.'**
+  String get coachActionDueBody;
+
+  /// No description provided for @coachActionUpcomingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Se acerca la cuota de {account}'**
+  String coachActionUpcomingTitle(String account);
+
+  /// No description provided for @coachActionUnallocatedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Completa la información de un pago'**
+  String get coachActionUnallocatedTitle;
+
+  /// No description provided for @coachActionUnallocatedBody.
+  ///
+  /// In es, this message translates to:
+  /// **'La salida de dinero ya está registrada. Falta distribuir el pago para actualizar el crédito y sus gastos.'**
+  String get coachActionUnallocatedBody;
+
+  /// No description provided for @coachActionBudgetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Un presupuesto de gastos llegó al límite'**
+  String get coachActionBudgetTitle;
+
+  /// No description provided for @coachActionBudgetBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Los movimientos vinculados a este presupuesto alcanzaron el importe previsto.'**
+  String get coachActionBudgetBody;
+
+  /// No description provided for @coachActionBudgetProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Los movimientos vinculados suman {actual} frente a {planned} previstos.'**
+  String coachActionBudgetProgress(String actual, String planned);
+
+  /// No description provided for @coachReviewBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar presupuesto'**
+  String get coachReviewBudget;
+
+  /// No description provided for @coachActionWeeklyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la semana que terminó'**
+  String get coachActionWeeklyTitle;
+
+  /// No description provided for @coachActionDailyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Haz el cierre de hoy'**
+  String get coachActionDailyTitle;
+
+  /// No description provided for @coachActionConfigureTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige una rutina que te funcione'**
+  String get coachActionConfigureTitle;
+
+  /// No description provided for @coachActionCurrentBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes revisar tus movimientos o la semana cuando quieras.'**
+  String get coachActionCurrentBody;
+
+  /// No description provided for @coachActionExplain.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta sugerencia se basa en tus registros confirmados y en la rutina que elegiste. No realiza pagos ni cambia tus datos.'**
+  String get coachActionExplain;
+
+  /// No description provided for @coachPaymentsSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagos que conviene revisar'**
+  String get coachPaymentsSection;
+
+  /// No description provided for @coachSeeMore.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver todos'**
+  String get coachSeeMore;
+
+  /// No description provided for @coachPaymentDue.
+  ///
+  /// In es, this message translates to:
+  /// **'Vence {date}'**
+  String coachPaymentDue(String date);
+
+  /// No description provided for @coachPaymentRecordedDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago registrado el {date}'**
+  String coachPaymentRecordedDate(String date);
+
+  /// No description provided for @coachCommitmentProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Tienes {paid} registrados de {planned} previstos para esta cuota.'**
+  String coachCommitmentProgress(String paid, String planned);
+
+  /// No description provided for @coachPaymentRemaining.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta registrar {amount}'**
+  String coachPaymentRemaining(String amount);
+
+  /// No description provided for @coachReviewPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar cuota'**
+  String get coachReviewPayment;
+
+  /// No description provided for @coachCompleteAllocation.
+  ///
+  /// In es, this message translates to:
+  /// **'Completar desglose'**
+  String get coachCompleteAllocation;
+
+  /// No description provided for @coachWeeklyUnderstanding.
+  ///
+  /// In es, this message translates to:
+  /// **'Entiende tu semana'**
+  String get coachWeeklyUnderstanding;
+
+  /// No description provided for @coachWeeklyCategoryInsight.
+  ///
+  /// In es, this message translates to:
+  /// **'La categoría con mayor gasto neto fue {category}: {amount}.'**
+  String coachWeeklyCategoryInsight(String category, String amount);
+
+  /// No description provided for @coachIncompleteInfo.
+  ///
+  /// In es, this message translates to:
+  /// **'Hay información pendiente de sincronizar o pagos sin desglose; tus totales podrían estar incompletos.'**
+  String get coachIncompleteInfo;
+
+  /// No description provided for @coachReviewFullWeek.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar semana completa'**
+  String get coachReviewFullWeek;
+
+  /// No description provided for @coachRoutineTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu rutina'**
+  String get coachRoutineTitle;
+
+  /// No description provided for @coachRoutineInvite.
+  ///
+  /// In es, this message translates to:
+  /// **'Activa una o ambas rutinas para llevar seguimiento. Puedes hacer las revisiones aquí sin activar notificaciones.'**
+  String get coachRoutineInvite;
+
+  /// No description provided for @coachRoutineDaily.
+  ///
+  /// In es, this message translates to:
+  /// **'Quiero revisar mis movimientos cada día'**
+  String get coachRoutineDaily;
+
+  /// No description provided for @coachRoutineWeekly.
+  ///
+  /// In es, this message translates to:
+  /// **'Quiero revisar mis finanzas cada semana'**
+  String get coachRoutineWeekly;
+
+  /// No description provided for @coachRoutineStart.
+  ///
+  /// In es, this message translates to:
+  /// **'Activar seguimiento'**
+  String get coachRoutineStart;
+
+  /// No description provided for @coachRoutineLater.
+  ///
+  /// In es, this message translates to:
+  /// **'Ahora no'**
+  String get coachRoutineLater;
+
+  /// No description provided for @coachRoutineOff.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay rutinas activas; puedes revisar cuando quieras.'**
+  String get coachRoutineOff;
+
+  /// No description provided for @coachRoutineOn.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguimiento activo. Los recordatorios se configuran por separado.'**
+  String get coachRoutineOn;
+
+  /// No description provided for @coachRoutineNotDue.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no corresponde; la revisión manual sigue disponible.'**
+  String get coachRoutineNotDue;
+
+  /// No description provided for @coachRoutineNotConfigured.
+  ///
+  /// In es, this message translates to:
+  /// **'Rutina no configurada; puedes revisar cuando quieras.'**
+  String get coachRoutineNotConfigured;
+
+  /// No description provided for @coachOpenDaily.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir cierre diario'**
+  String get coachOpenDaily;
+
+  /// No description provided for @coachOpenWeekly.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir revisión semanal'**
+  String get coachOpenWeekly;
+
+  /// No description provided for @coachRoutineSaveError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar tu rutina. Conservamos tu selección; vuelve a intentarlo.'**
+  String get coachRoutineSaveError;
+
+  /// No description provided for @coachNoPaymentsToReview.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay pagos próximos o pendientes de desglose.'**
+  String get coachNoPaymentsToReview;
+
+  /// No description provided for @coachReportIncomplete.
+  ///
+  /// In es, this message translates to:
+  /// **'La semana puede estar incompleta porque hay datos guardados en caché o pendientes de sincronización.'**
+  String get coachReportIncomplete;
+
+  /// No description provided for @coachToggleAmounts.
+  ///
+  /// In es, this message translates to:
+  /// **'Mostrar u ocultar importes'**
+  String get coachToggleAmounts;
+
+  /// No description provided for @coachAmountsHidden.
+  ///
+  /// In es, this message translates to:
+  /// **'Importes ocultos'**
+  String get coachAmountsHidden;
+
+  /// No description provided for @showLess.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver menos'**
+  String get showLess;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

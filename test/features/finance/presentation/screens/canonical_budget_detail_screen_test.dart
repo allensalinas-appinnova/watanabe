@@ -242,11 +242,11 @@ void main() {
     await tester.tap(dayPicker);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Día 28'),
+      find.text('Día 28').last,
       250,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Día 28'), findsOneWidget);
+    expect(find.text('Día 28').last, findsOneWidget);
     expect(find.text('Día 29'), findsNothing);
     expect(find.text('Día 31'), findsNothing);
   });
@@ -479,6 +479,6 @@ Future<void> _selectDay(WidgetTester tester, int day) async {
   final picker = find.byKey(const ValueKey('budget_item_create_day'));
   await tester.tap(picker);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Día $day'));
+  await tester.tap(find.text('Día $day').last);
   await tester.pumpAndSettle();
 }

@@ -7,6 +7,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/firebase_failure_mapper.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
+import '../../../finance/data/mappers/financial_operation_firestore_mapper.dart';
 import '../../../finance/domain/entities/financial_operation.dart';
 import '../../domain/entities/coach_models.dart';
 import '../../domain/repositories/coach_repository.dart';
@@ -138,6 +139,174 @@ class FirestoreCoachRepository implements CoachRepository {
       );
 
   @override
+  Stream<CoachRoutinePreferences> watchRoutinePreferences(String uid) => _sanitize(
+    _user(uid).snapshots(includeMetadataChanges: true).map((doc) {
+      final data = doc.data() ?? const <String, dynamic>{};
+      final legacy = CoachPreferences.fromMap(data['coachPreferences']);
+      return CoachRoutinePreferences.fromProfile(
+        data['coachRoutinePreferences'],
+        legacy: legacy,
+        hasPendingWrites: doc.metadata.hasPendingWrites,
+      );
+    }),
+  );
+
+  @override
+  Stream<CoachUnallocatedPayments> watchUnallocatedPayments(String uid) => _sanitize(
+    _user(uid)
+        .collection('debtPayments')
+        .where('status', isEqualTo: 'unallocated')
+        .snapshots(includeMetadataChanges: true)
+        .map((snapshot) {
+          final operations =
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                return FinancialOperationFirestoreMapper.fromMap(
+                  doc.id,
+                  {
+                    ...data,
+                    'id': doc.id,
+                    'idempotencyKey': data['paymentId'] ?? doc.id,
+                    'type': 'unallocatedDebtPayment',
+                    'status': 'confirmed',
+                    'allocationStatus': 'unallocated',
+                    'projectionDirection': 1,
+                    'accountId': data['bankAccountId'],
+                    'monthKey': _dateKey(
+                      _date(data['occurredAt']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+                    ).substring(0, 7),
+                  },
+                  pending: doc.metadata.hasPendingWrites,
+                  requireDate: true,
+                );
+              }).toList()..sort((a, b) {
+                final date = a.occurredAt.compareTo(b.occurredAt);
+                return date == 0 ? a.id.compareTo(b.id) : date;
+              });
+          return CoachUnallocatedPayments(
+            operations: List.unmodifiable(operations),
+            freshness: snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites
+                ? CoachFreshness.cached
+                : CoachFreshness.fresh,
+          );
+        }),
+  );
+
+  @override
+  Stream<List<CoachBudgetProgress>> watchBudgetProgress(String uid, String monthKey) =>
+      Stream.multi((controller) {
+        final collection = _user(uid).collection('budgets');
+        final subscriptions = <String, StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>{};
+        final progressByBudget = <String, List<CoachBudgetProgress>>{};
+        final itemCacheState = <String, bool>{};
+        var expected = <String>{};
+        var cached = false;
+        var epoch = 0;
+        var cancelled = false;
+
+        void emitIfReady() {
+          if (cancelled || !expected.every(progressByBudget.containsKey)) return;
+          final result = expected
+              .expand((id) => progressByBudget[id] ?? const <CoachBudgetProgress>[])
+              .toList(growable: false);
+          controller.add(
+            result
+                .map(
+                  (item) => CoachBudgetProgress(
+                    budgetId: item.budgetId,
+                    categoryId: item.categoryId,
+                    currency: item.currency,
+                    plannedMinor: item.plannedMinor,
+                    actualMinor: item.actualMinor,
+                    active: item.active,
+                    cached: cached,
+                  ),
+                )
+                .toList(growable: false),
+          );
+        }
+
+        final budgetsSub = collection
+            .where('monthKey', isEqualTo: monthKey)
+            .snapshots(includeMetadataChanges: true)
+            .listen((snapshot) {
+              final currentEpoch = ++epoch;
+              for (final subscription in subscriptions.values) {
+                unawaited(subscription.cancel());
+              }
+              subscriptions.clear();
+              progressByBudget.clear();
+              itemCacheState.clear();
+              cached = snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites;
+              final active = snapshot.docs.where((doc) {
+                final data = doc.data();
+                return data['flowType'] == 'expense' && data['status'] != 'archived';
+              }).toList();
+              final nextIds = active.map((doc) => doc.id).toSet();
+              for (final id in subscriptions.keys.toList()) {
+                if (!nextIds.contains(id)) {
+                  unawaited(subscriptions.remove(id)?.cancel());
+                  progressByBudget.remove(id);
+                }
+              }
+              expected = nextIds;
+              if (expected.isEmpty) {
+                progressByBudget.clear();
+                controller.add(const <CoachBudgetProgress>[]);
+                return;
+              }
+              for (final budget in active) {
+                final budgetData = budget.data();
+                subscriptions[budget.id] = collection
+                    .doc(budget.id)
+                    .collection('items')
+                    .snapshots(includeMetadataChanges: true)
+                    .listen((items) {
+                      if (currentEpoch != epoch) return;
+                      itemCacheState[budget.id] =
+                          items.metadata.isFromCache || items.metadata.hasPendingWrites;
+                      cached =
+                          snapshot.metadata.isFromCache ||
+                          snapshot.metadata.hasPendingWrites ||
+                          itemCacheState.values.any((value) => value);
+                      var actual = 0;
+                      for (final item in items.docs) {
+                        final data = item.data();
+                        if (data['status'] == 'archived') continue;
+                        actual += (data['actualAmountMinor'] as num? ?? 0).toInt();
+                      }
+                      final planned = budgetData['plannedAmountMinor'];
+                      final actualIsSafe = planned is int && planned >= 0 && actual >= 0;
+                      if (!actualIsSafe) {
+                        controller.addError(const FormatException('invalid-coach-budget-progress'));
+                        return;
+                      }
+                      progressByBudget[budget.id] = [
+                        CoachBudgetProgress(
+                          budgetId: budget.id,
+                          categoryId: budgetData['categoryId'] as String? ?? '',
+                          currency: budgetData['currency'] as String? ?? '',
+                          plannedMinor: planned,
+                          actualMinor: actual,
+                          active: budgetData['status'] != 'archived',
+                          cached: cached,
+                        ),
+                      ];
+                      emitIfReady();
+                    }, onError: controller.addError);
+              }
+              emitIfReady();
+            }, onError: controller.addError);
+        controller.onCancel = () async {
+          cancelled = true;
+          await budgetsSub.cancel();
+          for (final subscription in subscriptions.values) {
+            await subscription.cancel();
+          }
+        };
+      });
+
+  @override
   Stream<List<CoachCompletion>> watchCompletions(String uid, {required DateTime since}) {
     return Stream.multi((controller) {
       final latest = <CoachReviewKind, List<CoachCompletion>>{};
@@ -191,6 +360,19 @@ class FirestoreCoachRepository implements CoachRepository {
     () => _user(uid).set(
       {'coachPreferences': preferences.toMap()},
       SetOptions(mergeFields: ['coachPreferences']),
+    ),
+  );
+
+  @override
+  Future<Either<Failure, CoachWriteState>> saveRoutinePreferences(
+    String uid,
+    CoachRoutinePreferences preferences,
+  ) => _write(
+    uid,
+    'routine-preferences',
+    () => _user(uid).set(
+      {'coachRoutinePreferences': preferences.toMap()},
+      SetOptions(mergeFields: ['coachRoutinePreferences']),
     ),
   );
 
@@ -351,28 +533,11 @@ class FirestoreCoachRepository implements CoachRepository {
     Map<String, dynamic> data, {
     bool pending = false,
   }) {
-    final date = _date(data['occurredAt']);
-    if (date == null) throw const FormatException('invalid-operation-date');
-    return FinancialOperation(
-      id: id,
-      type: OperationType.values.byName(data['type'] as String),
-      amountMinor: data['amountMinor'] as int,
-      currency: data['currency'] as String,
-      monthKey: data['monthKey'] as String? ?? _dateKey(date).substring(0, 7),
-      occurredAt: date,
-      status: pending
-          ? OperationStatus.pending
-          : OperationStatus.values.byName(data['status'] as String? ?? 'confirmed'),
-      idempotencyKey: data['idempotencyKey'] as String? ?? id,
-      categoryId: data['categoryId'] as String?,
-      accountId: data['accountId'] as String?,
-      sourceAccountId: data['sourceAccountId'] as String?,
-      destinationAccountId: data['destinationAccountId'] as String?,
-      budgetId: data['budgetId'] as String?,
-      budgetItemId: data['budgetItemId'] as String?,
-      description: data['description'] as String? ?? '',
-      createdAt: _date(data['createdAt']),
-      updatedAt: _date(data['updatedAt']),
+    return FinancialOperationFirestoreMapper.fromMap(
+      id,
+      data,
+      pending: pending,
+      requireDate: true,
     );
   }
 

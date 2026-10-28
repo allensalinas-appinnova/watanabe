@@ -67,7 +67,9 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
       ref
         ..invalidate(coachDeviceSettingsProvider(uid))
         ..invalidate(coachCompletionsProvider(uid))
-        ..invalidate(coachPreferencesProvider(uid));
+        ..invalidate(coachPreferencesProvider(uid))
+        ..invalidate(coachRoutinePreferencesProvider(uid))
+        ..invalidate(coachUnallocatedPaymentsProvider(uid));
     }
     _signature = null;
     if (!_ready) unawaited(_initialize());
@@ -95,6 +97,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
     if (!_ready || service == null || uid == null) return widget.child;
     final profile = ref.watch(canonicalUserProfileProvider(uid));
     final preferences = ref.watch(coachPreferencesProvider(uid));
+    final routinePreferences = ref.watch(coachRoutinePreferencesProvider(uid));
     final completions = ref.watch(coachCompletionsProvider(uid));
     final commitments = ref.watch(debtCommitmentsProvider(uid));
     final commitmentPayments = ref.watch(debtCommitmentPaymentsProvider(uid));
@@ -105,6 +108,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
     if (profile.hasValue &&
         profile.value != null &&
         preferences.hasValue &&
+        routinePreferences.hasValue &&
         completions.hasValue &&
         commitments.hasValue &&
         commitmentPayments.hasValue &&
@@ -115,6 +119,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         revision,
         profile.value!.timeZone,
         preferences.requireValue.toMap(),
+        routinePreferences.requireValue.toMap(),
         completions.requireValue
             .map((item) => '${item.kind.name}:${item.periodKey}:${item.pending}')
             .toList(),
@@ -142,10 +147,15 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
             try {
               final owner = await service.ownerTokenFor(uid);
               if (!mounted || generation != _generation) return;
+              final routinePrefs = routinePreferences.requireValue;
+              final effectivePreferences = preferences.requireValue.copyWith(
+                dailyEnabled: preferences.requireValue.dailyEnabled && routinePrefs.dailyEnabled,
+                weeklyEnabled: preferences.requireValue.weeklyEnabled && routinePrefs.weeklyEnabled,
+              );
               final planned = ref
                   .read(coachRoutineProvider)
                   .plan(
-                    preferences: preferences.requireValue,
+                    preferences: effectivePreferences,
                     completions: completions.requireValue,
                     zone: profile.value!.timeZone,
                     pausedUntil: device.requireValue.pausedUntil,

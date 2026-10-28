@@ -234,6 +234,36 @@ test('coach preferences reject malformed creates, replacements and required-fiel
   await assertFails(profile.update({'coachPreferences.unexpected': true}));
 });
 
+test('coach routine preferences are optional, owner-only and exact typed profile fields', async () => {
+  const alice = environment.authenticatedContext('alice').firestore();
+  const profile = alice.doc('users/alice');
+  const valid = {configured: true, dailyEnabled: true, weeklyEnabled: false};
+  await assertSucceeds(profile.set(userProfile())); // Legacy profiles need no migration.
+  await assertSucceeds(profile.update({coachRoutinePreferences: valid}));
+  await assertSucceeds(profile.update({coachRoutinePreferences: {
+    configured: true, dailyEnabled: false, weeklyEnabled: true,
+  }}));
+  await assertSucceeds(profile.update({coachRoutinePreferences: deleteField()}));
+  const invalid = [null, false, [], 'routine', {...valid, extra: true}];
+  for (const field of Object.keys(valid)) {
+    for (const value of [null, 0, 1, 'true']) invalid.push({...valid, [field]: value});
+    const missing = {...valid};
+    delete missing[field];
+    invalid.push(missing);
+  }
+  for (const value of invalid) {
+    await assertFails(profile.update({coachRoutinePreferences: value}));
+    await assertFails(environment.authenticatedContext('candidate').firestore()
+      .doc('users/candidate').set({...userProfile(), coachRoutinePreferences: value}));
+  }
+  await assertFails(profile.update({'coachRoutinePreferences.extra': true}));
+  for (const context of [environment.authenticatedContext('bob'), environment.unauthenticatedContext()]) {
+    await assertFails(context.firestore().doc('users/alice')
+      .update({coachRoutinePreferences: valid}));
+  }
+  await assertFails(profile.update({unapprovedProfileField: true}));
+});
+
 for (const [collectionName, kind] of [
   ['coachDailyCheckIns', 'daily'], ['coachWeeklyReviews', 'weekly'],
 ]) {

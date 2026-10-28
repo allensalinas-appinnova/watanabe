@@ -150,6 +150,14 @@ class _Harness {
       yield preferences;
       yield* preferenceUpdates.stream;
     });
+    when(() => repository.watchRoutinePreferences(any())).thenAnswer((_) async* {
+      CoachRoutinePreferences inferred() =>
+          CoachRoutinePreferences.fromProfile(null, legacy: preferences);
+      yield inferred();
+      await for (final _ in preferenceUpdates.stream) {
+        yield inferred();
+      }
+    });
     when(() => repository.watchCompletions(any(), since: any(named: 'since'))).thenAnswer((
       _,
     ) async* {
