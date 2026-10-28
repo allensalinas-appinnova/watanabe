@@ -11,7 +11,7 @@ import {app, db, operation, seedUser, userDump} from './projection_test_support.
 after(() => deleteApp(app));
 async function add(root, id, value) {
   await root.collection('operations').doc(id).set({...value, description: 'PRIVATE OPERATION NOTE'});
-  await applyOperationEvent(db, {userId: root.id, eventId: id, current: value});
+  await applyOperationEvent(db, {userId: root.id, operationId: id, eventId: id, current: value});
 }
 const cli = (args) => new Promise((resolve, reject) => {
   const child = spawn(process.execPath, [fileURLToPath(new URL('../lib/audit_projections.js', import.meta.url)), ...args], {env: process.env});
@@ -144,7 +144,7 @@ test('concurrent updates between snapshot passes force an incomplete result', as
   assert.ok(report.issues.some((issue) => issue.code === 'concurrent_change_detected'));
 });
 
-test('unsafe accumulated amounts mark the report incomplete without losing integer precision', async () => {
+test('currency-specific projected-balance bounds reject accumulation before overflow', async () => {
   const root = await seedUser('audit-overflow');
   const snapshot = await readAuditSnapshot(db, root.id);
   // Valid individual amounts can overflow when accumulated over a large history.
@@ -155,7 +155,7 @@ test('unsafe accumulated amounts mark the report incomplete without losing integ
   const {compareProjections} = await import('../lib/projection_audit.js');
   const report = compareProjections(snapshot);
   assert.equal(report.complete, false);
-  assert.ok(report.issues.some((issue) => issue.code === 'invalid_integer'));
+  assert.ok(report.issues.some((issue) => issue.code === 'account_balance_out_of_range'));
 });
 
 test('malformed projection values are sanitized and mark diagnosis incomplete', async () => {

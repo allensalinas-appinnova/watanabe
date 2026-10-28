@@ -19,7 +19,7 @@ export async function seedUser(id) {
   for (const [id, currency, opening] of [['cash', 'COP', 5000], ['bank', 'COP', 10000], ['mxn', 'MXN', 2000], ['brl', 'BRL', 3000]]) {
     batch.set(root.collection('accounts').doc(id), {
       name: 'PRIVATE ACCOUNT NAME', currency, openingBalanceMinor: opening,
-      currentBalanceMinor: opening, status: id === 'cash' ? 'archived' : 'active',
+      currentBalanceMinor: opening, status: 'active',
     });
   }
   for (const [id, type] of [['food', 'expense'], ['travel', 'expense'], ['salary', 'income']]) {

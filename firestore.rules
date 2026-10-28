@@ -30,7 +30,8 @@ service cloud.firestore {
     }
     function profileWritable(uid) {
       return owner(uid) && exists(/databases/$(database)/documents/users/$(uid)) &&
-        get(/databases/$(database)/documents/users/$(uid)).data.get('resetStatus', 'ready') == 'ready';
+        get(/databases/$(database)/documents/users/$(uid)).data.get('resetStatus', 'ready') == 'ready' &&
+        get(/databases/$(database)/documents/users/$(uid)).data.get('operationProjectionMigration', 'idle') != 'running';
     }
     function generationMatches(uid, data) {
       return profileWritable(uid) && data.get('dataGeneration', 0) == profileGeneration(uid);
@@ -45,7 +46,7 @@ service cloud.firestore {
       return value is string && value.matches('^[A-Za-z0-9_-]{8,128}$');
     }
     function maxMinorUnits(currency) {
-      return currency == 'COP' ? 1000000000 : 100000000000;
+      return currency in ['CLP', 'COP', 'JPY', 'KRW', 'PYG'] ? 1000000000 : 100000000000;
     }
     function validMoney(value, currency) {
       return value is int && value > 0 && value <= maxMinorUnits(currency);
@@ -58,6 +59,7 @@ service cloud.firestore {
       return accountId is string &&
         exists(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)) &&
         get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.get('nature', 'money') == 'money' &&
+        get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.status == 'active' &&
         get(/databases/$(database)/documents/users/$(uid)/accounts/$(accountId)).data.currency == currency;
     }
     function categoryExists(uid, categoryId, type) {
@@ -256,7 +258,7 @@ service cloud.firestore {
           request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
           request.resource.data.status in ['active', 'archived'];
         allow update: if profileWritable(uid) && resource.data.get('nature', 'money') == 'money' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'includeInDashboard', 'status', 'updatedAt', 'archivedAt'
+          'name', 'includeInDashboard', 'updatedAt'
         ]) && (!('includeInDashboard' in request.resource.data) ||
           request.resource.data.includeInDashboard is bool);
         allow delete: if false;
@@ -280,45 +282,22 @@ service cloud.firestore {
 
       match /operations/{operationId} {
         allow read: if owner(uid);
-        allow create: if generationMatches(uid, request.resource.data) && request.resource.id == request.resource.data.idempotencyKey &&
-          validOperation(request.resource.data) &&
-          (request.resource.data.type == 'transfer'
-            ? accountExists(uid, request.resource.data.sourceAccountId, request.resource.data.currency) &&
-              accountExists(uid, request.resource.data.destinationAccountId, request.resource.data.currency) &&
-              request.resource.data.sourceAccountId != request.resource.data.destinationAccountId
-            : accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
-              categoryExists(uid, request.resource.data.categoryId, request.resource.data.type)) &&
-          validBudgetItemLink(uid, request.resource.data);
-        allow update: if profileWritable(uid) && !('debtCommandId' in resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status', 'updatedAt'
-        ]) && request.resource.data.status in ['confirmed', 'rejected'];
-        allow delete: if false;
+        // Financial writes and status changes must use the transaction-backed callable.
+        allow create, update, delete: if false;
 
         match /entries/{entryId} {
           allow read: if owner(uid);
-          allow create: if generationMatches(uid, request.resource.data) && request.resource.data.keys().hasOnly([
-            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt', 'dataGeneration'
-          ]) && request.resource.data.operationId == operationId &&
-            getAfter(/databases/$(database)/documents/users/$(uid)/operations/$(operationId)).data.status == 'confirmed' &&
-            request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
-            validCurrency(request.resource.data.currency) && request.resource.data.occurredAt is timestamp &&
-            accountExists(uid, request.resource.data.accountId, request.resource.data.currency);
-          allow update, delete: if false;
+          allow write: if false;
         }
       }
 
       match /ledgerEntries/{entryId} {
         allow read: if owner(uid);
-        allow create: if generationMatches(uid, request.resource.data) &&
-          request.resource.data.keys().hasOnly([
-            'operationId', 'accountId', 'deltaMinor', 'currency', 'occurredAt', 'dataGeneration'
-          ]) && request.resource.data.operationId is string &&
-          request.resource.data.accountId is string && request.resource.data.deltaMinor is int &&
-          validCurrency(request.resource.data.currency) && request.resource.data.occurredAt is timestamp &&
-          accountExists(uid, request.resource.data.accountId, request.resource.data.currency) &&
-          getAfter(/databases/$(database)/documents/users/$(uid)/operations/$(request.resource.data.operationId)).data.status == 'confirmed';
-        allow update, delete: if false;
+        allow write: if false;
       }
+
+      match /operationCommands/{requestId} { allow read, write: if false; }
+      match /operationProjectionReceipts/{receiptId} { allow read, write: if false; }
 
       // Budgets and items are written atomically by the authenticated callable.
       match /budgets/{budgetId} {

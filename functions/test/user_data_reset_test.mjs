@@ -35,6 +35,7 @@ test('reset recursively removes user data, preserves global catalog and Firebase
   assert.equal((await root.collection('budgetCommands').get()).size, 0);
   await assert.doesNotReject(applyOperationEvent(db, {
     userId: root.id,
+    operationId: 'delayed-reset-operation',
     eventId: 'delayed-debt-trigger',
     current: {
       type: 'expense', amountMinor: 1200, currency: 'COP', monthKey: '2026-10',

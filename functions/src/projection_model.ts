@@ -1,8 +1,11 @@
+import {createHash} from "node:crypto";
+
 export type Operation = {
   type: "income" | "expense" | "transfer" | "expenseRefund" | "debtAdjustment" | "unallocatedDebtPayment";
   amountMinor: number;
   currency: string;
   monthKey: string;
+  occurredAt?: unknown;
   categoryId?: string;
   accountId?: string;
   sourceAccountId?: string;
@@ -54,6 +57,23 @@ export function validCurrency(value: unknown): value is string {
 
 export function validMonth(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
+/** Stable digest for the fields that determine an operation's financial effects. */
+export function operationProjectionDigest(data: Record<string, unknown>): string {
+  const occurredAt = data.occurredAt && typeof (data.occurredAt as {toMillis?: unknown}).toMillis === "function" ?
+    (data.occurredAt as {toMillis(): number}).toMillis() :
+    data.occurredAt instanceof Date ? data.occurredAt.getTime() : null;
+  const projection = {
+    type: data.type, status: data.status, amountMinor: data.amountMinor, currency: data.currency,
+    monthKey: data.monthKey, categoryId: data.categoryId ?? null, accountId: data.accountId ?? null,
+    sourceAccountId: data.sourceAccountId ?? null, destinationAccountId: data.destinationAccountId ?? null,
+    budgetId: data.budgetId ?? null, budgetItemId: data.budgetItemId ?? null, occurredAt,
+    projectionDirection: data.projectionDirection ?? 1, balanceDeltaMinor: data.balanceDeltaMinor ?? null,
+    dataGeneration: data.dataGeneration ?? 0, debtAccountId: data.debtAccountId ?? null,
+    principalDeltaMinor: data.principalDeltaMinor ?? null, chargesDeltaMinor: data.chargesDeltaMinor ?? null,
+  };
+  return createHash("sha256").update(JSON.stringify(projection)).digest("hex");
 }
 
 export function maximumMinor(currency: string): number {

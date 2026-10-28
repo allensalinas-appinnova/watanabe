@@ -94,7 +94,9 @@ test('card purchase, payment, partial refunds, credit balance and duplicate trig
   assert.equal((await summary(root)).expenseMinor, 1200);
   const op = (await root.collection('operations').doc(bought.operationIds[0]).get()).data();
   const once = await userDump(root);
-  await Promise.all([execute(root, purchase), execute(root, purchase), applyOperationEvent(db, {userId: root.id, eventId: 'trigger_one', current: op})]);
+  await Promise.all([execute(root, purchase), execute(root, purchase), applyOperationEvent(db, {
+    userId: root.id, operationId: bought.operationIds[0], eventId: 'trigger_one', current: op,
+  })]);
   assert.deepEqual(await userDump(root), once);
   await execute(root, command(id, 'payment_0001', 'pay', {amountMinor: 1200, bankAccountId: 'bank'}));
   assert.equal((await account(root, 'bank')).currentBalanceMinor, 8800);
@@ -239,7 +241,7 @@ test('an asynchronous money operation and a synchronous loan payment serialize o
   const legacy = {type: 'expense', accountId: 'bank', categoryId: 'food', amountMinor: 100, currency: 'COP', monthKey: '2026-01', status: 'confirmed'};
   await root.collection('operations').doc('legacy_money').set(legacy);
   await Promise.all([
-    applyOperationEvent(db, {userId: root.id, eventId: 'legacy_money_event', current: legacy}),
+    applyOperationEvent(db, {userId: root.id, operationId: 'legacy_money', eventId: 'legacy_money_event', current: legacy}),
     execute(root, command(id, 'loan_payment1', 'pay', {amountMinor: 200, bankAccountId: 'bank', principalMinor: 200, previousChargesMinor: 0, newChargesMinor: 0})),
   ]);
   assert.equal((await account(root, 'bank')).currentBalanceMinor, 9700);

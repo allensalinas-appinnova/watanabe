@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
 import {deleteApp} from 'firebase-admin/app';
 import {applyOperationEvent} from '../lib/projection_store.js';
+import {operationProjectionDigest} from '../lib/projection_model.js';
 import {executeOperationCorrection} from '../lib/operation_corrections.js';
 import {app, db} from './projection_test_support.mjs';
 
@@ -18,7 +19,7 @@ test('editing a confirmed expense updates the operation and all projections atom
     dataGeneration: 0, revision: 0,
   };
   const batch = db.batch();
-  batch.set(root, {dataGeneration: 0, timeZone: 'America/Bogota', resetStatus: 'ready'});
+    batch.set(root, {dataGeneration: 0, timeZone: 'America/Bogota', resetStatus: 'ready', operationProjectionVersion: 1});
   batch.set(root.collection('accounts').doc('bank'), {
     currency: 'COP', nature: 'money', status: 'active', openingBalanceMinor: 10000, currentBalanceMinor: 8800,
   });
@@ -28,7 +29,8 @@ test('editing a confirmed expense updates the operation and all projections atom
     monthKey: '2026-10', currency: 'COP', expenseMinor: 1200, incomeMinor: 0,
     transferInMinor: 0, transferOutMinor: 0, byCategory: {food: -1200},
   });
-  batch.set(operationRef, original);
+  const originalDigest = operationProjectionDigest(original);
+  batch.set(operationRef, {...original, operationProjectionDigest: originalDigest, appliedProjectionDigest: originalDigest});
   await batch.commit();
 
   const command = {
@@ -52,10 +54,10 @@ test('editing a confirmed expense updates the operation and all projections atom
   assert.equal(november.byCategory.travel, -2500);
 
   // The asynchronous projection trigger must not apply the callable's atomic deltas a second time.
-  await applyOperationEvent(db, {userId: uid, eventId: 'correction-trigger', previous: original, current: updated});
+  await applyOperationEvent(db, {userId: uid, operationId: 'original-operation', eventId: 'correction-trigger', previous: original, current: updated});
   // A delayed original creation event must not apply the old expense after the
   // correction has advanced the live operation revision.
-  await applyOperationEvent(db, {userId: uid, eventId: 'delayed-create-trigger', current: original});
+  await applyOperationEvent(db, {userId: uid, operationId: 'original-operation', eventId: 'delayed-create-trigger', current: original});
   assert.equal((await root.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 7500);
 
   const replay = await executeOperationCorrection(db, uid, command);

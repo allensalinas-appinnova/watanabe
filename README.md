@@ -25,6 +25,7 @@ interpretar el estado de un despliegue como disponibilidad para usuarios.
 - [Coach y recordatorios](docs/coach.md)
 - [Comandos de presupuesto](docs/budget-commands.md)
 - [Auditoría y reconstrucción de proyecciones](docs/projection-audit.md)
+- [Mutaciones de movimientos e integridad de saldos](docs/operation-commands.md)
 - [Email import backend foundation and remaining gates](docs/email-imports.md)
 - [Debt accounts, command integrity and activation gates](docs/debts.md)
 - [Auditoría de preparación para iOS y Android](docs/store-readiness-audit.md)

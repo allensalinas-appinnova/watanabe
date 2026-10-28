@@ -40,7 +40,7 @@ test('stale-generation callables and delayed triggers cannot recreate reset data
     assert.deepEqual(await userDump(root), before);
   }
   await assert.doesNotReject(applyOperationEvent(db, {
-    userId: root.id, eventId: 'delayed-generation-zero-trigger',
+    userId: root.id, operationId: 'delayed-generation-zero-operation', eventId: 'delayed-generation-zero-trigger',
     current: {
       type: 'expense', amountMinor: 100, currency: 'COP', monthKey: '2026-10',
       accountId: 'deleted-account', categoryId: 'food', status: 'confirmed', dataGeneration: 0,

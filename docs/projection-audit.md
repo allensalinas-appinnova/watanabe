@@ -7,6 +7,16 @@ summary: Atomic financial projections, isolated verification and read-only discr
 
 Updated: 2026-10-22.
 
+## Current working-tree follow-up (not deployed)
+
+The 2026-10-22 deployment below is historical evidence for that revision only.
+The current working tree adds a `mutateOperation` transaction path and a
+first-command legacy gate: it audits before stamping projection digests, and
+stops without repair if differences exist. See
+[operation command integrity](operation-commands.md) for the new behavior and
+coordinated rollout requirements. No production deployment or real-user audit
+has been performed for this follow-up.
+
 Canonical confirmed operations are the ledger. Account balances, monthly
 summaries and linked budget-item actuals are derived views. The event adapter
 delegates to `applyOperationEvent`, which commits all changes and its event

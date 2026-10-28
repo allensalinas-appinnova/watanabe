@@ -11,7 +11,8 @@ import {DebtCommandError, executeDebtCommand} from "./debt_commands";
 import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
 import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitments";
 import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_registry";
-import {executeOperationCorrection, OperationCorrectionError} from "./operation_corrections";
+import {executeOperationCommand, OperationCommandError} from "./operation_commands";
+import {ensureOperationProjectionVersion, OperationProjectionMigrationError} from "./operation_projection_migration";
 export {adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
 
 initializeApp();
@@ -32,20 +33,22 @@ export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, 
 
 export const mutateOperation = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
-    return await executeOperationCorrection(getFirestore(), request.auth?.uid, request.data);
+    return await executeOperationCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
-    if (error instanceof OperationCorrectionError) {
+    if (error instanceof OperationCommandError || error instanceof OperationProjectionMigrationError) {
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }
-    throw new HttpsError("internal", "operation-correction-failed", {issue: "operation-correction-failed"});
+    throw new HttpsError("internal", "operation-command-failed", {issue: "operation-command-failed"});
   }
 });
 
 export const mutateDebt = onCall({region: "us-central1", timeoutSeconds: 60, memory: "512MiB"}, async (request) => {
   try {
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
     return await executeDebtCommand(getFirestore(), request.auth?.uid, request.data, {enabled: true});
   } catch (error) {
     if (error instanceof DebtCommandError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     // Never include financial values, names, references, or raw errors in telemetry.
     throw new HttpsError("internal", "debt-command-failed", {issue: "debt-command-failed"});
   }
@@ -79,8 +82,12 @@ function importFailure(error: unknown): never {
 
 export const mutateEmailImport = onCall({region: "us-central1", timeoutSeconds: 60, maxInstances: 2}, async (request) => {
   try {
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
     return await executeEmailImportCommand(getFirestore(), request.auth?.uid, request.data, emailImportPolicy());
-  } catch (error) { return importFailure(error); }
+  } catch (error) {
+    if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    return importFailure(error);
+  }
 });
 
 export const listEmailImports = onCall({region: "us-central1", timeoutSeconds: 30, maxInstances: 2}, async (request) => {
@@ -91,9 +98,11 @@ export const listEmailImports = onCall({region: "us-central1", timeoutSeconds: 3
 
 export const mutateBudget = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
     return await executeBudgetCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
     if (error instanceof BudgetCommandError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     throw new HttpsError("internal", "budget-command-failed", {issue: "budget-command-failed"});
   }
 });
@@ -116,6 +125,7 @@ export const processOperation = onDocumentWritten(
     const after = event.data?.after;
     await applyOperationEvent(getFirestore(), {
       userId: event.params.userId,
+      operationId: event.params.operationId,
       eventId: event.id,
       previous: before?.exists ? before.data() : undefined,
       current: after?.exists ? after.data() : undefined,

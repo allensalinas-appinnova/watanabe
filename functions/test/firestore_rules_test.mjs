@@ -505,7 +505,7 @@ test('invalid operation amounts and cross-account transfers are rejected', async
   }));
 });
 
-test('amount cap is enforced for operations, account opening balances and budgets', async () => {
+test('amount cap is enforced for account opening balances while operation writes are callable-only', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
   const user = alice.collection('users').doc('alice');
   await assertSucceeds(user.set(userProfile()));
@@ -527,7 +527,7 @@ test('amount cap is enforced for operations, account opening balances and budget
     description: 'Expense', status: 'confirmed', idempotencyKey: id,
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
   });
-  await assertSucceeds(operation('valid-amount', 1000000000));
+  await assertFails(operation('valid-amount', 1000000000));
   await assertFails(operation('large-amount', 1000000001));
 
   await assertFails(user.collection('budgets').doc('max-budget').set({
@@ -568,7 +568,7 @@ test('budgets and items are owner-readable but all direct writes are denied', as
   await assertFails(batch.commit());
 });
 
-test('budget-linked operations require a complete matching item, including archived history', async () => {
+test('operations are readable by their owner but all client writes are rejected, including budget links', async () => {
   const alice = environment.authenticatedContext('alice').firestore();
   const user = alice.collection('users').doc('alice');
   const category = user.collection('categories').doc('food');
@@ -599,7 +599,7 @@ test('budget-linked operations require a complete matching item, including archi
     description: 'Lunch', status: 'confirmed', idempotencyKey: id,
     createdAt: Timestamp.now(), updatedAt: Timestamp.now(), ...overrides,
   });
-  await assertSucceeds(operation('linked-valid'));
+  await assertFails(operation('linked-valid'));
   await assertFails(operation('linked-partial', {budgetItemId: null}));
   await assertFails(operation('linked-wrong-category', {categoryId: 'other'}));
   await assertFails(operation('linked-wrong-type', {type: 'income'}));
@@ -611,12 +611,22 @@ test('budget-linked operations require a complete matching item, including archi
       description: 'Elemento heredado', amountMinor: 5000, dayOfMonth: 15, actualAmountMinor: 0,
     });
   });
-  await assertSucceeds(operation('linked-legacy-item', {budgetItemId: legacyItem.id}));
+  await assertFails(operation('linked-legacy-item', {budgetItemId: legacyItem.id}));
 
   await environment.withSecurityRulesDisabled(async (context) => context.firestore().doc(item.path).update({status: 'archived'}));
-  await assertSucceeds(operation('linked-archived-item'));
+  await assertFails(operation('linked-archived-item'));
   await environment.withSecurityRulesDisabled(async (context) => context.firestore().doc(budget.path).update({status: 'archived'}));
-  await assertSucceeds(operation('linked-archived-budget', {budgetItemId: legacyItem.id}));
+  await assertFails(operation('linked-archived-budget', {budgetItemId: legacyItem.id}));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc(`${user.path}/operations/server-created`).set({
+      type: 'expense', amountMinor: 1000, currency: 'COP', categoryId: 'food', accountId: 'cash',
+      budgetId: budget.id, budgetItemId: legacyItem.id, monthKey: '2026-10', occurredAt: Timestamp.now(),
+      description: 'Lunch', status: 'confirmed', idempotencyKey: 'server-created',
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+  });
+  await assertSucceeds(user.collection('operations').doc('server-created').get());
+  await assertFails(environment.authenticatedContext('bob').firestore().doc(`${user.path}/operations/server-created`).get());
 });
 
 test('command receipts cannot be read or changed by any client', async () => {

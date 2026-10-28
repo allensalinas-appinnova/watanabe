@@ -224,27 +224,70 @@ void main() {
     expect(entries.docs, hasLength(4));
     expect(budget.data()?['plannedAmountMinor'], 100000);
     expect(operations.docs.where((doc) => doc.data()['type'] == 'transfer'), hasLength(1));
+    final activityPage = await repository.fetchOperationsPage(uid, pageSize: 10);
+    activityPage.match(
+      (failure) => fail('Activity query failed after server commits: ${failure.technicalCode}'),
+      (page) {
+        expect(page.items, hasLength(3));
+        expect(
+          page.items.map((item) => item.description),
+          containsAll(['Pago', 'Almuerzo', 'Ahorro']),
+        );
+      },
+    );
 
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    for (var attempt = 0; attempt < 30; attempt++) {
+      if (find.byKey(const ValueKey('global_add_operation')).evaluate().isNotEmpty) break;
+      await tester.pump(const Duration(milliseconds: 250));
+    }
     expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
 
     final expectedActivity = ['Pago', 'Almuerzo', 'Cuenta principal → Ahorros'];
-    var dashboardLoaded = false;
+    var balanceLoaded = false;
+    var activityLoaded = false;
     for (var attempt = 0; attempt < 60; attempt++) {
       await tester.pump(const Duration(milliseconds: 250));
-      dashboardLoaded =
-          find.byKey(const ValueKey('home_balance_card')).evaluate().isNotEmpty &&
-          expectedActivity.every((description) => find.text(description).evaluate().isNotEmpty);
-      if (dashboardLoaded) break;
+      balanceLoaded =
+          balanceLoaded || find.byKey(const ValueKey('home_balance_card')).evaluate().isNotEmpty;
+      activityLoaded = expectedActivity.every(
+        (description) => find.text(description).evaluate().isNotEmpty,
+      );
+      if (balanceLoaded && activityLoaded) break;
+      if (!activityLoaded) {
+        await tester.drag(
+          find.byKey(const ValueKey('home_dashboard_content')),
+          const Offset(0, -500),
+        );
+      }
     }
-
-    expect(
-      dashboardLoaded,
-      isTrue,
-      reason:
-          'Dashboard must render the account balance and all seeded activity, not stay loading.',
+    if (!balanceLoaded || !activityLoaded) {
+      final visibleText = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((widget) => widget.data)
+          .whereType<String>()
+          .take(50)
+          .join(' | ');
+      debugPrint(
+        'HOME_DIAGNOSTIC balance=$balanceLoaded activity=$activityLoaded text=$visibleText',
+      );
+    }
+    expect(balanceLoaded, isTrue, reason: 'Dashboard must render the account balance.');
+    expect(activityLoaded, isTrue, reason: 'Dashboard must render all seeded activity.');
+    await tester.drag(
+      find.byKey(const ValueKey('home_dashboard_content')),
+      const Offset(0, 3000),
     );
-    expect(find.byKey(const ValueKey('home_budget_progress')), findsOneWidget);
+    await tester.pumpAndSettle();
+    final budgetProgress = find.byKey(
+      const ValueKey('home_budget_progress_2026-10_expense_food_COP'),
+    );
+    await tester.scrollUntilVisible(
+      budgetProgress,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(budgetProgress, findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     debugPrint('FINAL_SCREEN_HOLD: dashboard will remain visible for 10 seconds');
     final holdUntil = DateTime.now().add(const Duration(seconds: 10));

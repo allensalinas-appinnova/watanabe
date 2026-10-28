@@ -1,6 +1,6 @@
 import {createHash} from "node:crypto";
 import {FieldPath, type DocumentReference, type Firestore, type QueryDocumentSnapshot} from "firebase-admin/firestore";
-import {calculateProjectionDeltas, checkedInteger, maximumMinor, parseOperation, ProjectionError, validCurrency, validId, validMonth} from "./projection_model";
+import {calculateProjectionDeltas, checkedInteger, maximumMinor, operationProjectionDigest, parseOperation, ProjectionError, validCurrency, validId, validMonth} from "./projection_model";
 
 type RecordData = Record<string, unknown>;
 export type AuditSnapshot = {
@@ -27,7 +27,7 @@ export type AuditReport = {
 const fields: Record<string, string[]> = {
   accounts: ["currency", "openingBalanceMinor", "currentBalanceMinor", "nature", "type", "openingPrincipalMinor", "openingChargesMinor", "principalMinor", "chargesMinor"],
   categories: ["type"],
-  operations: ["type", "status", "amountMinor", "currency", "monthKey", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId", "debtAccountId", "paymentId", "principalDeltaMinor", "chargesDeltaMinor", "projectionDirection", "balanceDeltaMinor"],
+  operations: ["type", "status", "amountMinor", "currency", "monthKey", "occurredAt", "categoryId", "accountId", "sourceAccountId", "destinationAccountId", "budgetId", "budgetItemId", "debtAccountId", "paymentId", "principalDeltaMinor", "chargesDeltaMinor", "projectionDirection", "balanceDeltaMinor", "dataGeneration", "appliedProjectionDigest"],
   monthlySummaries: ["monthKey", "currency", "incomeMinor", "expenseMinor", "transferInMinor", "transferOutMinor", "byCategory"],
   budgets: ["categoryId", "flowType", "currency"],
   items: ["actualAmountMinor"],
@@ -113,6 +113,9 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
   for (const [id, raw] of snapshot.operations) {
     try {
       const operation = parseOperation(raw);
+      if (raw.appliedProjectionDigest !== undefined && raw.appliedProjectionDigest !== operationProjectionDigest(raw)) {
+        throw new ProjectionError("operation_projection_marker_mismatch");
+      }
       if (operation.status !== "confirmed") continue;
       confirmed++;
       const delta = calculateProjectionDeltas(undefined, operation);
@@ -136,7 +139,12 @@ export function compareProjections(snapshot: AuditSnapshot): AuditReport {
             budget.currency !== operation.currency) throw new ProjectionError("budget_reference_mismatch");
       }
       // Check the entire contribution before updating any accumulator.
-      const accountValues = [...delta.accounts].map(([key, amount]) => [key, checkedInteger(expectedAccounts.get(key)! + amount)] as const);
+      const accountValues = [...delta.accounts].map(([key, amount]) => {
+        const balance = checkedInteger(expectedAccounts.get(key)! + amount);
+        const account = snapshot.accounts.get(key)!;
+        if (Math.abs(balance) > maximumMinor(account.currency as string)) throw new ProjectionError("account_balance_out_of_range");
+        return [key, balance] as const;
+      });
       const itemValues = [...delta.budgetItems].map(([key, amount]) => [key, checkedInteger((expectedItems.get(key) ?? 0) + amount)] as const);
       const summaryValues = [...delta.summaries].map(([key, summary]) => {
         const previous = expectedSummaries.get(key) ?? {};

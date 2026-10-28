@@ -1,8 +1,9 @@
 import {FieldValue, type DocumentReference, type Firestore, type Transaction} from "firebase-admin/firestore";
-import {calculateProjectionDeltas, checkedInteger, parseOperation, ProjectionError, validId, type Operation, type SummaryDelta} from "./projection_model";
+import {calculateProjectionDeltas, checkedInteger, maximumMinor, operationProjectionDigest, parseOperation, ProjectionError, validId, type Operation, type SummaryDelta} from "./projection_model";
 
 export type OperationEvent = {
   userId: string;
+  operationId: string;
   eventId: string;
   previous?: Record<string, unknown>;
   current?: Record<string, unknown>;
@@ -42,13 +43,17 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
     if (records.get(`accounts/${id}`)) throw new ProjectionError("account_already_exists");
     records.set(`accounts/${id}`, account);
   }
-  for (const {previous, current} of changes) for (const operation of [previous, current]) {
+  for (const {previous, current} of changes) for (const [version, operation] of [["previous", previous], ["current", current]] as const) {
     if (!operation || operation.status !== "confirmed") continue;
     if (!allowDebt && (operation.projectionDirection !== undefined || ["expenseRefund", "debtAdjustment", "unallocatedDebtPayment"].includes(operation.type))) throw new ProjectionError("debt_command_required");
     const ids = operation.type === "transfer" ? [operation.sourceAccountId!, operation.destinationAccountId!] : [operation.accountId!];
     for (const id of ids) {
       const account = records.get(`accounts/${id}`);
       if (!account) throw new ProjectionError("missing_account");
+      // A prior operation may reference an account archived by the legacy
+      // client. It must remain reversible; only the new confirmed state must
+      // target active accounts.
+      if (version === "current" && account.status !== "active") throw new ProjectionError("account_inactive");
       if (!allowDebt && account.nature === "debt") throw new ProjectionError("debt_command_required");
       if (account.currency !== operation.currency) throw new ProjectionError("account_currency_mismatch");
     }
@@ -66,7 +71,15 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
     }
   }
   // Validate all outputs before any write (including when called by a command).
-  const balances = [...accounts].map(([id, delta]) => [id, checkedInteger(checkedInteger(records.get(`accounts/${id}`)?.currentBalanceMinor) + delta)] as const);
+  const balances = [...accounts].map(([id, delta]) => {
+    const account = records.get(`accounts/${id}`);
+    const balance = checkedInteger(checkedInteger(account?.currentBalanceMinor) + delta);
+    const currency = account?.currency;
+    if (typeof currency !== "string" || Math.abs(balance) > maximumMinor(currency)) {
+      throw new ProjectionError("account_balance_out_of_range");
+    }
+    return [id, balance] as const;
+  });
   const actuals = [...budgetItems].map(([key, delta]) => {
     const value = checkedInteger(checkedInteger(records.get(`items/${key}`)?.actualAmountMinor ?? 0) + delta);
     if (value < 0) throw new ProjectionError("negative_item_actual");
@@ -97,7 +110,7 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
 
 /** The event marker and every projection commit together, including on retries. */
 export async function applyOperationEvent(db: Firestore, event: OperationEvent): Promise<void> {
-  if (!validId(event.userId) || !validId(event.eventId)) throw new ProjectionError("invalid_event");
+  if (!validId(event.userId) || !validId(event.operationId) || !validId(event.eventId)) throw new ProjectionError("invalid_event");
   // Parse early, but check reset generation before consulting receipts: reset
   // intentionally removes those receipts and may be followed by delayed triggers.
   const previous = event.previous ? parseOperation(event.previous) : undefined;
@@ -109,25 +122,19 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
   await db.runTransaction(async (transaction) => {
     const profile = (await transaction.get(root)).data();
     if (!profile || profile.resetStatus === "resetting") return;
+    if (profile.operationProjectionMigration === "running") throw new ProjectionError("projection_migration_in_progress");
     const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
     const eventGeneration = current?.dataGeneration ?? previous?.dataGeneration ?? 0;
     if (eventGeneration !== generation) return;
     if ((await transaction.get(marker)).exists) return;
-    // Firestore delivers at-least-once events without an ordering guarantee.
-    // A delayed create/update event must not project a historical snapshot after
-    // a newer correction has already applied its deltas synchronously.
-    const operationId = event.current?.id ?? event.previous?.id;
-    if (operationId && validId(operationId)) {
-      const liveSnapshot = await transaction.get(root.collection("operations").doc(operationId));
-      const live = liveSnapshot.data();
-      if (current && !liveSnapshot.exists) return;
-      if (liveSnapshot.exists) {
-        const eventRevision = Number.isSafeInteger(event.current?.revision) ? event.current!.revision as number : 0;
-        const liveRevision = Number.isSafeInteger(live?.revision) ? live!.revision as number : 0;
-        if (liveRevision > eventRevision || (typeof live?.operationEditCommandId === "string" &&
-            live.operationEditCommandId !== event.current?.operationEditCommandId)) return;
-      }
-    }
+    // The document path is authoritative. A delayed event must not project an
+    // older snapshot after a command or a newer trigger has applied the live one.
+    const operationRef = root.collection("operations").doc(event.operationId);
+    const liveSnapshot = await transaction.get(operationRef);
+    const live = liveSnapshot.data();
+    if (current && !liveSnapshot.exists) return;
+    if (liveSnapshot.exists && current && operationProjectionDigest(live!) !== operationProjectionDigest(event.current!)) return;
+    if (liveSnapshot.exists && live && live.appliedProjectionDigest === operationProjectionDigest(live)) return;
     // A server-owned receipt proves the synchronous command applied projections.
     // Never skip merely because a document claims it has been processed.
     const debtRecords = [event.previous, event.current].filter((row) => row?.debtCommandId);
@@ -148,6 +155,11 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
     }
     const write = await prepareProjectionWrites(transaction, root, [{previous, current}]);
     write();
+    if (liveSnapshot.exists && current) {
+      const appliedDigest = operationProjectionDigest(live!);
+      transaction.update(operationRef, {operationProjectionDigest: appliedDigest, appliedProjectionDigest: appliedDigest,
+        projectionUpdatedAt: FieldValue.serverTimestamp()});
+    }
     transaction.create(marker, {processedAt: FieldValue.serverTimestamp()});
   });
 }

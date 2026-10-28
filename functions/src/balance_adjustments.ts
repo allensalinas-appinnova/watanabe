@@ -1,13 +1,14 @@
 import {createHash} from "node:crypto";
 import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {maximumMinor, validCurrency, validId} from "./projection_model";
+import {ensureOperationProjectionVersion, OperationProjectionMigrationError} from "./operation_projection_migration";
 
 type AdjustmentInput = {accountId: string; currency: string; targetBalanceMinor: number};
 type Command = {requestId: string; expectedGeneration: number; reason?: string; adjustments: AdjustmentInput[]};
 type Data = Record<string, unknown>;
 
 export class BalanceAdjustmentError extends Error {
-  constructor(readonly issue: string, readonly status: "unauthenticated" | "invalid-argument" | "not-found" | "failed-precondition" | "already-exists") {
+  constructor(readonly issue: string, readonly status: "unauthenticated" | "invalid-argument" | "not-found" | "failed-precondition" | "already-exists" | "unavailable") {
     super(issue);
     this.name = "BalanceAdjustmentError";
   }
@@ -39,12 +40,20 @@ function parseCommand(value: unknown): Command {
 export async function executeBalanceAdjustment(db: Firestore, uid: string | undefined, payload: unknown): Promise<{requestId: string; adjustments: Array<{accountId: string; currency: string; previousBalanceMinor: number; targetBalanceMinor: number; deltaMinor: number}>; adjustedAt: string}> {
   if (!uid || !validId(uid)) throw new BalanceAdjustmentError("balance-adjustment-session-expired", "unauthenticated");
   const command = parseCommand(payload);
+  try {
+    await ensureOperationProjectionVersion(db, uid);
+  } catch (error) {
+    if (error instanceof OperationProjectionMigrationError) throw new BalanceAdjustmentError(error.issue, error.status);
+    throw error;
+  }
   const digest = createHash("sha256").update(JSON.stringify(command)).digest("hex");
   const root = db.doc(`users/${uid}`);
   const eventRef = root.collection("balanceAdjustments").doc(command.requestId);
   const adjustments = await db.runTransaction(async (transaction) => {
     const profile = (await transaction.get(root)).data();
     if (!profile || profile.resetStatus === "resetting") throw new BalanceAdjustmentError("balance-adjustment-user-resetting", "failed-precondition");
+    if (profile.operationProjectionMigration === "running") throw new BalanceAdjustmentError("operation-projection-migration-in-progress", "unavailable");
+    if (profile.operationProjectionVersion !== 1) throw new BalanceAdjustmentError("operation-projection-migration-required", "failed-precondition");
     const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
     if (generation !== command.expectedGeneration) throw new BalanceAdjustmentError("balance-adjustment-stale-generation", "failed-precondition");
     const receipt = await transaction.get(eventRef);

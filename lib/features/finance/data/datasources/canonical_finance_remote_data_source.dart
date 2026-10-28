@@ -641,11 +641,8 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
 
   @override
   Future<void> archiveAccount(String userId, String accountId) =>
-      _userCollection(userId, 'accounts').doc(accountId).update({
-        'status': 'archived',
-        'archivedAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      _operationCorrections?.archiveAccount(userId, accountId) ??
+      Future.error(StateError('operation-command-service-not-configured'));
 
   @override
   Future<Map<String, Object?>> adjustAccountBalances({
@@ -671,91 +668,46 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String userId,
     FinancialOperationDraft draft,
   ) async {
-    final generation = draft.dataGeneration ?? await _currentGeneration(userId);
     _validateOperation(draft.type, draft.amountMinor, draft.currency, draft.idempotencyKey);
     if (draft.type == OperationType.transfer) {
       throw ArgumentError('Use createTransfer for transfer operations.');
     }
-    final operationRef = _userCollection(userId, 'operations').doc(draft.idempotencyKey);
-    final entryRef = _userCollection(userId, 'ledgerEntries').doc();
-    final nestedEntryRef = operationRef.collection('entries').doc(entryRef.id);
+    final monthKey = draft.monthKey ?? _monthKey(draft.occurredAt);
     final data = _operationData(
       type: draft.type,
       amountMinor: draft.amountMinor,
       currency: draft.currency,
       occurredAt: draft.occurredAt,
-      monthKey: draft.monthKey,
+      monthKey: monthKey,
       description: draft.description,
       idempotencyKey: draft.idempotencyKey,
       categoryId: draft.categoryId,
       accountId: draft.accountId,
       budgetId: draft.budgetId,
       budgetItemId: draft.budgetItemId,
-      dataGeneration: generation,
+      dataGeneration: draft.dataGeneration ?? 0,
     );
-    await _firestore.runTransaction((transaction) async {
-      final profile = await transaction.get(_userDocument(userId));
-      final currentGeneration = (profile.data()?['dataGeneration'] as num? ?? 0).toInt();
-      if (!profile.exists ||
-          profile.data()?['resetStatus'] == 'resetting' ||
-          currentGeneration != generation) {
-        throw StateError('user-reset-in-progress');
-      }
-      final existing = await transaction.get(operationRef);
-      if (existing.exists) return;
-      final account = await transaction.get(
-        _userCollection(userId, 'accounts').doc(draft.accountId),
-      );
-      if (!account.exists || account.data()?['currency'] != draft.currency) {
-        throw StateError('The account does not exist or uses another currency.');
-      }
-      if (account.data()?['nature'] == 'debt') throw StateError('debt-command-required');
-      if (draft.budgetId != null || draft.budgetItemId != null) {
-        if (draft.budgetId == null ||
-            draft.budgetItemId == null ||
-            draft.type == OperationType.transfer ||
-            draft.categoryId == null) {
-          throw ArgumentError('Budget operation references must be supplied as a compatible pair.');
-        }
-        final budgetRef = _userCollection(userId, 'budgets').doc(draft.budgetId);
-        final itemRef = budgetRef.collection('items').doc(draft.budgetItemId);
-        final budget = await transaction.get(budgetRef);
-        final item = await transaction.get(itemRef);
-        final budgetData = budget.data();
-        if (!budget.exists ||
-            !item.exists ||
-            budgetData == null ||
-            budgetData['categoryId'] != draft.categoryId ||
-            budgetData['flowType'] != draft.type.name ||
-            budgetData['currency'] != draft.currency) {
-          throw StateError('Budget item reference is missing or incompatible.');
-        }
-      }
-      transaction
-        ..set(operationRef, data)
-        ..set(nestedEntryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.accountId,
-          'deltaMinor': draft.type == OperationType.income ? draft.amountMinor : -draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        })
-        ..set(entryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.accountId,
-          'deltaMinor': draft.type == OperationType.income ? draft.amountMinor : -draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        });
+    final service = _operationCorrections;
+    if (service == null) throw StateError('operation-command-service-not-configured');
+    await service.create(userId, {
+      'type': draft.type.name,
+      'amountMinor': draft.amountMinor,
+      'currency': draft.currency,
+      'accountId': draft.accountId,
+      'categoryId': draft.categoryId,
+      'occurredAt': draft.occurredAt.toUtc().toIso8601String(),
+      'monthKey': monthKey,
+      'description': draft.description,
+      'idempotencyKey': draft.idempotencyKey,
+      'budgetId': draft.budgetId,
+      'budgetItemId': draft.budgetItemId,
+      'dataGeneration': draft.dataGeneration,
     });
-    return {...data, 'id': operationRef.id};
+    return {...data, 'id': draft.idempotencyKey, 'status': 'confirmed', 'revision': 0};
   }
 
   @override
   Future<Map<String, dynamic>> createTransfer(String userId, TransferDraft draft) async {
-    final generation = draft.dataGeneration ?? await _currentGeneration(userId);
     _validateOperation(
       OperationType.transfer,
       draft.amountMinor,
@@ -765,13 +717,7 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     if (draft.sourceAccountId == draft.destinationAccountId) {
       throw ArgumentError('Transfer accounts must be different.');
     }
-    final operationRef = _userCollection(userId, 'operations').doc(draft.idempotencyKey);
-    final sourceEntryRef = _userCollection(userId, 'ledgerEntries').doc();
-    final destinationEntryRef = _userCollection(userId, 'ledgerEntries').doc();
-    final sourceNestedEntryRef = operationRef.collection('entries').doc(sourceEntryRef.id);
-    final destinationNestedEntryRef = operationRef
-        .collection('entries')
-        .doc(destinationEntryRef.id);
+    final monthKey = draft.monthKey ?? _monthKey(draft.occurredAt);
     final data = _operationData(
       type: OperationType.transfer,
       amountMinor: draft.amountMinor,
@@ -781,70 +727,24 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       idempotencyKey: draft.idempotencyKey,
       sourceAccountId: draft.sourceAccountId,
       destinationAccountId: draft.destinationAccountId,
-      monthKey: draft.monthKey,
-      dataGeneration: generation,
+      monthKey: monthKey,
+      dataGeneration: draft.dataGeneration ?? 0,
     );
-    await _firestore.runTransaction((transaction) async {
-      final profile = await transaction.get(_userDocument(userId));
-      final currentGeneration = (profile.data()?['dataGeneration'] as num? ?? 0).toInt();
-      if (!profile.exists ||
-          profile.data()?['resetStatus'] == 'resetting' ||
-          currentGeneration != generation) {
-        throw StateError('user-reset-in-progress');
-      }
-      final existing = await transaction.get(operationRef);
-      if (existing.exists) return;
-      final source = await transaction.get(
-        _userCollection(userId, 'accounts').doc(draft.sourceAccountId),
-      );
-      final destination = await transaction.get(
-        _userCollection(userId, 'accounts').doc(draft.destinationAccountId),
-      );
-      if (!source.exists ||
-          !destination.exists ||
-          source.data()?['currency'] != draft.currency ||
-          destination.data()?['currency'] != draft.currency) {
-        throw StateError('Transfer accounts must exist and use the same currency.');
-      }
-      if (source.data()?['nature'] == 'debt' || destination.data()?['nature'] == 'debt') {
-        throw StateError('debt-command-required');
-      }
-      transaction
-        ..set(operationRef, data)
-        ..set(sourceNestedEntryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.sourceAccountId,
-          'deltaMinor': -draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        })
-        ..set(sourceEntryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.sourceAccountId,
-          'deltaMinor': -draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        })
-        ..set(destinationNestedEntryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.destinationAccountId,
-          'deltaMinor': draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        })
-        ..set(destinationEntryRef, {
-          'operationId': operationRef.id,
-          'accountId': draft.destinationAccountId,
-          'deltaMinor': draft.amountMinor,
-          'currency': draft.currency,
-          'occurredAt': Timestamp.fromDate(draft.occurredAt),
-          'dataGeneration': generation,
-        });
+    final service = _operationCorrections;
+    if (service == null) throw StateError('operation-command-service-not-configured');
+    await service.create(userId, {
+      'type': OperationType.transfer.name,
+      'amountMinor': draft.amountMinor,
+      'currency': draft.currency,
+      'sourceAccountId': draft.sourceAccountId,
+      'destinationAccountId': draft.destinationAccountId,
+      'occurredAt': draft.occurredAt.toUtc().toIso8601String(),
+      'monthKey': monthKey,
+      'description': draft.description,
+      'idempotencyKey': draft.idempotencyKey,
+      'dataGeneration': draft.dataGeneration,
     });
-    return {...data, 'id': operationRef.id};
+    return {...data, 'id': draft.idempotencyKey, 'status': 'confirmed', 'revision': 0};
   }
 
   @override
@@ -870,11 +770,13 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
   }
 
   @override
-  Future<void> deleteOperation(String userId, String operationId) =>
-      _userCollection(userId, 'operations').doc(operationId).update({
-        'status': 'rejected',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+  Future<void> deleteOperation(String userId, String operationId) {
+    final service = _operationCorrections;
+    if (service == null) {
+      return Future.error(StateError('operation-command-service-not-configured'));
+    }
+    return service.cancel(userId, operationId);
+  }
 
   @override
   Stream<List<Map<String, dynamic>>> watchBudgets(String userId, String monthKey) =>
@@ -1048,8 +950,11 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     'description': description.trim(),
     'status': 'confirmed',
     'idempotencyKey': idempotencyKey,
-    'createdAt': FieldValue.serverTimestamp(),
-    'updatedAt': FieldValue.serverTimestamp(),
+    // This map is returned to the caller after the callable commits. It is not
+    // written to Firestore, so use concrete client values rather than server
+    // timestamp sentinels that cannot be parsed into the domain model.
+    'createdAt': Timestamp.fromDate(DateTime.now()),
+    'updatedAt': Timestamp.fromDate(DateTime.now()),
     'dataGeneration': dataGeneration,
   };
 

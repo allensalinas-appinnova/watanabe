@@ -1,7 +1,8 @@
 import {createHash} from "node:crypto";
 import {FieldValue, Firestore, Timestamp} from "firebase-admin/firestore";
-import {checkedInteger, maximumMinor, parseOperation, validCurrency, validId, validMonth} from "./projection_model";
+import {checkedInteger, maximumMinor, operationProjectionDigest, parseOperation, validCurrency, validId, validMonth} from "./projection_model";
 import {prepareProjectionWrites} from "./projection_store";
+import {prepareOperationLedgerWrites} from "./operation_ledger";
 
 type Data = Record<string, unknown>;
 type Command = {
@@ -76,18 +77,6 @@ function monthInTimeZone(date: Date, timeZone: unknown): string {
   }
 }
 
-export function operationProjectionDigest(data: Data): string {
-  const occurredAt = data.occurredAt instanceof Timestamp ? data.occurredAt.toMillis() : null;
-  return digest({
-    type: data.type, status: data.status, amountMinor: data.amountMinor, currency: data.currency,
-    monthKey: data.monthKey, categoryId: data.categoryId ?? null, accountId: data.accountId ?? null,
-    sourceAccountId: data.sourceAccountId ?? null, destinationAccountId: data.destinationAccountId ?? null,
-    budgetId: data.budgetId ?? null, budgetItemId: data.budgetItemId ?? null, occurredAt,
-    projectionDirection: data.projectionDirection ?? 1, balanceDeltaMinor: data.balanceDeltaMinor ?? null,
-    dataGeneration: data.dataGeneration ?? 0,
-  });
-}
-
 /** Corrects a confirmed income/expense and its projections atomically and idempotently. */
 export async function executeOperationCorrection(db: Firestore, uid: string | undefined, payload: unknown) {
   if (!uid || !validId(uid)) throw new OperationCorrectionError("authentication-required", "unauthenticated");
@@ -125,6 +114,9 @@ export async function executeOperationCorrection(db: Firestore, uid: string | un
     }
     const eventGeneration = Number.isSafeInteger(previousRecord.dataGeneration) ? previousRecord.dataGeneration as number : 0;
     if (eventGeneration !== generation) throw new OperationCorrectionError("operation-stale-generation", "failed-precondition");
+    if (previousRecord.appliedProjectionDigest !== operationProjectionDigest(previousRecord)) {
+      throw new OperationCorrectionError("operation-projection-not-reconciled", "failed-precondition");
+    }
 
     const [accountSnapshot, categorySnapshot] = await Promise.all([
       transaction.get(accountRef), transaction.get(categoryRef),
@@ -166,9 +158,12 @@ export async function executeOperationCorrection(db: Firestore, uid: string | un
     // Validate the operation's complete projection effects and read their current values before writing.
     const nextOperation = parseOperation(updatedRecord);
     const applyProjection = await prepareProjectionWrites(transaction, root, [{previous, current: nextOperation}]);
+    const applyLedger = await prepareOperationLedgerWrites(transaction, root, command.operationId, nextOperation);
     const result = {operationId: command.operationId, revision: revision + 1};
-    const finalRecord = {...updatedRecord, operationProjectionDigest: operationProjectionDigest(updatedRecord)};
+    const projectionDigest = operationProjectionDigest(updatedRecord);
+    const finalRecord = {...updatedRecord, operationProjectionDigest: projectionDigest, appliedProjectionDigest: projectionDigest};
     applyProjection();
+    applyLedger();
     transaction.update(operationRef, finalRecord);
     transaction.create(receiptRef, {
       digest: commandDigest,

@@ -27,6 +27,8 @@ debt nature keep their legacy money-account meaning.
 /users/{userId}/budgets/{budgetId}/items/{itemId}
 /users/{userId}/monthlySummaries/{summaryId}
 /users/{userId}/balanceAdjustments/{requestId}
+/users/{userId}/operationCommands/{requestId}
+/users/{userId}/operationCorrections/{requestId}
 /users/{userId}/coachDailyCheckIns/{YYYY-MM-DD}
 /users/{userId}/coachWeeklyReviews/{weekStart}
 /users/{userId}/debtCommands/{requestId}
@@ -55,14 +57,19 @@ These updates do not relabel historical operations.
 ## Derived data
 
 `currentBalanceMinor`, `monthlySummaries` and budget tracking values are derived
-from operations/ledger entries. Cloud Functions update caches idempotently;
-reconciliation can rebuild them from the source ledger.
+from operations/ledger entries. New ordinary financial mutations update the
+canonical operation, ledger, balance, summary and budget projection in one
+authenticated server transaction. The legacy trigger remains for old records
+and delayed events. See [operation command integrity](operation-commands.md).
 
 ## Offline commands
 
 Pending commands are stored in the local Drift database with an idempotency key,
-payload, retry count and `pending/syncing/confirmed/rejected` state. A transfer
-is one command and is never partially confirmed.
+payload, retry count and `pending/syncing/confirmed/rejected` state. Once online,
+the queue submits ordinary financial mutations to `mutateOperation`; the server
+receipt makes retries idempotent. A transfer is one command and is never
+partially confirmed. A stale data generation is rejected rather than silently
+upgraded. See [operation command integrity](operation-commands.md).
 
 ## Debt commands
 

@@ -45,6 +45,9 @@ export async function executeUserDataReset(
     const data = profile.data()!;
     const generation = Number.isSafeInteger(data.dataGeneration) ? data.dataGeneration as number : 0;
     const status = data.resetStatus ?? "ready";
+    if (data.operationProjectionMigration === "running") {
+      throw new UserDataResetError("reset-projection-migration-in-progress", "failed-precondition");
+    }
     if (data.resetRequestId === command.requestId && status === "ready" &&
         data.resetPreviousGeneration === command.expectedGeneration) {
       return {generation, completed: true};

@@ -73,7 +73,7 @@ test('approval creates canonical entries once and existing trigger applies proje
   assert.equal(operation.monthKey, '2026-09'); // Profile date, not UTC/email date.
   assert.equal(operation.status, 'confirmed');
   assert.equal((await root.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 10000);
-  const event = {userId: root.id, eventId: 'synthetic-approval-event', current: operation};
+  const event = {userId: root.id, operationId: result.operationId, eventId: 'synthetic-approval-event', current: operation};
   await applyOperationEvent(db, event);
   await applyOperationEvent(db, event);
   assert.equal((await root.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 8800);
@@ -133,7 +133,7 @@ test('transfers require two compatible active accounts and produce paired entrie
   const entries = (await root.collection('ledgerEntries').get()).docs.map((doc) => doc.data().deltaMinor).sort((a, b) => a - b);
   assert.deepEqual(entries, [-1200, 1200]);
   const current = (await root.collection('operations').doc(result.operationId).get()).data();
-  await applyOperationEvent(db, {userId: root.id, eventId: 'transfer-event', current});
+  await applyOperationEvent(db, {userId: root.id, operationId: result.operationId, eventId: 'transfer-event', current});
   const summaries = await root.collection('monthlySummaries').get();
   assert.equal(summaries.docs[0].data().incomeMinor, 0);
   assert.equal(summaries.docs[0].data().expenseMinor, 0);

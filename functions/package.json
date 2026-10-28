@@ -14,7 +14,7 @@
     "test:email-imports": "npm run build && node --test test/bank_email_parser_test.mjs test/email_imports_test.mjs",
     "test:projections": "npm run build && node --test test/projection_test.mjs",
     "audit:projections": "npm run build && node lib/audit_projections.js",
-    "test:projections:emulator": "node --test test/projection_store_test.mjs test/projection_audit_test.mjs",
+    "test:projections:emulator": "node --test test/projection_store_test.mjs test/projection_audit_test.mjs test/operation_commands_test.mjs test/operation_corrections_test.mjs",
     "test:projections:trigger": "node --test test/projection_trigger_test.mjs",
     "test:balance-adjustments": "npm run build && node --test test/balance_adjustments_test.mjs",
     "test:user-data-reset": "npm run build && node --test test/user_data_reset_test.mjs",
