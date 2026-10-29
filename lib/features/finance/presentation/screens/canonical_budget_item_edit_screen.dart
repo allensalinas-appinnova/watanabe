@@ -19,7 +19,6 @@ import '../../domain/entities/budget_item.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/budget_command_message.dart';
-import 'canonical_budget_detail_screen.dart';
 
 class CanonicalBudgetItemEditScreen extends ConsumerStatefulWidget {
   const CanonicalBudgetItemEditScreen({

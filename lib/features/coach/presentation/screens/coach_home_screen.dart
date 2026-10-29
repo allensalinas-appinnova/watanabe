@@ -11,6 +11,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../finance/domain/entities/finance_account.dart';
 import '../../../finance/domain/entities/finance_category.dart';
+import '../../../finance/domain/entities/planning_agenda_entry.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../domain/entities/coach_models.dart';
 import '../../domain/usecases/coach_overview.dart';
@@ -69,14 +70,7 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
   }
 
   void _refresh(String uid) {
-    ref
-      ..invalidate(coachOverviewProvider(uid))
-      ..invalidate(coachPreferencesProvider(uid))
-      ..invalidate(coachRoutinePreferencesProvider(uid))
-      ..invalidate(coachCompletionsProvider(uid))
-      ..invalidate(coachUnallocatedPaymentsProvider(uid))
-      ..invalidate(coachReportProvider)
-      ..invalidate(coachBudgetProgressProvider);
+    retryCoachOverview(ref, uid);
   }
 
   @override
@@ -125,6 +119,15 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
     final weeklyKey = coachDateKey(clock.previousWeek(zone));
     final locale = Localizations.localeOf(context).toString();
     final localNow = clock.calendar.local(clock.clock.now(), zone);
+    final currentMonthKey = DateFormat('yyyy-MM').format(today);
+    final nextMonth = DateTime(today.year, today.month + 1);
+    final nextMonthKey = DateFormat('yyyy-MM').format(nextMonth);
+    final currentPlanState = ref.watch(
+      planningAgendaEntriesProvider((userId: uid, monthKey: currentMonthKey)),
+    );
+    final nextPlanState = ref.watch(
+      planningAgendaEntriesProvider((userId: uid, monthKey: nextMonthKey)),
+    );
     String money(int amount, String currency) =>
         CurrencyFormatter.formatMinor(amount, currency, locale: locale);
     String localDate(DateTime date) => DateFormat.yMMMd(locale).format(
@@ -179,18 +182,18 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (overviewState.error) ...[
+              if (overviewState.loading) ...[
+                const SizedBox(height: 16),
+                const LinearProgressIndicator(),
+              ] else if (overviewState.incomplete) ...[
                 const SizedBox(height: 16),
                 _Notice(
                   icon: Icons.sync_problem_outlined,
-                  message: l10n.coachReadFailure,
+                  message: l10n.coachSourcesIncomplete,
                   actionLabel: l10n.retry,
                   onAction: () => _refresh(uid),
                   warning: true,
                 ),
-              ] else if (overviewState.loading) ...[
-                const SizedBox(height: 16),
-                const LinearProgressIndicator(),
               ] else if (overview != null &&
                   (overview.freshness == CoachFreshness.cached ||
                       overview.hasPendingOperations)) ...[
@@ -231,27 +234,83 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
                 const Card(
                   child: Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
                 )
-              else if (overview?.paymentItems.isEmpty ?? true)
-                _SurfaceCard(child: Text(l10n.coachNoPaymentsToReview))
               else ...[
-                for (final item in overview!.paymentItems.take(3))
-                  _paymentTile(context, ref, l10n, item, accountName, hidden, money, localDate),
-                if (overview.paymentItems.length > 3)
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton(
-                      onPressed: () => setState(() => _showAllPayments = !_showAllPayments),
-                      child: Text(_showAllPayments ? l10n.showLess : l10n.coachSeeMore),
-                    ),
+                if (overviewState.paymentsIncomplete)
+                  _Notice(
+                    icon: Icons.info_outline,
+                    message: l10n.coachPaymentsIncomplete,
+                    actionLabel: l10n.retry,
+                    onAction: () => _refresh(uid),
+                    warning: true,
                   ),
-                if (_showAllPayments && overview.paymentItems.length > 3)
-                  for (final item in overview.paymentItems.skip(3))
+                if (overview?.paymentItems.isEmpty ?? true)
+                  _SurfaceCard(
+                    child: Text(
+                      overviewState.paymentsIncomplete
+                          ? l10n.coachPaymentsIncomplete
+                          : l10n.coachNoPaymentsToReview,
+                    ),
+                  )
+                else ...[
+                  for (final item in overview!.paymentItems.take(3))
                     _paymentTile(context, ref, l10n, item, accountName, hidden, money, localDate),
+                  if (overview.paymentItems.length > 3)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton(
+                        onPressed: () => setState(() => _showAllPayments = !_showAllPayments),
+                        child: Text(_showAllPayments ? l10n.showLess : l10n.coachSeeMore),
+                      ),
+                    ),
+                  if (_showAllPayments && overview.paymentItems.length > 3)
+                    for (final item in overview.paymentItems.skip(3))
+                      _paymentTile(context, ref, l10n, item, accountName, hidden, money, localDate),
+                ],
+              ],
+              const SizedBox(height: 20),
+              _sectionTitle(context, l10n.coachUpcomingPlan),
+              const SizedBox(height: 8),
+              if (currentPlanState.isLoading || nextPlanState.isLoading)
+                const Card(
+                  child: Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
+                )
+              else if (currentPlanState.hasError || nextPlanState.hasError)
+                _Notice(
+                  icon: Icons.error_outline,
+                  message: l10n.coachSourcesIncomplete,
+                  actionLabel: l10n.retry,
+                  onAction: () => _refresh(uid),
+                  warning: true,
+                )
+              else ...[
+                _upcomingPlanEntries(
+                  context,
+                  l10n,
+                  [
+                    ...currentPlanState.requireValue,
+                    ...nextPlanState.requireValue,
+                  ],
+                  accounts,
+                  today,
+                  clock,
+                  zone,
+                  hidden,
+                  money,
+                ),
               ],
               const SizedBox(height: 20),
               _sectionTitle(context, l10n.coachWeeklyUnderstanding),
               const SizedBox(height: 8),
-              _weeklyInsight(context, l10n, overview, categories, hidden, money),
+              _weeklyInsight(
+                context,
+                l10n,
+                overview,
+                categories,
+                hidden,
+                money,
+                reportIncomplete: overviewState.insightsIncomplete,
+                onRetry: () => _refresh(uid),
+              ),
               const SizedBox(height: 20),
               _sectionTitle(context, l10n.coachRoutineTitle),
               const SizedBox(height: 8),
@@ -271,7 +330,12 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
               const SizedBox(height: 20),
               _sectionTitle(context, l10n.coachHistoryTitle),
               const SizedBox(height: 8),
-              _history(context, l10n, completionsState, completions),
+              _history(
+                context,
+                l10n,
+                completionsState,
+                completions,
+              ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => context.push('/coach/settings'),
@@ -304,13 +368,19 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
         child: Padding(padding: EdgeInsets.all(18), child: LinearProgressIndicator()),
       );
     }
-    if (state.error || action == null) {
+    if (action == null) {
       return _SurfaceCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.coachReadFailure),
-            TextButton(onPressed: () => _refresh(uid), child: Text(l10n.retry)),
+            Text(
+              state.actionIncomplete ? l10n.coachNoReliableRecommendation : l10n.coachReadFailure,
+            ),
+            TextButton(
+              key: const ValueKey('coach_next_step_retry'),
+              onPressed: () => _refresh(uid),
+              child: Text(l10n.retry),
+            ),
           ],
         ),
       );
@@ -336,6 +406,10 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
               ],
             ),
             const SizedBox(height: 8),
+            if (state.actionIncomplete) ...[
+              Text(l10n.coachProvisionalRecommendation),
+              const SizedBox(height: 8),
+            ],
             Text(body!, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 12),
             SizedBox(
@@ -474,15 +548,99 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
     );
   }
 
+  Widget _upcomingPlanEntries(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<PlanningAgendaEntry> entries,
+    List<FinanceAccount> accounts,
+    DateTime today,
+    CoachRoutine routine,
+    String zone,
+    bool hidden,
+    String Function(int, String) money,
+  ) {
+    final end = routine.shift(today, zone, 7);
+    final upcoming =
+        entries
+            .where(
+              (entry) =>
+                  (entry.kind == PlanningEntryKind.expense ||
+                      entry.kind == PlanningEntryKind.debt) &&
+                  entry.pendingMinor > 0 &&
+                  !entry.date.isBefore(today) &&
+                  !entry.date.isAfter(end),
+            )
+            .toList()
+          ..sort((a, b) {
+            final date = a.date.compareTo(b.date);
+            return date == 0 ? a.id.compareTo(b.id) : date;
+          });
+    if (upcoming.isEmpty) {
+      return _SurfaceCard(child: Text(l10n.coachNoUpcomingPlan));
+    }
+    return Column(
+      children: [
+        for (final entry in upcoming.take(3))
+          Card(
+            child: ListTile(
+              key: ValueKey('coach_upcoming_plan_${entry.id}'),
+              minTileHeight: 76,
+              leading: Icon(
+                entry.kind == PlanningEntryKind.debt ? Icons.event_note_outlined : Icons.north_east,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(
+                entry.kind == PlanningEntryKind.debt
+                    ? accounts
+                              .where((account) => account.id == entry.debtAccountId)
+                              .firstOrNull
+                              ?.name ??
+                          l10n.debtTitle
+                    : entry.title,
+              ),
+              subtitle: Text(
+                '${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(entry.date)} · '
+                '${hidden ? l10n.coachAmountsHidden : money(entry.pendingMinor, entry.currency)} · '
+                '${entry.recordedMinor > 0 ? l10n.planningRecorded : l10n.budgetMovementUnassociated}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                unawaited(ref.read(firebaseObservabilityProvider)?.logEvent('coach_action_opened'));
+                if (entry.commitmentId != null) {
+                  context.push(
+                    '/budgets/debt-payments/${entry.commitmentId}?month=${entry.monthKey}',
+                  );
+                } else if (entry.budgetId != null) {
+                  context.push('/budgets/${entry.budgetId}');
+                }
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _weeklyInsight(
     BuildContext context,
     AppLocalizations l10n,
     CoachOverview? overview,
     List<FinanceCategory> categories,
     bool hidden,
-    String Function(int, String) money,
-  ) {
-    if (overview == null) return _SurfaceCard(child: Text(l10n.coachReportIncomplete));
+    String Function(int, String) money, {
+    required bool reportIncomplete,
+    required VoidCallback onRetry,
+  }) {
+    if (overview == null || reportIncomplete || !overview.availability.weeklyReport) {
+      return _SurfaceCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.coachReportIncomplete),
+            TextButton(onPressed: onRetry, child: Text(l10n.retry)),
+          ],
+        ),
+      );
+    }
     final insight = overview.insights
         .where((value) => value.kind == CoachInsightKind.largestWeeklyCategory)
         .firstOrNull;
@@ -811,14 +969,22 @@ class _Notice extends StatelessWidget {
       color: warning ? scheme.tertiaryContainer : scheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(icon, color: color),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message, style: Theme.of(context).textTheme.bodySmall)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 10),
+                Expanded(child: Text(message, style: Theme.of(context).textTheme.bodySmall)),
+              ],
+            ),
             if (actionLabel != null && onAction != null)
-              TextButton(onPressed: onAction, child: Text(actionLabel!)),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
+              ),
           ],
         ),
       ),

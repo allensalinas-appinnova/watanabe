@@ -100,8 +100,8 @@ void main() {
     final uid = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser!.uid;
     await tester.tap(find.byKey(const ValueKey('finance_nav_budget')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    await _pumpUntil(tester, find.byKey(const ValueKey('budget_empty_create')));
-    await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budgets_create_button')));
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')).hitTestable());
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_save')));
     final initialCreateScreenText = tester
         .widgetList<Text>(find.byType(Text))
@@ -155,7 +155,7 @@ void main() {
       'Mercado quincenal',
     );
     await tester.enterText(find.byKey(const ValueKey('budget_item_edit_amount')), '325000');
-    await tester.enterText(find.byKey(const ValueKey('budget_item_edit_day')), '18');
+    await _selectDayOfMonth(tester, 18);
     tester.binding.focusManager.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')));
@@ -479,49 +479,67 @@ Future<void> _createBudget(
 }) async {
   for (var index = 0; index < items.length; index++) {
     if (index > 0) {
-      await _revealFormField(tester, find.byKey(const ValueKey('budget_add_item')), -300);
+      await _revealFormField(tester, find.byKey(const ValueKey('budget_add_item')));
       await tester.tap(find.byKey(const ValueKey('budget_add_item')));
       await tester.pumpAndSettle();
     }
     final description = find.byKey(ValueKey('budget_item_description_$index'));
     final amount = find.byKey(ValueKey('budget_item_amount_$index'));
-    await _revealFormField(tester, description, 300);
+    await _revealFormField(tester, description);
     await tester.enterText(description, items[index].$1);
-    await _revealFormField(tester, amount, 300);
+    await _revealFormField(tester, amount);
     await tester.enterText(amount, items[index].$2);
     await tester.pumpAndSettle();
   }
   tester.binding.focusManager.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  final category = find.byKey(const ValueKey('budget_category_selector'));
-  await _revealFormField(tester, category, -300);
-  await tester.tap(category);
+  final category = find.byKey(
+    ValueKey(
+      'budget_category_selector_${categoryLabel == 'Salario' ? 'income' : 'expense'}',
+    ),
+  );
+  await _revealFormField(tester, category);
+  await tester.tap(find.byKey(const ValueKey('budget_category_selector_tap')));
   await tester.pumpAndSettle();
   final categoryId = switch (categoryLabel) {
     'Alimentación' => 'food',
     'Salario' => 'salary',
     _ => throw StateError('Unknown E2E category: $categoryLabel'),
   };
-  final categoryOption = find.byKey(ValueKey('budget_category_option_$categoryId'));
-  expect(categoryOption, findsOneWidget, reason: 'Expected category $categoryLabel in dropdown.');
+  final categoryOption = find.byKey(ValueKey('finance_popup_option_$categoryId'));
+  expect(categoryOption, findsOneWidget, reason: 'Expected category $categoryLabel in selector.');
   await tester.tap(find.text(categoryLabel).last);
   await tester.pumpAndSettle();
-  expect(
-    tester.widget<DropdownButtonFormField<String>>(category).initialValue,
-    categoryId,
-    reason: 'The category option should be selected before saving the budget.',
-  );
+  expect(find.text(categoryLabel), findsOneWidget);
   final save = find.byKey(const ValueKey('budget_save'));
   await tester.ensureVisible(save);
   await tester.tap(save);
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 
-Future<void> _revealFormField(WidgetTester tester, Finder finder, double delta) async {
-  await tester.scrollUntilVisible(
-    finder.hitTestable(),
-    delta,
-    scrollable: find.descendant(of: find.byType(Form), matching: find.byType(Scrollable)).first,
+Future<void> _revealFormField(WidgetTester tester, Finder finder) async {
+  tester.binding.focusManager.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectDayOfMonth(WidgetTester tester, int day) async {
+  final selector = find.descendant(
+    of: find.byKey(const ValueKey('budget_item_edit_day')),
+    matching: find.byType(DropdownButtonFormField<int>),
+  );
+  expect(selector, findsOneWidget);
+  await tester.tap(selector);
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byWidgetPredicate(
+      (widget) =>
+          widget is Text &&
+          RegExp('^(Día|Day|Dia) $day\$').hasMatch(
+            widget.data ?? widget.textSpan?.toPlainText() ?? '',
+          ),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -550,7 +568,7 @@ Future<void> _waitForActiveBudgetList(WidgetTester tester) async {
   final navigation = tester.widget<NavigationBar>(
     find.byKey(const ValueKey('finance_bottom_navigation')),
   );
-  expect(navigation.selectedIndex, 2, reason: 'Budget branch should be selected after pop.');
+  expect(navigation.selectedIndex, 3, reason: 'Budget branch should be selected after pop.');
   expect(
     createButton,
     findsOneWidget,

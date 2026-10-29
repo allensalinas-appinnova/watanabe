@@ -41,6 +41,19 @@ const _categories = [
   ),
 ];
 
+List<FinanceCategory> _manyCategories() => List.generate(
+  24,
+  (index) => FinanceCategory(
+    id: 'expense-$index',
+    type: CategoryType.expense,
+    icon: 'other',
+    sortOrder: index,
+    isSystem: false,
+    isArchived: false,
+    customName: 'Category $index',
+  ),
+);
+
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeFinanceCategory());
@@ -51,12 +64,13 @@ void main() {
     required _MockFinanceRepository repository,
     Locale locale = const Locale('es'),
     double textScale = 1,
+    List<FinanceCategory> categories = _categories,
   }) => ProviderScope(
     overrides: [
       authSessionProvider.overrideWith(
         (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: false)),
       ),
-      canonicalCategoriesProvider('user-1').overrideWith((ref) => Stream.value(_categories)),
+      canonicalCategoriesProvider('user-1').overrideWith((ref) => Stream.value(categories)),
       canonicalFinanceRepositoryProvider.overrideWithValue(repository),
     ],
     child: MaterialApp(
@@ -356,6 +370,47 @@ void main() {
 
     expect(find.text('Arquivar esta categoria?'), findsOneWidget);
     expect(find.textContaining('registros existentes'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps category creation fixed and preserves the selected type', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _MockFinanceRepository();
+    await tester.pumpWidget(
+      subject(
+        repository: repository,
+        categories: [..._categories, ..._manyCategories()],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final create = find.byKey(const ValueKey('categories_create'));
+    expect(create.hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_row_expense-0')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('categories_type_filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ingresos'));
+    await tester.pumpAndSettle();
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('category_create_dialog_surface')), findsOneWidget);
+    expect(
+      tester
+          .widget<DropdownButton<CategoryType>>(find.byKey(const ValueKey('category_create_type')))
+          .value,
+      CategoryType.income,
+    );
+    await tester.tap(find.byKey(const ValueKey('category_create_cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('categories_create')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_row_salary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_row_food')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

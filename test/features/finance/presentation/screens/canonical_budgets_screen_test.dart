@@ -16,6 +16,7 @@ import 'package:personal_finance/features/finance/domain/entities/user_profile.d
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_budget_tracking_screen.dart';
 import 'package:personal_finance/features/finance/presentation/screens/canonical_budgets_screen.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/planning_section_header.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 final _month = DateFormat('yyyy-MM').format(DateTime.now());
@@ -105,13 +106,16 @@ void main() {
     double textScale = 1,
     bool budgetError = false,
     Widget? createRoute,
+    String initialLocation = '/budgets',
   }) {
     final router = GoRouter(
-      initialLocation: '/budgets',
+      initialLocation: initialLocation,
       routes: [
         GoRoute(
           path: '/budgets',
-          builder: (context, state) => const CanonicalBudgetsScreen(),
+          builder: (context, state) => CanonicalBudgetsScreen(
+            initialMonthKey: state.uri.queryParameters['month'],
+          ),
           routes: [
             GoRoute(
               path: 'tracking',
@@ -124,6 +128,34 @@ void main() {
         GoRoute(
           path: '/budgets/new',
           builder: (context, state) => createRoute ?? const Text('Create route'),
+        ),
+        GoRoute(
+          path: '/budgets/agenda',
+          builder: (context, state) => Scaffold(
+            body: Column(
+              children: [
+                const PlanningSectionHeader(
+                  userId: 'user-1',
+                  section: PlanningSection.agenda,
+                ),
+                Expanded(child: Text('Agenda ${state.uri.queryParameters['month']}')),
+              ],
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/budgets/debt-payments',
+          builder: (context, state) => Scaffold(
+            body: Column(
+              children: [
+                const PlanningSectionHeader(
+                  userId: 'user-1',
+                  section: PlanningSection.debtPayments,
+                ),
+                Expanded(child: Text('Debt payments ${state.uri.queryParameters['month']}')),
+              ],
+            ),
+          ),
         ),
         GoRoute(
           path: '/budgets/:id',
@@ -195,17 +227,55 @@ void main() {
 
     expect(find.text('Tus presupuestos'), findsOneWidget);
     expect(find.text('Aún no tienes presupuestos'), findsOneWidget);
-    expect(find.byKey(const ValueKey('budget_empty_create')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budgets_create_button')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_empty_create')), findsNothing);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('budgets_manage_categories')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('budget_monthly_list')),
+        matching: find.byType(Scrollable),
+      ),
     );
     expect(find.byKey(const ValueKey('budgets_manage_categories')), findsOneWidget);
-    expect(find.byKey(const ValueKey('budgets_create_button')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
+    expect(find.byKey(const ValueKey('budgets_create_button')).hitTestable(), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
     await tester.pumpAndSettle();
     expect(find.text('Create route'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('can create again after navigation replaces the creation route', (tester) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(
+      subject(
+        createRoute: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                key: const ValueKey('replace_creation_route'),
+                onPressed: () => context.go('/budgets'),
+                child: const Text('Return to budgets'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_filter_income')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replace_creation_route')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Salario'), findsOneWidget);
+    expect(find.text('Comida'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('replace_creation_route')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows a server-confirmed budget immediately on return from creation', (
@@ -230,13 +300,85 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('budget_empty_create')));
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('return_created_budget')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('budget_card_created-budget')), findsOneWidget);
     expect(find.text('Comida'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('return_created_budget')), findsOneWidget);
+  });
+
+  testWidgets('keeps the selected budget filter when creation is cancelled', (tester) async {
+    setScreen(tester, const Size(360, 760));
+    await tester.pumpWidget(
+      subject(
+        createRoute: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const ValueKey('budget_create_cancel'),
+                onPressed: () => context.pop(),
+                child: const Text('Cancel create'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('budget_filter_income')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_create_cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Salario'), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_card_food-budget')), findsNothing);
+    expect(
+      tester.widget<Material>(find.byKey(const ValueKey('budget_filter_income'))).color,
+      Theme.of(
+        tester.element(find.byKey(const ValueKey('budget_filter_income'))),
+      ).colorScheme.primary,
+    );
+    expect(find.byKey(const ValueKey('budgets_create_button')).hitTestable(), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('budget_create_cancel')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rapid repeated taps open only one creation form', (tester) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(
+      subject(
+        createRoute: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              key: const ValueKey('close_creation'),
+              onPressed: () => context.pop(),
+              child: const Text('Close creation'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final create = find.byKey(const ValueKey('budgets_create_button'));
+    await tester.tap(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('close_creation')));
+    await tester.pumpAndSettle();
+
+    expect(create.hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('close_creation')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('renders independent currency cards with calculated actual and remaining', (
@@ -248,6 +390,14 @@ void main() {
 
     expect(find.text('Comida'), findsOneWidget);
     expect(find.text('Salario'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Vivienda'),
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('budget_monthly_list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     expect(find.text('Vivienda'), findsOneWidget);
     expect(find.textContaining('Gastado'), findsNWidgets(2));
     expect(find.textContaining('Recibido'), findsOneWidget);
@@ -320,7 +470,7 @@ void main() {
     setScreen(tester, const Size(390, 844));
     await tester.pumpWidget(subject(budgets: const []));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_list_month')));
+    await tester.tap(find.byKey(const ValueKey('planning_month_picker')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('budget_month_grid')), findsOneWidget);
     final option = find.byKey(const ValueKey('budget_month_option_1'));
@@ -334,13 +484,59 @@ void main() {
     expect(find.byKey(const ValueKey('budget_empty_title')), findsOneWidget);
   });
 
+  testWidgets('applies the shared month from a budget deep link', (tester) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(subject(initialLocation: '/budgets?month=2026-11'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(DateFormat.yMMMM('es').format(DateTime(2026, 11))), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps one selected month while navigating across all planning sections', (
+    tester,
+  ) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(subject(initialLocation: '/budgets?month=2026-10'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('planning_next_month')));
+    await tester.pumpAndSettle();
+    final novemberLabel = DateFormat.yMMMM('es').format(DateTime(2026, 11));
+    expect(find.text(novemberLabel), findsOneWidget);
+
+    await tester.tap(find.text('Agenda'));
+    await tester.pumpAndSettle();
+    expect(find.text('Agenda 2026-11'), findsOneWidget);
+    expect(find.text(novemberLabel), findsOneWidget);
+
+    final debtPaymentsTab = find.text('Pagos de deudas');
+    await tester.ensureVisible(debtPaymentsTab);
+    await tester.pumpAndSettle();
+    await tester.tap(debtPaymentsTab);
+    await tester.pumpAndSettle();
+    expect(find.text('Debt payments 2026-11'), findsOneWidget);
+    expect(find.text(novemberLabel), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('planning_next_month')));
+    await tester.pumpAndSettle();
+    expect(find.text(DateFormat.yMMMM('es').format(DateTime(2026, 12))), findsOneWidget);
+    final budgetsTab = find.text('Presupuestos');
+    await tester.ensureVisible(budgetsTab);
+    await tester.pumpAndSettle();
+    await tester.tap(budgetsTab);
+    await tester.pumpAndSettle();
+    expect(find.text(DateFormat.yMMMM('es').format(DateTime(2026, 12))), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('month options and confirmation stay centered with localized large text', (
     tester,
   ) async {
     setScreen(tester, const Size(360, 760));
     await tester.pumpWidget(subject(locale: const Locale('pt'), textScale: 1.35));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_list_month')));
+    await tester.tap(find.byKey(const ValueKey('planning_month_picker')));
     await tester.pumpAndSettle();
 
     for (var month = 1; month <= 12; month++) {

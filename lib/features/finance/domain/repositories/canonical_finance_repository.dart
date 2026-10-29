@@ -234,5 +234,20 @@ abstract interface class CanonicalFinanceRepository {
     String? requestId,
   });
 
+  Future<Either<Failure, Unit>> reconcileBudget(
+    String userId,
+    String budgetId, {
+    String? requestId,
+  });
+
+  Future<Either<Failure, Unit>> setOperationBudgetItem(
+    String userId, {
+    required String operationId,
+    required int expectedRevision,
+    required String? budgetId,
+    required String? itemId,
+    String? requestId,
+  });
+
   Future<Either<Failure, Unit>> archiveBudget(String userId, String budgetId, {String? requestId});
 }

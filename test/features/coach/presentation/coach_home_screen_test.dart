@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/features/coach/domain/entities/coach_models.dart';
 import 'package:personal_finance/features/coach/presentation/screens/coach_home_screen.dart';
+import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 
 import 'coach_test_support.dart';
 
@@ -138,6 +141,7 @@ void main() {
     expect(find.text('Weekly review'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Recent reviews'), 300);
     expect(find.text('Recent reviews'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('2026-10-21'), 300);
     expect(find.text('2026-10-21'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Set reminders'), 300);
     expect(find.text('Set reminders'), findsOneWidget);
@@ -160,6 +164,129 @@ void main() {
     expect(find.text('Revisão diária'), findsWidgets);
     await tester.scrollUntilVisible(find.text('Revisão semanal'), 300);
     expect(find.text('Revisão semanal'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows a provisional recommendation after eight seconds and updates on recovery', (
+    tester,
+  ) async {
+    final budgetController = StreamController<List<CoachBudgetProgress>>.broadcast();
+    addTearDown(budgetController.close);
+    await pumpCoach(
+      tester,
+      const CoachHomeScreen(),
+      repositoryFor(),
+      language: 'en',
+      settle: false,
+      budgetProgressStream: budgetController.stream,
+    );
+    await tester.pump();
+
+    expect(find.byType(LinearProgressIndicator), findsWidgets);
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachProvisionalRecommendation), findsOneWidget);
+    expect(find.text(strings(tester).coachActionConfigureTitle), findsOneWidget);
+
+    budgetController.add([
+      const CoachBudgetProgress(
+        budgetId: 'reached-budget',
+        categoryId: 'food',
+        currency: 'COP',
+        plannedMinor: 100000,
+        actualMinor: 120000,
+        active: true,
+      ),
+    ]);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachActionBudgetTitle), findsOneWidget);
+    expect(find.text(strings(tester).coachProvisionalRecommendation), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps the incomplete warning after a source error until it recovers', (
+    tester,
+  ) async {
+    final budgetController = StreamController<List<CoachBudgetProgress>>.broadcast();
+    addTearDown(budgetController.close);
+    await pumpCoach(
+      tester,
+      const CoachHomeScreen(),
+      repositoryFor(),
+      language: 'en',
+      settle: false,
+      budgetProgressStream: budgetController.stream,
+    );
+    await tester.pump();
+    budgetController.addError(StateError('budget-unavailable'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachProvisionalRecommendation), findsOneWidget);
+    expect(find.text(strings(tester).coachSourcesIncomplete), findsOneWidget);
+    expect(find.text(strings(tester).coachActionConfigureTitle), findsOneWidget);
+
+    budgetController.add([
+      const CoachBudgetProgress(
+        budgetId: 'recovered-budget',
+        categoryId: 'food',
+        currency: 'COP',
+        plannedMinor: 100000,
+        actualMinor: 110000,
+        active: true,
+      ),
+    ]);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachActionBudgetTitle), findsOneWidget);
+    expect(find.text(strings(tester).coachProvisionalRecommendation), findsNothing);
+    expect(find.text(strings(tester).coachSourcesIncomplete), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('explains unavailable recommendation and recovers when retried source arrives', (
+    tester,
+  ) async {
+    final profileController = StreamController<UserProfile?>.broadcast();
+    addTearDown(profileController.close);
+    await pumpCoach(
+      tester,
+      const CoachHomeScreen(),
+      repositoryFor(),
+      language: 'en',
+      settle: false,
+      profileStream: profileController.stream,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachNoReliableRecommendation), findsOneWidget);
+    expect(find.text(strings(tester).coachActionCurrentBody), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('coach_next_step_retry')));
+    await tester.pump();
+    profileController.add(
+      const UserProfile(
+        id: coachUid,
+        locale: 'en',
+        countryCode: 'CO',
+        timeZone: 'America/Bogota',
+        defaultCurrency: 'COP',
+        onboardingStatus: 'complete',
+        categoryCatalogVersion: 1,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text(strings(tester).coachNoReliableRecommendation), findsNothing);
+    expect(find.text(strings(tester).coachActionConfigureTitle), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

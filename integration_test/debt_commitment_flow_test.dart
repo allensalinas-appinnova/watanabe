@@ -1,13 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:personal_finance/config/environment/app_environment.dart';
 import 'package:personal_finance/core/di/injection.dart';
 import 'package:personal_finance/core/firebase/firebase_bootstrap.dart';
+import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/commitments/domain/commitment_repository.dart';
 import 'package:personal_finance/features/debts/domain/debt_command.dart';
 import 'package:personal_finance/features/debts/domain/debt_repository.dart';
+import 'package:personal_finance/features/debts/presentation/debt_form_screen.dart';
+import 'package:personal_finance/features/finance/presentation/screens/canonical_accounts_screen.dart';
+import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -160,24 +167,84 @@ void main() {
         'unallocated',
       );
 
-      final allocationResult = await getIt<DebtRepository>().execute(
-        user.uid,
-        DebtCommand(
-          requestId: 'e2e_allocate_payment_001',
-          fields: {
-            'action': 'allocatePayment',
-            'accountId': loanId,
-            'paymentId': 'e2e_unallocated_payment_001',
-            'amountMinor': 2400000,
-            'occurredAt': occurredAt,
-            'principalMinor': 2000000,
-            'previousChargesMinor': 0,
-            'newChargesMinor': 400000,
-            'categoryId': 'interest_fees',
-          },
+      // Exercise the actual deep-link path: the payment ID is in the URL and
+      // there is intentionally no GoRouter `extra` carrying operation data.
+      final router = GoRouter(
+        initialLocation:
+            '/debts/$loanId/actions/allocatePayment?paymentId=e2e_unallocated_payment_001',
+        routes: [
+          GoRoute(path: '/accounts', builder: (_, _) => const CanonicalAccountsScreen()),
+          GoRoute(
+            path: '/debts/:id/actions/:action',
+            builder: (_, state) => DebtFormScreen(
+              accountId: state.pathParameters['id'],
+              action: state.pathParameters['action']!,
+              paymentId: state.uri.queryParameters['paymentId'],
+            ),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: AppTheme.light,
+            locale: const Locale('es'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
         ),
       );
-      expect(allocationResult.isRight(), isTrue);
+
+      Future<void> waitFor(Finder finder) async {
+        final deadline = DateTime.now().add(const Duration(seconds: 30));
+        while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        expect(finder, findsWidgets);
+      }
+
+      await waitFor(find.byKey(const ValueKey('debt_newChargesMinor')));
+      expect(find.text('Crédito de vehículo'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('debt_principalMinor')),
+        '2000000',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('debt_previousChargesMinor')),
+        '0',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('debt_newChargesMinor')),
+        '400000',
+      );
+      tester.binding.focusManager.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final categorySelector = find.byKey(const ValueKey('debt_category_selector_tap'));
+      await tester.scrollUntilVisible(
+        categorySelector,
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(categorySelector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('finance_popup_option_interest_fees')));
+      await tester.pumpAndSettle();
+      final saveButton = find.byKey(const ValueKey('debt_save'));
+      await tester.scrollUntilVisible(
+        saveButton,
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.textContaining('Cuenta sintética'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pump();
+      await waitFor(find.byKey(const ValueKey('accounts_add_button')));
+      await tester.pumpAndSettle();
+      router.dispose();
 
       final bankAfterAllocation = (await root.collection('accounts').doc('bank').get()).data()!;
       final loanAfterAllocation = (await root.collection('accounts').doc(loanId).get()).data()!;
@@ -189,6 +256,15 @@ void main() {
       expect(payment['status'], 'allocated');
       expect(payment['principalMinor'], 2000000);
       expect(payment['newChargesMinor'], 400000);
+      expect(payment['allocationRequestId'], isA<String>());
+      final chargeOperations = await root
+          .collection('operations')
+          .where('paymentId', isEqualTo: 'e2e_unallocated_payment_001')
+          .where('debtKind', isEqualTo: 'newChargePaid')
+          .get(const GetOptions(source: Source.server));
+      expect(chargeOperations.docs, hasLength(1));
+      expect(chargeOperations.docs.single.data()['amountMinor'], 400000);
+      expect(chargeOperations.docs.single.data()['categoryId'], 'interest_fees');
       final summary = (await root.collection('monthlySummaries').doc('${monthKey}_COP').get())
           .data()!;
       expect(summary['expenseMinor'], 400000);

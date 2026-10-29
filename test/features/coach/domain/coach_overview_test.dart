@@ -21,12 +21,14 @@ void main() {
     List<DebtCommitmentPaymentLink> links = const [],
     List<FinancialOperation> unallocated = const [],
     List<CoachBudgetProgress> budgets = const [],
+    List<CoachPlannedExpense> plannedExpenses = const [],
     List<CoachCompletion> completions = const [],
     CoachRoutinePreferences routinePreferences = const CoachRoutinePreferences(),
     CoachPreferences reminderPreferences = const CoachPreferences(),
     CoachPeriodReport? report,
     int rejected = 0,
     CoachFreshness freshness = CoachFreshness.fresh,
+    CoachOverviewAvailability availability = const CoachOverviewAvailability(),
   }) {
     final instant = now ?? DateTime(2026, 10, 28, 21);
     final routine = CoachRoutine(ZonedCoachCalendar(), _Clock(instant.toUtc()));
@@ -53,6 +55,8 @@ void main() {
       rejectedSyncCount: rejected,
       pendingSyncCount: 0,
       paymentFreshness: freshness,
+      plannedExpenses: plannedExpenses,
+      availability: availability,
     );
   }
 
@@ -82,13 +86,31 @@ void main() {
     allocationStatus: 'unallocated',
   );
 
+  CoachPlannedExpense plannedExpense({
+    String id = 'budget:personal-care:item-1',
+    DateTime? due,
+    String monthKey = '2026-10',
+    int pending = 50000,
+  }) => CoachPlannedExpense(
+    id: id,
+    budgetId: 'personal-care',
+    itemId: 'item-1',
+    description: 'Personal care',
+    monthKey: monthKey,
+    dueDate: due ?? DateTime(2026, 10, 28),
+    currency: 'COP',
+    plannedMinor: 100000,
+    recordedMinor: 50000,
+    pendingMinor: pending,
+  );
+
   test('rejected sync outranks due installments and all other actions', () {
     final result = calculate(
       commitments: [commitment()],
       rejected: 1,
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.syncRejected);
+    expect(result.action!.kind, CoachActionKind.syncRejected);
   });
 
   test('current month due installment outranks an old unallocated payment', () {
@@ -97,8 +119,8 @@ void main() {
       unallocated: [unallocated('old-payment')],
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.dueCommitment);
-    expect(result.action.remainingMinor, 240000);
+    expect(result.action!.kind, CoachActionKind.dueCommitment);
+    expect(result.action!.remainingMinor, 240000);
     expect(result.paymentItems.map((item) => item.kind), [
       CoachActionKind.dueCommitment,
       CoachActionKind.unallocatedPayment,
@@ -112,9 +134,49 @@ void main() {
       unallocated: [unallocated('old-payment')],
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.unallocatedPayment);
-    expect(result.action.id, 'old-payment');
+    expect(result.action!.kind, CoachActionKind.unallocatedPayment);
+    expect(result.action!.id, 'old-payment');
     expect(result.paymentItems.last.kind, CoachActionKind.unallocatedPayment);
+  });
+
+  test('due planned expense is actionable after due debt and unallocated payment priorities', () {
+    final result = calculate(
+      now: DateTime(2026, 10, 28, 21),
+      plannedExpenses: [plannedExpense()],
+      commitments: [commitment(day: 29)],
+      routinePreferences: const CoachRoutinePreferences(configured: true),
+    );
+    expect(result.action!.kind, CoachActionKind.dueBudgetExpense);
+    expect(result.action!.budgetId, 'personal-care');
+    expect(result.action!.budgetItemId, 'item-1');
+
+    final debtFirst = calculate(
+      now: DateTime(2026, 10, 28, 21),
+      plannedExpenses: [plannedExpense()],
+      commitments: [commitment(day: 28)],
+      routinePreferences: const CoachRoutinePreferences(configured: true),
+    );
+    expect(debtFirst.action!.kind, CoachActionKind.dueCommitment);
+  });
+
+  test('nearest upcoming planned expense and commitment share date priority', () {
+    final result = calculate(
+      now: DateTime(2026, 10, 20, 21),
+      plannedExpenses: [plannedExpense(due: DateTime(2026, 10, 22))],
+      commitments: [commitment(day: 24)],
+      routinePreferences: const CoachRoutinePreferences(configured: true),
+    );
+    expect(result.action!.kind, CoachActionKind.upcomingBudgetExpense);
+    expect(result.action!.dueDate, DateTime(2026, 10, 22));
+  });
+
+  test('planned expenses from unavailable planning data do not create false actions', () {
+    final result = calculate(
+      plannedExpenses: [plannedExpense()],
+      availability: const CoachOverviewAvailability(planningEntries: false),
+    );
+    expect(result.action!.kind, isNot(CoachActionKind.dueBudgetExpense));
+    expect(result.availability.planningEntries, isFalse);
   });
 
   test('payment progress is scoped to the month and leaves only the unpaid amount', () {
@@ -136,9 +198,9 @@ void main() {
       ],
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.dueCommitment);
-    expect(result.action.paidMinor, 90000);
-    expect(result.action.remainingMinor, 150000);
+    expect(result.action!.kind, CoachActionKind.dueCommitment);
+    expect(result.action!.paidMinor, 90000);
+    expect(result.action!.remainingMinor, 150000);
   });
 
   test('next-month installment is included when it falls inside the next seven days', () {
@@ -155,8 +217,8 @@ void main() {
       ],
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.upcomingCommitment);
-    expect(result.action.monthKey, '2026-11');
+    expect(result.action!.kind, CoachActionKind.upcomingCommitment);
+    expect(result.action!.monthKey, '2026-11');
     expect(result.paymentItems.single.dueDate, DateTime(2026, 11, 2));
   });
 
@@ -190,8 +252,8 @@ void main() {
       ],
       routinePreferences: const CoachRoutinePreferences(configured: true),
     );
-    expect(result.action.kind, CoachActionKind.budgetReached);
-    expect(result.action.budgetId, 'reached');
+    expect(result.action!.kind, CoachActionKind.budgetReached);
+    expect(result.action!.budgetId, 'reached');
     expect(
       result.insights.where((item) => item.kind == CoachInsightKind.budgetReached),
       hasLength(1),
@@ -204,7 +266,7 @@ void main() {
       routinePreferences: const CoachRoutinePreferences(configured: true, weeklyEnabled: true),
       reminderPreferences: const CoachPreferences(weeklyWeekday: 1, weeklyHour: 9),
     );
-    expect(weeklyDue.action.kind, CoachActionKind.weeklyReview);
+    expect(weeklyDue.action!.kind, CoachActionKind.weeklyReview);
     expect(weeklyDue.weeklyReviewDue, isTrue);
 
     final beforeDailyTime = calculate(
@@ -212,7 +274,7 @@ void main() {
       routinePreferences: const CoachRoutinePreferences(configured: true, dailyEnabled: true),
       reminderPreferences: const CoachPreferences(dailyHour: 20),
     );
-    expect(beforeDailyTime.action.kind, CoachActionKind.current);
+    expect(beforeDailyTime.action!.kind, CoachActionKind.current);
     expect(beforeDailyTime.dailyReviewDue, isFalse);
   });
 
@@ -253,6 +315,54 @@ void main() {
       ),
     );
     expect(result.freshness, CoachFreshness.cached);
+  });
+
+  test('uses a known action provisionally when a higher-priority source is missing', () {
+    final result = calculate(
+      commitments: [commitment()],
+      routinePreferences: const CoachRoutinePreferences(configured: true),
+      availability: const CoachOverviewAvailability(budgetProgress: false),
+    );
+
+    expect(result.action!.kind, CoachActionKind.dueCommitment);
+    expect(result.availability.actionSources, isFalse);
+  });
+
+  test('does not report all clear when no available source can support an action', () {
+    final result = calculate(
+      availability: const CoachOverviewAvailability(
+        profile: false,
+        reminderPreferences: false,
+        routinePreferences: false,
+        completions: false,
+        commitments: false,
+        paymentLinks: false,
+        unallocatedPayments: false,
+        budgetProgress: false,
+        pendingOperations: false,
+        report: false,
+      ),
+    );
+
+    expect(result.action, isNull);
+    expect(result.availability.actionSources, isFalse);
+  });
+
+  test('omits weekly category observations while the report is unavailable', () {
+    final result = calculate(
+      report: CoachPeriodReport(
+        startAt: DateTime(2026, 10, 19),
+        endAtExclusive: DateTime(2026, 10, 26),
+        operations: [_expense('food', amount: 10000, category: 'food')],
+        freshness: CoachFreshness.fresh,
+      ),
+      availability: const CoachOverviewAvailability(report: false),
+    );
+
+    expect(
+      result.insights.where((item) => item.kind == CoachInsightKind.largestWeeklyCategory),
+      isEmpty,
+    );
   });
 }
 

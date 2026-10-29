@@ -1,6 +1,7 @@
 import {createHash} from "node:crypto";
 import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {checkedInteger, maximumMinor, validCurrency, validId, validMonth} from "./projection_model";
+import {executeOperationBudgetAssociation} from "./operation_budget_associations";
 
 type ItemDraft = {description: string; amountMinor: number; dayOfMonth: number};
 type BudgetIdentity = {categoryId: string; flowType: "income" | "expense"; monthKey: string; currency: string};
@@ -9,10 +10,11 @@ type Command = {requestId: string; expectedGeneration: number} & (
   {action: "addItem"; budgetId: string; item: ItemDraft} |
   {action: "updateItem"; budgetId: string; itemId: string; item: ItemDraft} |
   {action: "archiveItem"; budgetId: string; itemId: string} |
+  {action: "reconcile"; budgetId: string} |
   {action: "archiveBudget"; budgetId: string}
 );
 type Data = Record<string, unknown>;
-export type BudgetCommandResult = {budget: Data; item?: Data};
+export type BudgetCommandResult = {budget?: Data; item?: Data; operation?: Data};
 
 export class BudgetCommandError extends Error {
   constructor(readonly issue: string, readonly status: "invalid-argument" | "unauthenticated" | "not-found" | "already-exists" | "failed-precondition" = "invalid-argument") {
@@ -81,6 +83,9 @@ function parseCommand(payload: unknown): Command {
   case "archiveItem":
     keys(data, ["requestId", "expectedGeneration", "action", "budgetId", "itemId"]);
     return {requestId, expectedGeneration, action: "archiveItem", budgetId: id(data.budgetId), itemId: id(data.itemId)};
+  case "reconcile":
+    keys(data, ["requestId", "expectedGeneration", "action", "budgetId"]);
+    return {requestId, expectedGeneration, action: "reconcile", budgetId: id(data.budgetId)};
   case "archiveBudget":
     keys(data, ["requestId", "expectedGeneration", "action", "budgetId"]);
     return {requestId, expectedGeneration, action: "archiveBudget", budgetId: id(data.budgetId)};
@@ -91,6 +96,10 @@ function parseCommand(payload: unknown): Command {
 /** UID comes from verified callable authentication, never from the command. */
 export async function executeBudgetCommand(db: Firestore, uid: string | undefined, payload: unknown): Promise<BudgetCommandResult> {
   if (!uid || !validId(uid)) throw new BudgetCommandError("budget-session-expired", "unauthenticated");
+  if (payload && typeof payload === "object" && !Array.isArray(payload) &&
+      (payload as Data).action === "setOperationBudgetItem") {
+    return executeOperationBudgetAssociation(db, uid, payload);
+  }
   const command = parseCommand(payload);
   const digest = createHash("sha256").update(JSON.stringify(command)).digest("hex");
   const root = db.doc(`users/${uid}`);
@@ -113,8 +122,8 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     if (command.action !== "create" && !previous) throw new BudgetCommandError("budget-not-found", "not-found");
     const budget = command.action === "create" ? command.identity : identity(previous!);
     const category = await transaction.get(root.collection("categories").doc(budget.categoryId));
-    if (!category.exists || category.data()?.type !== budget.flowType ||
-        (command.action === "create" && category.data()?.isArchived === true)) {
+    if (command.action !== "reconcile" && (!category.exists || category.data()?.type !== budget.flowType ||
+        (command.action === "create" && category.data()?.isArchived === true))) {
       throw new BudgetCommandError("budget-category-unavailable", "failed-precondition");
     }
     const itemSnapshots = await transaction.get(budgetRef.collection("items"));
@@ -141,6 +150,9 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
         items.set(itemId, data);
         writes.set(itemId, data);
       });
+    } else if (command.action === "reconcile") {
+      // A reconciliation only repairs the denormalized parent aggregate. The
+      // item documents remain the source of truth and are never rewritten.
     } else {
       if (previous!.status !== "active") throw new BudgetCommandError("budget-archived", "failed-precondition");
       if (command.action === "addItem") {
@@ -176,7 +188,8 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
       count++;
     }
     if (!count) throw new BudgetCommandError("budget-last-item", "failed-precondition");
-    const status = command.action === "archiveBudget" ? "archived" : "active";
+    const status = command.action === "archiveBudget" ? "archived" :
+      command.action === "reconcile" ? previous!.status : "active";
     const canonicalBudget = {id: budgetId, ...budget, plannedAmountMinor: total, itemCount: count, status};
     const changed = changedItemId ? items.get(changedItemId)! : undefined;
     const result: BudgetCommandResult = {budget: canonicalBudget};
@@ -186,9 +199,13 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     };
     // Every read precedes every write, including the query and category validation.
     for (const [itemId, item] of writes) transaction.set(budgetRef.collection("items").doc(itemId), item);
+    const aggregateChanged = previous?.plannedAmountMinor !== total || previous?.itemCount !== count;
     const parent = {...budget, plannedAmountMinor: total, itemCount: count, status, updatedAt: FieldValue.serverTimestamp()};
-    if (previous) transaction.update(budgetRef, parent);
-    else transaction.create(budgetRef, {...parent, createdAt: FieldValue.serverTimestamp()});
+    if (previous) {
+      if (command.action !== "reconcile" || aggregateChanged) transaction.update(budgetRef, parent);
+    } else {
+      transaction.create(budgetRef, {...parent, createdAt: FieldValue.serverTimestamp()});
+    }
     transaction.create(receiptRef, {digest, result, createdAt: FieldValue.serverTimestamp()});
     return result;
   });

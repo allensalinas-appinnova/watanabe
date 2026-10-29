@@ -2590,6 +2590,90 @@ abstract class AppLocalizations {
   /// **'Elementos planeados · {count}'**
   String budgetItemsHeading(Object count);
 
+  /// No description provided for @budgetMovementsTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos'**
+  String get budgetMovementsTab;
+
+  /// No description provided for @budgetMovementsExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'El progreso incluye todos los movimientos confirmados de esta categoría y periodo, estén asociados o no a un elemento.'**
+  String get budgetMovementsExplanation;
+
+  /// No description provided for @budgetMovementFilterAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get budgetMovementFilterAll;
+
+  /// No description provided for @budgetMovementFilterLinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Con elemento'**
+  String get budgetMovementFilterLinked;
+
+  /// No description provided for @budgetMovementFilterUnlinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin elemento'**
+  String get budgetMovementFilterUnlinked;
+
+  /// No description provided for @budgetMovementsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay movimientos confirmados de esta categoría en el periodo.'**
+  String get budgetMovementsEmpty;
+
+  /// No description provided for @budgetMovementUnassociated.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin elemento asociado'**
+  String get budgetMovementUnassociated;
+
+  /// No description provided for @budgetMovementLinkedTo.
+  ///
+  /// In es, this message translates to:
+  /// **'Asociado a: {item}'**
+  String budgetMovementLinkedTo(String item);
+
+  /// No description provided for @budgetMovementArchivedLink.
+  ///
+  /// In es, this message translates to:
+  /// **'Asociado al elemento archivado: {item}'**
+  String budgetMovementArchivedLink(String item);
+
+  /// No description provided for @budgetMovementAssociation.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar elemento asociado'**
+  String get budgetMovementAssociation;
+
+  /// No description provided for @budgetMovementClearAssociation.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar asociación'**
+  String get budgetMovementClearAssociation;
+
+  /// No description provided for @budgetMovementReversal.
+  ///
+  /// In es, this message translates to:
+  /// **'Reversión; no se puede asociar'**
+  String get budgetMovementReversal;
+
+  /// No description provided for @budgetMovementAssociationSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Se actualizó la asociación. El saldo y el gasto total no cambian.'**
+  String get budgetMovementAssociationSaved;
+
+  /// No description provided for @budgetMovementAssociationFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cambiar la asociación. No se alteraron los saldos; inténtalo de nuevo.'**
+  String get budgetMovementAssociationFailed;
+
   /// No description provided for @budgetEditItemTitle.
   ///
   /// In es, this message translates to:
@@ -4594,6 +4678,60 @@ abstract class AppLocalizations {
   /// **'Revisar cuota'**
   String get coachReviewPayment;
 
+  /// No description provided for @coachActionDueBudgetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Atiende: {item}'**
+  String coachActionDueBudgetTitle(String item);
+
+  /// No description provided for @coachActionUpcomingBudgetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Próximo gasto: {item}'**
+  String coachActionUpcomingBudgetTitle(String item);
+
+  /// No description provided for @coachBudgetExpenseDueBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Es un gasto planeado sin suficiente movimiento asociado. La fecha no confirma que siga pendiente fuera de la app.'**
+  String get coachBudgetExpenseDueBody;
+
+  /// No description provided for @coachBudgetExpenseUpcomingBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa este gasto planeado y sus movimientos asociados. No se registrará automáticamente.'**
+  String get coachBudgetExpenseUpcomingBody;
+
+  /// No description provided for @coachReviewPlannedExpense.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar gasto planeado'**
+  String get coachReviewPlannedExpense;
+
+  /// No description provided for @coachUpcomingPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Próximos en tu plan'**
+  String get coachUpcomingPlan;
+
+  /// No description provided for @coachNoUpcomingPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay gastos o cuotas por atender en los próximos siete días.'**
+  String get coachNoUpcomingPlan;
+
+  /// No description provided for @planningDueDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha prevista: {date}'**
+  String planningDueDate(String date);
+
+  /// No description provided for @planningDebtTotal.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuotas de deuda previstas: {amount}'**
+  String planningDebtTotal(String amount);
+
   /// No description provided for @coachCompleteAllocation.
   ///
   /// In es, this message translates to:
@@ -4617,6 +4755,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Hay información pendiente de sincronizar o pagos sin desglose; tus totales podrían estar incompletos.'**
   String get coachIncompleteInfo;
+
+  /// No description provided for @coachSourcesIncomplete.
+  ///
+  /// In es, this message translates to:
+  /// **'Parte de la información todavía no está disponible. Esta recomendación es provisional; podría aparecer una acción más urgente.'**
+  String get coachSourcesIncomplete;
+
+  /// No description provided for @coachProvisionalRecommendation.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta recomendación es provisional. Podrían existir acciones más urgentes cuando termine la carga.'**
+  String get coachProvisionalRecommendation;
+
+  /// No description provided for @coachNoReliableRecommendation.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tenemos información suficiente para recomendar un siguiente paso. Puedes volver a intentarlo.'**
+  String get coachNoReliableRecommendation;
+
+  /// No description provided for @coachPaymentsIncomplete.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos cargar todos los pagos; esta lista podría estar incompleta.'**
+  String get coachPaymentsIncomplete;
 
   /// No description provided for @coachReviewFullWeek.
   ///
@@ -4725,6 +4887,108 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Importes ocultos'**
   String get coachAmountsHidden;
+
+  /// No description provided for @planningAgenda.
+  ///
+  /// In es, this message translates to:
+  /// **'Agenda'**
+  String get planningAgenda;
+
+  /// No description provided for @planningPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Planificar'**
+  String get planningPlan;
+
+  /// No description provided for @planningPendingOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Por atender'**
+  String get planningPendingOnly;
+
+  /// No description provided for @planningAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get planningAll;
+
+  /// No description provided for @planningAllTypes.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos los tipos'**
+  String get planningAllTypes;
+
+  /// No description provided for @planningAllCurrencies.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas las monedas'**
+  String get planningAllCurrencies;
+
+  /// No description provided for @planningNoEntries.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay elementos planeados para este mes.'**
+  String get planningNoEntries;
+
+  /// No description provided for @planningNoPendingEntries.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo lo planeado tiene movimientos asociados.'**
+  String get planningNoPendingEntries;
+
+  /// No description provided for @planningSourceExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Los movimientos asociados se muestran frente a cada elemento planeado. Las cuotas no ejecutan pagos automáticamente.'**
+  String get planningSourceExplanation;
+
+  /// No description provided for @planningRecorded.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrado'**
+  String get planningRecorded;
+
+  /// No description provided for @planningPendingAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get planningPendingAmount;
+
+  /// No description provided for @debtLinkExistingPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Asociar un pago existente'**
+  String get debtLinkExistingPayment;
+
+  /// No description provided for @debtNoExistingPayments.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay pagos compatibles sin asociar.'**
+  String get debtNoExistingPayments;
+
+  /// No description provided for @planningTotalsUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los totales del mes.'**
+  String get planningTotalsUnavailable;
+
+  /// No description provided for @planningDebtCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} pagos planeados · {pending} pendientes'**
+  String planningDebtCount(int count, int pending);
+
+  /// No description provided for @debtCommitmentsExcluded.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitidos o pausados'**
+  String get debtCommitmentsExcluded;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'Este mes'**
+  String get thisMonth;
 
   /// No description provided for @showLess.
   ///

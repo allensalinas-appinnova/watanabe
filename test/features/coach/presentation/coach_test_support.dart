@@ -12,6 +12,7 @@ import 'package:personal_finance/features/coach/domain/usecases/coach_routine.da
 import 'package:personal_finance/features/coach/presentation/providers/coach_providers.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
+import 'package:personal_finance/features/finance/domain/entities/planning_agenda_entry.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
 import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
@@ -125,6 +126,9 @@ Future<void> pumpCoach(
   String language = 'en',
   TestCoachClock? clock,
   bool compact = false,
+  bool settle = true,
+  Stream<UserProfile?>? profileStream,
+  Stream<List<CoachBudgetProgress>>? budgetProgressStream,
   Stream<AuthUser?>? sessionStream,
 }) async {
   tester.view.physicalSize = compact ? const Size(360, 800) : const Size(800, 1200);
@@ -146,21 +150,31 @@ Future<void> pumpCoach(
         coachNotificationServiceProvider.overrideWithValue(null),
         coachTickProvider.overrideWith((ref) => Stream.value((clock ?? TestCoachClock()).now())),
         canonicalUserProfileProvider.overrideWith(
-          (ref, uid) => Stream.value(
-            UserProfile(
-              id: uid,
-              locale: 'en',
-              countryCode: 'CO',
-              timeZone: 'America/Bogota',
-              defaultCurrency: 'COP',
-              onboardingStatus: 'complete',
-              categoryCatalogVersion: 1,
-            ),
-          ),
+          (ref, uid) =>
+              profileStream ??
+              Stream.value(
+                UserProfile(
+                  id: uid,
+                  locale: 'en',
+                  countryCode: 'CO',
+                  timeZone: 'America/Bogota',
+                  defaultCurrency: 'COP',
+                  onboardingStatus: 'complete',
+                  categoryCatalogVersion: 1,
+                ),
+              ),
+        ),
+        coachBudgetProgressProvider.overrideWith(
+          (ref, request) => budgetProgressStream ?? Stream.value(const []),
         ),
         canonicalCategoriesProvider.overrideWith((ref, uid) => Stream.value(const [])),
         canonicalAccountsProvider.overrideWith(
           (ref, uid) => Stream.value(const <FinanceAccount>[]),
+        ),
+        debtCommitmentsProvider.overrideWith((ref, uid) => Stream.value(const [])),
+        debtCommitmentPaymentsProvider.overrideWith((ref, uid) => Stream.value(const [])),
+        planningAgendaEntriesProvider.overrideWith(
+          (ref, request) async => const <PlanningAgendaEntry>[],
         ),
         pendingOperationsProvider.overrideWith((ref) => Stream.value(const [])),
       ],
@@ -173,7 +187,11 @@ Future<void> pumpCoach(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -184,7 +202,7 @@ AppLocalizations strings(WidgetTester tester) =>
     AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
 Future<void> tapCoach(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
+  await tester.scrollUntilVisible(finder, 250);
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }

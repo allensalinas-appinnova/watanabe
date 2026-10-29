@@ -16,8 +16,14 @@ String coachActionTitle(
     CoachActionKind.syncRejected => l10n.coachActionSyncTitle,
     CoachActionKind.dueCommitment => l10n.coachActionDueTitle(account?.name ?? l10n.accountName),
     CoachActionKind.unallocatedPayment => l10n.coachActionUnallocatedTitle,
+    CoachActionKind.dueBudgetExpense => l10n.coachActionDueBudgetTitle(
+      action.description ?? l10n.expense,
+    ),
     CoachActionKind.upcomingCommitment => l10n.coachActionUpcomingTitle(
       account?.name ?? l10n.accountName,
+    ),
+    CoachActionKind.upcomingBudgetExpense => l10n.coachActionUpcomingBudgetTitle(
+      action.description ?? l10n.expense,
     ),
     CoachActionKind.budgetReached => l10n.coachActionBudgetTitle,
     CoachActionKind.weeklyReview => l10n.coachActionWeeklyTitle,
@@ -47,11 +53,25 @@ String coachActionBody(
       l10n.coachActionDueBody,
     ].join(' '),
     CoachActionKind.unallocatedPayment => l10n.coachActionUnallocatedBody,
+    CoachActionKind.dueBudgetExpense => [
+      if (action.dueDate != null)
+        l10n.planningDueDate(DateFormat.yMMMd(locale).format(action.dueDate!)),
+      if (!amountsHidden && action.remainingMinor != null)
+        l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
+      l10n.coachBudgetExpenseDueBody,
+    ].join(' · '),
     CoachActionKind.upcomingCommitment => [
       if (action.dueDate != null)
         l10n.coachPaymentDue(DateFormat.yMMMd(locale).format(action.dueDate!)),
       if (!amountsHidden && action.remainingMinor != null)
         l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
+    ].join(' · '),
+    CoachActionKind.upcomingBudgetExpense => [
+      if (action.dueDate != null)
+        l10n.planningDueDate(DateFormat.yMMMd(locale).format(action.dueDate!)),
+      if (!amountsHidden && action.remainingMinor != null)
+        l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
+      l10n.coachBudgetExpenseUpcomingBody,
     ].join(' · '),
     CoachActionKind.budgetReached =>
       amountsHidden || action.plannedMinor == null || action.paidMinor == null
@@ -70,6 +90,8 @@ String coachActionBody(
 String coachActionButtonLabel(AppLocalizations l10n, CoachActionKind kind) => switch (kind) {
   CoachActionKind.syncRejected => l10n.coachViewMovements,
   CoachActionKind.dueCommitment || CoachActionKind.upcomingCommitment => l10n.coachReviewPayment,
+  CoachActionKind.dueBudgetExpense ||
+  CoachActionKind.upcomingBudgetExpense => l10n.coachReviewPlannedExpense,
   CoachActionKind.unallocatedPayment => l10n.coachCompleteAllocation,
   CoachActionKind.budgetReached => l10n.coachReviewBudget,
   CoachActionKind.weeklyReview => l10n.coachWeeklyTitle,
@@ -93,6 +115,11 @@ String coachActionRoute(CoachAction action) {
         path: '/debts/${action.debtAccountId}/actions/pay',
         queryParameters: query,
       ).toString();
+    case CoachActionKind.dueBudgetExpense:
+    case CoachActionKind.upcomingBudgetExpense:
+      return action.budgetId == null
+          ? '/budgets/agenda?month=${action.monthKey ?? ''}'
+          : '/budgets/${action.budgetId}';
     case CoachActionKind.unallocatedPayment:
       final paymentId = action.operation?.paymentId ?? action.operation?.debtCommandId;
       return Uri(

@@ -38,13 +38,25 @@ class CoachNextStepCard extends ConsumerWidget {
               const SizedBox(height: 8),
               if (state.loading)
                 const LinearProgressIndicator()
-              else if (state.error || action == null) ...[
-                Text(l10n.coachReadFailure),
+              else if (action == null) ...[
+                Text(
+                  state.actionIncomplete
+                      ? l10n.coachNoReliableRecommendation
+                      : l10n.coachReadFailure,
+                ),
                 TextButton(
-                  onPressed: () => _refresh(ref, userId),
+                  key: const ValueKey('coach_next_step_retry'),
+                  onPressed: () => retryCoachOverview(ref, userId),
                   child: Text(l10n.retry),
                 ),
               ] else ...[
+                if (state.actionIncomplete) ...[
+                  Text(
+                    l10n.coachProvisionalRecommendation,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Text(
                   coachActionTitle(l10n, action, accounts),
                   style: Theme.of(context).textTheme.titleSmall,
@@ -99,15 +111,5 @@ class CoachNextStepCard extends ConsumerWidget {
     } else {
       unawaited(context.push<void>(route));
     }
-  }
-
-  void _refresh(WidgetRef ref, String uid) {
-    ref
-      ..invalidate(coachPreferencesProvider(uid))
-      ..invalidate(coachRoutinePreferencesProvider(uid))
-      ..invalidate(coachCompletionsProvider(uid))
-      ..invalidate(coachUnallocatedPaymentsProvider(uid))
-      ..invalidate(coachBudgetProgressProvider)
-      ..invalidate(coachOverviewProvider(uid));
   }
 }

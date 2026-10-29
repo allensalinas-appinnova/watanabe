@@ -165,6 +165,32 @@ class CoachBudgetProgress {
   final bool cached;
 }
 
+class CoachPlannedExpense {
+  const CoachPlannedExpense({
+    required this.id,
+    required this.budgetId,
+    required this.itemId,
+    required this.description,
+    required this.monthKey,
+    required this.dueDate,
+    required this.currency,
+    required this.plannedMinor,
+    required this.recordedMinor,
+    required this.pendingMinor,
+  });
+
+  final String id;
+  final String budgetId;
+  final String itemId;
+  final String description;
+  final String monthKey;
+  final DateTime dueDate;
+  final String currency;
+  final int plannedMinor;
+  final int recordedMinor;
+  final int pendingMinor;
+}
+
 class CoachUnallocatedPayments {
   const CoachUnallocatedPayments({
     required this.operations,

@@ -55,6 +55,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       '/activity',
       '/accounts',
       '/budgets',
+      '/budgets/agenda',
+      '/budgets/debt-payments',
       '/coach',
     }.contains(widget.currentLocation);
     final showRegisterAction =

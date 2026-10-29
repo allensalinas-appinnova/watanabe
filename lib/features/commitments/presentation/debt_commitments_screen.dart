@@ -10,12 +10,14 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/money_parser.dart';
 import '../../../core/utils/request_id.dart';
 import '../../../core/widgets/day_of_month_selector.dart';
+import '../../../core/widgets/pinned_action_bar.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../finance/domain/entities/finance_account.dart';
 import '../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../finance/presentation/widgets/finance_account_option.dart';
 import '../../finance/presentation/widgets/finance_popup_selector.dart';
+import '../../finance/presentation/widgets/planning_section_header.dart';
 import '../domain/commitment_repository.dart';
 import '../domain/debt_commitment.dart';
 import 'utils/payment_date_suggestion.dart';
@@ -28,7 +30,7 @@ class DebtCommitmentsScreen extends ConsumerStatefulWidget {
 }
 
 class _DebtCommitmentsScreenState extends ConsumerState<DebtCommitmentsScreen> {
-  late DateTime _month;
+  DateTime? _initialMonth;
 
   @override
   void initState() {
@@ -37,9 +39,13 @@ class _DebtCommitmentsScreenState extends ConsumerState<DebtCommitmentsScreen> {
     final parsed = key != null && RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(key)
         ? DateTime.tryParse('$key-01')
         : null;
-    _month = parsed == null
-        ? DateTime(DateTime.now().year, DateTime.now().month)
-        : DateTime(parsed.year, parsed.month);
+    if (parsed != null) _initialMonth = DateTime(parsed.year, parsed.month);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uid = ref.read(authSessionProvider).valueOrNull?.id;
+      if (mounted && uid != null && _initialMonth != null) {
+        ref.read(planningMonthProvider(uid).notifier).select(_initialMonth!);
+      }
+    });
   }
 
   @override
@@ -47,233 +53,197 @@ class _DebtCommitmentsScreenState extends ConsumerState<DebtCommitmentsScreen> {
     final l = AppLocalizations.of(context);
     final uid = ref.watch(authSessionProvider).valueOrNull?.id;
     if (uid == null) return Scaffold(body: Center(child: Text(l.sessionExpired)));
+    final month = ref.watch(planningMonthProvider(uid));
     final commitments = ref.watch(debtCommitmentsProvider(uid));
     final payments = ref.watch(debtCommitmentPaymentsProvider(uid));
     final accounts =
         ref.watch(canonicalAccountsProvider(uid)).valueOrNull ?? const <FinanceAccount>[];
-    final monthKey = DateFormat('yyyy-MM').format(_month);
+    final monthKey = DateFormat('yyyy-MM').format(month);
+    final locale = Localizations.localeOf(context).toString();
     return Scaffold(
-      appBar: FinanceRouteHeader(
-        title: l.debtCommitmentsTitle,
-        backLabel: l.back,
-        onBack: () => popOrGo(context, '/budgets'),
+      bottomNavigationBar: PinnedActionBar(
+        buttonKey: const ValueKey('debt_commitment_create'),
+        label: l.debtCommitmentCreate,
+        icon: Icons.add,
+        onPressed: () => context.push('/budgets/debt-payments/new?month=$monthKey'),
       ),
-      body: commitments.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(
-          child: TextButton(
-            onPressed: () => ref.invalidate(debtCommitmentsProvider(uid)),
-            child: Text(l.retry),
-          ),
-        ),
-        data: (plans) {
-          if (payments.isLoading) return const Center(child: CircularProgressIndicator());
-          if (payments.hasError) {
-            return Center(
-              child: TextButton(
-                onPressed: () => ref.invalidate(debtCommitmentPaymentsProvider(uid)),
-                child: Text(l.retry),
-              ),
-            );
-          }
-          final links = payments.requireValue;
-          final active =
-              plans
-                  .where(
-                    (plan) =>
-                        plan.scheduledDateFor(monthKey) != null &&
-                        (plan.dueDateFor(monthKey) != null || plan.isPausedFor(monthKey)),
-                  )
-                  .toList()
-                ..sort(
-                  (a, b) => a.scheduledDateFor(monthKey)!.compareTo(b.scheduledDateFor(monthKey)!),
-                );
-          final currencies = active.map((plan) => plan.currency).toSet().toList()..sort();
-          final planned = {for (final currency in currencies) currency: 0};
-          final paid = {for (final currency in currencies) currency: 0};
-          for (final plan in active) {
-            planned[plan.currency] =
-                planned[plan.currency]! +
-                (plan.dueDateFor(monthKey) == null ? 0 : plan.amountMinor);
-            paid[plan.currency] =
-                paid[plan.currency]! +
-                links
-                    .where((link) => link.commitmentId == plan.id && link.monthKey == monthKey)
-                    .fold(0, (sum, link) => sum + link.amountMinor);
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SegmentedButton<bool>(
-                      segments: [
-                        ButtonSegment(value: false, label: Text(l.budgetsTab)),
-                        ButtonSegment(value: true, label: Text(l.debtCommitmentsTab)),
-                      ],
-                      selected: const {true},
-                      onSelectionChanged: (_) => context.go('/budgets'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () =>
-                        setState(() => _month = DateTime(_month.year, _month.month - 1)),
-                    icon: const Icon(Icons.chevron_left),
-                    tooltip: l.previousMonth,
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        DateFormat.yMMMM(Localizations.localeOf(context).toString()).format(_month),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () =>
-                        setState(() => _month = DateTime(_month.year, _month.month + 1)),
-                    icon: const Icon(Icons.chevron_right),
-                    tooltip: l.nextMonth,
-                  ),
-                ],
-              ),
-              for (final currency in currencies)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(currency, style: Theme.of(context).textTheme.titleMedium),
-                        Text(
-                          '${l.debtCommitmentMonthlyPlanned}: ${CurrencyFormatter.formatMinor(planned[currency]!, currency)}',
-                        ),
-                        Text(
-                          '${l.debtCommitmentPaid}: ${CurrencyFormatter.formatMinor(paid[currency]!, currency)}',
-                        ),
-                        Text(
-                          '${l.debtCommitmentRemaining}: ${CurrencyFormatter.formatMinor((planned[currency]! - paid[currency]!).clamp(0, planned[currency]!), currency)}',
-                        ),
-                      ],
-                    ),
-                  ),
+      body: Column(
+        children: [
+          PlanningSectionHeader(userId: uid, section: PlanningSection.debtPayments),
+          Expanded(
+            child: commitments.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => Center(
+                child: TextButton(
+                  onPressed: () => ref.invalidate(debtCommitmentsProvider(uid)),
+                  child: Text(l.retry),
                 ),
-              if (active.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  child: Center(child: Text(l.debtCommitmentsEmpty)),
-                ),
-              for (final plan in active)
-                _CommitmentCard(
-                  plan: plan,
-                  account: accounts.where((item) => item.id == plan.debtAccountId).firstOrNull,
-                  monthKey: monthKey,
-                  paidMinor: links
+              ),
+              data: (plans) {
+                if (payments.isLoading) return const Center(child: CircularProgressIndicator());
+                if (payments.hasError) {
+                  return Center(
+                    child: TextButton(
+                      onPressed: () => ref.invalidate(debtCommitmentPaymentsProvider(uid)),
+                      child: Text(l.retry),
+                    ),
+                  );
+                }
+                final links = payments.requireValue;
+                final active =
+                    plans
+                        .where(
+                          (plan) => plan.scheduledDateFor(monthKey) != null,
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) {
+                          final date = a
+                              .scheduledDateFor(monthKey)!
+                              .compareTo(b.scheduledDateFor(monthKey)!);
+                          return date == 0 ? a.id.compareTo(b.id) : date;
+                        },
+                      );
+                final currencies = active.map((plan) => plan.currency).toSet().toList()..sort();
+                final planned = {for (final currency in currencies) currency: 0};
+                final paid = {for (final currency in currencies) currency: 0};
+                for (final plan in active) {
+                  planned[plan.currency] =
+                      planned[plan.currency]! +
+                      (plan.dueDateFor(monthKey) == null || plan.isSkipped(monthKey)
+                          ? 0
+                          : plan.amountMinor);
+                  paid[plan.currency] =
+                      paid[plan.currency]! +
+                      links
+                          .where(
+                            (link) => link.commitmentId == plan.id && link.monthKey == monthKey,
+                          )
+                          .fold(0, (sum, link) => sum + link.amountMinor);
+                }
+                final scheduled = active
+                    .where(
+                      (plan) =>
+                          plan.dueDateFor(monthKey) != null &&
+                          !plan.isSkipped(monthKey) &&
+                          !plan.isPausedFor(monthKey),
+                    )
+                    .toList(growable: false);
+                final excluded = active
+                    .where((plan) => plan.isSkipped(monthKey) || plan.isPausedFor(monthKey))
+                    .toList(growable: false);
+                final pendingCount = scheduled.where((plan) {
+                  final amountPaid = links
                       .where((link) => link.commitmentId == plan.id && link.monthKey == monthKey)
-                      .fold<int>(0, (sum, link) => sum + link.amountMinor),
-                  skipped: plan.isSkipped(monthKey),
-                  onSkip: () => _skipOccurrence(uid, plan, monthKey),
-                  onPause: () => _togglePause(uid, plan, monthKey),
-                  onPay: () {
-                    final paidMinor = links
-                        .where((link) => link.commitmentId == plan.id && link.monthKey == monthKey)
-                        .fold<int>(0, (sum, link) => sum + link.amountMinor);
-                    final remainingMinor = (plan.amountMinor - paidMinor).clamp(
-                      0,
-                      plan.amountMinor,
-                    );
-                    context.push(
-                      '/debts/${plan.debtAccountId}/actions/pay?commitmentId=${plan.id}&month=$monthKey&amountMinor=$remainingMinor${plan.bankAccountId == null ? '' : '&bankAccountId=${plan.bankAccountId}'}',
-                    );
-                  },
-                ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () => context.push('/budgets/debt-payments/new'),
-                icon: const Icon(Icons.add),
-                label: Text(l.debtCommitmentCreate),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _togglePause(String uid, DebtCommitment plan, String monthKey) async {
-    final result = await getIt<CommitmentRepository>().execute(uid, {
-      'requestId': newRequestId(),
-      'action': 'pause',
-      'commitmentId': plan.id,
-      'fromMonth': monthKey,
-      'paused': !plan.isPausedFor(monthKey),
-    });
-    if (!mounted) return;
-    result.match(
-      (failure) =>
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
-      (_) => ref.invalidate(debtCommitmentsProvider(uid)),
-    );
-  }
-
-  Future<void> _skipOccurrence(String uid, DebtCommitment plan, String monthKey) async {
-    final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.debtCommitmentSkip),
-        content: Text(l.debtCommitmentSkipConfirm),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.debtCommitmentConfirmSkip),
+                      .fold<int>(0, (sum, link) => sum + link.amountMinor);
+                  return (plan.amountMinor - amountPaid).clamp(0, plan.amountMinor) > 0;
+                }).length;
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  children: [
+                    PlanningMonthlySummary(userId: uid),
+                    Text(
+                      l.planningDebtCount(scheduled.length, pendingCount),
+                      key: const ValueKey('debt_commitment_count'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    for (final currency in currencies)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(currency, style: Theme.of(context).textTheme.titleMedium),
+                              Text(
+                                '${l.debtCommitmentMonthlyPlanned}: ${CurrencyFormatter.formatMinor(planned[currency]!, currency, locale: locale)}',
+                              ),
+                              Text(
+                                '${l.debtCommitmentPaid}: ${CurrencyFormatter.formatMinor(paid[currency]!, currency, locale: locale)}',
+                              ),
+                              Text(
+                                '${l.debtCommitmentRemaining}: ${CurrencyFormatter.formatMinor(scheduled.where((plan) => plan.currency == currency).fold<int>(0, (sum, plan) {
+                                  final paidForPlan = links.where((link) => link.commitmentId == plan.id && link.monthKey == monthKey).fold<int>(0, (subtotal, link) => subtotal + link.amountMinor);
+                                  return sum + (plan.amountMinor - paidForPlan).clamp(0, plan.amountMinor);
+                                }), currency, locale: locale)}',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (active.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        child: Center(child: Text(l.debtCommitmentsEmpty)),
+                      ),
+                    for (var index = 0; index < scheduled.length; index++)
+                      _CommitmentRow(
+                        number: index + 1,
+                        plan: scheduled[index],
+                        account: accounts
+                            .where((item) => item.id == scheduled[index].debtAccountId)
+                            .firstOrNull,
+                        monthKey: monthKey,
+                        paidMinor: links
+                            .where(
+                              (link) =>
+                                  link.commitmentId == scheduled[index].id &&
+                                  link.monthKey == monthKey,
+                            )
+                            .fold<int>(0, (sum, link) => sum + link.amountMinor),
+                        onTap: () => context.push(
+                          '/budgets/debt-payments/${scheduled[index].id}?month=$monthKey',
+                        ),
+                      ),
+                    if (excluded.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        l.debtCommitmentsExcluded,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      for (final plan in excluded)
+                        _CommitmentRow(
+                          number: null,
+                          plan: plan,
+                          account: accounts
+                              .where((item) => item.id == plan.debtAccountId)
+                              .firstOrNull,
+                          monthKey: monthKey,
+                          paidMinor: links
+                              .where(
+                                (link) => link.commitmentId == plan.id && link.monthKey == monthKey,
+                              )
+                              .fold<int>(0, (sum, link) => sum + link.amountMinor),
+                          onTap: () =>
+                              context.push('/budgets/debt-payments/${plan.id}?month=$monthKey'),
+                        ),
+                    ],
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-    final result = await getIt<CommitmentRepository>().execute(uid, {
-      'requestId': newRequestId(),
-      'action': 'skip',
-      'commitmentId': plan.id,
-      'monthKey': monthKey,
-      'skipped': true,
-    });
-    if (!mounted) return;
-    result.match(
-      (failure) =>
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
-      (_) => ref.invalidate(debtCommitmentsProvider(uid)),
-    );
   }
 }
 
-class _CommitmentCard extends StatelessWidget {
-  const _CommitmentCard({
+class _CommitmentRow extends StatelessWidget {
+  const _CommitmentRow({
+    this.number,
     required this.plan,
     required this.account,
     required this.monthKey,
     required this.paidMinor,
-    required this.skipped,
-    required this.onSkip,
-    required this.onPause,
-    required this.onPay,
+    required this.onTap,
   });
+  final int? number;
   final DebtCommitment plan;
   final FinanceAccount? account;
   final String monthKey;
   final int paidMinor;
-  final bool skipped;
-  final VoidCallback onSkip;
-  final VoidCallback onPause;
-  final VoidCallback onPay;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -282,9 +252,9 @@ class _CommitmentCard extends StatelessWidget {
       commitment: plan,
       monthKey: monthKey,
       paidMinor: paidMinor,
-      skipped: skipped,
+      skipped: plan.isSkipped(monthKey),
     );
-    final due = occurrence.dueDate!;
+    final due = plan.scheduledDateFor(monthKey)!;
     final statusLabel = switch (occurrence.status) {
       DebtInstallmentStatus.upcoming => l.debtCommitmentStatusUpcoming,
       DebtInstallmentStatus.due => l.debtCommitmentStatusDue,
@@ -294,55 +264,30 @@ class _CommitmentCard extends StatelessWidget {
       DebtInstallmentStatus.skipped => l.debtCommitmentStatusSkipped,
       DebtInstallmentStatus.paused => l.debtCommitmentStatusPaused,
     };
+    final locale = Localizations.localeOf(context).toString();
     return Card(
-      margin: const EdgeInsets.only(top: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(account?.name ?? l.debtTitle, style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              '${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(due)} · $statusLabel',
-            ),
-            Text(
-              '${l.debtCommitmentAmount}: ${CurrencyFormatter.formatMinor(plan.amountMinor, plan.currency)}',
-            ),
-            Text(
-              '${l.debtCommitmentPaid}: ${CurrencyFormatter.formatMinor(paidMinor, plan.currency)} · ${l.debtCommitmentRemaining}: ${CurrencyFormatter.formatMinor(occurrence.remainingMinor, plan.currency)}',
-            ),
-            if (occurrence.remainingMinor > 0 && !skipped)
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: TextButton.icon(
-                  onPressed: onPay,
-                  icon: const Icon(Icons.payments_outlined),
-                  label: Text(l.debtPay),
-                ),
-              ),
-            Wrap(
-              alignment: WrapAlignment.end,
-              children: [
-                if (paidMinor == 0 && occurrence.plannedMinor > 0 && !skipped)
-                  TextButton(onPressed: onSkip, child: Text(l.debtCommitmentSkip)),
-                TextButton(
-                  onPressed: onPause,
-                  child: Text(
-                    plan.isPausedFor(monthKey) ? l.debtCommitmentResume : l.debtCommitmentPause,
-                  ),
-                ),
-              ],
-            ),
-          ],
+      margin: const EdgeInsets.only(top: 8),
+      child: ListTile(
+        key: ValueKey('debt_commitment_occurrence_${plan.id}_$monthKey'),
+        minTileHeight: 76,
+        leading: number == null
+            ? const Icon(Icons.pause_circle_outline)
+            : CircleAvatar(child: Text('$number')),
+        title: Text(account?.name ?? l.debtTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          '${DateFormat.yMMMd(locale).format(due)} · $statusLabel · ${l.debtCommitmentRemaining}: ${CurrencyFormatter.formatMinor(occurrence.remainingMinor, plan.currency, locale: locale)}',
         ),
+        trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        onTap: onTap,
       ),
     );
   }
 }
 
 class DebtCommitmentFormScreen extends ConsumerStatefulWidget {
-  const DebtCommitmentFormScreen({super.key, this.initialDebtAccountId});
+  const DebtCommitmentFormScreen({super.key, this.initialDebtAccountId, this.initialMonthKey});
   final String? initialDebtAccountId;
+  final String? initialMonthKey;
   @override
   ConsumerState<DebtCommitmentFormScreen> createState() => _DebtCommitmentFormScreenState();
 }
@@ -364,6 +309,11 @@ class _DebtCommitmentFormScreenState extends ConsumerState<DebtCommitmentFormScr
   void initState() {
     super.initState();
     _debtId = widget.initialDebtAccountId;
+    final key = widget.initialMonthKey;
+    final parsed = key != null && RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(key)
+        ? DateTime.tryParse('$key-01')
+        : null;
+    if (parsed != null) _firstDue = DateTime(parsed.year, parsed.month);
   }
 
   @override

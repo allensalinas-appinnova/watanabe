@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../../core/widgets/pinned_action_bar.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_category.dart';
@@ -36,6 +37,12 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
         backLabel: l10n.back,
         onBack: () => popOrGo(context, '/home'),
       ),
+      bottomNavigationBar: PinnedActionBar(
+        buttonKey: const ValueKey('categories_create'),
+        label: l10n.createCategory,
+        icon: Icons.add,
+        onPressed: () => _create(user.id),
+      ),
       body: categories.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => _CategoriesError(
@@ -49,7 +56,7 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                 ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
           return ListView(
             key: const ValueKey('categories_list'),
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 104),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             children: [
               Text(
                 l10n.categoriesSubtitle,
@@ -138,16 +145,6 @@ class _CanonicalCategoriesScreenState extends ConsumerState<CanonicalCategoriesS
                     ),
                   ),
                 ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 52,
-                child: FilledButton.icon(
-                  key: const ValueKey('categories_create'),
-                  onPressed: () => _create(user.id),
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.createCategory),
-                ),
-              ),
             ],
           );
         },

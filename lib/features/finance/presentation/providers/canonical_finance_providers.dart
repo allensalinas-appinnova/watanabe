@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as timezone_data;
+import 'package:timezone/timezone.dart' as timezone;
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/error/failure.dart';
@@ -28,6 +30,7 @@ import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/entities/operation_page.dart';
+import '../../domain/entities/planning_agenda_entry.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
 
@@ -47,6 +50,165 @@ final debtCommitmentPaymentsProvider =
           ? getIt<CommitmentRepository>().watchPayments(userId)
           : Stream.value(const <DebtCommitmentPaymentLink>[]),
     );
+
+final planningMonthProvider = NotifierProvider.family<PlanningMonthNotifier, DateTime, String>(
+  PlanningMonthNotifier.new,
+);
+
+bool _planningTimeZonesInitialized = false;
+
+DateTime _planningLocalNow(DateTime instant, String? zone) {
+  if (zone == null || zone.isEmpty) return instant;
+  try {
+    if (!_planningTimeZonesInitialized) {
+      timezone_data.initializeTimeZones();
+      _planningTimeZonesInitialized = true;
+    }
+    return timezone.TZDateTime.from(instant.toUtc(), timezone.getLocation(zone));
+  } on Object {
+    return instant;
+  }
+}
+
+class PlanningMonthNotifier extends Notifier<DateTime> {
+  PlanningMonthNotifier(this.userId);
+
+  final String userId;
+
+  @override
+  DateTime build() {
+    final profileProvider = canonicalUserProfileProvider(userId);
+    final profileState = ref.read(profileProvider);
+    ref.listen(profileProvider, (previous, next) {
+      if (previous?.valueOrNull != null || next.valueOrNull == null) return;
+      final deviceNow = DateTime.now();
+      final expectedDeviceMonth = DateTime(deviceNow.year, deviceNow.month);
+      if (state.year != expectedDeviceMonth.year || state.month != expectedDeviceMonth.month) {
+        return;
+      }
+      final zonedNow = _planningLocalNow(deviceNow, next.valueOrNull?.timeZone);
+      state = DateTime(zonedNow.year, zonedNow.month);
+    });
+    final profile = profileState.valueOrNull;
+    final now = _planningLocalNow(DateTime.now(), profile?.timeZone);
+    return DateTime(now.year, now.month);
+  }
+
+  void select(DateTime month) => state = DateTime(month.year, month.month);
+  void current() {
+    final profile = ref.read(canonicalUserProfileProvider(userId)).valueOrNull;
+    final now = _planningLocalNow(DateTime.now(), profile?.timeZone);
+    state = DateTime(now.year, now.month);
+  }
+}
+
+class PlanningBudgetTotals {
+  const PlanningBudgetTotals({required this.income, required this.expense, required this.debt});
+  final Map<String, int> income;
+  final Map<String, int> expense;
+  final Map<String, int> debt;
+}
+
+final planningBudgetTotalsProvider = FutureProvider.autoDispose
+    .family<PlanningBudgetTotals, ({String userId, String monthKey})>((ref, input) async {
+      final repository = ref.watch(canonicalFinanceRepositoryProvider);
+      final budgets = await repository.watchBudgets(input.userId, input.monthKey).first;
+      final income = <String, int>{};
+      final expense = <String, int>{};
+      await Future.wait(
+        budgets.where((budget) => budget.status == 'active').map((budget) async {
+          final items = await repository.watchBudgetItems(input.userId, budget.id).first;
+          final amount = items
+              .where((item) => item.isActive)
+              .fold<int>(0, (sum, item) => sum + item.amountMinor);
+          final totals = budget.flowType.name == 'income' ? income : expense;
+          totals[budget.currency] = (totals[budget.currency] ?? 0) + amount;
+        }),
+      );
+      final debt = <String, int>{};
+      if (getIt.isRegistered<CommitmentRepository>()) {
+        final commitments = await getIt<CommitmentRepository>().watch(input.userId).first;
+        for (final commitment in commitments) {
+          if (commitment.dueDateFor(input.monthKey) == null ||
+              commitment.isSkipped(input.monthKey)) {
+            continue;
+          }
+          debt.update(
+            commitment.currency,
+            (amount) => amount + commitment.amountMinor,
+            ifAbsent: () => commitment.amountMinor,
+          );
+        }
+      }
+      return PlanningBudgetTotals(income: income, expense: expense, debt: debt);
+    });
+
+final planningAgendaEntriesProvider = FutureProvider.autoDispose
+    .family<List<PlanningAgendaEntry>, ({String userId, String monthKey})>((ref, input) async {
+      final repository = ref.watch(canonicalFinanceRepositoryProvider);
+      final budgets = await repository.watchBudgets(input.userId, input.monthKey).first;
+      final entries = <PlanningAgendaEntry>[];
+      for (final budget in budgets.where((item) => item.status == 'active')) {
+        final items = await repository.watchBudgetItems(input.userId, budget.id).first;
+        for (final item in items.where((item) => item.isActive)) {
+          final month = DateTime.parse('${budget.monthKey}-01');
+          final lastDay = DateTime(month.year, month.month + 1, 0).day;
+          final date = DateTime(month.year, month.month, item.dayOfMonth.clamp(1, lastDay));
+          final pending = (item.amountMinor - item.actualAmountMinor).clamp(0, item.amountMinor);
+          entries.add(
+            PlanningAgendaEntry(
+              id: 'budget:${budget.id}:${item.id}',
+              kind: budget.flowType.name == 'income'
+                  ? PlanningEntryKind.income
+                  : PlanningEntryKind.expense,
+              date: date,
+              title: item.description,
+              currency: budget.currency,
+              plannedMinor: item.amountMinor,
+              recordedMinor: item.actualAmountMinor,
+              pendingMinor: pending,
+              monthKey: budget.monthKey,
+              budgetId: budget.id,
+              itemId: item.id,
+            ),
+          );
+        }
+      }
+      if (getIt.isRegistered<CommitmentRepository>()) {
+        final commitments = await getIt<CommitmentRepository>().watch(input.userId).first;
+        final paymentLinks = await getIt<CommitmentRepository>().watchPayments(input.userId).first;
+        for (final commitment in commitments) {
+          final due = commitment.dueDateFor(input.monthKey);
+          if (due == null || commitment.isSkipped(input.monthKey)) continue;
+          final paid = paymentLinks
+              .where(
+                (link) => link.commitmentId == commitment.id && link.monthKey == input.monthKey,
+              )
+              .fold<int>(0, (sum, link) => sum + link.amountMinor);
+          entries.add(
+            PlanningAgendaEntry(
+              id: 'debt:${commitment.id}:${input.monthKey}',
+              kind: PlanningEntryKind.debt,
+              date: due,
+              title: commitment.debtAccountId,
+              currency: commitment.currency,
+              plannedMinor: commitment.amountMinor,
+              recordedMinor: paid,
+              pendingMinor: (commitment.amountMinor - paid).clamp(0, commitment.amountMinor),
+              monthKey: input.monthKey,
+              commitmentId: commitment.id,
+              debtAccountId: commitment.debtAccountId,
+              bankAccountId: commitment.bankAccountId,
+            ),
+          );
+        }
+      }
+      entries.sort((a, b) {
+        final byDate = a.date.compareTo(b.date);
+        return byDate == 0 ? a.id.compareTo(b.id) : byDate;
+      });
+      return List.unmodifiable(entries);
+    });
 
 final firebaseObservabilityProvider = Provider<FirebaseObservability?>(
   (ref) => getIt.isRegistered<FirebaseObservability>() ? getIt<FirebaseObservability>() : null,
@@ -643,6 +805,28 @@ final canonicalBudgetProvider = StreamProvider.family<Budget?, ({String userId, 
   (ref, input) => getIt<CanonicalFinanceRepository>().watchBudget(input.userId, input.budgetId),
 );
 
+final canonicalFinanceRepositoryItemsProvider =
+    StreamProvider.family<List<BudgetItem>, ({String userId, String budgetId})>(
+      (ref, input) => ref
+          .watch(canonicalFinanceRepositoryProvider)
+          .watchBudgetItems(input.userId, input.budgetId),
+    );
+
+final canonicalBudgetAggregateReconciliationProvider = FutureProvider.autoDispose
+    .family<void, ({String userId, String budgetId})>((ref, input) async {
+      final budget = await ref.watch(canonicalBudgetProvider(input).future);
+      if (budget == null) return;
+      final items = await ref.watch(canonicalFinanceRepositoryItemsProvider(input).future);
+      final activeItems = items.where((item) => item.isActive).toList(growable: false);
+      if (activeItems.isEmpty) {
+        throw StateError('budget-has-no-active-items');
+      }
+      final plannedTotal = activeItems.fold<int>(0, (total, item) => total + item.amountMinor);
+      if (budget.plannedAmountMinor != plannedTotal || budget.itemCount != activeItems.length) {
+        await ref.read(canonicalActionsProvider).reconcileBudget(input.userId, input.budgetId);
+      }
+    });
+
 final canonicalBudgetItemOperationsProvider =
     StreamProvider.family<
       List<FinancialOperation>,
@@ -655,6 +839,57 @@ final canonicalBudgetItemOperationsProvider =
             input.budgetId,
             input.itemId,
           ),
+    );
+
+final canonicalBudgetCategoryOperationsProvider = FutureProvider.autoDispose
+    .family<
+      List<FinancialOperation>,
+      ({
+        String userId,
+        String budgetId,
+        String categoryId,
+        String monthKey,
+        String currency,
+        String flowType,
+      })
+    >(
+      (ref, input) async {
+        final repository = ref.watch(canonicalFinanceRepositoryProvider);
+        final operations = <FinancialOperation>[];
+        OperationPageCursor? cursor;
+        final type = input.flowType == 'income' ? OperationType.income : OperationType.expense;
+        while (true) {
+          final pageResult = await repository.fetchOperationsPage(
+            input.userId,
+            cursor: cursor,
+            monthKey: input.monthKey,
+            currency: input.currency,
+            type: type,
+            pageSize: 100,
+          );
+          final page = pageResult.match(
+            (failure) => throw Exception(failure.message),
+            (value) => value,
+          );
+          operations.addAll(
+            page.items.where(
+              (operation) =>
+                  operation.status == OperationStatus.confirmed &&
+                  operation.categoryId == input.categoryId &&
+                  (operation.type == type ||
+                      (type == OperationType.expense &&
+                          operation.type == OperationType.expenseRefund)),
+            ),
+          );
+          cursor = page.nextCursor;
+          if (cursor == null) break;
+        }
+        operations.sort((a, b) {
+          final date = b.occurredAt.compareTo(a.occurredAt);
+          return date == 0 ? b.id.compareTo(a.id) : date;
+        });
+        return List.unmodifiable(operations);
+      },
     );
 
 final canonicalMonthlySummaryProvider =
@@ -950,6 +1185,42 @@ class CanonicalFinanceActions {
     await _runBudget(
       key,
       (requestId) => _repository.deleteBudgetItem(userId, budgetId, itemId, requestId: requestId),
+    );
+  }
+
+  Future<void> reconcileBudget(String userId, String budgetId) async {
+    final key = jsonEncode([userId, 'reconcile', budgetId]);
+    await _runBudget(
+      key,
+      (requestId) => _repository.reconcileBudget(userId, budgetId, requestId: requestId),
+    );
+  }
+
+  Future<void> setOperationBudgetItem(
+    String userId, {
+    required String operationId,
+    required int expectedRevision,
+    required String? budgetId,
+    required String? itemId,
+  }) async {
+    final key = jsonEncode([
+      userId,
+      'setOperationBudgetItem',
+      operationId,
+      expectedRevision,
+      budgetId,
+      itemId,
+    ]);
+    await _runBudget(
+      key,
+      (requestId) => _repository.setOperationBudgetItem(
+        userId,
+        operationId: operationId,
+        expectedRevision: expectedRevision,
+        budgetId: budgetId,
+        itemId: itemId,
+        requestId: requestId,
+      ),
     );
   }
 

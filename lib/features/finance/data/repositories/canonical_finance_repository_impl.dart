@@ -511,6 +511,44 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> reconcileBudget(
+    String userId,
+    String budgetId, {
+    String? requestId,
+  }) async {
+    try {
+      await _remoteDataSource.reconcileBudget(userId, budgetId, requestId: requestId);
+      return const Right(unit);
+    } catch (error) {
+      return Left(BudgetCommandFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> setOperationBudgetItem(
+    String userId, {
+    required String operationId,
+    required int expectedRevision,
+    required String? budgetId,
+    required String? itemId,
+    String? requestId,
+  }) async {
+    try {
+      await _remoteDataSource.setOperationBudgetItem(
+        userId,
+        operationId: operationId,
+        expectedRevision: expectedRevision,
+        budgetId: budgetId,
+        itemId: itemId,
+        requestId: requestId,
+      );
+      return const Right(unit);
+    } catch (error) {
+      return Left(BudgetCommandFailureMapper.fromException(error));
+    }
+  }
+
+  @override
   Stream<MonthlySummary?> watchMonthlySummary(String userId, String monthKey, String currency) =>
       _remoteDataSource
           .watchMonthlySummary(userId, monthKey, currency)
@@ -598,6 +636,7 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     currency: data['currency'] as String,
     plannedAmountMinor: (data['plannedAmountMinor'] as num? ?? 0).toInt(),
     status: data['status'] as String? ?? 'active',
+    itemCount: (data['itemCount'] as num? ?? 0).toInt(),
   );
 
   BudgetItem _budgetItem(Map<String, dynamic> data) => BudgetItem(

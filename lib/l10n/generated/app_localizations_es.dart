@@ -1410,6 +1410,56 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get budgetMovementsTab => 'Movimientos';
+
+  @override
+  String get budgetMovementsExplanation =>
+      'El progreso incluye todos los movimientos confirmados de esta categoría y periodo, estén asociados o no a un elemento.';
+
+  @override
+  String get budgetMovementFilterAll => 'Todos';
+
+  @override
+  String get budgetMovementFilterLinked => 'Con elemento';
+
+  @override
+  String get budgetMovementFilterUnlinked => 'Sin elemento';
+
+  @override
+  String get budgetMovementsEmpty =>
+      'No hay movimientos confirmados de esta categoría en el periodo.';
+
+  @override
+  String get budgetMovementUnassociated => 'Sin elemento asociado';
+
+  @override
+  String budgetMovementLinkedTo(String item) {
+    return 'Asociado a: $item';
+  }
+
+  @override
+  String budgetMovementArchivedLink(String item) {
+    return 'Asociado al elemento archivado: $item';
+  }
+
+  @override
+  String get budgetMovementAssociation => 'Cambiar elemento asociado';
+
+  @override
+  String get budgetMovementClearAssociation => 'Quitar asociación';
+
+  @override
+  String get budgetMovementReversal => 'Reversión; no se puede asociar';
+
+  @override
+  String get budgetMovementAssociationSaved =>
+      'Se actualizó la asociación. El saldo y el gasto total no cambian.';
+
+  @override
+  String get budgetMovementAssociationFailed =>
+      'No se pudo cambiar la asociación. No se alteraron los saldos; inténtalo de nuevo.';
+
+  @override
   String get budgetEditItemTitle => 'Editar elemento';
 
   @override
@@ -2507,6 +2557,44 @@ class AppLocalizationsEs extends AppLocalizations {
   String get coachReviewPayment => 'Revisar cuota';
 
   @override
+  String coachActionDueBudgetTitle(String item) {
+    return 'Atiende: $item';
+  }
+
+  @override
+  String coachActionUpcomingBudgetTitle(String item) {
+    return 'Próximo gasto: $item';
+  }
+
+  @override
+  String get coachBudgetExpenseDueBody =>
+      'Es un gasto planeado sin suficiente movimiento asociado. La fecha no confirma que siga pendiente fuera de la app.';
+
+  @override
+  String get coachBudgetExpenseUpcomingBody =>
+      'Revisa este gasto planeado y sus movimientos asociados. No se registrará automáticamente.';
+
+  @override
+  String get coachReviewPlannedExpense => 'Revisar gasto planeado';
+
+  @override
+  String get coachUpcomingPlan => 'Próximos en tu plan';
+
+  @override
+  String get coachNoUpcomingPlan =>
+      'No hay gastos o cuotas por atender en los próximos siete días.';
+
+  @override
+  String planningDueDate(String date) {
+    return 'Fecha prevista: $date';
+  }
+
+  @override
+  String planningDebtTotal(String amount) {
+    return 'Cuotas de deuda previstas: $amount';
+  }
+
+  @override
   String get coachCompleteAllocation => 'Completar desglose';
 
   @override
@@ -2520,6 +2608,22 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get coachIncompleteInfo =>
       'Hay información pendiente de sincronizar o pagos sin desglose; tus totales podrían estar incompletos.';
+
+  @override
+  String get coachSourcesIncomplete =>
+      'Parte de la información todavía no está disponible. Esta recomendación es provisional; podría aparecer una acción más urgente.';
+
+  @override
+  String get coachProvisionalRecommendation =>
+      'Esta recomendación es provisional. Podrían existir acciones más urgentes cuando termine la carga.';
+
+  @override
+  String get coachNoReliableRecommendation =>
+      'Aún no tenemos información suficiente para recomendar un siguiente paso. Puedes volver a intentarlo.';
+
+  @override
+  String get coachPaymentsIncomplete =>
+      'No pudimos cargar todos los pagos; esta lista podría estar incompleta.';
 
   @override
   String get coachReviewFullWeek => 'Revisar semana completa';
@@ -2577,6 +2681,60 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get coachAmountsHidden => 'Importes ocultos';
+
+  @override
+  String get planningAgenda => 'Agenda';
+
+  @override
+  String get planningPlan => 'Planificar';
+
+  @override
+  String get planningPendingOnly => 'Por atender';
+
+  @override
+  String get planningAll => 'Todos';
+
+  @override
+  String get planningAllTypes => 'Todos los tipos';
+
+  @override
+  String get planningAllCurrencies => 'Todas las monedas';
+
+  @override
+  String get planningNoEntries => 'No hay elementos planeados para este mes.';
+
+  @override
+  String get planningNoPendingEntries => 'Todo lo planeado tiene movimientos asociados.';
+
+  @override
+  String get planningSourceExplanation =>
+      'Los movimientos asociados se muestran frente a cada elemento planeado. Las cuotas no ejecutan pagos automáticamente.';
+
+  @override
+  String get planningRecorded => 'Registrado';
+
+  @override
+  String get planningPendingAmount => 'Pendiente';
+
+  @override
+  String get debtLinkExistingPayment => 'Asociar un pago existente';
+
+  @override
+  String get debtNoExistingPayments => 'No hay pagos compatibles sin asociar.';
+
+  @override
+  String get planningTotalsUnavailable => 'No se pudieron cargar los totales del mes.';
+
+  @override
+  String planningDebtCount(int count, int pending) {
+    return '$count pagos planeados · $pending pendientes';
+  }
+
+  @override
+  String get debtCommitmentsExcluded => 'Omitidos o pausados';
+
+  @override
+  String get thisMonth => 'Este mes';
 
   @override
   String get showLess => 'Ver menos';

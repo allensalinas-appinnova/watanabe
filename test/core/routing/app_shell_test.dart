@@ -224,6 +224,84 @@ void main() {
     }
   });
 
+  testWidgets('Plan section roots keep the global toolbar and restore the same section', (
+    tester,
+  ) async {
+    final router = _router(initialLocation: '/budgets');
+    addTearDown(router.dispose);
+    await tester.pumpWidget(_app(router));
+    await tester.pumpAndSettle();
+
+    for (final route in ['/budgets', '/budgets/agenda', '/budgets/debt-payments']) {
+      router.go(route);
+      await tester.pumpAndSettle();
+
+      expect(_selectedTab(tester), 3);
+      expect(find.text('LumioMoney'), findsOneWidget);
+      expect(find.byKey(const ValueKey('global_settings_action')), findsOneWidget);
+      expect(find.byKey(const ValueKey('global_add_operation')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('global_settings_action')));
+      await tester.pumpAndSettle();
+      expect(find.text('Settings route'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('form_back')));
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.path, route);
+      expect(find.byKey(const ValueKey('global_settings_action')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('Plan details and secondary budget routes hide the global toolbar', (tester) async {
+    final router = _router(initialLocation: '/budgets');
+    addTearDown(router.dispose);
+    await tester.pumpWidget(_app(router));
+    await tester.pumpAndSettle();
+
+    for (final route in [
+      '/budgets/tracking',
+      '/budgets/new',
+      '/budgets/test-budget',
+      '/budgets/debt-payments/new',
+      '/budgets/debt-payments/test-commitment',
+    ]) {
+      router.go(route);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('global_settings_action')), findsNothing);
+      expect(find.text('LumioMoney'), findsNothing);
+      expect(_selectedTab(tester), 3);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('Plan toolbar remains usable on compact dark layouts with enlarged text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final router = _router(initialLocation: '/budgets/agenda');
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      _app(
+        router,
+        locale: const Locale('pt'),
+        textScale: 1.4,
+        themeMode: ThemeMode.dark,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final settings = find.byKey(const ValueKey('global_settings_action'));
+    expect(find.text('LumioMoney'), findsOneWidget);
+    expect(settings.hitTestable(), findsOneWidget);
+    expect(_selectedTab(tester), 3);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('fixed register action remains pinned while the active section scrolls', (
     tester,
   ) async {
@@ -370,6 +448,7 @@ Widget _app(
   GoRouter router, {
   Locale? locale,
   double textScale = 1,
+  ThemeMode themeMode = ThemeMode.light,
   CanonicalFinanceRepository? repository,
 }) => ProviderScope(
   overrides: [
@@ -383,6 +462,9 @@ Widget _app(
   ],
   child: MaterialApp.router(
     locale: locale,
+    theme: ThemeData.light(),
+    darkTheme: ThemeData.dark(),
+    themeMode: themeMode,
     routerConfig: router,
     localizationsDelegates: const [
       AppLocalizations.delegate,
@@ -459,6 +541,15 @@ GoRouter _router({
               path: '/budgets',
               builder: (_, _) => const _BudgetTab(),
               routes: [
+                GoRoute(path: 'agenda', builder: (_, _) => const _Tab('Agenda')),
+                GoRoute(
+                  path: 'debt-payments',
+                  builder: (_, _) => const _Tab('Debt payments'),
+                  routes: [
+                    GoRoute(path: 'new', builder: (_, _) => const _BackForm('New payment plan')),
+                    GoRoute(path: ':id', builder: (_, _) => const _BackForm('Payment plan detail')),
+                  ],
+                ),
                 GoRoute(path: 'tracking', builder: (_, _) => const _BackForm('Budget tracking')),
                 GoRoute(path: 'new', builder: (_, _) => const _BackForm('Budget create route')),
                 GoRoute(path: ':id', builder: (_, _) => const _BackForm('Budget detail')),

@@ -25,7 +25,8 @@ import '../widgets/finance_components.dart';
 import '../widgets/finance_popup_selector.dart';
 
 class CanonicalBudgetCreateScreen extends ConsumerStatefulWidget {
-  const CanonicalBudgetCreateScreen({super.key});
+  const CanonicalBudgetCreateScreen({super.key, this.initialMonthKey});
+  final String? initialMonthKey;
 
   @override
   ConsumerState<CanonicalBudgetCreateScreen> createState() => _CanonicalBudgetCreateScreenState();
@@ -45,6 +46,11 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   @override
   void initState() {
     super.initState();
+    final key = widget.initialMonthKey;
+    if (key != null && RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(key)) {
+      final parsed = DateTime.tryParse('$key-01');
+      if (parsed != null) _month = DateTime(parsed.year, parsed.month);
+    }
     _items.add(_newItem());
   }
 

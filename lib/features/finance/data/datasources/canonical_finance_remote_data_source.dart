@@ -173,6 +173,17 @@ abstract interface class CanonicalFinanceRemoteDataSource {
 
   Future<void> deleteBudgetItem(String userId, String budgetId, String itemId, {String? requestId});
 
+  Future<void> reconcileBudget(String userId, String budgetId, {String? requestId});
+
+  Future<void> setOperationBudgetItem(
+    String userId, {
+    required String operationId,
+    required int expectedRevision,
+    required String? budgetId,
+    required String? itemId,
+    String? requestId,
+  });
+
   Future<void> archiveBudget(String userId, String budgetId, {String? requestId});
 }
 
@@ -875,6 +886,28 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     String? requestId,
   }) async {
     await _budgetCommand(userId, 'archiveItem', {
+      'budgetId': budgetId,
+      'itemId': itemId,
+    }, requestId);
+  }
+
+  @override
+  Future<void> reconcileBudget(String userId, String budgetId, {String? requestId}) async {
+    await _budgetCommand(userId, 'reconcile', {'budgetId': budgetId}, requestId);
+  }
+
+  @override
+  Future<void> setOperationBudgetItem(
+    String userId, {
+    required String operationId,
+    required int expectedRevision,
+    required String? budgetId,
+    required String? itemId,
+    String? requestId,
+  }) async {
+    await _budgetCommand(userId, 'setOperationBudgetItem', {
+      'operationId': operationId,
+      'expectedRevision': expectedRevision,
       'budgetId': budgetId,
       'itemId': itemId,
     }, requestId);

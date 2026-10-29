@@ -8,6 +8,7 @@ import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/widgets/pinned_action_bar.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/budget.dart';
@@ -37,8 +38,18 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
     final budgetKey = (userId: user.id, budgetId: budgetId);
     final budgetState = ref.watch(canonicalBudgetProvider(budgetKey));
     final itemsState = ref.watch(canonicalFinanceRepositoryItemsProvider(budgetKey));
+    final aggregateState = ref.watch(canonicalBudgetAggregateReconciliationProvider(budgetKey));
+    final activeBudget = budgetState.valueOrNull;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      bottomNavigationBar: activeBudget != null && activeBudget.status == 'active'
+          ? PinnedActionBar(
+              buttonKey: const ValueKey('budget_add_item_detail'),
+              label: l10n.budgetAddItem,
+              icon: Icons.add,
+              onPressed: () => context.push('/budgets/${activeBudget.id}/items/new'),
+            )
+          : null,
       appBar: FinanceRouteHeader(
         title: l10n.budgetDetailTitle,
         backLabel: l10n.budgetBackToBudgets,
@@ -46,47 +57,63 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
         onBack: () => popOrGo(context, '/budgets'),
       ),
       body: SafeArea(
-        child: budgetState.when(
+        child: aggregateState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => _BudgetDetailError(
             message: l10n.genericError,
-            onRetry: () => ref.invalidate(canonicalBudgetProvider(budgetKey)),
+            onRetry: () {
+              ref
+                ..invalidate(canonicalBudgetAggregateReconciliationProvider(budgetKey))
+                ..invalidate(canonicalBudgetProvider(budgetKey))
+                ..invalidate(canonicalFinanceRepositoryItemsProvider(budgetKey));
+            },
           ),
-          data: (budget) {
-            if (budget == null || budget.status != 'active') {
-              return _BudgetDetailError(
-                message: l10n.genericError,
-                onRetry: () => context.pop(),
-                retryLabel: l10n.budgetBackToBudgets,
+          data: (_) => budgetState.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _BudgetDetailError(
+              message: l10n.genericError,
+              onRetry: () => ref.invalidate(canonicalBudgetProvider(budgetKey)),
+            ),
+            data: (budget) {
+              if (budget == null || budget.status != 'active') {
+                return _BudgetDetailError(
+                  message: l10n.genericError,
+                  onRetry: () => context.pop(),
+                  retryLabel: l10n.budgetBackToBudgets,
+                );
+              }
+              final summaryKey = (
+                userId: user.id,
+                monthKey: budget.monthKey,
+                currency: budget.currency,
               );
-            }
-            final summaryKey = (
-              userId: user.id,
-              monthKey: budget.monthKey,
-              currency: budget.currency,
-            );
-            final summaryState = ref.watch(canonicalMonthlySummaryProvider(summaryKey));
-            return itemsState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => _BudgetDetailError(
-                message: l10n.genericError,
-                onRetry: () => ref.invalidate(canonicalFinanceRepositoryItemsProvider(budgetKey)),
-              ),
-              data: (items) => summaryState.when(
+              final summaryState = ref.watch(canonicalMonthlySummaryProvider(summaryKey));
+              return itemsState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => _BudgetDetailError(
                   message: l10n.genericError,
-                  onRetry: () => ref.invalidate(canonicalMonthlySummaryProvider(summaryKey)),
+                  onRetry: () {
+                    ref
+                      ..invalidate(canonicalBudgetAggregateReconciliationProvider(budgetKey))
+                      ..invalidate(canonicalFinanceRepositoryItemsProvider(budgetKey));
+                  },
                 ),
-                data: (summary) => _BudgetDetailContent(
-                  budget: budget,
-                  items: items,
-                  summary: summary,
-                  userId: user.id,
+                data: (items) => summaryState.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => _BudgetDetailError(
+                    message: l10n.genericError,
+                    onRetry: () => ref.invalidate(canonicalMonthlySummaryProvider(summaryKey)),
+                  ),
+                  data: (summary) => _BudgetDetailContent(
+                    budget: budget,
+                    items: items,
+                    summary: summary,
+                    userId: user.id,
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -123,8 +150,21 @@ class _BudgetDetailContent extends ConsumerWidget {
     final isIncome = budget.flowType == BudgetFlowType.income;
     final activeItems = items.where((item) => item.isActive).toList(growable: false);
     final archivedItems = items.where((item) => !item.isActive).toList(growable: false);
+    final operationsKey = (
+      userId: userId,
+      budgetId: budget.id,
+      categoryId: budget.categoryId,
+      monthKey: budget.monthKey,
+      currency: budget.currency,
+      flowType: budget.flowType.value,
+    );
+    final operationsState = ref.watch(canonicalBudgetCategoryOperationsProvider(operationsKey));
+    final displayBudget = budget.copyWith(
+      plannedAmountMinor: activeItems.fold<int>(0, (total, item) => total + item.amountMinor),
+      itemCount: activeItems.length,
+    );
     const calculator = CalculateBudgetTracking();
-    final tracking = calculator(budget, const [], summary: summary);
+    final tracking = calculator(displayBudget, const [], summary: summary);
     final actualLabel = isIncome ? l10n.budgetReceived : l10n.budgetSpent;
     final typeLabel = isIncome ? l10n.income : l10n.expense;
     final planned = CurrencyFormatter.formatMinor(
@@ -147,149 +187,174 @@ class _BudgetDetailContent extends ConsumerWidget {
         ? 0.0
         : (tracking.actualMinor / tracking.plannedMinor).clamp(0.0, 1.0);
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            key: const ValueKey('budget_detail_scroll'),
-            padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                categoryName,
-                key: const ValueKey('budget_detail_category'),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(
+            tabs: [
+              Tab(
+                key: const ValueKey('budget_detail_elements_tab'),
+                text: l10n.budgetItemsHeading(activeItems.length),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '$typeLabel · $month · ${budget.currency}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _BudgetSummaryCard(
-                category: categoryName,
-                categoryIcon: category?.icon,
-                categoryColorValue: category?.colorValue,
-                typeAndMonth: '$typeLabel · $month',
-                planned: l10n.planned(planned),
-                actual: '$actualLabel · $actual',
-                status: statusText,
-                isExceeded: tracking.isExceeded,
-                progress: progress,
-              ),
-              const SizedBox(height: 18),
-              Text(
-                l10n.budgetItemsHeading(activeItems.length),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (activeItems.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(l10n.genericError),
-                ),
-              for (final item in activeItems) ...[
-                _BudgetItemCard(
-                  item: item,
-                  currency: budget.currency,
-                  locale: locale,
-                  canRemove: activeItems.length > 1,
-                  onEdit: () => context.push(
-                    '/budgets/${budget.id}/items/${item.id}/edit',
-                    extra: item,
-                  ),
-                  onRemove: () => _confirmRemoveItem(context, ref, item),
-                  onRecord: () => context.push(
-                    '/budgets/${budget.id}/items/${item.id}/record',
-                    extra: BudgetItemMovementPreset(
-                      budgetId: budget.id,
-                      itemId: item.id,
-                      type: isIncome ? OperationType.income : OperationType.expense,
-                      categoryId: budget.categoryId,
-                      currency: budget.currency,
-                      description: item.description,
-                      amountMinor: item.amountMinor,
-                    ),
-                  ),
-                  recordLabel: isIncome ? l10n.budgetRecordIncome : l10n.budgetRecordExpense,
-                ),
-                const SizedBox(height: 10),
-              ],
-              if (activeItems.length == 1)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, bottom: 8),
-                  child: Text(
-                    l10n.budgetLastItemMessage,
-                    key: const ValueKey('budget_last_item_hint'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              FilledButton(
-                key: const ValueKey('budget_add_item_detail'),
-                onPressed: () => context.push('/budgets/${budget.id}/items/new'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.surface,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Text(l10n.budgetAddItem),
-              ),
-              if (archivedItems.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                Text(
-                  l10n.budgetArchivedItems,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                for (final item in archivedItems) ...[
-                  _BudgetItemCard(
-                    item: item,
-                    currency: budget.currency,
-                    locale: locale,
-                    archived: true,
-                    userId: userId,
-                    budgetId: budget.id,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ],
-              const SizedBox(height: 16),
-              OutlinedButton(
-                key: const ValueKey('budget_archive_button'),
-                onPressed: () => _confirmArchive(context, ref),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                  side: BorderSide(color: Theme.of(context).colorScheme.error),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(l10n.budgetDeleteBudgetAction),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.budgetDeleteBudgetMessage,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              Tab(
+                key: const ValueKey('budget_detail_movements_tab'),
+                text: l10n.budgetMovementsTab,
               ),
             ],
           ),
-        ),
-      ],
+          Expanded(
+            child: TabBarView(
+              children: [
+                ListView(
+                  key: const ValueKey('budget_detail_scroll'),
+                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      categoryName,
+                      key: const ValueKey('budget_detail_category'),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$typeLabel · $month · ${budget.currency}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _BudgetSummaryCard(
+                      category: categoryName,
+                      categoryIcon: category?.icon,
+                      categoryColorValue: category?.colorValue,
+                      typeAndMonth: '$typeLabel · $month',
+                      planned: l10n.planned(planned),
+                      actual: '$actualLabel · $actual',
+                      status: statusText,
+                      isExceeded: tracking.isExceeded,
+                      progress: progress,
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      l10n.budgetItemsHeading(activeItems.length),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (activeItems.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(l10n.genericError),
+                      ),
+                    for (final item in activeItems) ...[
+                      _BudgetItemCard(
+                        item: item,
+                        currency: budget.currency,
+                        locale: locale,
+                        canRemove: activeItems.length > 1,
+                        onEdit: () => context.push(
+                          '/budgets/${budget.id}/items/${item.id}/edit',
+                          extra: item,
+                        ),
+                        onRemove: () => _confirmRemoveItem(context, ref, item),
+                        onRecord: () => context.push(
+                          '/budgets/${budget.id}/items/${item.id}/record',
+                          extra: BudgetItemMovementPreset(
+                            budgetId: budget.id,
+                            itemId: item.id,
+                            type: isIncome ? OperationType.income : OperationType.expense,
+                            categoryId: budget.categoryId,
+                            currency: budget.currency,
+                            description: item.description,
+                            amountMinor: item.amountMinor,
+                          ),
+                        ),
+                        recordLabel: isIncome ? l10n.budgetRecordIncome : l10n.budgetRecordExpense,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (activeItems.length == 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 8),
+                        child: Text(
+                          l10n.budgetLastItemMessage,
+                          key: const ValueKey('budget_last_item_hint'),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    if (archivedItems.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        l10n.budgetArchivedItems,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final item in archivedItems) ...[
+                        _BudgetItemCard(
+                          item: item,
+                          currency: budget.currency,
+                          locale: locale,
+                          archived: true,
+                          userId: userId,
+                          budgetId: budget.id,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      key: const ValueKey('budget_archive_button'),
+                      onPressed: () => _confirmArchive(context, ref),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(color: Theme.of(context).colorScheme.error),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(l10n.budgetDeleteBudgetAction),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.budgetDeleteBudgetMessage,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                operationsState.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => Center(
+                    child: TextButton(
+                      onPressed: () =>
+                          ref.invalidate(canonicalBudgetCategoryOperationsProvider(operationsKey)),
+                      child: Text(l10n.retry),
+                    ),
+                  ),
+                  data: (operations) => _BudgetMovementsTab(
+                    userId: userId,
+                    budget: budget,
+                    items: items,
+                    operations: operations,
+                    locale: locale,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -398,6 +463,249 @@ String _budgetArchiveFailureMessage(AppLocalizations l10n, Failure failure) {
     ConflictFailure() => l10n.budgetArchiveConflictFailure(code),
     UnknownFailure() => l10n.budgetArchiveUnexpectedFailure(code),
   };
+}
+
+enum _BudgetMovementFilter { all, linked, unlinked }
+
+class _BudgetMovementsTab extends ConsumerStatefulWidget {
+  const _BudgetMovementsTab({
+    required this.userId,
+    required this.budget,
+    required this.items,
+    required this.operations,
+    required this.locale,
+  });
+
+  final String userId;
+  final Budget budget;
+  final List<BudgetItem> items;
+  final List<FinancialOperation> operations;
+  final String locale;
+
+  @override
+  ConsumerState<_BudgetMovementsTab> createState() => _BudgetMovementsTabState();
+}
+
+class _BudgetMovementsTabState extends ConsumerState<_BudgetMovementsTab> {
+  _BudgetMovementFilter _filter = _BudgetMovementFilter.all;
+  final Set<String> _savingOperationIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final itemById = {for (final item in widget.items) item.id: item};
+    final visible = widget.operations
+        .where(
+          (operation) => switch (_filter) {
+            _BudgetMovementFilter.all => true,
+            _BudgetMovementFilter.linked => operation.budgetItemId != null,
+            _BudgetMovementFilter.unlinked => operation.budgetItemId == null,
+          },
+        )
+        .toList(growable: false);
+    return ListView(
+      key: const ValueKey('budget_detail_movements_list'),
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+      children: [
+        Text(
+          l10n.budgetMovementsExplanation,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SegmentedButton<_BudgetMovementFilter>(
+          segments: [
+            ButtonSegment(
+              value: _BudgetMovementFilter.all,
+              label: Text(l10n.budgetMovementFilterAll),
+            ),
+            ButtonSegment(
+              value: _BudgetMovementFilter.linked,
+              label: Text(l10n.budgetMovementFilterLinked),
+            ),
+            ButtonSegment(
+              value: _BudgetMovementFilter.unlinked,
+              label: Text(l10n.budgetMovementFilterUnlinked),
+            ),
+          ],
+          selected: {_filter},
+          onSelectionChanged: (values) => setState(() => _filter = values.first),
+          showSelectedIcon: false,
+        ),
+        const SizedBox(height: 8),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            child: Text(l10n.budgetMovementsEmpty, textAlign: TextAlign.center),
+          ),
+        for (final operation in visible) _movementCard(context, ref, operation, itemById, l10n),
+      ],
+    );
+  }
+
+  Widget _movementCard(
+    BuildContext context,
+    WidgetRef ref,
+    FinancialOperation operation,
+    Map<String, BudgetItem> itemById,
+    AppLocalizations l10n,
+  ) {
+    final linkedItem = operation.budgetItemId == null ? null : itemById[operation.budgetItemId];
+    final amount = operation.recognizedIncomeMinor + operation.recognizedExpenseMinor;
+    final canAssociate =
+        operation.status == OperationStatus.confirmed &&
+        operation.projectionDirection == 1 &&
+        operation.reversalOf == null &&
+        (operation.type == OperationType.income ||
+            operation.type == OperationType.expense ||
+            operation.type == OperationType.expenseRefund) &&
+        (operation.debtCommandId == null ||
+            operation.debtKind == 'purchase' ||
+            operation.debtKind == 'newChargePaid');
+    final subtitle = operation.projectionDirection == -1 || operation.reversalOf != null
+        ? l10n.budgetMovementReversal
+        : operation.budgetItemId == null
+        ? l10n.budgetMovementUnassociated
+        : linkedItem == null || !linkedItem.isActive
+        ? l10n.budgetMovementArchivedLink(linkedItem?.description ?? operation.budgetItemId!)
+        : l10n.budgetMovementLinkedTo(linkedItem.description);
+    final icon = operation.type == OperationType.income ? Icons.south_west : Icons.north_east;
+    final signedAmount = amount;
+    return Card(
+      key: ValueKey('budget_operation_${operation.id}'),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: signedAmount < 0
+              ? Theme.of(context).colorScheme.tertiary
+              : Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(
+          operation.description.isEmpty
+              ? operation.type == OperationType.income
+                    ? l10n.income
+                    : l10n.expense
+              : operation.description,
+        ),
+        subtitle: Text(
+          '${DateFormat.yMMMd(widget.locale).format(operation.occurredAt)} · $subtitle',
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              CurrencyFormatter.formatMinor(
+                signedAmount,
+                widget.budget.currency,
+                locale: widget.locale,
+              ),
+            ),
+            if (canAssociate)
+              IconButton(
+                key: ValueKey('budget_operation_associate_${operation.id}'),
+                tooltip: l10n.budgetMovementAssociation,
+                onPressed: _savingOperationIds.contains(operation.id)
+                    ? null
+                    : () => _chooseAssociation(context, ref, operation),
+                icon: _savingOperationIds.contains(operation.id)
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.link_outlined),
+              ),
+          ],
+        ),
+        isThreeLine: true,
+      ),
+    );
+  }
+
+  Future<void> _chooseAssociation(
+    BuildContext context,
+    WidgetRef ref,
+    FinancialOperation operation,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final selectedItemId = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              key: const ValueKey('budget_association_none'),
+              leading: const Icon(Icons.link_off_outlined),
+              title: Text(l10n.budgetMovementClearAssociation),
+              onTap: () => Navigator.pop(sheetContext, ''),
+            ),
+            for (final item in widget.items.where((item) => item.isActive))
+              ListTile(
+                key: ValueKey('budget_association_item_${item.id}'),
+                leading: const Icon(Icons.event_note_outlined),
+                title: Text(item.description),
+                subtitle: Text(
+                  CurrencyFormatter.formatMinor(
+                    item.amountMinor,
+                    widget.budget.currency,
+                    locale: widget.locale,
+                  ),
+                ),
+                onTap: () => Navigator.pop(sheetContext, item.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selectedItemId == null || !context.mounted) return;
+    final currentItem = operation.budgetItemId;
+    final nextItem = selectedItemId.isEmpty ? null : selectedItemId;
+    if (nextItem == currentItem) return;
+    setState(() => _savingOperationIds.add(operation.id));
+    try {
+      await ref
+          .read(canonicalActionsProvider)
+          .setOperationBudgetItem(
+            widget.userId,
+            operationId: operation.id,
+            expectedRevision: operation.revision,
+            budgetId: nextItem == null ? null : widget.budget.id,
+            itemId: nextItem,
+          );
+      if (!context.mounted) return;
+      final key = (
+        userId: widget.userId,
+        budgetId: widget.budget.id,
+        categoryId: widget.budget.categoryId,
+        monthKey: widget.budget.monthKey,
+        currency: widget.budget.currency,
+        flowType: widget.budget.flowType.value,
+      );
+      ref
+        ..invalidate(canonicalBudgetCategoryOperationsProvider(key))
+        ..invalidate(
+          canonicalFinanceRepositoryItemsProvider((
+            userId: widget.userId,
+            budgetId: widget.budget.id,
+          )),
+        )
+        ..invalidate(canonicalBudgetProvider((userId: widget.userId, budgetId: widget.budget.id)))
+        ..invalidate(
+          canonicalBudgetsProvider((userId: widget.userId, monthKey: widget.budget.monthKey)),
+        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.budgetMovementAssociationSaved)),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.budgetMovementAssociationFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _savingOperationIds.remove(operation.id));
+    }
+  }
 }
 
 class _BudgetSummaryCard extends StatelessWidget {
@@ -747,13 +1055,3 @@ class _BudgetDetailError extends StatelessWidget {
     ),
   );
 }
-
-final canonicalFinanceRepositoryItemsProvider =
-    StreamProvider.family<List<BudgetItem>, ({String userId, String budgetId})>(
-      (ref, input) => ref
-          .watch(canonicalFinanceRepositoryProvider)
-          .watchBudgetItems(
-            input.userId,
-            input.budgetId,
-          ),
-    );

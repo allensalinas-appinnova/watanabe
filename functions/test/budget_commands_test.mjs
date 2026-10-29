@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
 import {deleteApp} from 'firebase-admin/app';
 import {executeBudgetCommand} from '../lib/budget_commands.js';
+import {executeOperationCommand} from '../lib/operation_commands.js';
+import {ensureOperationProjectionVersion} from '../lib/operation_projection_migration.js';
 import {app, db, seedUser, userDump} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
@@ -14,7 +16,92 @@ const send = (root, data) => executeBudgetCommand(db, root.id, {
   expectedGeneration: 0,
   ...data,
 });
+const associate = (root, data) => send(root, {
+  action: 'setOperationBudgetItem',
+  expectedRevision: 0,
+  operationId: 'association-operation',
+  budgetId: null,
+  itemId: null,
+  ...data,
+});
 const refs = (root, budgetId) => root.collection('budgets').doc(budgetId);
+
+test('archiving two items and adding COP 50000 preserves the active aggregate and linked expense', async () => {
+  const root = await seedUser('budget-aggregate-regression');
+  const budgetId = '2026-10_expense_food_COP';
+  const initial = await send(root, create('budget-aggregate-create', {
+    monthKey: '2026-10',
+    items: [
+      {description: 'First archived item', amountMinor: 250000, dayOfMonth: 5},
+      {description: 'Second archived item', amountMinor: 200000, dayOfMonth: 10},
+      {description: 'Item to keep', amountMinor: 50000, dayOfMonth: 15},
+    ],
+  }));
+  const budget = refs(root, budgetId);
+  assert.equal(initial.budget.plannedAmountMinor, 500000);
+  assert.equal(initial.budget.itemCount, 3);
+  const createReceipt = await root.collection('budgetCommands').doc('budget-aggregate-create').get();
+  assert.equal(createReceipt.data().result.budget.plannedAmountMinor, 500000);
+
+  await send(root, {
+    action: 'archiveItem', requestId: 'budget-aggregate-archive-1',
+    budgetId, itemId: 'budget-aggregate-create_0',
+  });
+  let snapshot = await budget.get();
+  assert.equal(snapshot.data().plannedAmountMinor, 250000);
+  assert.equal(snapshot.data().itemCount, 2);
+
+  await send(root, {
+    action: 'archiveItem', requestId: 'budget-aggregate-archive-2',
+    budgetId, itemId: 'budget-aggregate-create_1',
+  });
+  snapshot = await budget.get();
+  assert.equal(snapshot.data().plannedAmountMinor, 50000);
+  assert.equal(snapshot.data().itemCount, 1);
+  const archiveReceipt = await root.collection('budgetCommands').doc('budget-aggregate-archive-2').get();
+  assert.equal(archiveReceipt.data().result.budget.plannedAmountMinor, 50000);
+
+  const addRequestId = 'budget-aggregate-add-50000';
+  const added = await send(root, {
+    action: 'addItem', requestId: addRequestId, budgetId,
+    item: {description: 'New planned item', amountMinor: 50000, dayOfMonth: 20},
+  });
+  assert.equal(added.item.amountMinor, 50000);
+  assert.equal(added.budget.plannedAmountMinor, 100000);
+  assert.equal(added.budget.itemCount, 2);
+  const addedItemRef = budget.collection('items').doc(`${addRequestId}_0`);
+  assert.equal((await addedItemRef.get()).data().amountMinor, 50000);
+  const addReceipt = await root.collection('budgetCommands').doc(addRequestId).get();
+  assert.equal(addReceipt.data().result.item.amountMinor, 50000);
+
+  await root.update({timeZone: 'America/Bogota', resetStatus: 'ready', dataGeneration: 0});
+  await root.collection('accounts').doc('cash').update({
+    openingBalanceMinor: 100000,
+    currentBalanceMinor: 100000,
+  });
+  await ensureOperationProjectionVersion(db, root.id);
+  const operationRequestId = 'budget-aggregate-expense-25k';
+  await executeOperationCommand(db, root.id, {
+    action: 'create', requestId: operationRequestId, idempotencyKey: operationRequestId,
+    expectedGeneration: 0, type: 'expense', amountMinor: 25000, currency: 'COP',
+    accountId: 'cash', categoryId: 'food', budgetId, budgetItemId: addedItemRef.id,
+    occurredAt: '2026-10-20T15:00:00.000Z', monthKey: '2026-10', description: 'Synthetic budget expense',
+  });
+
+  snapshot = await budget.get();
+  const itemSnapshot = await budget.collection('items').get();
+  const activeItems = itemSnapshot.docs.filter((doc) => doc.data().status !== 'archived');
+  const archivedItems = itemSnapshot.docs.filter((doc) => doc.data().status === 'archived');
+  assert.equal(activeItems.length, 2);
+  assert.equal(archivedItems.length, 2);
+  assert.equal(activeItems.reduce((sum, doc) => sum + doc.data().amountMinor, 0), 100000);
+  assert.equal(snapshot.data().plannedAmountMinor, 100000);
+  assert.equal(snapshot.data().itemCount, 2);
+  assert.equal((await addedItemRef.get()).data().actualAmountMinor, 25000);
+  assert.equal((await root.collection('accounts').doc('cash').get()).data().currentBalanceMinor, 75000);
+  assert.equal((await root.collection('monthlySummaries').doc('2026-10_COP').get()).data().expenseMinor, 25000);
+  assert.equal(snapshot.data().plannedAmountMinor - 25000, 75000, 'COP 75000 remains planned');
+});
 
 test('create, recalculate corrupted aggregates, edit, archive and recreate preserve historical actuals', async () => {
   const root = await seedUser('budget-lifecycle');
@@ -46,6 +133,126 @@ test('create, recalculate corrupted aggregates, edit, archive and recreate prese
   assert.equal(all.size, 5);
   assert.equal(all.docs.filter((doc) => doc.data().status !== 'archived').length, 1);
   assert.equal((await firstItem.get()).data().actualAmountMinor, 333);
+});
+
+test('reconciliation repairs only a stale parent aggregate from active items and is a no-op afterward', async () => {
+  const root = await seedUser('budget-reconcile-stale-parent');
+  const created = await send(root, create('reconcile-budget-create', {
+    items: [item(300), item(700)],
+  }));
+  const budget = refs(root, created.budget.id);
+  const firstItem = budget.collection('items').doc('reconcile-budget-create_0');
+  await firstItem.update({actualAmountMinor: 125});
+  const childrenBefore = (await budget.collection('items').get()).docs.map((doc) => ({
+    id: doc.id,
+    data: doc.data(),
+  }));
+  const unrelatedBudget = refs(root, 'budget');
+  const unrelatedBefore = (await unrelatedBudget.get()).data();
+  await budget.update({plannedAmountMinor: 999999, itemCount: 99});
+
+  const repaired = await send(root, {
+    action: 'reconcile', requestId: 'budget-reconcile-first', budgetId: budget.id,
+  });
+  assert.equal(repaired.budget.plannedAmountMinor, 1000);
+  assert.equal(repaired.budget.itemCount, 2);
+  let parent = (await budget.get()).data();
+  assert.equal(parent.plannedAmountMinor, 1000);
+  assert.equal(parent.itemCount, 2);
+  assert.equal(parent.status, 'active');
+  assert.equal((await firstItem.get()).data().actualAmountMinor, 125);
+  assert.deepEqual(
+    (await budget.collection('items').get()).docs.map((doc) => ({id: doc.id, data: doc.data()})),
+    childrenBefore,
+  );
+  assert.deepEqual((await unrelatedBudget.get()).data(), unrelatedBefore);
+
+  const updateTimeAfterRepair = (await budget.get()).updateTime.toMillis();
+  const repeated = await send(root, {
+    action: 'reconcile', requestId: 'budget-reconcile-noop', budgetId: budget.id,
+  });
+  assert.equal(repeated.budget.plannedAmountMinor, 1000);
+  assert.equal((await budget.get()).updateTime.toMillis(), updateTimeAfterRepair);
+  parent = (await budget.get()).data();
+  assert.equal(parent.plannedAmountMinor, 1000);
+  assert.equal(parent.itemCount, 2);
+});
+
+test('movement association can be moved and removed without changing financial projections', async () => {
+  const root = await seedUser('budget-operation-association');
+  const createRequestId = 'association-budget-create';
+  const {budget} = await send(root, create(createRequestId, {items: [item(10000), item(20000)]}));
+  await root.update({timeZone: 'America/Bogota', resetStatus: 'ready', dataGeneration: 0});
+  await root.collection('accounts').doc('cash').update({
+    openingBalanceMinor: 5000,
+    currentBalanceMinor: 5000,
+  });
+  await ensureOperationProjectionVersion(db, root.id);
+  const operationId = 'association-operation';
+  await executeOperationCommand(db, root.id, {
+    action: 'create', requestId: operationId, idempotencyKey: operationId,
+    expectedGeneration: 0, type: 'expense', amountMinor: 1200, currency: 'COP',
+    accountId: 'cash', categoryId: 'food', occurredAt: '2026-10-15T15:00:00.000Z',
+    monthKey: '2026-10', description: 'Synthetic association test',
+  });
+
+  const item0 = refs(root, budget.id).collection('items').doc(`${createRequestId}_0`);
+  const item1 = refs(root, budget.id).collection('items').doc(`${createRequestId}_1`);
+  const operationRef = root.collection('operations').doc(operationId);
+  const balanceBefore = (await root.collection('accounts').doc('cash').get()).data().currentBalanceMinor;
+  const summaryBefore = (await root.collection('monthlySummaries').doc('2026-10_COP').get()).data();
+  assert.equal(balanceBefore, 3800);
+  assert.equal(summaryBefore.expenseMinor, 1200);
+
+  const firstAssociation = {
+    action: 'setOperationBudgetItem', requestId: 'association-link-first',
+    expectedRevision: 0, operationId, budgetId: budget.id, itemId: item0.id,
+  };
+  await associate(root, firstAssociation);
+  assert.equal((await item0.get()).data().actualAmountMinor, 1200);
+  assert.equal((await item1.get()).data().actualAmountMinor, 0);
+  assert.equal((await operationRef.get()).data().budgetItemId, item0.id);
+
+  await associate(root, {
+    action: 'setOperationBudgetItem', requestId: 'association-link-unchanged',
+    expectedRevision: 1, operationId, budgetId: budget.id, itemId: item0.id,
+  });
+  assert.equal((await item0.get()).data().actualAmountMinor, 1200);
+  assert.equal((await operationRef.get()).data().revision, 1);
+  assert.equal((await root.collection('accounts').doc('cash').get()).data().currentBalanceMinor, balanceBefore);
+  assert.deepEqual((await root.collection('monthlySummaries').doc('2026-10_COP').get()).data(), summaryBefore);
+
+  const moveRequest = {
+    action: 'setOperationBudgetItem', requestId: 'association-link-move',
+    expectedRevision: 1, operationId, budgetId: budget.id, itemId: item1.id,
+  };
+  await associate(root, moveRequest);
+  assert.equal((await item0.get()).data().actualAmountMinor, 0);
+  assert.equal((await item1.get()).data().actualAmountMinor, 1200);
+  assert.equal((await operationRef.get()).data().budgetItemId, item1.id);
+
+  const clearRequest = {
+    action: 'setOperationBudgetItem', requestId: 'association-link-clear',
+    expectedRevision: 2, operationId, budgetId: null, itemId: null,
+  };
+  await associate(root, clearRequest);
+  assert.equal((await item1.get()).data().actualAmountMinor, 0);
+  const clearedOperation = (await operationRef.get()).data();
+  assert.equal(clearedOperation.budgetId, undefined);
+  assert.equal(clearedOperation.budgetItemId, undefined);
+  assert.equal((await root.collection('accounts').doc('cash').get()).data().currentBalanceMinor, balanceBefore);
+  assert.deepEqual((await root.collection('monthlySummaries').doc('2026-10_COP').get()).data(), summaryBefore);
+
+  const replayRequest = {
+    action: 'setOperationBudgetItem', requestId: 'association-link-replay',
+    expectedRevision: 3, operationId, budgetId: budget.id, itemId: item0.id,
+  };
+  const firstReplay = await associate(root, replayRequest);
+  const stateAfterFirst = await userDump(root);
+  assert.deepEqual(await associate(root, replayRequest), firstReplay);
+  assert.deepEqual(await userDump(root), stateAfterFirst);
+  assert.equal((await root.collection('accounts').doc('cash').get()).data().currentBalanceMinor, balanceBefore);
+  assert.equal((await root.collection('monthlySummaries').doc('2026-10_COP').get()).data().expenseMinor, 1200);
 });
 
 test('command replay is a no-op and a changed payload cannot reuse a request ID', async () => {

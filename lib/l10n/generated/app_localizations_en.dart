@@ -1401,6 +1401,56 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get budgetMovementsTab => 'Movements';
+
+  @override
+  String get budgetMovementsExplanation =>
+      'Progress includes all confirmed movements in this category and period, whether or not they are linked to an item.';
+
+  @override
+  String get budgetMovementFilterAll => 'All';
+
+  @override
+  String get budgetMovementFilterLinked => 'With item';
+
+  @override
+  String get budgetMovementFilterUnlinked => 'Without item';
+
+  @override
+  String get budgetMovementsEmpty =>
+      'There are no confirmed movements for this category in this period.';
+
+  @override
+  String get budgetMovementUnassociated => 'No item linked';
+
+  @override
+  String budgetMovementLinkedTo(String item) {
+    return 'Linked to: $item';
+  }
+
+  @override
+  String budgetMovementArchivedLink(String item) {
+    return 'Linked to archived item: $item';
+  }
+
+  @override
+  String get budgetMovementAssociation => 'Change linked item';
+
+  @override
+  String get budgetMovementClearAssociation => 'Remove link';
+
+  @override
+  String get budgetMovementReversal => 'Reversal; cannot be linked';
+
+  @override
+  String get budgetMovementAssociationSaved =>
+      'The link was updated. Account balance and total spending are unchanged.';
+
+  @override
+  String get budgetMovementAssociationFailed =>
+      'Couldn\'t change the link. Balances were not changed; try again.';
+
+  @override
   String get budgetEditItemTitle => 'Edit item';
 
   @override
@@ -2486,6 +2536,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachReviewPayment => 'Review payment';
 
   @override
+  String coachActionDueBudgetTitle(String item) {
+    return 'Review: $item';
+  }
+
+  @override
+  String coachActionUpcomingBudgetTitle(String item) {
+    return 'Upcoming expense: $item';
+  }
+
+  @override
+  String get coachBudgetExpenseDueBody =>
+      'This planned expense does not have enough linked movements. Its planned date does not confirm it is still due outside the app.';
+
+  @override
+  String get coachBudgetExpenseUpcomingBody =>
+      'Review this planned expense and its linked movements. It will not be recorded automatically.';
+
+  @override
+  String get coachReviewPlannedExpense => 'Review planned expense';
+
+  @override
+  String get coachUpcomingPlan => 'Coming up in your plan';
+
+  @override
+  String get coachNoUpcomingPlan =>
+      'No expenses or installments need attention in the next seven days.';
+
+  @override
+  String planningDueDate(String date) {
+    return 'Planned date: $date';
+  }
+
+  @override
+  String planningDebtTotal(String amount) {
+    return 'Debt installments planned: $amount';
+  }
+
+  @override
   String get coachCompleteAllocation => 'Complete allocation';
 
   @override
@@ -2499,6 +2587,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachIncompleteInfo =>
       'Some transactions are still syncing or payments need allocation; totals may be incomplete.';
+
+  @override
+  String get coachSourcesIncomplete =>
+      'Some information is not available yet. This recommendation is provisional; a higher-priority action may appear.';
+
+  @override
+  String get coachProvisionalRecommendation =>
+      'This recommendation is provisional. A more urgent action may appear when loading finishes.';
+
+  @override
+  String get coachNoReliableRecommendation =>
+      'We do not have enough information to recommend a next step yet. You can try again.';
+
+  @override
+  String get coachPaymentsIncomplete =>
+      'We could not load all payments; this list may be incomplete.';
 
   @override
   String get coachReviewFullWeek => 'Review full week';
@@ -2556,6 +2660,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachAmountsHidden => 'Amounts are hidden';
+
+  @override
+  String get planningAgenda => 'Agenda';
+
+  @override
+  String get planningPlan => 'Plan';
+
+  @override
+  String get planningPendingOnly => 'To address';
+
+  @override
+  String get planningAll => 'All';
+
+  @override
+  String get planningAllTypes => 'All types';
+
+  @override
+  String get planningAllCurrencies => 'All currencies';
+
+  @override
+  String get planningNoEntries => 'Nothing is planned for this month yet.';
+
+  @override
+  String get planningNoPendingEntries => 'Every planned item has associated activity.';
+
+  @override
+  String get planningSourceExplanation =>
+      'Associated transactions appear against each planned item. Debt installments never make payments automatically.';
+
+  @override
+  String get planningRecorded => 'Recorded';
+
+  @override
+  String get planningPendingAmount => 'Pending';
+
+  @override
+  String get debtLinkExistingPayment => 'Link an existing payment';
+
+  @override
+  String get debtNoExistingPayments => 'There are no compatible unlinked payments.';
+
+  @override
+  String get planningTotalsUnavailable => 'Could not load this month’s totals.';
+
+  @override
+  String planningDebtCount(int count, int pending) {
+    return '$count payments planned · $pending pending';
+  }
+
+  @override
+  String get debtCommitmentsExcluded => 'Skipped or paused';
+
+  @override
+  String get thisMonth => 'This month';
 
   @override
   String get showLess => 'Show less';

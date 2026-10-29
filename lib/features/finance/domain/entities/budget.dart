@@ -10,6 +10,7 @@ class Budget {
     required this.currency,
     required this.plannedAmountMinor,
     required this.status,
+    this.itemCount = 0,
     this.items = const [],
   });
 
@@ -20,5 +21,18 @@ class Budget {
   final String currency;
   final int plannedAmountMinor;
   final String status;
+  final int itemCount;
   final List<BudgetItem> items;
+
+  Budget copyWith({int? plannedAmountMinor, int? itemCount}) => Budget(
+    id: id,
+    categoryId: categoryId,
+    flowType: flowType,
+    monthKey: monthKey,
+    currency: currency,
+    plannedAmountMinor: plannedAmountMinor ?? this.plannedAmountMinor,
+    status: status,
+    itemCount: itemCount ?? this.itemCount,
+    items: items,
+  );
 }

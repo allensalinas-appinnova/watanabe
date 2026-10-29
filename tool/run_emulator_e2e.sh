@@ -26,11 +26,15 @@ if [[ ! -f "$test_file" ]]; then
 fi
 
 test_file_arg="$(printf '%q' "$test_file")"
+test_name_arg=""
+if [[ -n "${E2E_TEST_NAME:-}" ]]; then
+  test_name_arg="--plain-name $(printf '%q' "$E2E_TEST_NAME")"
+fi
 
 case "$target_platform" in
   android)
     emulator_host="${FIREBASE_EMULATOR_HOST:-10.0.2.2}"
-    app_test_command="flutter test $test_file_arg -d $device_arg"
+    app_test_command="flutter test $test_file_arg $test_name_arg -d $device_arg"
     ;;
   ios)
     active_developer_dir="$(xcode-select -p 2>/dev/null || true)"
@@ -41,7 +45,7 @@ case "$target_platform" in
       exit 1
     fi
     emulator_host="${FIREBASE_EMULATOR_HOST:-127.0.0.1}"
-    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=$test_file_arg -d $device_arg"
+    app_test_command="flutter drive --driver=test_driver/integration_test.dart --target=$test_file_arg $test_name_arg -d $device_arg"
     ;;
   *)
     echo "E2E_PLATFORM must be either android or ios (received: $target_platform)." >&2

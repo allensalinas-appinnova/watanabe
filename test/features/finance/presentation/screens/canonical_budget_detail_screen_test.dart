@@ -34,6 +34,7 @@ const _budget = Budget(
   currency: 'COP',
   plannedAmountMinor: 420000,
   status: 'active',
+  itemCount: 2,
 );
 
 const _item1 = BudgetItem(
@@ -80,6 +81,7 @@ void main() {
     when(() => actions.archiveBudget(any(), any())).thenAnswer((_) async => null);
     when(() => actions.updateBudgetItem(any(), any(), any())).thenAnswer((_) async {});
     when(() => actions.addBudgetItem(any(), any(), any())).thenAnswer((_) async {});
+    when(() => actions.reconcileBudget(any(), any())).thenAnswer((_) async {});
   });
 
   Widget subject({
@@ -174,50 +176,97 @@ void main() {
     expect(find.byKey(const ValueKey('budget_add_item_detail')), findsOneWidget);
   });
 
-  testWidgets('adds an item from the budget detail and submits minor units', (tester) async {
-    await tester.pumpWidget(subject());
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('budget_add_item_detail')),
-      300,
-    );
-    await tester.tap(find.byKey(const ValueKey('budget_add_item_detail')));
-    await tester.pumpAndSettle();
-    expect(find.text('Agregar elemento'), findsNWidgets(2));
-
-    await tester.enterText(
-      find.byKey(const ValueKey('budget_item_create_description')),
-      'Servicios públicos',
-    );
-    await tester.enterText(find.byKey(const ValueKey('budget_item_create_amount')), '45000');
-    await _selectDay(tester, 28);
-    tester.binding.focusManager.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_item_create_save')));
-    await tester.pumpAndSettle();
-
-    verify(
-      () => actions.addBudgetItem(
-        'user-1',
-        'budget-1',
-        any(
-          that: isA<CanonicalBudgetItemDraft>()
-              .having((draft) => draft.description, 'description', 'Servicios públicos')
-              .having((draft) => draft.amountMinor, 'amountMinor', 45000)
-              .having((draft) => draft.dayOfMonth, 'dayOfMonth', 28),
+  testWidgets('repairs a stale planned total from active items before showing budget details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      subject(
+        budget: const Budget(
+          id: 'budget-1',
+          categoryId: 'food',
+          flowType: BudgetFlowType.expense,
+          monthKey: '2026-10',
+          currency: 'COP',
+          plannedAmountMinor: 500000,
+          itemCount: 3,
+          status: 'active',
         ),
-      ),
-    ).called(1);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('budget_detail_category')),
-      -300,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('budget_detail_scroll')),
-        matching: find.byType(Scrollable),
+        items: _items,
       ),
     );
-    expect(find.byKey(const ValueKey('budget_detail_category')), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    verify(() => actions.reconcileBudget('user-1', 'budget-1')).called(1);
+    expect(find.textContaining('420.000'), findsOneWidget);
+  });
+
+  for (final amountInput in ['50000', '50.000']) {
+    testWidgets('adds COP $amountInput as exactly 50000 minor units', (tester) async {
+      await tester.pumpWidget(subject());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('budget_add_item_detail')).hitTestable(), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('budget_add_item_detail')));
+      await tester.pumpAndSettle();
+      expect(find.text('Agregar elemento'), findsNWidgets(2));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('budget_item_create_description')),
+        'Servicios públicos',
+      );
+      await tester.enterText(find.byKey(const ValueKey('budget_item_create_amount')), amountInput);
+      await _selectDay(tester, 28);
+      tester.binding.focusManager.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('budget_item_create_save')));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => actions.addBudgetItem(
+          'user-1',
+          'budget-1',
+          any(
+            that: isA<CanonicalBudgetItemDraft>()
+                .having((draft) => draft.description, 'description', 'Servicios públicos')
+                .having((draft) => draft.amountMinor, 'amountMinor', 50000)
+                .having((draft) => draft.dayOfMonth, 'dayOfMonth', 28),
+          ),
+        ),
+      ).called(1);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('budget_detail_category')),
+        -300,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('budget_detail_scroll')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(find.byKey(const ValueKey('budget_detail_category')), findsOneWidget);
+    });
+  }
+
+  testWidgets('keeps add item available with many items on a compact screen', (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final manyItems = List.generate(
+      24,
+      (index) => BudgetItem(
+        id: 'item-$index',
+        description: 'Planned item $index',
+        amountMinor: 1000,
+        dayOfMonth: 1 + index % 28,
+      ),
+    );
+    await tester.pumpWidget(subject(items: manyItems, textScale: 1.4));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('budget_add_item_detail')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_detail_scroll')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_add_item_detail')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('expected day options are limited to the selected budget month', (tester) async {
@@ -273,11 +322,11 @@ void main() {
     await tester.tap(dayPicker);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Día 29'),
+      find.text('Día 29').last,
       250,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Día 29'), findsOneWidget);
+    expect(find.text('Día 29').last, findsOneWidget);
     expect(find.text('Día 30'), findsNothing);
   });
 

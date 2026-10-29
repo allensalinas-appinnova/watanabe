@@ -1,10 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/utils/async_value_extensions.dart';
+import '../../../commitments/domain/commitment_repository.dart';
+import '../../../commitments/domain/debt_commitment.dart';
+import '../../../finance/domain/entities/planning_agenda_entry.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../data/calendar/zoned_coach_calendar.dart';
 import '../../domain/entities/coach_models.dart';
@@ -110,11 +115,45 @@ final coachBudgetProgressProvider =
           Stream.value(const <CoachBudgetProgress>[]),
     );
 
+typedef CoachOverviewDeadlineRequest = ({String userId, int attempt});
+
+final coachOverviewRetryCountProvider =
+    NotifierProvider.family<CoachOverviewRetryCount, int, String>(
+      (_) => CoachOverviewRetryCount(),
+    );
+
+class CoachOverviewRetryCount extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void retry() => state++;
+}
+
+final coachOverviewDeadlineProvider = FutureProvider.autoDispose
+    .family<bool, CoachOverviewDeadlineRequest>((ref, request) async {
+      final completed = Completer<bool>();
+      final timer = Timer(const Duration(seconds: 8), () => completed.complete(true));
+      ref.onDispose(timer.cancel);
+      return completed.future;
+    });
+
 class CoachOverviewLoadState {
-  const CoachOverviewLoadState({this.overview, this.loading = false, this.error = false});
+  const CoachOverviewLoadState({
+    this.overview,
+    this.loading = false,
+    this.error = false,
+    this.incomplete = false,
+    this.actionIncomplete = false,
+    this.paymentsIncomplete = false,
+    this.insightsIncomplete = false,
+  });
   final CoachOverview? overview;
   final bool loading;
   final bool error;
+  final bool incomplete;
+  final bool actionIncomplete;
+  final bool paymentsIncomplete;
+  final bool insightsIncomplete;
 }
 
 final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((ref, uid) {
@@ -157,7 +196,18 @@ final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((r
   );
   final reportState = ref.watch(coachReportProvider(reportRequest));
   final budgetState = ref.watch(coachBudgetProgressProvider((userId: uid, monthKey: monthKey)));
-  final states = [
+  final nextMonthDate = DateTime(today.year, today.month + 1);
+  final nextMonthKey =
+      '${nextMonthDate.year.toString().padLeft(4, '0')}-${nextMonthDate.month.toString().padLeft(2, '0')}';
+  final planningCurrentState = ref.watch(
+    planningAgendaEntriesProvider((userId: uid, monthKey: monthKey)),
+  );
+  final planningNextState = ref.watch(
+    planningAgendaEntriesProvider((userId: uid, monthKey: nextMonthKey)),
+  );
+
+  // The weekly report affects insights, but must not hold up the next action.
+  final actionStates = [
     profileState,
     preferenceState,
     routinePreferenceState,
@@ -166,26 +216,75 @@ final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((r
     linksState,
     unallocatedState,
     pendingState,
-    reportState,
     budgetState,
+    planningCurrentState,
+    planningNextState,
   ];
-  final error =
-      profileState.hasError ||
-      preferenceState.hasError ||
-      routinePreferenceState.hasError ||
-      completionState.hasError ||
-      commitmentsState.hasError ||
-      linksState.hasError ||
-      unallocatedState.hasError ||
-      pendingState.hasError ||
-      reportState.hasError ||
-      budgetState.hasError ||
-      (profileState.hasValue && profileState.value == null);
-  final loading = states.any((value) => value.isLoading || !value.hasValue);
-  if (loading || error) return CoachOverviewLoadState(loading: loading && !error, error: error);
-  final routinePreferences = routinePreferenceState.requireValue;
-  final legacyPreferences = preferenceState.requireValue;
-  final ownerRows = pendingState.requireValue.where((row) {
+  final actionSourcesSettled = actionStates.every((value) => value.hasValue || value.hasError);
+  final retryAttempt = ref.watch(coachOverviewRetryCountProvider(uid));
+  final timedOut = actionSourcesSettled
+      ? false
+      : ref
+                .watch(
+                  coachOverviewDeadlineProvider((userId: uid, attempt: retryAttempt)),
+                )
+                .valueOrNull ==
+            true;
+  if (!actionSourcesSettled && !timedOut) {
+    return const CoachOverviewLoadState(loading: true);
+  }
+
+  final availability = CoachOverviewAvailability(
+    profile: profile != null,
+    reminderPreferences: preferenceState.hasValue,
+    routinePreferences: routinePreferenceState.hasValue,
+    completions: completionState.hasValue,
+    commitments: commitmentsState.hasValue,
+    paymentLinks: linksState.hasValue,
+    unallocatedPayments: unallocatedState.hasValue,
+    budgetProgress: budgetState.hasValue,
+    pendingOperations: pendingState.hasValue,
+    report: reportState.hasValue,
+    planningEntries: planningCurrentState.hasValue && planningNextState.hasValue,
+  );
+  final routinePreferences = routinePreferenceState.valueOrNull ?? const CoachRoutinePreferences();
+  final legacyPreferences = preferenceState.valueOrNull ?? const CoachPreferences();
+  final completions = completionState.valueOrNull ?? const <CoachCompletion>[];
+  final commitments = commitmentsState.valueOrNull ?? const <DebtCommitment>[];
+  final paymentLinks = linksState.valueOrNull ?? const <DebtCommitmentPaymentLink>[];
+  final unallocated =
+      unallocatedState.valueOrNull ?? const CoachUnallocatedPayments(operations: []);
+  final budgets = budgetState.valueOrNull ?? const <CoachBudgetProgress>[];
+  final plannedExpenses =
+      [
+            ...?planningCurrentState.valueOrNull,
+            ...?planningNextState.valueOrNull,
+          ]
+          .where((entry) => entry.kind == PlanningEntryKind.expense)
+          .map(
+            (entry) => CoachPlannedExpense(
+              id: entry.id,
+              budgetId: entry.budgetId!,
+              itemId: entry.itemId!,
+              description: entry.title,
+              monthKey: entry.monthKey,
+              dueDate: entry.date,
+              currency: entry.currency,
+              plannedMinor: entry.plannedMinor,
+              recordedMinor: entry.recordedMinor,
+              pendingMinor: entry.pendingMinor,
+            ),
+          )
+          .toList(growable: false);
+  final report =
+      reportState.valueOrNull ??
+      CoachPeriodReport(
+        startAt: reportRequest.startAt,
+        endAtExclusive: reportRequest.endAtExclusive,
+        operations: const [],
+        freshness: CoachFreshness.cached,
+      );
+  final ownerRows = (pendingState.valueOrNull ?? const <PendingOperation>[]).where((row) {
     try {
       final decoded = jsonDecode(row.payload) as Map<String, dynamic>;
       return decoded['ownerUserId'] == uid;
@@ -197,25 +296,67 @@ final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((r
   final pending = ownerRows
       .where((row) => row.status == 'pending' || row.status == 'syncing')
       .length;
-  final unallocated = unallocatedState.requireValue;
   final overview = const CoachOverviewCalculator().calculate(
     nowLocal: localNow,
     zone: profile?.timeZone ?? 'UTC',
     routine: routine,
     reminderPreferences: legacyPreferences,
     routinePreferences: routinePreferences,
-    completions: completionState.requireValue,
-    commitments: commitmentsState.requireValue,
-    paymentLinks: linksState.requireValue,
+    completions: completions,
+    commitments: commitments,
+    paymentLinks: paymentLinks,
     unallocatedPayments: unallocated.operations,
-    budgetProgress: budgetState.requireValue,
-    report: reportState.requireValue,
+    budgetProgress: budgets,
+    report: report,
     rejectedSyncCount: rejected,
     pendingSyncCount: pending,
     paymentFreshness: unallocated.freshness,
+    plannedExpenses: plannedExpenses,
+    availability: availability,
   );
-  return CoachOverviewLoadState(overview: overview);
+  final actionIncomplete =
+      !availability.actionSources ||
+      actionStates.any((value) => value.isLoading || value.hasError || !value.hasValue);
+  final paymentsIncomplete =
+      !availability.paymentItems ||
+      commitmentsState.isLoading ||
+      commitmentsState.hasError ||
+      linksState.isLoading ||
+      linksState.hasError ||
+      unallocatedState.isLoading ||
+      unallocatedState.hasError;
+  final insightsIncomplete =
+      !availability.weeklyReport || reportState.isLoading || reportState.hasError;
+  final error = actionStates.every((value) => value.hasError && !value.hasValue);
+  return CoachOverviewLoadState(
+    overview: overview,
+    error: error,
+    incomplete: actionIncomplete || paymentsIncomplete || insightsIncomplete,
+    actionIncomplete: actionIncomplete,
+    paymentsIncomplete: paymentsIncomplete,
+    insightsIncomplete: insightsIncomplete,
+  );
 });
+
+/// Invalidates every input used by the shared Home and Coach recommendation.
+void retryCoachOverview(WidgetRef ref, String uid) {
+  ref.read(coachOverviewRetryCountProvider(uid).notifier).retry();
+  ref
+    ..invalidate(canonicalUserProfileProvider(uid))
+    ..invalidate(coachPreferencesProvider(uid))
+    ..invalidate(coachRoutinePreferencesProvider(uid))
+    ..invalidate(coachCompletionsProvider(uid))
+    ..invalidate(debtCommitmentsProvider(uid))
+    ..invalidate(debtCommitmentPaymentsProvider(uid))
+    ..invalidate(coachUnallocatedPaymentsProvider(uid))
+    ..invalidate(pendingOperationsProvider)
+    ..invalidate(coachReportProvider)
+    ..invalidate(coachReportChangesProvider)
+    ..invalidate(coachBudgetProgressProvider)
+    ..invalidate(planningAgendaEntriesProvider)
+    ..invalidate(coachTickProvider)
+    ..invalidate(coachOverviewProvider(uid));
+}
 
 final coachWriteFailureProvider = StreamProvider.family<CoachWriteFailure, String>(
   (ref, uid) => ref.watch(coachRepositoryProvider)?.watchWriteFailures(uid) ?? const Stream.empty(),

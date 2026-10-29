@@ -11,6 +11,7 @@ import '../../features/coach/domain/entities/coach_models.dart';
 import '../../features/coach/presentation/screens/coach_home_screen.dart';
 import '../../features/coach/presentation/screens/coach_review_screen.dart';
 import '../../features/coach/presentation/screens/coach_settings_screen.dart';
+import '../../features/commitments/presentation/debt_commitment_detail_screen.dart';
 import '../../features/commitments/presentation/debt_commitments_screen.dart';
 import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
@@ -41,6 +42,7 @@ import '../../features/finance/presentation/screens/canonical_transfer_screen.da
 import '../../features/finance/presentation/screens/home_dashboard_preferences_screen.dart';
 import '../../features/finance/presentation/screens/money_account_detail_screen.dart';
 import '../../features/finance/presentation/screens/operation_edit_route_screen.dart';
+import '../../features/finance/presentation/screens/planning_agenda_screen.dart';
 import '../../features/finance/presentation/screens/user_data_reset_screen.dart';
 import '../di/injection.dart';
 import '../firebase/firebase_bootstrap.dart';
@@ -214,8 +216,17 @@ GoRouter _buildAppRouter() => GoRouter(
             GoRoute(
               path: '/budgets',
               name: 'budgets',
-              builder: (context, state) => const CanonicalBudgetsScreen(),
+              builder: (context, state) => CanonicalBudgetsScreen(
+                initialMonthKey: state.uri.queryParameters['month'],
+              ),
               routes: [
+                GoRoute(
+                  path: 'agenda',
+                  name: 'planning-agenda',
+                  builder: (context, state) => PlanningAgendaScreen(
+                    initialMonthKey: state.uri.queryParameters['month'],
+                  ),
+                ),
                 GoRoute(
                   path: 'debt-payments',
                   name: 'debt-commitments',
@@ -229,6 +240,15 @@ GoRouter _buildAppRouter() => GoRouter(
                       parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) => DebtCommitmentFormScreen(
                         initialDebtAccountId: state.uri.queryParameters['debtAccountId'],
+                        initialMonthKey: state.uri.queryParameters['month'],
+                      ),
+                    ),
+                    GoRoute(
+                      path: ':commitmentId',
+                      name: 'debt-commitment-detail',
+                      builder: (context, state) => DebtCommitmentDetailScreen(
+                        commitmentId: state.pathParameters['commitmentId']!,
+                        initialMonthKey: state.uri.queryParameters['month'],
                       ),
                     ),
                   ],
@@ -244,7 +264,9 @@ GoRouter _buildAppRouter() => GoRouter(
                   path: 'new',
                   name: 'new-budget',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) => const CanonicalBudgetCreateScreen(),
+                  builder: (context, state) => CanonicalBudgetCreateScreen(
+                    initialMonthKey: state.uri.queryParameters['month'],
+                  ),
                 ),
                 GoRoute(
                   path: ':id',

@@ -8,6 +8,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/widgets/pinned_action_bar.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
@@ -191,24 +192,11 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
       'overview' => (l10n.accountsAddEntry, Icons.add),
       _ => (l10n.addAccount, Icons.add),
     };
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
-        ),
-        padding: const EdgeInsetsDirectional.fromSTEB(24, 8, 24, 8),
-        child: SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            key: const ValueKey('accounts_add_button'),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-            onPressed: () => _openCreateAction(context),
-            icon: Icon(icon),
-            label: Text(label),
-          ),
-        ),
-      ),
+    return PinnedActionBar(
+      buttonKey: const ValueKey('accounts_add_button'),
+      label: label,
+      icon: icon,
+      onPressed: () => _openCreateAction(context),
     );
   }
 
