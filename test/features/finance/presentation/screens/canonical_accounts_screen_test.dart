@@ -68,6 +68,47 @@ void main() {
     ),
   );
 
+  testWidgets('searches many accounts ignoring accents and combines with sections', (tester) async {
+    final many = [
+      ...List.generate(
+        14,
+        (i) => FinanceAccount(id: 'a$i', name: 'Cuenta $i', type: 'savings', currency: 'COP'),
+      ),
+      const FinanceAccount(
+        id: 'accent',
+        name: 'Ahorro Educación',
+        type: 'savings',
+        currency: 'COP',
+      ),
+      const FinanceAccount(
+        id: 'card-accent',
+        name: 'Tarjeta Educación',
+        type: 'creditCard',
+        currency: 'COP',
+        nature: 'debt',
+      ),
+    ];
+    await tester.pumpWidget(buildSubject(accounts: many));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('accounts_search')), 'EDUCACION');
+    await tester.pumpAndSettle();
+    expect(find.text('Ahorro Educación'), findsOneWidget);
+    expect(find.text('Tarjeta Educación'), findsOneWidget);
+    expect(find.text('Cuenta 1'), findsNothing);
+    await tester.tap(find.text('Dinero').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Ahorro Educación'), findsOneWidget);
+    expect(find.text('Tarjeta Educación'), findsNothing);
+    await tester.enterText(find.byKey(const ValueKey('accounts_search')), 'inexistente');
+    await tester.pumpAndSettle();
+    expect(find.text('Ninguna cuenta coincide con tu búsqueda.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('accounts_search_clear')));
+    await tester.pumpAndSettle();
+    expect(find.text('Cuenta 1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('accounts_add_button')).hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders account cards without repeating account actions in the list', (
     tester,
   ) async {
@@ -191,6 +232,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.enterText(find.byKey(const ValueKey('accounts_search')), 'Banco');
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('accounts_add_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('accounts_create_money')), findsOneWidget);

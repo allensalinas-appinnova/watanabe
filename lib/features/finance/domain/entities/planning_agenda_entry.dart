@@ -11,6 +11,7 @@ class PlanningAgendaEntry {
     required this.recordedMinor,
     required this.pendingMinor,
     required this.monthKey,
+    this.categoryId,
     this.budgetId,
     this.itemId,
     this.commitmentId,
@@ -27,6 +28,7 @@ class PlanningAgendaEntry {
   final int recordedMinor;
   final int pendingMinor;
   final String monthKey;
+  final String? categoryId;
   final String? budgetId;
   final String? itemId;
   final String? commitmentId;

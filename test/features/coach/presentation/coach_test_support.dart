@@ -203,6 +203,8 @@ AppLocalizations strings(WidgetTester tester) =>
 
 Future<void> tapCoach(WidgetTester tester, Finder finder) async {
   await tester.scrollUntilVisible(finder, 250);
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }

@@ -25,6 +25,33 @@ class CanonicalAccountsScreen extends ConsumerStatefulWidget {
 
 class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScreen> {
   late String _section = _validSection(widget.initialSection);
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _normalize(String value) {
+    const accents = {
+      'a': 'áàâãäå',
+      'e': 'éèêë',
+      'i': 'íìîï',
+      'o': 'óòôõö',
+      'u': 'úùûü',
+      'c': 'ç',
+      'n': 'ñ',
+      'y': 'ýÿ',
+    };
+    var result = value.toLowerCase();
+    for (final entry in accents.entries) {
+      for (final rune in entry.value.runes) {
+        result = result.replaceAll(String.fromCharCode(rune), entry.key);
+      }
+    }
+    return result.replaceAll(RegExp(r'[\u0300-\u036f]'), '');
+  }
 
   @override
   void didUpdateWidget(CanonicalAccountsScreen oldWidget) {
@@ -89,6 +116,24 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                 ),
               ),
               const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('accounts_search'),
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: l10n.accountsSearch,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          key: const ValueKey('accounts_search_clear'),
+                          tooltip: l10n.accountsSearchClear,
+                          onPressed: () => setState(_searchController.clear),
+                          icon: const Icon(Icons.clear),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
               accounts.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 32),
@@ -100,7 +145,11 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                   onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
                 ),
                 data: (allItems) {
-                  final items = _visibleAccounts(allItems);
+                  final sectionItems = _visibleAccounts(allItems);
+                  final query = _normalize(_searchController.text.trim());
+                  final items = sectionItems
+                      .where((account) => _normalize(account.name).contains(query))
+                      .toList();
                   return allItems.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.only(bottom: 20),
@@ -115,7 +164,9 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                       ? Padding(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Text(
-                            l10n.accountsSectionEmpty,
+                            query.isNotEmpty && sectionItems.isNotEmpty
+                                ? l10n.accountsSearchEmpty
+                                : l10n.accountsSectionEmpty,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
@@ -165,7 +216,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
                                         ref,
                                         user.id,
                                         items[index],
-                                        items,
+                                        allItems,
                                       )
                                     : null,
                                 onArchive: () => items[index].isDebt
@@ -201,6 +252,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
   }
 
   Future<void> _openCreateAction(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     switch (_section) {
       case 'money':
         _showCreate(context);
@@ -215,33 +267,38 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
           showDragHandle: true,
           builder: (sheetContext) {
             final l10n = AppLocalizations.of(sheetContext);
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.addMovementChoiceTitle, style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  _CreateChoice(
-                    key: const ValueKey('accounts_create_money'),
-                    icon: Icons.account_balance_wallet_outlined,
-                    label: l10n.addAccount,
-                    onTap: () => Navigator.of(sheetContext).pop('money'),
-                  ),
-                  _CreateChoice(
-                    key: const ValueKey('accounts_create_card'),
-                    icon: Icons.credit_card_outlined,
-                    label: l10n.debtCreditCard,
-                    onTap: () => Navigator.of(sheetContext).pop('card'),
-                  ),
-                  _CreateChoice(
-                    key: const ValueKey('accounts_create_loan'),
-                    icon: Icons.account_balance_outlined,
-                    label: l10n.debtLoans,
-                    onTap: () => Navigator.of(sheetContext).pop('loan'),
-                  ),
-                ],
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.addMovementChoiceTitle,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    _CreateChoice(
+                      key: const ValueKey('accounts_create_money'),
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.addAccount,
+                      onTap: () => Navigator.of(sheetContext).pop('money'),
+                    ),
+                    _CreateChoice(
+                      key: const ValueKey('accounts_create_card'),
+                      icon: Icons.credit_card_outlined,
+                      label: l10n.debtCreditCard,
+                      onTap: () => Navigator.of(sheetContext).pop('card'),
+                    ),
+                    _CreateChoice(
+                      key: const ValueKey('accounts_create_loan'),
+                      icon: Icons.account_balance_outlined,
+                      label: l10n.debtLoans,
+                      onTap: () => Navigator.of(sheetContext).pop('loan'),
+                    ),
+                  ],
+                ),
               ),
             );
           },

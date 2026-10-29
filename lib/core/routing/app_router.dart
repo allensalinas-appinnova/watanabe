@@ -17,6 +17,7 @@ import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
 import '../../features/debts/presentation/debt_payment_picker_screen.dart';
 import '../../features/devices/presentation/my_devices_screen.dart';
+import '../../features/diagnostics/presentation/diagnostic_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
@@ -397,6 +398,11 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/settings/reset-data',
       name: 'reset-user-data',
       builder: (context, state) => const UserDataResetScreen(),
+    ),
+    GoRoute(
+      path: '/coach/diagnosis',
+      name: 'coach-diagnosis',
+      builder: (context, state) => const DiagnosticScreen(),
     ),
     GoRoute(
       path: '/coach/settings',

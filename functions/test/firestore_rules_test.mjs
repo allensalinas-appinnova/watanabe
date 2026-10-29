@@ -694,3 +694,29 @@ test('device registrations are readable only by their owner and are server-write
   await assertFails(other.doc('users/alice/devices/phone-installation').get());
   await assertFails(anonymous.collection('users/alice/devices').get());
 });
+
+
+test('diagnostic records and valuation history are owner-readable and callable-write-only', async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await db.doc('users/alice').set(userProfile());
+    await db.doc('users/alice/diagnosticRecords/context').set({kind: 'context', values: {dependents: 1}, revision: 1});
+    await db.doc('users/alice/diagnosticRecords/asset/valuations/one').set({values: {amountMinor: 100}});
+    await db.doc('users/alice/diagnosticCommands/receipt').set({digest: 'private'});
+  });
+  const alice = environment.authenticatedContext('alice').firestore();
+  await assertSucceeds(alice.collection('users/alice/diagnosticRecords').get());
+  await assertSucceeds(alice.doc('users/alice/diagnosticRecords/asset/valuations/one').get());
+  for (const context of [alice, environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    for (const path of ['users/alice/diagnosticRecords/context', 'users/alice/diagnosticRecords/asset/valuations/one', 'users/alice/diagnosticCommands/receipt']) {
+      await assertFails(context.doc(path).set({forged: true}));
+      await assertFails(context.doc(path).update({ownerId: 'bob'}));
+      await assertFails(context.doc(path).delete());
+    }
+    await assertFails(context.doc('users/alice/diagnosticCommands/receipt').get());
+  }
+  for (const context of [environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    await assertFails(context.collection('users/alice/diagnosticRecords').get());
+    await assertFails(context.doc('users/alice/diagnosticRecords/asset/valuations/one').get());
+  }
+});

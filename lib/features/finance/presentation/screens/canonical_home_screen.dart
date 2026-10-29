@@ -123,6 +123,22 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
+                if (homePreferences.shows(HomeDashboardWidget.totalBalance))
+                  accounts.when(
+                    loading: () => const _HomeSkeleton(height: 116),
+                    error: (_, _) => _ErrorCard(
+                      message: l10n.genericError,
+                      onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
+                    ),
+                    data: (items) => _BalanceCard(
+                      accounts: items,
+                      amountsHidden: amountsHidden,
+                      onToggleVisibility: () => ref
+                          .read(dashboardAmountsHiddenProvider.notifier)
+                          .setHidden(!amountsHidden),
+                    ),
+                  ),
+                const SizedBox(height: 16),
                 if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
                   CoachNextStepCard(userId: user.id, timeZone: profile?.timeZone ?? 'UTC'),
                 if (homePreferences.shows(HomeDashboardWidget.debtCommitments))
@@ -152,21 +168,6 @@ class CanonicalHomeScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                if (homePreferences.shows(HomeDashboardWidget.totalBalance))
-                  accounts.when(
-                    loading: () => const _HomeSkeleton(height: 116),
-                    error: (_, _) => _ErrorCard(
-                      message: l10n.genericError,
-                      onRetry: () => ref.invalidate(canonicalAccountsProvider(user.id)),
-                    ),
-                    data: (items) => _BalanceCard(
-                      accounts: items,
-                      amountsHidden: amountsHidden,
-                      onToggleVisibility: () => ref
-                          .read(dashboardAmountsHiddenProvider.notifier)
-                          .setHidden(!amountsHidden),
-                    ),
-                  ),
                 if (homePreferences.shows(HomeDashboardWidget.incomeSummary) ||
                     homePreferences.shows(HomeDashboardWidget.expenseSummary)) ...[
                   const SizedBox(height: 16),

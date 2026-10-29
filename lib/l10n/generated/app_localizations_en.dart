@@ -2717,4 +2717,235 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showLess => 'Show less';
+
+  @override
+  String diagnosticText(String key) {
+    String _temp0 = intl.Intl.selectLogic(
+      key,
+      {
+        'title': 'Financial diagnosis',
+        'intro': 'Review liquidity, debt and goals. Complete your information in stages.',
+        'configure': 'Complete information',
+        'report': 'Diagnosis',
+        'scenario': '90-day stress test',
+        'incomeReduction': 'Income reduction (%)',
+        'expenseIncrease': 'Expense increase (%)',
+        'history': 'Complete-month history',
+        'assumptions':
+            'Projection from today for 90 days; payments precede receipts on the same day. Uses recorded plans only. The scenario does not change your data. Currencies are not converted.',
+        'unknown': 'Unconfirmed',
+        'sufficient': 'Sufficient information',
+        'partial': 'Partial information',
+        'notCalculable': 'Not calculable',
+        'sources': 'Sources',
+        'methodology': 'Methodology',
+        'missing': 'Missing information',
+        'projection': 'Projected cash timeline',
+        'findings': 'Findings and next steps',
+        'empty': 'Not enough information yet. Complete your information to begin.',
+        'save': 'Save',
+        'delete': 'Delete',
+        'edit': 'Edit',
+        'cancel': 'Cancel',
+        'add': 'Add',
+        'retry': 'Retry',
+        'saveError':
+            'Could not save. Check fields, references and available balance. If another device changed the data, reopen the form.',
+        'readError': 'Could not load diagnosis. Retry with a connection.',
+        'invalid': 'Check the value',
+        'formHint':
+            'Save each section to continue later. Amounts represent your personal share. Dates: YYYY-MM-DD; months: YYYY-MM separated by commas.',
+        'context': 'Context and data quality',
+        'account': 'Account availability and scope',
+        'classification': 'Financial classification',
+        'plan': 'Plan cash effect',
+        'reserve': 'Reserves',
+        'goal': 'Goals',
+        'debt': 'Debt terms',
+        'asset': 'Wealth and investments',
+        'coverage': 'Protection',
+        'dependents': 'Dependents',
+        'incomeStability': 'Income stability',
+        'sharedExpensePercent': 'Your share of shared expenses (%)',
+        'accountsComplete': 'All my accounts are included',
+        'debtsComplete': 'All my debts are included',
+        'verifiedOn': 'Balance verification date',
+        'completeMonths': 'Complete transaction months',
+        'confirmedPlanMonths': 'Confirmed planning months',
+        'emergencyMonths': 'Emergency target in months (reference: 3)',
+        'currency': 'ISO currency: COP, USD…',
+        'grossIncomeMinor': 'Gross monthly income',
+        'riskCapacity': 'Capacity to absorb losses',
+        'riskTolerance': 'Risk tolerance',
+        'accountId': 'Account',
+        'availability': 'Availability',
+        'excluded': 'Exclude from diagnosis',
+        'reason': 'Reason for exclusion',
+        'categoryId': 'Category',
+        'budgetId': 'Budget identifier (override only)',
+        'itemId': 'Item identifier (override only)',
+        'essential': 'Essential expense',
+        'fixed': 'Fixed',
+        'recurring': 'Recurring income',
+        'entryId': 'Plan item',
+        'effect': 'Cash effect',
+        'name': 'Name',
+        'amountMinor': 'Target, reserved amount or total value',
+        'purpose': 'Single purpose',
+        'goalId': 'Funded goal',
+        'kind': 'Type',
+        'dueDate': 'Target or expiration date',
+        'priority': 'Priority (1 is highest)',
+        'monthlyContributionMinor': 'Planned monthly contribution',
+        'referenceDate': 'Reference or valuation date',
+        'rateBps': 'Effective rate (%)',
+        'ratePeriod': 'Effective rate period',
+        'rateMode': 'Rate type',
+        'remainingMonths': 'Remaining months',
+        'installmentMinor': 'Contractual monthly installment',
+        'statementMonth': 'Statement month',
+        'minimumPaymentMinor': 'Statement minimum payment',
+        'interestFreePaymentMinor': 'Payment to avoid interest',
+        'prepaymentTerms': 'Prepayment terms',
+        'prepaymentCostMinor': 'Prepayment cost',
+        'ownershipPercent': 'Ownership percentage (value above is total)',
+        'assetClass': 'Asset class',
+        'obligation': 'Liability',
+        'deductibleMinor': 'Deductible',
+        'needMinor': 'Declared coverage need',
+        'beneficiaries': 'Beneficiaries',
+        'yes': 'Yes',
+        'no': 'No',
+        'stable': 'Stable',
+        'variable': 'Variable',
+        'low': 'Low',
+        'medium': 'Medium',
+        'high': 'High',
+        'immediate': 'Immediate',
+        'restricted': 'Restricted',
+        'cash': 'Cash receipt or payment',
+        'card': 'Card purchase; no bank outflow',
+        'none': 'No cash effect',
+        'emergency': 'Emergency',
+        'provision': 'Provision',
+        'retirement': 'Retirement',
+        'tax': 'Taxes',
+        'monthlyEffective': 'Monthly effective',
+        'annualEffective': 'Annual effective',
+        'property': 'Property',
+        'vehicle': 'Vehicle',
+        'equity': 'Equity',
+        'fixedIncome': 'Fixed income',
+        'receivable': 'Receivable',
+        'result': 'Monthly result',
+        'cashFlow': 'Monthly cash flow',
+        'freeMoney': 'Free money today',
+        'emergencyCoverage': 'Emergency coverage (months)',
+        'emergencyTarget': 'Target reserve',
+        'debtPressure': 'Debt payments / recurring net income',
+        'grossDti': 'DTI on declared gross income',
+        'creditUtilization': 'Credit card utilization',
+        'debtPrincipal': 'Recorded loan principal',
+        'debtCharges': 'Recorded outstanding charges',
+        'averageCashFlow': 'Confirmed average monthly cash flow',
+        'goalProgress': 'Goal progress',
+        'requiredContribution': 'Required monthly contribution, no returns',
+        'recordedWealth': 'Recorded net wealth',
+        'investmentConcentration': 'Investment share of inventory',
+        'coverageGap': 'Declared coverage gap',
+        'minimumCash': 'Projected minimum cash by account',
+        'cashShortfall': 'Cash shortfall: review payments from this account and their dates.',
+        'reservedMoneyNeeded':
+            'The plan would use reserved money: adjust expenses, dates or reserves.',
+        'reservesExceedBalance': 'Reserves exceed current balance: review their funding.',
+        'positiveResultNegativeCash':
+            'Positive result with net cash outflow: review principal payments and financing.',
+        'unconfirmedPastPayment':
+            'Unconfirmed past payment: verify payment and link the transaction.',
+        'unallocatedPayment': 'Unallocated payment: complete the allocation to assess debt.',
+        'unlinkedMovement': 'Transaction not linked to a plan: review and link if appropriate.',
+        'goalContributionGap': 'Planned contributions fall short: review the target or date.',
+        'coverageExpired': 'Coverage expired: check renewal.',
+        'accountsIncomplete': 'Confirm all accounts are included.',
+        'debtsIncomplete': 'Confirm all debts are included.',
+        'cached': 'Cached data may be out of date.',
+        'pending': 'Changes await confirmation.',
+        'staleBalances': 'Verify balances; confirmation is missing or older than 30 days.',
+        'historyIncomplete':
+            'At least three confirmed complete months are needed for a stable baseline.',
+        'classificationIncomplete':
+            'Classify essential expenses and recurring income to calculate baselines.',
+        'availabilityUnknown': 'Identify accounts with immediate availability.',
+        'essentialBaselineMissing': 'A positive essential-expense baseline is missing.',
+        'debtTermsMissing':
+            'Contractual installments or current minimums are missing; plans are only an estimate.',
+        'creditLimitMissing': 'Credit limit is missing.',
+        'recurringIncomeMissing': 'Positive confirmed recurring income is missing.',
+        'goalOverdue': 'The target date has passed; review the outstanding amount.',
+        'wealthInventoryUnconfirmed':
+            'Wealth includes recorded items only; check for missing assets or liabilities.',
+        'investmentInventoryUnconfirmed': 'Concentration uses inventoried investments only.',
+        'coverageNeedMissing': 'Declare coverage needs before assessing adequacy.',
+        'pastPaymentsUnconfirmed': 'Past payments require confirmation; they were not rescheduled.',
+        'planAccountMissing': 'Assign an account and cash effect to every pending commitment.',
+        'planIncomplete': 'The horizon includes months without confirmed planning.',
+        'valuations': 'Recorded valuations; not returns',
+        'scope':
+            'Scope: all active accounts except explicit exclusions. Home visibility does not change diagnosis.',
+        'formulaResult': 'Recognized income − recognized net expenses for the month.',
+        'formulaCash': 'Sum of cash inflows and outflows; excludes balance adjustments.',
+        'formulaFree': 'Immediately available balances − reserves backed by those accounts.',
+        'formulaEmergency':
+            'Liquid emergency reserve ÷ confirmed average monthly essential expenses.',
+        'formulaDebt': 'Mandatory monthly payments ÷ average recurring monthly income × 100.',
+        'formulaGoal':
+            'Assigned resources and linked provision payments ÷ target; contribution = shortfall ÷ available months, no returns.',
+        'formulaWealth':
+            'Money and debt balances + attributable external assets − external liabilities; linked accounts count once.',
+        'formulaProjection':
+            'Current balance + pending receipts − pending payments; releases only the reserve linked to the payment.',
+        'formulaOther': 'Calculated from the listed records and references.',
+        'linkMovement': 'Link transaction',
+        'effectiveAnnualRate': 'Comparable effective annual rate; partial comparison',
+        'netProjected': 'Projected free cash',
+        'confirmDelete': 'Delete this supplemental record?',
+        'itemOverride': 'Override for a plan item (optional)',
+        'formulaGross': 'Mandatory monthly payments ÷ declared gross monthly income × 100.',
+        'formulaCredit': 'Card debt balance ÷ recorded credit limit × 100.',
+        'formulaCoverage':
+            'Declared need − active coverage, minimum zero; deductible is reported separately.',
+        'formulaConcentration':
+            'Attributable investment value ÷ attributable inventoried investment value × 100.',
+        'minimumCashTotal': 'Projected minimum cash by currency',
+        'minimumFreeTotal': 'Projected minimum free money by currency',
+        'recurringSurplus': 'Monthly recurring margin before principal and goals',
+        'fixedExpenseShare': 'Fixed expense share',
+        'formulaSurplus':
+            'Average recurring monthly income − average net monthly expenses; before principal payments and goal contributions.',
+        'formulaFixed': 'Net expenses classified as fixed ÷ historical net expenses × 100.',
+        'staleValuation': 'Some assets have no valuation within the last 12 months.',
+        'allocationIncomplete':
+            'Unallocated payments exist: the debt position is incomplete until principal and charges are allocated.',
+        'reserveAccountUnavailable':
+            'Some reserves refer to archived accounts; review their funding.',
+        'other': 'Other',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get budgetedIncomeActual => 'Received in budgeted categories';
+
+  @override
+  String get budgetedExpenseActual => 'Spent in budgeted categories';
+
+  @override
+  String get accountsSearch => 'Search accounts';
+
+  @override
+  String get accountsSearchClear => 'Clear search';
+
+  @override
+  String get accountsSearchEmpty => 'No accounts match your search.';
 }

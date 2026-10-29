@@ -87,3 +87,12 @@ candidates and command/deduplication markers are server-only; the current
 implementation does not connect Gmail. See [coach.md](coach.md),
 [projection-audit.md](projection-audit.md) and [email-imports.md](email-imports.md)
 for their validation and activation boundaries.
+
+
+## Personal financial diagnosis
+
+Supplemental facts live under `users/{uid}/diagnosticRecords`, with private
+`diagnosticCommands` receipts and asset valuation subcollections. They never
+change financial operations or ledger projections. See
+[financial diagnosis](financial-diagnosis.md) for the callable contract,
+methodology, data quality, reservations, goals and lifecycle integration.

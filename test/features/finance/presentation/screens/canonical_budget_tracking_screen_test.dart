@@ -206,7 +206,7 @@ void main() {
     expect(find.byKey(const ValueKey('budget_tracking_progress_COP_expense')), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('budget_tracking_actual_COP_expense'))).data,
-      contains('32.000'),
+      allOf(contains('32.000'), contains('Gastado en categorías presupuestadas')),
     );
     expect(
       tester
@@ -242,7 +242,7 @@ void main() {
     expect(incomeRemaining.data, contains('200,00'));
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('budget_tracking_actual_MXN_income'))).data,
-      contains('1.200,00'),
+      allOf(contains('1.200,00'), contains('Recibido en categorías presupuestadas')),
     );
     expect(
       tester
@@ -252,6 +252,28 @@ void main() {
           .data,
       contains('300,00'),
     );
+  });
+
+  testWidgets('clarifies zero budgeted income alongside unbudgeted income', (tester) async {
+    setScreen(tester, const Size(390, 844));
+    await tester.pumpWidget(subject(budgets: const [], includeUnbudgetedActivity: true));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('budget_tracking_actual_MXN_income')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('budget_tracking_actual_MXN_income'))).data,
+      allOf(contains('Recibido en categorías presupuestadas'), contains('0,00')),
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('budget_tracking_unbudgeted_amount_MXN_income')))
+          .data,
+      contains('1.500,00'),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('empty state keeps month selection and opens budget creation', (tester) async {

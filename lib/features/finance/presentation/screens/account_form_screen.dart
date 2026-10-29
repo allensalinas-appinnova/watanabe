@@ -324,6 +324,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                                 labelText: l10n.initialBalance,
                                 prefixText: '$_currency ',
                                 helperText: l10n.openingBalanceHelper,
+                                helperMaxLines: 10,
                               ),
                               validator: (value) => _validateBalance(value, l10n),
                             ),

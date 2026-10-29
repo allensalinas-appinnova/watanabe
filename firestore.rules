@@ -216,6 +216,16 @@ service cloud.firestore {
       }
       match /debtPayments/{paymentId} { allow read: if owner(uid); allow write: if false; }
       match /debtPaymentLinks/{paymentId} { allow read: if owner(uid); allow write: if false; }
+      // Supplemental diagnostic facts: validated callable writes; owner-only reads.
+      match /diagnosticRecords/{recordId} {
+        allow read: if owner(uid);
+        allow write: if false;
+        match /valuations/{valuationId} {
+          allow read: if owner(uid);
+          allow write: if false;
+        }
+      }
+      match /diagnosticCommands/{requestId} { allow read, write: if false; }
       // Installation metadata is readable by its owner and mutated only by manageDevice.
       match /devices/{installationId} { allow read: if owner(uid); allow write: if false; }
       allow read: if owner(uid);

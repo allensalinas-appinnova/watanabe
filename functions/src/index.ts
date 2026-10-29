@@ -8,6 +8,7 @@ import {applyOperationEvent} from "./projection_store";
 import {defineString} from "firebase-functions/params";
 import {EmailImportError, executeEmailImportCommand, listEmailImportCandidates} from "./email_imports";
 import {DebtCommandError, executeDebtCommand} from "./debt_commands";
+import {executeDiagnosticCommand} from "./diagnostic_records";
 import {UserDataResetError, executeUserDataReset} from "./user_data_reset";
 import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitments";
 import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_registry";
@@ -16,6 +17,11 @@ import {ensureOperationProjectionVersion, OperationProjectionMigrationError} fro
 export {adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
 
 initializeApp();
+
+// Cloud Run's invoker IAM check is disabled with explicit user approval.
+// Keep the IAM policy private (no allUsers grant); the handler requires Firebase Auth.
+export const mutateDiagnostic = onCall({region: "us-central1", timeoutSeconds: 60, invoker: "private"}, async request =>
+  executeDiagnosticCommand(getFirestore(), request.auth?.uid, request.data));
 
 export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, async (request) => {
   if (request.auth?.token.firebase?.sign_in_provider === "anonymous") {

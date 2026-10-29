@@ -463,7 +463,7 @@ class _FlowSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = flowType == BudgetFlowType.income;
-    final actualTitle = isIncome ? l10n.budgetReceived : l10n.budgetSpent;
+    final actualTitle = isIncome ? l10n.budgetedIncomeActual : l10n.budgetedExpenseActual;
     String format(int amount) =>
         CurrencyFormatter.formatMinor(amount.abs(), currency, locale: locale);
     final remainingText = planned == 0

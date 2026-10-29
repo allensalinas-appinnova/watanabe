@@ -61,6 +61,28 @@ void main() {
     ),
   );
 
+  for (final locale in const [Locale('es'), Locale('en'), Locale('pt')]) {
+    testWidgets('shows complete opening balance help with enlarged text: $locale', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(buildSubject(locale: locale, textScale: 1.4));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.descendant(
+          of: find.byKey(const ValueKey('account_initial_balance_field')),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(field.decoration!.helperMaxLines, greaterThan(1));
+      expect(find.text(field.decoration!.helperText!), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('account_save')));
+      expect(find.byKey(const ValueKey('account_save')).hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('uses the profile currency and offers all account types and currencies', (
     tester,
   ) async {

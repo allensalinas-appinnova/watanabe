@@ -210,6 +210,16 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
                 _Notice(icon: Icons.check_circle_outline, message: l10n.coachDataFresh),
               ],
               const SizedBox(height: 16),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.monitor_heart_outlined),
+                  title: Text(l10n.diagnosticText('title')),
+                  subtitle: Text(l10n.diagnosticText('intro')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/coach/diagnosis'),
+                ),
+              ),
+              const SizedBox(height: 16),
               _sectionTitle(context, l10n.coachNextStepTitle),
               const SizedBox(height: 8),
               _nextActionCard(

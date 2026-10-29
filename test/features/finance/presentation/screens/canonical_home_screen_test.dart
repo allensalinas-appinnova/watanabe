@@ -217,6 +217,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('home_dashboard_title')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('home_balance_card'))).dy,
+      lessThan(tester.getTopLeft(find.byKey(const ValueKey('home_credit_cards_shortcut'))).dy),
+    );
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('home_credit_cards_shortcut')),
       300,

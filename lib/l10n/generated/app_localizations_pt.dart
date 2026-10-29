@@ -2732,4 +2732,237 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get showLess => 'Ver menos';
+
+  @override
+  String diagnosticText(String key) {
+    String _temp0 = intl.Intl.selectLogic(
+      key,
+      {
+        'title': 'Diagnóstico financeiro',
+        'intro': 'Revise liquidez, dívidas e metas. Complete suas informações por etapas.',
+        'configure': 'Completar informações',
+        'report': 'Diagnóstico',
+        'scenario': 'Teste de estresse de 90 dias',
+        'incomeReduction': 'Redução de receitas (%)',
+        'expenseIncrease': 'Aumento de despesas (%)',
+        'history': 'Histórico de meses completos',
+        'assumptions':
+            'Projeção de hoje por 90 dias; pagamentos antes de recebimentos no mesmo dia. Usa somente planos registrados. O cenário não altera seus dados. Não converte moedas.',
+        'unknown': 'Não confirmado',
+        'sufficient': 'Informações suficientes',
+        'partial': 'Informações parciais',
+        'notCalculable': 'Não calculável',
+        'sources': 'Fontes',
+        'methodology': 'Metodologia',
+        'missing': 'Informações pendentes',
+        'projection': 'Linha do tempo do caixa projetado',
+        'findings': 'Constatações e próximos passos',
+        'empty': 'Ainda não há informações suficientes. Complete seus dados para começar.',
+        'save': 'Salvar',
+        'delete': 'Excluir',
+        'edit': 'Editar',
+        'cancel': 'Cancelar',
+        'add': 'Adicionar',
+        'retry': 'Tentar novamente',
+        'saveError':
+            'Não foi possível salvar. Revise campos, referências e saldo disponível. Se outro dispositivo alterou os dados, reabra o formulário.',
+        'readError': 'Não foi possível carregar o diagnóstico. Tente novamente com conexão.',
+        'invalid': 'Verifique o valor',
+        'formHint':
+            'Salve cada seção para continuar depois. Valores representam sua parte pessoal. Datas: AAAA-MM-DD; meses: AAAA-MM separados por vírgulas.',
+        'context': 'Contexto e qualidade dos dados',
+        'account': 'Disponibilidade e escopo das contas',
+        'classification': 'Classificação financeira',
+        'plan': 'Efeito do plano no caixa',
+        'reserve': 'Reservas',
+        'goal': 'Metas',
+        'debt': 'Condições da dívida',
+        'asset': 'Patrimônio e investimentos',
+        'coverage': 'Proteção',
+        'dependents': 'Dependentes',
+        'incomeStability': 'Estabilidade da renda',
+        'sharedExpensePercent': 'Sua participação nas despesas compartilhadas (%)',
+        'accountsComplete': 'Incluí todas as minhas contas',
+        'debtsComplete': 'Incluí todas as minhas dívidas',
+        'verifiedOn': 'Data de verificação dos saldos',
+        'completeMonths': 'Meses com movimentações completas',
+        'confirmedPlanMonths': 'Meses de planejamento confirmado',
+        'emergencyMonths': 'Meta de emergência em meses (referência: 3)',
+        'currency': 'Moeda ISO: COP, USD…',
+        'grossIncomeMinor': 'Renda mensal bruta',
+        'riskCapacity': 'Capacidade de absorver perdas',
+        'riskTolerance': 'Tolerância ao risco',
+        'accountId': 'Conta',
+        'availability': 'Disponibilidade',
+        'excluded': 'Excluir do diagnóstico',
+        'reason': 'Motivo da exclusão',
+        'categoryId': 'Categoria',
+        'budgetId': 'Identificador do orçamento (somente exceção)',
+        'itemId': 'Identificador do item (somente exceção)',
+        'essential': 'Despesa essencial',
+        'fixed': 'Fixo',
+        'recurring': 'Receita recorrente',
+        'entryId': 'Item do plano',
+        'effect': 'Efeito no caixa',
+        'name': 'Nome',
+        'amountMinor': 'Valor da meta, reservado ou valor total',
+        'purpose': 'Finalidade única',
+        'goalId': 'Meta financiada',
+        'kind': 'Tipo',
+        'dueDate': 'Data da meta ou vencimento',
+        'priority': 'Prioridade (1 é a maior)',
+        'monthlyContributionMinor': 'Contribuição mensal prevista',
+        'referenceDate': 'Data de referência ou avaliação',
+        'rateBps': 'Taxa efetiva (%)',
+        'ratePeriod': 'Periodicidade da taxa efetiva',
+        'rateMode': 'Modalidade da taxa',
+        'remainingMonths': 'Meses restantes',
+        'installmentMinor': 'Parcela mensal contratual',
+        'statementMonth': 'Mês da fatura',
+        'minimumPaymentMinor': 'Pagamento mínimo da fatura',
+        'interestFreePaymentMinor': 'Pagamento para evitar juros',
+        'prepaymentTerms': 'Condições de pagamento antecipado',
+        'prepaymentCostMinor': 'Custo de pagamento antecipado',
+        'ownershipPercent': 'Percentual de propriedade (o valor acima é total)',
+        'assetClass': 'Classe de ativo',
+        'obligation': 'Obrigação',
+        'deductibleMinor': 'Franquia',
+        'needMinor': 'Necessidade de cobertura declarada',
+        'beneficiaries': 'Beneficiários',
+        'yes': 'Sim',
+        'no': 'Não',
+        'stable': 'Estável',
+        'variable': 'Variável',
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'immediate': 'Imediata',
+        'restricted': 'Restrita',
+        'cash': 'Recebimento ou pagamento monetário',
+        'card': 'Compra no cartão; sem saída bancária',
+        'none': 'Sem efeito monetário',
+        'emergency': 'Emergência',
+        'provision': 'Provisão',
+        'retirement': 'Aposentadoria',
+        'tax': 'Impostos',
+        'monthlyEffective': 'Efetiva mensal',
+        'annualEffective': 'Efetiva anual',
+        'property': 'Imóvel',
+        'vehicle': 'Veículo',
+        'equity': 'Renda variável',
+        'fixedIncome': 'Renda fixa',
+        'receivable': 'Conta a receber',
+        'result': 'Resultado do mês',
+        'cashFlow': 'Fluxo de caixa do mês',
+        'freeMoney': 'Dinheiro livre hoje',
+        'emergencyCoverage': 'Cobertura de emergência (meses)',
+        'emergencyTarget': 'Reserva desejada',
+        'debtPressure': 'Pagamentos de dívida / renda líquida recorrente',
+        'grossDti': 'DTI sobre renda bruta declarada',
+        'creditUtilization': 'Utilização do cartão',
+        'debtPrincipal': 'Principal do empréstimo registrado',
+        'debtCharges': 'Encargos pendentes registrados',
+        'averageCashFlow': 'Fluxo mensal médio confirmado',
+        'goalProgress': 'Progresso da meta',
+        'requiredContribution': 'Contribuição mensal necessária, sem rendimento',
+        'recordedWealth': 'Patrimônio registrado',
+        'investmentConcentration': 'Participação do investimento no inventário',
+        'coverageGap': 'Lacuna de cobertura declarada',
+        'minimumCash': 'Caixa mínimo projetado por conta',
+        'cashShortfall': 'Falta de caixa: revise pagamentos desta conta e suas datas.',
+        'reservedMoneyNeeded':
+            'O plano usaria dinheiro reservado: ajuste despesas, datas ou reservas.',
+        'reservesExceedBalance': 'As reservas superam o saldo atual: revise sua cobertura.',
+        'positiveResultNegativeCash':
+            'Resultado positivo com saída líquida de caixa: revise amortizações e financiamentos.',
+        'unconfirmedPastPayment':
+            'Pagamento passado não confirmado: verifique e vincule a movimentação.',
+        'unallocatedPayment':
+            'Pagamento sem distribuição: complete a alocação para avaliar a dívida.',
+        'unlinkedMovement': 'Movimentação sem vínculo ao plano: revise e vincule se corresponder.',
+        'goalContributionGap': 'A contribuição prevista é insuficiente: revise o valor ou a data.',
+        'coverageExpired': 'Cobertura vencida: verifique a renovação.',
+        'accountsIncomplete': 'Confirme que incluiu todas as contas.',
+        'debtsIncomplete': 'Confirme que incluiu todas as dívidas.',
+        'cached': 'Dados salvos offline podem estar desatualizados.',
+        'pending': 'Há alterações pendentes de confirmação.',
+        'staleBalances': 'Verifique os saldos; a confirmação está ausente ou tem mais de 30 dias.',
+        'historyIncomplete':
+            'São necessários ao menos três meses completos confirmados para uma referência estável.',
+        'classificationIncomplete':
+            'Classifique despesas essenciais e receitas recorrentes para calcular referências.',
+        'availabilityUnknown': 'Identifique contas com disponibilidade imediata.',
+        'essentialBaselineMissing': 'Falta uma base positiva de despesas essenciais.',
+        'debtTermsMissing':
+            'Faltam parcelas contratuais ou mínimos atuais; os planos são apenas uma aproximação.',
+        'creditLimitMissing': 'Falta o limite do cartão.',
+        'recurringIncomeMissing': 'Falta renda recorrente positiva confirmada.',
+        'goalOverdue': 'A data da meta passou; revise o valor pendente.',
+        'wealthInventoryUnconfirmed':
+            'O patrimônio inclui apenas registros; verifique ativos ou obrigações ausentes.',
+        'investmentInventoryUnconfirmed': 'A concentração usa somente investimentos inventariados.',
+        'coverageNeedMissing': 'Informe a necessidade de cobertura antes de avaliar suficiência.',
+        'pastPaymentsUnconfirmed': 'Pagamentos passados exigem confirmação; não foram reagendados.',
+        'planAccountMissing': 'Atribua conta e efeito monetário a cada compromisso pendente.',
+        'planIncomplete': 'O horizonte inclui meses sem planejamento confirmado.',
+        'valuations': 'Avaliações registradas; não são rendimentos',
+        'scope':
+            'Escopo: todas as contas ativas, exceto exclusões expressas. A visibilidade no Início não altera o diagnóstico.',
+        'formulaResult': 'Receitas reconhecidas − despesas líquidas reconhecidas no mês.',
+        'formulaCash': 'Soma das entradas e saídas monetárias; exclui ajustes de saldo.',
+        'formulaFree': 'Saldos de disponibilidade imediata − reservas nessas contas.',
+        'formulaEmergency':
+            'Reserva líquida de emergência ÷ despesas essenciais mensais médias confirmadas.',
+        'formulaDebt': 'Pagamentos mensais obrigatórios ÷ renda mensal recorrente média × 100.',
+        'formulaGoal':
+            'Recursos alocados e pagamentos vinculados da provisão ÷ meta; contribuição = lacuna ÷ meses disponíveis, sem rendimento.',
+        'formulaWealth':
+            'Saldos monetários e dívidas + ativos externos atribuíveis − obrigações externas; contas vinculadas contam uma vez.',
+        'formulaProjection':
+            'Saldo atual + recebimentos pendentes − pagamentos pendentes; libera somente a reserva vinculada ao pagamento.',
+        'formulaOther': 'Calculado com os registros e referências indicados.',
+        'linkMovement': 'Vincular movimentação',
+        'effectiveAnnualRate': 'Taxa efetiva anual comparável; comparação parcial',
+        'netProjected': 'Caixa livre projetado',
+        'confirmDelete': 'Excluir este dado complementar?',
+        'itemOverride': 'Exceção para um item do plano (opcional)',
+        'formulaGross': 'Pagamentos mensais obrigatórios ÷ renda mensal bruta declarada × 100.',
+        'formulaCredit': 'Saldo da dívida do cartão ÷ limite registrado × 100.',
+        'formulaCoverage':
+            'Necessidade declarada − cobertura vigente, com mínimo zero; a franquia é informada separadamente.',
+        'formulaConcentration':
+            'Valor atribuível do investimento ÷ valor atribuível dos investimentos inventariados × 100.',
+        'minimumCashTotal': 'Caixa mínimo projetado por moeda',
+        'minimumFreeTotal': 'Dinheiro livre mínimo projetado por moeda',
+        'recurringSurplus': 'Margem recorrente mensal antes de principal e metas',
+        'fixedExpenseShare': 'Participação das despesas fixas',
+        'formulaSurplus':
+            'Renda mensal recorrente média − despesas líquidas mensais médias; antes de amortizações e contribuições às metas.',
+        'formulaFixed':
+            'Despesas líquidas classificadas como fixas ÷ despesas líquidas históricas × 100.',
+        'staleValuation': 'Há ativos sem avaliação nos últimos 12 meses.',
+        'allocationIncomplete':
+            'Há pagamentos sem distribuição: a posição da dívida está incompleta até alocar principal e encargos.',
+        'reserveAccountUnavailable':
+            'Há reservas vinculadas a contas arquivadas; revise sua cobertura.',
+        'other': 'Outro',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get budgetedIncomeActual => 'Recebido em categorias orçadas';
+
+  @override
+  String get budgetedExpenseActual => 'Gasto em categorias orçadas';
+
+  @override
+  String get accountsSearch => 'Buscar contas';
+
+  @override
+  String get accountsSearchClear => 'Limpar busca';
+
+  @override
+  String get accountsSearchEmpty => 'Nenhuma conta corresponde à busca.';
 }

@@ -108,6 +108,15 @@ completa; la cualificación iOS de usuario y la entrega real de notificaciones
 siguen pendientes. Véase
 [estado y límites](debts.md).
 
+### Diagnóstico financiero personal
+
+Coach incorpora diagnóstico explicable de resultado, efectivo, reservas,
+proyección a 90 días y escenarios. La captura progresiva agrega contexto,
+clasificaciones, condiciones de deuda, metas/provisiones, activos e inversiones,
+coberturas y objetivos de retiro. Se mantienen monedas separadas y se muestran
+las limitaciones de información sin calificación global ni recomendaciones de
+productos. Véase [metodología y validación](financial-diagnosis.md).
+
 ### Importación asistida de correo
 
 Solo existe una base parcial de backend: extractores deterministas limitados,
