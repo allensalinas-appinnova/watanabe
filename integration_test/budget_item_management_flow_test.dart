@@ -158,7 +158,9 @@ void main() {
         .where('description', isEqualTo: 'Mercado semanal')
         .get(const GetOptions(source: Source.server));
     final linkedItemRef = firstItemQuery.docs.single.reference;
-    await tester.tap(find.byKey(ValueKey('budget_item_record_${linkedItemRef.id}')));
+    await tester.tap(find.byKey(ValueKey('budget_item_row_${linkedItemRef.id}')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('planning_item_register')));
+    await tester.tap(find.byKey(const ValueKey('planning_item_register')));
     await _pumpUntil(tester, find.byKey(const ValueKey('operation_save')));
     final amountField = find.byKey(const ValueKey('operation_amount'));
     expect(tester.widget<TextFormField>(amountField).controller!.text, '300000');
@@ -182,6 +184,10 @@ void main() {
     tester.binding.focusManager.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('operation_save')));
+    // Registering from an item now returns to its detail screen. Keep the
+    // E2E aligned with that UX before continuing with budget-level actions.
+    await _pumpUntil(tester, find.byKey(const ValueKey('planning_item_register')));
+    await tester.pageBack();
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
     await _waitForActualAmount(linkedItemRef, 100000);
 
@@ -208,7 +214,7 @@ void main() {
     );
     final marketEdit = find.descendant(
       of: marketCard,
-      matching: find.byKey(const ValueKey('budget_item_edit')),
+      matching: find.byKey(ValueKey('budget_item_actions_${linkedItemRef.id}')),
     );
     await tester.ensureVisible(marketEdit);
     await tester.pumpAndSettle();
@@ -222,6 +228,8 @@ void main() {
     );
     await tester.tap(marketEdit);
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('budget_item_edit_${linkedItemRef.id}')));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('budget_item_edit_description')),
       'Mercado quincenal',
@@ -229,18 +237,26 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('budget_item_edit_amount')), '325000');
     await _selectDayOfMonth(tester, 18);
     tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.ensureVisible(find.byKey(const ValueKey('budget_item_edit_save')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')));
+    await tester.tap(find.byKey(const ValueKey('budget_item_edit_save')).hitTestable());
     await _pumpUntil(tester, find.text('Frutas'));
 
+    final fruitItemQuery = await budgetRef
+        .collection('items')
+        .where('description', isEqualTo: 'Frutas')
+        .get(const GetOptions(source: Source.server));
+    final fruitItemId = fruitItemQuery.docs.single.id;
     final fruitCard = find.ancestor(of: find.text('Frutas'), matching: find.byType(Card));
     final fruitRemove = find.descendant(
       of: fruitCard,
-      matching: find.byKey(const ValueKey('budget_item_remove')),
+      matching: find.byKey(ValueKey('budget_item_actions_$fruitItemId')),
     );
     await tester.ensureVisible(fruitRemove);
     await tester.pumpAndSettle();
     await tester.tap(fruitRemove);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('budget_item_remove_$fruitItemId')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
     await tester.pumpAndSettle();
@@ -272,7 +288,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_last_item_hint')));
-    expect(find.byKey(const ValueKey('budget_item_remove')), findsNothing);
+    final lastItemActions = find.byKey(ValueKey('budget_item_actions_${lastActiveItem.id}'));
+    expect(lastItemActions, findsOneWidget);
+    await tester.tap(lastItemActions);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('budget_item_remove_${lastActiveItem.id}')), findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('budget_last_item_hint')), findsOneWidget);
 
     await tester.ensureVisible(find.byKey(const ValueKey('budget_add_item_detail')));
@@ -306,17 +328,24 @@ void main() {
       containsAll(['Mercado quincenal', 'Servicios públicos']),
     );
 
+    final servicesItemQuery = await budgetRef
+        .collection('items')
+        .where('description', isEqualTo: 'Servicios públicos')
+        .get(const GetOptions(source: Source.server));
+    final servicesItemId = servicesItemQuery.docs.single.id;
     final servicesCard = find.ancestor(
       of: find.text('Servicios públicos'),
       matching: find.byType(Card),
     );
     final servicesRemove = find.descendant(
       of: servicesCard,
-      matching: find.byKey(const ValueKey('budget_item_remove')),
+      matching: find.byKey(ValueKey('budget_item_actions_$servicesItemId')),
     );
     await tester.ensureVisible(servicesRemove);
     await tester.pumpAndSettle();
     await tester.tap(servicesRemove);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('budget_item_remove_$servicesItemId')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
     await tester.pumpAndSettle();
@@ -348,11 +377,13 @@ void main() {
     );
     final linkedRemove = find.descendant(
       of: linkedCard,
-      matching: find.byKey(const ValueKey('budget_item_remove')),
+      matching: find.byKey(ValueKey('budget_item_actions_${linkedItemRef.id}')),
     );
     await tester.ensureVisible(linkedRemove);
     await tester.pumpAndSettle();
     await tester.tap(linkedRemove);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('budget_item_remove_${linkedItemRef.id}')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
     await _waitForItemCount(budgetRef, 1);
@@ -460,6 +491,7 @@ void main() {
       Error.throwWithStackTrace(initializationError!, initializationStack!);
     }
     final auth = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app);
+    await auth.signOut();
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     final email = 'budget-aggregate-${DateTime.now().microsecondsSinceEpoch}@example.test';
@@ -520,7 +552,7 @@ void main() {
       archivedDescriptions: const [],
     );
 
-    await _archiveBudgetItem(tester, 'Elemento para archivar A');
+    await _archiveBudgetItem(tester, budgetRef, 'Elemento para archivar A');
     await _assertBudgetAggregate(
       budgetRef,
       plannedAmount: 250000,
@@ -528,7 +560,7 @@ void main() {
       activeDescriptions: const ['Elemento para archivar B', 'Elemento que se conserva'],
       archivedDescriptions: const ['Elemento para archivar A'],
     );
-    await _archiveBudgetItem(tester, 'Elemento para archivar B');
+    await _archiveBudgetItem(tester, budgetRef, 'Elemento para archivar B');
     await _assertBudgetAggregate(
       budgetRef,
       plannedAmount: 50000,
@@ -575,10 +607,12 @@ void main() {
         .get(const GetOptions(source: Source.server));
     expect(accountsBeforeExpense.docs, hasLength(1));
 
-    final recordItemAction = find.byKey(ValueKey('budget_item_record_${addedItemRef.id}'));
+    final recordItemAction = find.byKey(ValueKey('budget_item_row_${addedItemRef.id}'));
     await tester.ensureVisible(recordItemAction);
     await tester.pumpAndSettle();
     await tester.tap(recordItemAction);
+    await _pumpUntil(tester, find.byKey(const ValueKey('planning_item_register')));
+    await tester.tap(find.byKey(const ValueKey('planning_item_register')));
     await _pumpUntil(tester, find.byKey(const ValueKey('operation_save')));
     final amountField = find.byKey(const ValueKey('operation_amount'));
     await tester.enterText(amountField, '25000');
@@ -592,7 +626,9 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('operation_save')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('operation_save')));
-    await _pumpUntil(tester, find.byKey(const ValueKey('budget_add_item_detail')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('planning_item_register')));
+    await tester.pageBack();
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
     await _waitForActualAmount(addedItemRef, 25000);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('budget_detail_category')),
@@ -675,6 +711,7 @@ void main() {
       Error.throwWithStackTrace(initializationError!, initializationStack!);
     }
     final auth = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app);
+    await auth.signOut();
     await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     final email = 'budget-association-${DateTime.now().microsecondsSinceEpoch}@example.test';
@@ -907,15 +944,26 @@ Finder _dayOption(int day) => find.byWidgetPredicate((widget) {
   return RegExp('^(Día|Day|Dia) $day\$').hasMatch(text);
 });
 
-Future<void> _archiveBudgetItem(WidgetTester tester, String description) async {
+Future<void> _archiveBudgetItem(
+  WidgetTester tester,
+  DocumentReference<Map<String, dynamic>> budgetRef,
+  String description,
+) async {
+  final itemQuery = await budgetRef
+      .collection('items')
+      .where('description', isEqualTo: description)
+      .get(const GetOptions(source: Source.server));
+  final itemId = itemQuery.docs.single.id;
   final card = find.ancestor(of: find.text(description), matching: find.byType(Card)).first;
   final remove = find.descendant(
     of: card,
-    matching: find.byKey(const ValueKey('budget_item_remove')),
+    matching: find.byKey(ValueKey('budget_item_actions_$itemId')),
   );
   await tester.ensureVisible(remove);
   await tester.pumpAndSettle();
   await tester.tap(remove);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('budget_item_remove_$itemId')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
   await tester.pumpAndSettle();

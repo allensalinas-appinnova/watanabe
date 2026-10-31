@@ -114,6 +114,12 @@ void main() {
               ),
             ),
             GoRoute(
+              path: 'items/:itemId',
+              builder: (_, state) => Scaffold(
+                body: Text('Item detail ${state.pathParameters['itemId']}'),
+              ),
+            ),
+            GoRoute(
               path: 'items/:itemId/edit',
               builder: (context, state) => CanonicalBudgetItemEditScreen(
                 budgetId: state.pathParameters['id']!,
@@ -166,11 +172,13 @@ void main() {
     await tester.pumpWidget(subject(items: const [_item1]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Comida'), findsNWidgets(2));
+    expect(find.text('Comida'), findsOneWidget);
     expect(find.textContaining('Gastado'), findsOneWidget);
     expect(find.textContaining('COP'), findsWidgets);
-    expect(find.byKey(const ValueKey('budget_item_edit')), findsOneWidget);
-    expect(find.byKey(const ValueKey('budget_item_remove')), findsNothing);
+    expect(find.byKey(const ValueKey('budget_item_row_item-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_item_actions_item-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_item_edit_item-1')), findsNothing);
+    expect(find.byKey(const ValueKey('budget_item_record_item-1')), findsNothing);
     expect(find.byKey(const ValueKey('budget_last_item_hint')), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_archive_button')), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_add_item_detail')), findsOneWidget);
@@ -267,6 +275,76 @@ void main() {
     expect(find.byKey(const ValueKey('budget_detail_scroll')), findsOneWidget);
     expect(find.byKey(const ValueKey('budget_add_item_detail')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows two compact item rows with the summary on a 360dp screen', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(subject());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('budget_summary_progress')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_item_row_item-1')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_item_row_item-2')).hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('compact rows grow for long text and large text without overflow', (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final longItems = [
+      const BudgetItem(
+        id: 'long-item',
+        description: 'Servicios del hogar y mantenimiento mensual de la vivienda familiar',
+        amountMinor: 999999999,
+        dayOfMonth: 31,
+        actualAmountMinor: 1200000000,
+      ),
+    ];
+
+    await tester.pumpWidget(subject(items: longItems, textScale: 1.6));
+    await tester.pumpAndSettle();
+
+    final row = find.byKey(const ValueKey('budget_item_row_long-item'));
+    await tester.scrollUntilVisible(
+      row,
+      120,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('budget_detail_scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(row, findsOneWidget);
+    expect(tester.getSize(row).height, greaterThan(120));
+    expect(find.byKey(const ValueKey('budget_item_actions_long-item')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('item menu keeps edit and remove actions accessible', (tester) async {
+    await tester.pumpWidget(subject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('budget_item_actions_item-1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('budget_item_edit_item-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget_item_remove_item-1')), findsOneWidget);
+    expect(find.text('Editar'), findsOneWidget);
+    expect(find.text('Quitar'), findsOneWidget);
+  });
+
+  testWidgets('tapping a compact row opens the item detail', (tester) async {
+    await tester.pumpWidget(subject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('budget_item_row_item-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Item detail item-1'), findsOneWidget);
   });
 
   testWidgets('expected day options are limited to the selected budget month', (tester) async {
@@ -387,7 +465,9 @@ void main() {
     await tester.pumpWidget(subject());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('budget_item_remove')).first);
+    await tester.tap(find.byKey(const ValueKey('budget_item_actions_item-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_item_remove_item-1')));
     await tester.pumpAndSettle();
     expect(find.text('¿Quitar este elemento?'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('confirm_budget_item_delete')));
@@ -439,7 +519,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(subject());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('budget_item_edit')).first);
+    await tester.tap(find.byKey(const ValueKey('budget_item_actions_item-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_item_edit_item-1')));
     await tester.pumpAndSettle();
     expect(find.text('Editar elemento'), findsOneWidget);
 

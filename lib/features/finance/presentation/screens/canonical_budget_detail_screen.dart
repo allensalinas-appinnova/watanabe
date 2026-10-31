@@ -19,10 +19,8 @@ import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/usecases/calculate_budget_tracking.dart';
-import '../models/budget_item_movement_preset.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/budget_command_message.dart';
-import '../widgets/finance_category_icon.dart';
 
 class CanonicalBudgetDetailScreen extends ConsumerWidget {
   const CanonicalBudgetDetailScreen({super.key, required this.budgetId, this.initialTab = 0});
@@ -233,10 +231,6 @@ class _BudgetDetailContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     _BudgetSummaryCard(
-                      category: categoryName,
-                      categoryIcon: category?.icon,
-                      categoryColorValue: category?.colorValue,
-                      typeAndMonth: '$typeLabel · $month',
                       planned: l10n.planned(planned),
                       actual: '$actualLabel · $actual',
                       status: statusText,
@@ -270,19 +264,6 @@ class _BudgetDetailContent extends ConsumerWidget {
                           extra: item,
                         ),
                         onRemove: () => _confirmRemoveItem(context, ref, item),
-                        onRecord: () => context.push(
-                          '/budgets/${budget.id}/items/${item.id}/record',
-                          extra: BudgetItemMovementPreset(
-                            budgetId: budget.id,
-                            itemId: item.id,
-                            type: isIncome ? OperationType.income : OperationType.expense,
-                            categoryId: budget.categoryId,
-                            currency: budget.currency,
-                            description: item.description,
-                            amountMinor: item.amountMinor,
-                          ),
-                        ),
-                        recordLabel: isIncome ? l10n.budgetRecordIncome : l10n.budgetRecordExpense,
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -717,10 +698,6 @@ class _BudgetMovementsTabState extends ConsumerState<_BudgetMovementsTab> {
 
 class _BudgetSummaryCard extends StatelessWidget {
   const _BudgetSummaryCard({
-    required this.category,
-    required this.categoryIcon,
-    required this.categoryColorValue,
-    required this.typeAndMonth,
     required this.planned,
     required this.actual,
     required this.status,
@@ -728,10 +705,6 @@ class _BudgetSummaryCard extends StatelessWidget {
     required this.progress,
   });
 
-  final String category;
-  final String? categoryIcon;
-  final int? categoryColorValue;
-  final String typeAndMonth;
   final String planned;
   final String actual;
   final String status;
@@ -748,49 +721,28 @@ class _BudgetSummaryCard extends StatelessWidget {
       side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Padding(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 2,
             children: [
-              FinanceCategoryIcon(
-                iconId: categoryIcon,
-                colorValue: categoryColorValue,
-                size: 32,
-                iconSize: 18,
+              Text(
+                actual,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  category,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                  ),
+              Text(
+                planned,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
-          ),
-          Text(
-            typeAndMonth,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            planned,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            actual,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           Text(
             status,
@@ -801,6 +753,7 @@ class _BudgetSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Semantics(
+            key: const ValueKey('budget_summary_progress'),
             label: '$planned · $actual · $status',
             value: '${(progress * 100).round()}%',
             child: LinearProgressIndicator(
@@ -827,8 +780,6 @@ class _BudgetItemCard extends StatelessWidget {
     this.canRemove = false,
     this.onEdit,
     this.onRemove,
-    this.onRecord,
-    this.recordLabel,
     this.archived = false,
     this.userId,
     this.budgetId,
@@ -840,14 +791,132 @@ class _BudgetItemCard extends StatelessWidget {
   final bool canRemove;
   final VoidCallback? onEdit;
   final VoidCallback? onRemove;
-  final VoidCallback? onRecord;
-  final String? recordLabel;
   final bool archived;
   final String? userId;
   final String? budgetId;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => archived ? _buildArchived(context) : _buildActive(context);
+
+  Widget _buildActive(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final actual = CurrencyFormatter.formatMinor(
+      item.actualAmountMinor,
+      currency,
+      locale: locale,
+    );
+    final planned = CurrencyFormatter.formatMinor(item.amountMinor, currency, locale: locale);
+    final progress = item.amountMinor <= 0
+        ? 0.0
+        : (item.actualAmountMinor / item.amountMinor).clamp(0.0, 1.0);
+    final isExceeded = item.actualAmountMinor > item.amountMinor;
+    return Card(
+      key: ValueKey('budget_item_row_${item.id}'),
+      margin: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Semantics(
+              label: l10n.planningOpenDetail(item.description),
+              button: true,
+              child: InkWell(
+                onTap: userId != null && budgetId != null
+                    ? () => context.push('/budgets/$budgetId/items/${item.id}')
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.description,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$planned · ${l10n.day.toLowerCase()} ${item.dayOfMonth}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        l10n.budgetItemActual(actual),
+                        key: ValueKey('budget_item_actual_${item.id}'),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isExceeded
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Semantics(
+                        label: '${l10n.budgetItemActual(actual)} · ${l10n.planned(planned)}',
+                        value: '${(progress * 100).round()}%',
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 4,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          color: isExceeded
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (userId != null && budgetId != null)
+            PopupMenuButton<_BudgetItemAction>(
+              key: ValueKey('budget_item_actions_${item.id}'),
+              tooltip: '${l10n.moreOptions}: ${item.description}',
+              onSelected: (action) {
+                switch (action) {
+                  case _BudgetItemAction.edit:
+                    onEdit?.call();
+                    break;
+                  case _BudgetItemAction.remove:
+                    onRemove?.call();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: ValueKey('budget_item_edit_${item.id}'),
+                  value: _BudgetItemAction.edit,
+                  child: Text(l10n.budgetEditAction),
+                ),
+                if (canRemove)
+                  PopupMenuItem(
+                    key: ValueKey('budget_item_remove_${item.id}'),
+                    value: _BudgetItemAction.remove,
+                    child: Text(l10n.budgetRemoveItem),
+                  ),
+              ],
+              icon: const Icon(Icons.more_vert),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchived(BuildContext context) => Card(
     margin: EdgeInsets.zero,
     color: Theme.of(context).colorScheme.surface,
     elevation: 0,
@@ -916,39 +985,6 @@ class _BudgetItemCard extends StatelessWidget {
                 locale: locale,
               ),
             ],
-          ] else ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                _ItemAction(
-                  label: AppLocalizations.of(context).budgetEditAction,
-                  onPressed: onEdit!,
-                ),
-                if (canRemove)
-                  _ItemAction(
-                    label: AppLocalizations.of(context).budgetRemoveItem,
-                    destructive: true,
-                    onPressed: onRemove!,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              height: 48,
-              child: FilledButton.tonalIcon(
-                key: ValueKey('budget_item_record_${item.id}'),
-                onPressed: onRecord,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(recordLabel ?? AppLocalizations.of(context).budgetRecordExpense),
-                style: FilledButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
           ],
         ],
       ),
@@ -956,32 +992,7 @@ class _BudgetItemCard extends StatelessWidget {
   );
 }
 
-class _ItemAction extends StatelessWidget {
-  const _ItemAction({required this.label, required this.onPressed, this.destructive = false});
-
-  final String label;
-  final VoidCallback onPressed;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 48,
-    child: TextButton(
-      key: ValueKey('budget_item_${destructive ? 'remove' : 'edit'}'),
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(64, 48),
-        foregroundColor: destructive
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.primary,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Text(label),
-    ),
-  );
-}
+enum _BudgetItemAction { edit, remove }
 
 class _ArchivedBudgetItemMovements extends ConsumerWidget {
   const _ArchivedBudgetItemMovements({
