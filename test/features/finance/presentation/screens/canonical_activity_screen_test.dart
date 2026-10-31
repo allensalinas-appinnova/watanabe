@@ -235,6 +235,29 @@ void main() {
     expect(find.text('Mover dinero'), findsNothing);
   });
 
+  testWidgets('all activity filters wrap and remain visible on compact screens', (tester) async {
+    for (final width in [320.0, 360.0, 430.0]) {
+      tester.view.physicalSize = Size(width, 844);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(buildSubject(locale: const Locale('es')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('activity_type_filters_wrap')), findsOneWidget);
+      for (final key in [
+        'all',
+        'income',
+        'expense',
+        'transfers',
+        'debt_payments',
+        'balance_adjustments',
+      ]) {
+        expect(find.byKey(ValueKey('activity_filter_$key')), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    }
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
   testWidgets('transfer filter limits rows, summary and CSV to transfers', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;

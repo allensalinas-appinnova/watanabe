@@ -145,7 +145,9 @@ void main() {
     final selectedBounds = tester.getRect(
       find.ancestor(of: find.text('Ingresos'), matching: find.byType(Semantics)).first,
     );
-    expect(incomeBounds.center.dx, closeTo(selectedBounds.center.dx, 1));
+    expect(incomeBounds.center.dx, lessThan(selectedBounds.right));
+    expect(find.byIcon(Icons.south_west), findsOneWidget);
+    expect(find.byIcon(Icons.north_east), findsOneWidget);
 
     await tester.tap(find.text('Gastos'));
     await tester.pump();

@@ -20,6 +20,7 @@ import '../services/activity_csv_share_service.dart';
 import '../utils/activity_csv_exporter.dart';
 import '../widgets/activity_export_review_sheet.dart';
 import '../widgets/finance_category_icon.dart';
+import '../widgets/operation_type_icons.dart';
 import '../widgets/sync_issue_localization.dart';
 
 class CanonicalActivityScreen extends ConsumerStatefulWidget {
@@ -932,41 +933,50 @@ class _ActivityTypeFilters extends StatelessWidget {
       ),
     ];
 
-    return SingleChildScrollView(
-      key: const ValueKey('activity_type_filters_scroll'),
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var index = 0; index < options.length; index++) ...[
-            if (index > 0) const SizedBox(width: 8),
-            Semantics(
-              button: true,
-              selected: options[index].selected,
-              label: options[index].label,
-              child: ChoiceChip(
-                key: ValueKey('activity_filter_${options[index].key}'),
-                label: Text(options[index].label),
-                selected: options[index].selected,
-                onSelected: (_) => options[index].onTap(),
-                showCheckmark: false,
-                labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: options[index].selected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: options[index].selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                materialTapTargetSize: MaterialTapTargetSize.padded,
+    return Wrap(
+      key: const ValueKey('activity_type_filters_wrap'),
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        for (final option in options)
+          Semantics(
+            button: true,
+            selected: option.selected,
+            label: option.label,
+            child: ChoiceChip(
+              key: ValueKey('activity_filter_${option.key}'),
+              avatar: ExcludeSemantics(
+                child: Icon(_activityFilterIcon(option.key), size: 18),
               ),
+              label: Text(option.label),
+              selected: option.selected,
+              onSelected: (_) => option.onTap(),
+              showCheckmark: false,
+              labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: option.selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: option.selected ? FontWeight.w600 : FontWeight.w500,
+              ),
+              side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              selectedColor: Theme.of(context).colorScheme.primaryContainer,
+              materialTapTargetSize: MaterialTapTargetSize.padded,
             ),
-          ],
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
+
+IconData _activityFilterIcon(String key) => switch (key) {
+  'income' => operationTypeIcon(OperationType.income),
+  'expense' => operationTypeIcon(OperationType.expense),
+  'transfers' => operationTypeIcon(OperationType.transfer),
+  'debt_payments' => operationTypeIcon(OperationType.unallocatedDebtPayment),
+  'balance_adjustments' => operationTypeIcon(OperationType.debtAdjustment),
+  _ => Icons.list_alt,
+};
 
 class _BalanceAdjustmentCard extends StatelessWidget {
   const _BalanceAdjustmentCard({

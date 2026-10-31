@@ -27,14 +27,14 @@ class MovementActionSheet extends StatelessWidget {
           (
             type: MovementEntryAction.income,
             label: l10n.addIncome,
-            icon: Icons.add,
+            icon: Icons.south_west,
             tint: const Color(0xFFDDF5E9),
             ink: context.appColors.income,
           ),
           (
             type: MovementEntryAction.expense,
             label: l10n.addExpense,
-            icon: Icons.remove,
+            icon: Icons.north_east,
             tint: Theme.of(context).colorScheme.primaryContainer,
             ink: Theme.of(context).colorScheme.primary,
           ),

@@ -3,7 +3,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../domain/entities/financial_operation.dart';
 import 'finance_design_assets.dart';
+import 'operation_type_icons.dart';
 
 class FinanceHeader extends StatelessWidget {
   const FinanceHeader({
@@ -251,11 +253,13 @@ class FinanceOperationTypeSelector extends StatelessWidget {
         children: [
           _OperationTypeOption(
             label: expenseLabel,
+            icon: operationTypeIcon(OperationType.expense),
             selected: !isIncomeSelected,
             onPressed: enabled ? () => onChanged(false) : null,
           ),
           _OperationTypeOption(
             label: incomeLabel,
+            icon: operationTypeIcon(OperationType.income),
             selected: isIncomeSelected,
             onPressed: enabled ? () => onChanged(true) : null,
           ),
@@ -268,11 +272,13 @@ class FinanceOperationTypeSelector extends StatelessWidget {
 class _OperationTypeOption extends StatelessWidget {
   const _OperationTypeOption({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.onPressed,
   });
 
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback? onPressed;
 
@@ -292,15 +298,30 @@ class _OperationTypeOption extends StatelessWidget {
           child: SizedBox(
             height: 40,
             child: Center(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: selected
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: selected
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
