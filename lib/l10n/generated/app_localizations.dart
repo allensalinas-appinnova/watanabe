@@ -1294,6 +1294,12 @@ abstract class AppLocalizations {
   /// **'Ingresos − egresos · Transferencias excluidas'**
   String get activityTotalsMethodNote;
 
+  /// No description provided for @activityTotalsMethodAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se calcula el resultado'**
+  String get activityTotalsMethodAction;
+
   /// No description provided for @activityTransfersTotalsNote.
   ///
   /// In es, this message translates to:
@@ -5035,7 +5041,7 @@ abstract class AppLocalizations {
   /// No description provided for @planningFollowUpText.
   ///
   /// In es, this message translates to:
-  /// **'{key, select, complete{Dar por terminado} dismiss{Dejar de recordar este mes} snooze{Recordarme después} resume{Reanudar seguimiento} edit{Editar planificación} menu{Seguimiento} completed{Terminado por ti} dismissed{Retirado del seguimiento} snoozed{Pospuesto} reopened{El registro cambió. Revisa este gasto.} open{Por atender} saved{Seguimiento actualizado} error{No se pudo guardar el seguimiento. Reintenta con conexión.} conflict{Los datos cambiaron. Cierra esta ventana y vuelve a abrir el elemento.} needsRecord{Asocia un movimiento confirmado para dar por terminado este gasto.} dismissInfo{Se retirará de los recordatorios. Los importes previstos y los registros se conservan. No registra pagos ni reduce la deuda.} finishInfo{Termina el seguimiento de este gasto con lo ya registrado. El importe previsto se conserva.} paid{Pagado} view{Ver agenda} empty{No hay elementos por atender en este periodo.} partial{Información incompleta. Podrían faltar elementos por revisar.} countPartial{Elementos cargados; el conteo es provisional.} why{¿Por qué lo veo?} explanation{Se muestra por su fecha prevista y sus registros asociados. Puedes terminar el seguimiento de un gasto, retirarlo o posponerlo. Consulta los importes definitivos de tus cuotas en el extracto.} returnDate{Volver a mostrar el día} finishAfterSave{Terminar seguimiento} thisOnly{Solo esta cuota} future{Esta y las siguientes} other{Seguimiento}}'**
+  /// **'{key, select, complete{Dar por terminado} dismiss{Dejar de recordar este mes} snooze{Recordarme después} resume{Reanudar seguimiento} edit{Editar planificación} menu{Seguimiento} completed{Terminado por ti} dismissed{Retirado del seguimiento} snoozed{Pospuesto} reopened{El registro cambió. Revisa este gasto.} open{Por atender} saved{Seguimiento actualizado} error{No se pudo guardar el seguimiento. Reintenta con conexión.} conflict{Los datos cambiaron. Actualiza el elemento antes de volver a intentarlo.} sourceUnavailable{No pudimos confirmar que este elemento siga disponible. Actualiza el plan y vuelve a abrirlo.} generationChanged{Los datos de esta pantalla quedaron desactualizados. Actualiza el elemento antes de continuar.} refresh{Actualizar elemento} needsRecord{Asocia un movimiento confirmado para dar por terminado este gasto.} dismissInfo{Se retirará de los recordatorios. Los importes previstos y los registros se conservan. No registra pagos ni reduce la deuda.} finishInfo{Termina el seguimiento de este gasto con lo ya registrado. El importe previsto se conserva.} paid{Pagado} view{Ver agenda} empty{No hay elementos por atender en este periodo.} partial{Información incompleta. Podrían faltar elementos por revisar.} countPartial{Elementos cargados; el conteo es provisional.} why{¿Por qué lo veo?} explanation{Se muestra por su fecha prevista y sus registros asociados. Puedes terminar el seguimiento de un gasto, retirarlo o posponerlo. Consulta los importes definitivos de tus cuotas en el extracto.} returnDate{Volver a mostrar el día} finishAfterSave{Terminar seguimiento} thisOnly{Solo esta cuota} future{Esta y las siguientes} other{Seguimiento}}'**
   String planningFollowUpText(String key);
 
   /// No description provided for @planningAttentionCount.

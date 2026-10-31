@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
+import {randomUUID} from 'node:crypto';
 import {deleteApp} from 'firebase-admin/app';
+import {Timestamp} from 'firebase-admin/firestore';
 import {executeBudgetCommand} from '../lib/budget_commands.js';
 import {executeOperationCommand} from '../lib/operation_commands.js';
 import {ensureOperationProjectionVersion} from '../lib/operation_projection_migration.js';
-import {app, db, seedUser, userDump} from './projection_test_support.mjs';
+import {app, db, seedUser as seedBaseUser, userDump} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
+const runId = randomUUID();
+const seedUser = (id) => seedBaseUser(`${id}-${runId}`);
 const item = (amountMinor = 100, dayOfMonth = 15) => ({description: 'Planned item', amountMinor, dayOfMonth});
 const create = (requestId = 'create-request', overrides = {}) => ({
   action: 'create', requestId, categoryId: 'food', flowType: 'expense',
@@ -133,6 +137,39 @@ test('create, recalculate corrupted aggregates, edit, archive and recreate prese
   assert.equal(all.size, 5);
   assert.equal(all.docs.filter((doc) => doc.data().status !== 'archived').length, 1);
   assert.equal((await firstItem.get()).data().actualAmountMinor, 333);
+  assert.equal((await budget.get()).data().dataGeneration, 0);
+  assert.equal((await firstItem.get()).data().dataGeneration, 0);
+});
+
+test('budget commands stamp current generation and reject stale or ambiguous legacy documents', async () => {
+  const current = await seedUser('budget-generation-current');
+  await current.update({dataGeneration: 1, resetCompletedAt: Timestamp.fromDate(new Date(Date.now() - 60_000)), resetStatus: 'ready'});
+  const budgetId = '2026-10_expense_food_COP';
+  const budget = refs(current, budgetId);
+  await budget.set({categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP', status: 'active', plannedAmountMinor: 100, itemCount: 1});
+  await budget.collection('items').doc('legacy-current-item').set({...item(100), status: 'active'});
+  const edited = await send(current, {action: 'updateItem', requestId: 'budget-gen-current-update', expectedGeneration: 1,
+    budgetId, itemId: 'legacy-current-item', item: item(150)});
+  assert.equal(edited.budget.dataGeneration, 1);
+  assert.equal(edited.item.dataGeneration, 1);
+  assert.equal((await budget.get()).data().dataGeneration, 1);
+  assert.equal((await budget.collection('items').doc('legacy-current-item').get()).data().dataGeneration, 1);
+
+  const old = await seedUser('budget-generation-old');
+  const oldBudget = refs(old, budgetId);
+  await oldBudget.set({categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP', status: 'active', plannedAmountMinor: 100, itemCount: 1});
+  await oldBudget.collection('items').doc('legacy-old-item').set({...item(100), status: 'active'});
+  await old.update({dataGeneration: 1, resetCompletedAt: Timestamp.fromDate(new Date(Date.now() + 60_000)), resetStatus: 'ready'});
+  await assert.rejects(send(old, {action: 'updateItem', requestId: 'budget-gen-old-update', expectedGeneration: 1,
+    budgetId, itemId: 'legacy-old-item', item: item(150)}), {issue: 'budget-stale-generation'});
+
+  const ambiguous = await seedUser('budget-generation-ambiguous');
+  await ambiguous.update({dataGeneration: 1, resetStatus: 'ready'});
+  const ambiguousBudget = refs(ambiguous, budgetId);
+  await ambiguousBudget.set({categoryId: 'food', flowType: 'expense', monthKey: '2026-10', currency: 'COP', status: 'active', plannedAmountMinor: 100, itemCount: 1});
+  await ambiguousBudget.collection('items').doc('legacy-ambiguous-item').set({...item(100), status: 'active'});
+  await assert.rejects(send(ambiguous, {action: 'updateItem', requestId: 'budget-gen-ambiguous-update', expectedGeneration: 1,
+    budgetId, itemId: 'legacy-ambiguous-item', item: item(150)}), {issue: 'budget-stale-generation'});
 });
 
 test('reconciliation repairs only a stale parent aggregate from active items and is a no-op afterward', async () => {

@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
+import {randomUUID} from 'node:crypto';
 import {deleteApp} from 'firebase-admin/app';
+import {Timestamp} from 'firebase-admin/firestore';
 import {mutatePlanningFollowUp, planningSourceId} from '../lib/planning_follow_ups.js';
 import {executeOperationCommand} from '../lib/operation_commands.js';
 import {executeOperationBudgetAssociation} from '../lib/operation_budget_associations.js';
 import {executeDebtCommitmentCommand} from '../lib/debt_commitments.js';
-import {app, db, seedUser} from './projection_test_support.mjs';
+import {app, db, seedUser as seedBaseUser} from './projection_test_support.mjs';
 
 after(() => deleteApp(app));
+const runId = randomUUID();
+const seedUser = (id) => seedBaseUser(`${id}-${runId}`);
 const source = {kind: 'expense', budgetId: 'barber:budget', itemId: 'barber:item', monthKey: '2026-10'};
 const command = (action, requestId, overrides = {}) => ({...source, action, requestId,
   expectedGeneration: 0, expectedVersion: 0, ...overrides});
@@ -63,6 +67,51 @@ test('completion requires an active confirmed expense; authentication, generatio
   assert.equal(results.filter(result => result.status === 'rejected' && result.reason.issue === 'planning-state-changed').length, 1);
   assert.equal((await tracking(root).get()).data().version, 1);
   await assert.rejects(mutatePlanningFollowUp(db, 'planning-other-user', command('dismiss', 'planning-other-0001')), {issue: 'planning-profile-unavailable'});
+});
+
+test('generation 1 accepts missing generation only for budget records created after reset completion', async () => {
+  const current = await seedUser('planning-generation-current');
+  await current.update({dataGeneration: 1, resetStatus: 'ready', resetCompletedAt: Timestamp.fromDate(new Date(Date.now() - 60_000))});
+  const currentBudget = current.collection('budgets').doc('legacy-current-budget');
+  await currentBudget.set({categoryId: 'food', currency: 'COP', flowType: 'expense', monthKey: source.monthKey, status: 'active'});
+  await currentBudget.collection('items').doc('legacy-current-item').set({description: 'QA current item', amountMinor: 50000, status: 'active'});
+  const currentSource = {...source, budgetId: currentBudget.id, itemId: 'legacy-current-item'};
+  const accepted = await mutatePlanningFollowUp(db, current.id, {...command('dismiss', 'planning-generation-current-001'), ...currentSource, expectedGeneration: 1});
+  assert.equal(accepted.state, 'dismissed');
+  assert.equal(accepted.dataGeneration, 1);
+
+  const old = await seedUser('planning-generation-old');
+  const oldBudget = old.collection('budgets').doc('legacy-old-budget');
+  await oldBudget.set({categoryId: 'food', currency: 'COP', flowType: 'expense', monthKey: source.monthKey, status: 'active'});
+  await oldBudget.collection('items').doc('legacy-old-item').set({description: 'QA old item', amountMinor: 50000, status: 'active'});
+  await old.update({dataGeneration: 1, resetStatus: 'ready', resetCompletedAt: Timestamp.fromDate(new Date(Date.now() + 60_000))});
+  const oldSource = {...source, budgetId: oldBudget.id, itemId: 'legacy-old-item'};
+  await assert.rejects(
+    mutatePlanningFollowUp(db, old.id, {...command('dismiss', 'planning-generation-old-001'), ...oldSource, expectedGeneration: 1}),
+    {issue: 'planning-entry-unavailable'},
+  );
+
+  const stale = await seedUser('planning-generation-explicit-stale');
+  await stale.update({dataGeneration: 1, resetStatus: 'ready', resetCompletedAt: Timestamp.fromDate(new Date(Date.now() - 60_000))});
+  const staleBudget = stale.collection('budgets').doc('legacy-explicit-stale-budget');
+  await staleBudget.set({categoryId: 'food', currency: 'COP', flowType: 'expense', monthKey: source.monthKey, status: 'active', dataGeneration: 0});
+  await staleBudget.collection('items').doc('legacy-explicit-stale-item').set({description: 'QA stale item', amountMinor: 50000, status: 'active', dataGeneration: 0});
+  const staleSource = {...source, budgetId: staleBudget.id, itemId: 'legacy-explicit-stale-item'};
+  await assert.rejects(
+    mutatePlanningFollowUp(db, stale.id, {...command('dismiss', 'planning-generation-explicit-001'), ...staleSource, expectedGeneration: 1}),
+    {issue: 'planning-entry-unavailable'},
+  );
+
+  const ambiguous = await seedUser('planning-generation-ambiguous');
+  await ambiguous.update({dataGeneration: 1, resetStatus: 'ready'});
+  const ambiguousBudget = ambiguous.collection('budgets').doc('legacy-ambiguous-budget');
+  await ambiguousBudget.set({categoryId: 'food', currency: 'COP', flowType: 'expense', monthKey: source.monthKey, status: 'active'});
+  await ambiguousBudget.collection('items').doc('legacy-ambiguous-item').set({description: 'QA ambiguous item', amountMinor: 50000, status: 'active'});
+  const ambiguousSource = {...source, budgetId: ambiguousBudget.id, itemId: 'legacy-ambiguous-item'};
+  await assert.rejects(
+    mutatePlanningFollowUp(db, ambiguous.id, {...command('dismiss', 'planning-generation-ambiguous-001'), ...ambiguousSource, expectedGeneration: 1}),
+    {issue: 'planning-entry-unavailable'},
+  );
 });
 
 test('canceling or unlinking the last expense reopens atomically; multiple records and amount corrections preserve completion', async () => {

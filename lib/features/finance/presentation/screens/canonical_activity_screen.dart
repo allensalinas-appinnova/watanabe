@@ -569,7 +569,9 @@ class _ActivityReportSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
     final totals = report.totalsByCurrency.values.toList();
+    final showMethodHelp = selectedType != OperationType.transfer;
     return Card(
+      key: const ValueKey('activity_report_summary'),
       margin: EdgeInsets.zero,
       color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
@@ -577,71 +579,122 @@ class _ActivityReportSummary extends StatelessWidget {
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.activityTotalsTitle, style: Theme.of(context).textTheme.titleSmall),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.activityTotalsTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                if (showMethodHelp)
+                  IconButton(
+                    key: const ValueKey('activity_totals_method_help'),
+                    tooltip: l10n.activityTotalsMethodAction,
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: Text(l10n.activityTotalsTitle),
+                        content: Text(l10n.activityTotalsMethodNote),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: Text(l10n.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    icon: const Icon(Icons.info_outline),
+                  ),
+              ],
+            ),
             if (selectedType == OperationType.transfer)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(l10n.activityTransfersTotalsNote),
               )
             else if (totals.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(l10n.activityTotalsEmpty),
               )
             else
               for (final total in totals) ...[
                 Padding(
-                  padding: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.only(top: 4),
                   child: Text(total.currency, style: Theme.of(context).textTheme.labelLarge),
                 ),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 340;
-                    final rows = [
-                      _ActivityTotalLine(
-                        label: l10n.activityTotalsIncome,
-                        amount: total.incomeMinor,
-                        currency: total.currency,
-                        color: context.appColors.income,
-                        locale: locale,
-                      ),
-                      _ActivityTotalLine(
-                        label: l10n.activityTotalsExpenses,
-                        amount: total.expenseMinor,
-                        currency: total.currency,
-                        color: const Color(0xFFD32F2F),
-                        locale: locale,
-                      ),
-                      _ActivityTotalLine(
-                        label: l10n.activityTotalsNet,
-                        amount: total.netMinor,
-                        currency: total.currency,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        locale: locale,
-                      ),
-                    ];
-                    return compact
-                        ? Column(children: rows)
-                        : Row(
+                    final enlargedText = MediaQuery.textScalerOf(context).scale(14) > 16;
+                    final canUseColumns = constraints.maxWidth >= 280 && !enlargedText;
+                    final income = _ActivityTotalLine(
+                      label: l10n.activityTotalsIncome,
+                      amount: total.incomeMinor,
+                      currency: total.currency,
+                      color: context.appColors.income,
+                      locale: locale,
+                    );
+                    final expenses = _ActivityTotalLine(
+                      label: l10n.activityTotalsExpenses,
+                      amount: total.expenseMinor,
+                      currency: total.currency,
+                      color: const Color(0xFFD32F2F),
+                      locale: locale,
+                    );
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (canUseColumns)
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [for (final row in rows) Expanded(child: row)],
-                          );
+                            children: [
+                              Expanded(child: income),
+                              Expanded(child: expenses),
+                            ],
+                          )
+                        else ...[
+                          income,
+                          expenses,
+                        ],
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4, right: 12),
+                                child: Text(
+                                  l10n.activityTotalsNet,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  CurrencyFormatter.formatMinor(
+                                    total.netMinor,
+                                    total.currency,
+                                    locale: locale,
+                                  ),
+                                  textAlign: TextAlign.end,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
                   },
                 ),
               ],
-            if (selectedType != OperationType.transfer) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.activityTotalsMethodNote,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -666,7 +719,7 @@ class _ActivityTotalLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 4, right: 8),
+    padding: const EdgeInsets.only(top: 2, right: 8),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

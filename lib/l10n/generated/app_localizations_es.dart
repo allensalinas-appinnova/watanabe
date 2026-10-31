@@ -699,6 +699,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get activityTotalsMethodNote => 'Ingresos − egresos · Transferencias excluidas';
 
   @override
+  String get activityTotalsMethodAction => 'Cómo se calcula el resultado';
+
+  @override
   String get activityTransfersTotalsNote =>
       'Las transferencias no se suman a ingresos, egresos ni resultado.';
 
@@ -2989,7 +2992,12 @@ class AppLocalizationsEs extends AppLocalizations {
         'open': 'Por atender',
         'saved': 'Seguimiento actualizado',
         'error': 'No se pudo guardar el seguimiento. Reintenta con conexión.',
-        'conflict': 'Los datos cambiaron. Cierra esta ventana y vuelve a abrir el elemento.',
+        'conflict': 'Los datos cambiaron. Actualiza el elemento antes de volver a intentarlo.',
+        'sourceUnavailable':
+            'No pudimos confirmar que este elemento siga disponible. Actualiza el plan y vuelve a abrirlo.',
+        'generationChanged':
+            'Los datos de esta pantalla quedaron desactualizados. Actualiza el elemento antes de continuar.',
+        'refresh': 'Actualizar elemento',
         'needsRecord': 'Asocia un movimiento confirmado para dar por terminado este gasto.',
         'dismissInfo':
             'Se retirará de los recordatorios. Los importes previstos y los registros se conservan. No registra pagos ni reduce la deuda.',

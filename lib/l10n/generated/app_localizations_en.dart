@@ -693,6 +693,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activityTotalsMethodNote => 'Income − expenses · Transfers excluded';
 
   @override
+  String get activityTotalsMethodAction => 'How the result is calculated';
+
+  @override
   String get activityTransfersTotalsNote =>
       'Transfers are not included in income, expenses, or net result.';
 
@@ -2967,7 +2970,11 @@ class AppLocalizationsEn extends AppLocalizations {
         'open': 'To address',
         'saved': 'Follow-up updated',
         'error': 'Could not save the follow-up. Retry with a connection.',
-        'conflict': 'The data changed. Close this window and reopen the item.',
+        'conflict': 'The data changed. Refresh this item before trying again.',
+        'sourceUnavailable':
+            'We couldn\'t confirm that this item is still available. Refresh the plan and reopen it.',
+        'generationChanged': 'This screen is out of date. Refresh the item before continuing.',
+        'refresh': 'Refresh item',
         'needsRecord': 'Link a confirmed transaction to finish this expense.',
         'dismissInfo':
             'Removes reminders while preserving planned amounts and records. This does not record a payment or reduce debt.',

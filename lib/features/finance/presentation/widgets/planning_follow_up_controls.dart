@@ -83,6 +83,15 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
           !reversed.contains(row.id),
     );
     final conflict = _failure is ConflictFailure || _failure is AuthFailure;
+    final failureText = _failure is ConflictFailure
+        ? switch (_failure!.message) {
+            'planning-entry-unavailable' => 'sourceUnavailable',
+            'planning-stale-generation' => 'generationChanged',
+            _ => 'conflict',
+          }
+        : conflict
+        ? 'conflict'
+        : 'error';
     final enabled = !_saving && profile.hasValue && profile.valueOrNull != null && !conflict;
     return SafeArea(
       child: SingleChildScrollView(
@@ -100,9 +109,14 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
               if (_saving) const LinearProgressIndicator(),
               if (_failure != null) ...[
                 Text(
-                  l10n.planningFollowUpText(conflict ? 'conflict' : 'error'),
+                  l10n.planningFollowUpText(failureText),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
+                if (_failure is ConflictFailure)
+                  TextButton(
+                    onPressed: _saving ? null : _reloadSource,
+                    child: Text(l10n.planningFollowUpText('refresh')),
+                  ),
                 if (!conflict)
                   TextButton(onPressed: _saving ? null : _send, child: Text(l10n.retry)),
               ],
@@ -194,14 +208,34 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
       if (selected == null || !mounted) return;
       remindOn = DateFormatMonth.day(selected);
     }
+    final repository = ref.read(planningFollowUpRepositoryProvider);
+    if (repository == null) return;
+    setState(() {
+      _saving = true;
+      _failure = null;
+    });
+    final current = await repository.readCurrent(widget.userId, widget.entry.source);
+    if (!mounted) return;
+    final currentVersion = current.match(
+      (failure) {
+        setState(() {
+          _failure = failure;
+          _saving = false;
+        });
+        return null;
+      },
+      (followUp) => followUp?.version ?? 0,
+    );
+    if (currentVersion == null) return;
     _command = PlanningFollowUpCommand(
       source: widget.entry.source,
       action: action,
       requestId: newRequestId(),
       expectedGeneration: profile.dataGeneration,
-      expectedVersion: widget.entry.followUpVersion,
+      expectedVersion: currentVersion,
       remindOn: remindOn,
     );
+    setState(() => _saving = false);
     await _send();
   }
 
@@ -228,6 +262,30 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
         Navigator.pop(context);
       },
     );
+  }
+
+  void _reloadSource() {
+    final entry = widget.entry;
+    retryPlanning(ref, widget.userId);
+    ref.invalidate(canonicalUserProfileProvider(widget.userId));
+    if (entry.kind == PlanningEntryKind.expense) {
+      ref
+        ..invalidate(canonicalBudgetProvider((userId: widget.userId, budgetId: entry.budgetId!)))
+        ..invalidate(
+          canonicalFinanceRepositoryItemsProvider((
+            userId: widget.userId,
+            budgetId: entry.budgetId!,
+          )),
+        )
+        ..invalidate(
+          canonicalBudgetItemOperationsProvider((
+            userId: widget.userId,
+            budgetId: entry.budgetId!,
+            itemId: entry.itemId!,
+          )),
+        );
+    }
+    Navigator.pop(context);
   }
 }
 

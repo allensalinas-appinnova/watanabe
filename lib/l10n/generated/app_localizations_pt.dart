@@ -696,6 +696,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get activityTotalsMethodNote => 'Receitas − despesas · Transferências excluídas';
 
   @override
+  String get activityTotalsMethodAction => 'Como o resultado é calculado';
+
+  @override
   String get activityTransfersTotalsNote =>
       'Transferências não entram em receitas, despesas nem no resultado.';
 
@@ -2984,7 +2987,11 @@ class AppLocalizationsPt extends AppLocalizations {
         'open': 'A resolver',
         'saved': 'Acompanhamento atualizado',
         'error': 'Não foi possível salvar. Tente novamente com conexão.',
-        'conflict': 'Os dados mudaram. Feche esta janela e abra o item novamente.',
+        'conflict': 'Os dados mudaram. Atualize o item antes de tentar novamente.',
+        'sourceUnavailable':
+            'Não foi possível confirmar se este item ainda está disponível. Atualize o planejamento e abra-o novamente.',
+        'generationChanged': 'Esta tela está desatualizada. Atualize o item antes de continuar.',
+        'refresh': 'Atualizar item',
         'needsRecord': 'Associe um lançamento confirmado para concluir esta despesa.',
         'dismissInfo':
             'Retira os lembretes e conserva valores previstos e registros. Não registra pagamento nem reduz a dívida.',

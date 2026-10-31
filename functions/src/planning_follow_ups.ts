@@ -1,6 +1,7 @@
 import {createHash} from "node:crypto";
 import {FieldValue, type DocumentReference, type Firestore, type Transaction} from "firebase-admin/firestore";
 import {validId, validMonth, type Operation} from "./projection_model";
+import {belongsToDataGeneration} from "./data_generation";
 
 type Data = Record<string, unknown>;
 export type PlanningSource = {kind: "expense" | "debt"; monthKey: string; budgetId?: string; itemId?: string; commitmentId?: string};
@@ -97,7 +98,8 @@ export async function mutatePlanningFollowUp(db: Firestore, uid: string | undefi
   const ref = root.collection("planningFollowUps").doc(planningSourceId(command));
   const receiptRef = root.collection("planningFollowUpCommands").doc(command.requestId);
   return db.runTransaction(async (tx) => {
-    const profile = (await tx.get(root)).data();
+    const profileSnapshot = await tx.get(root);
+    const profile = profileSnapshot.data();
     if (!profile || profile.resetStatus === "resetting") fail("profile-unavailable", "failed-precondition");
     const generation = Number(profile.dataGeneration ?? 0);
     if (generation !== command.expectedGeneration) fail("stale-generation", "failed-precondition");
@@ -113,7 +115,9 @@ export async function mutatePlanningFollowUp(db: Firestore, uid: string | undefi
       const [budgetSnap, itemSnap] = await Promise.all([tx.get(budgetRef), tx.get(budgetRef.collection("items").doc(command.itemId!))]);
       const budget = budgetSnap.data(), item = itemSnap.data();
       if (!budget || !item || budget.monthKey !== command.monthKey || budget.flowType !== "expense" ||
-          budget.status !== "active" || item.status === "archived" || Number(budget.dataGeneration ?? 0) !== generation) fail("entry-unavailable", "failed-precondition");
+          budget.status !== "active" || item.status === "archived" ||
+          !belongsToDataGeneration(budgetSnap, generation, profile.resetCompletedAt) ||
+          !belongsToDataGeneration(itemSnap, generation, profile.resetCompletedAt)) fail("entry-unavailable", "failed-precondition");
       if (command.action === "completeExpense") {
         const operations = await tx.get(root.collection("operations").where("budgetId", "==", command.budgetId));
         const records = new Map(operations.docs.filter((doc) => doc.data().budgetItemId === command.itemId).map((doc) => [doc.id, doc.data()]));

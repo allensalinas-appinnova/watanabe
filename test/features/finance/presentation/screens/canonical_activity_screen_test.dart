@@ -83,6 +83,8 @@ void main() {
     required Locale locale,
     _FakeActivityCsvShareService? shareService,
     _FakeActivityCsvSaveService? saveService,
+    List<FinancialOperation> additionalOperations = const [],
+    ThemeData? theme,
   }) {
     final repository = _MockFinanceRepository();
     when(
@@ -102,7 +104,10 @@ void main() {
       final type = invocation.namedArguments[#type] as OperationType?;
       return Right(
         OperationPage(
-          items: operations.where((item) => type == null || item.type == type).toList(),
+          items: [
+            ...operations,
+            ...additionalOperations,
+          ].where((item) => type == null || item.type == type).toList(),
         ),
       );
     });
@@ -155,7 +160,7 @@ void main() {
         ),
       ],
       child: MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         locale: locale,
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -202,7 +207,8 @@ void main() {
     expect(find.text('Banco1 Ahorros → Efectivo'), findsOneWidget);
     expect(find.text('Resumen'), findsOneWidget);
     expect(find.text('Resultado'), findsOneWidget);
-    expect(find.text('Ingresos − egresos · Transferencias excluidas'), findsOneWidget);
+    expect(find.byKey(const ValueKey('activity_totals_method_help')), findsOneWidget);
+    expect(find.text('Ingresos − egresos · Transferencias excluidas'), findsNothing);
     expect(find.text('Movimientos · 3'), findsOneWidget);
     expect(find.textContaining('pendientes'), findsNothing);
 
@@ -323,11 +329,121 @@ void main() {
     for (final locale in const [Locale('es'), Locale('pt'), Locale('en')]) {
       await tester.pumpWidget(buildSubject(locale: locale));
       await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('canonical_activity_scroll_view')),
+        const Offset(0, 900),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('activity_title')));
       expect(find.byKey(const ValueKey('activity_title')), findsOneWidget);
       expect(find.byKey(const ValueKey('activity_filter_all')), findsOneWidget);
       expect(find.byKey(const ValueKey('activity_filter_transfers')), findsOneWidget);
+      final summary = find.byKey(const ValueKey('activity_report_summary'));
+      await tester.ensureVisible(summary);
+      final l10n = AppLocalizations.of(tester.element(summary));
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsIncome)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsExpenses)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsNet)),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('compact summary keeps all totals visible and opens localized accessible help', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final locale in const [Locale('es'), Locale('pt'), Locale('en')]) {
+      await tester.pumpWidget(buildSubject(locale: locale));
+      await tester.pumpAndSettle();
+      final summary = find.byKey(const ValueKey('activity_report_summary'));
+      await tester.ensureVisible(summary);
+
+      final l10n = AppLocalizations.of(tester.element(summary));
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsIncome)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsExpenses)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text(l10n.activityTotalsNet)),
+        findsOneWidget,
+      );
+      expect(tester.getSize(summary).height, lessThanOrEqualTo(180));
+
+      final help = find.byTooltip(l10n.activityTotalsMethodAction);
+      expect(help, findsOneWidget);
+      expect(tester.getSemantics(help).getSemanticsData().tooltip, l10n.activityTotalsMethodAction);
+      await tester.tap(help);
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.activityTotalsMethodNote), findsOneWidget);
+      await tester.tap(find.text(l10n.close));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('stacks summary totals at 320 dp with enlarged text and dark theme', (tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await tester.pumpWidget(
+      buildSubject(locale: const Locale('es'), theme: AppTheme.dark),
+    );
+    await tester.pumpAndSettle();
+    final summary = find.byKey(const ValueKey('activity_report_summary'));
+    await tester.ensureVisible(summary);
+    expect(find.text('Ingresos'), findsOneWidget);
+    expect(find.text('Egresos'), findsOneWidget);
+    expect(find.text('Resultado'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps totals grouped by currency in the compact card', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildSubject(
+        locale: const Locale('es'),
+        additionalOperations: [
+          _operation(
+            id: 'usd-income',
+            type: OperationType.income,
+            description: 'USD income',
+            currency: 'USD',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    final summary = find.byKey(const ValueKey('activity_report_summary'));
+    await tester.ensureVisible(summary);
+    expect(find.text('COP'), findsOneWidget);
+    expect(find.text('USD'), findsOneWidget);
+    expect(find.text('Resultado'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
   });
 }
 
@@ -336,6 +452,7 @@ FinancialOperation _operation({
   required OperationType type,
   required String description,
   int amountMinor = 100,
+  String currency = 'COP',
   String? accountId,
   String? categoryId,
   String? sourceAccountId,
@@ -344,7 +461,7 @@ FinancialOperation _operation({
   id: id,
   type: type,
   amountMinor: amountMinor,
-  currency: 'COP',
+  currency: currency,
   monthKey: '2026-10',
   occurredAt: DateTime(2026, 10, 7, 9, 30),
   status: OperationStatus.confirmed,

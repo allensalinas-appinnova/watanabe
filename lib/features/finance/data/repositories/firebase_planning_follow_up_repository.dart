@@ -47,6 +47,42 @@ class FirebasePlanningFollowUpRepository implements PlanningFollowUpRepository {
       );
 
   @override
+  Future<Either<Failure, PlanningFollowUp?>> readCurrent(
+    String userId,
+    PlanningSource source,
+  ) async {
+    try {
+      if (auth.currentUser?.uid != userId) {
+        return const Left(AuthFailure('planning-session-expired'));
+      }
+      final snapshot = await firestore
+          .collection('users')
+          .doc(userId)
+          .collection('planningFollowUps')
+          .get(const GetOptions(source: Source.server));
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        if (data['kind'] == source.kind.name &&
+            data['monthKey'] == source.monthKey &&
+            data['budgetId'] == source.budgetId &&
+            data['itemId'] == source.itemId &&
+            data['commitmentId'] == source.commitmentId) {
+          return Right(_decode(data));
+        }
+      }
+      return const Right(null);
+    } on FirebaseException catch (error) {
+      return Left(
+        error.code == 'unavailable' || error.code == 'deadline-exceeded'
+            ? NetworkFailure('planning-follow-up-read-failed', technicalCode: error.code)
+            : UnknownFailure('planning-follow-up-read-failed', technicalCode: error.code),
+      );
+    } catch (_) {
+      return const Left(UnknownFailure('planning-follow-up-read-failed'));
+    }
+  }
+
+  @override
   Future<Either<Failure, PlanningFollowUp>> mutate(
     String userId,
     PlanningFollowUpCommand command,

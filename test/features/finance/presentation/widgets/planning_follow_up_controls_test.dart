@@ -16,15 +16,22 @@ import 'package:personal_finance/l10n/generated/app_localizations.dart';
 class _FollowUps implements PlanningFollowUpRepository {
   final commands = <PlanningFollowUpCommand>[];
   bool loseResponse = false;
+  Failure? mutationFailure;
   @override
   Stream<PlanningFollowUpSnapshot> watch(String userId) =>
       Stream.value(const PlanningFollowUpSnapshot());
+  @override
+  Future<Either<Failure, PlanningFollowUp?>> readCurrent(
+    String userId,
+    PlanningSource source,
+  ) async => const Right(null);
   @override
   Future<Either<Failure, PlanningFollowUp>> mutate(
     String uid,
     PlanningFollowUpCommand command,
   ) async {
     commands.add(command);
+    if (mutationFailure != null) return Left(mutationFailure!);
     if (loseResponse && commands.length == 1) {
       return const Left(NetworkFailure('planning-follow-up-failed'));
     }
@@ -159,6 +166,25 @@ void main() {
     expect(repository.commands.first.expectedVersion, 0);
     expect(find.byKey(const ValueKey('follow_up_completeExpense')), findsNothing);
     expect(find.text('Seguimiento actualizado'), findsOneWidget);
+  });
+  testWidgets('unavailable source explains the issue and offers a reload before retry', (
+    tester,
+  ) async {
+    final repository = _FollowUps()
+      ..mutationFailure = const ConflictFailure('planning-entry-unavailable');
+    await _pump(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('follow_up_dismiss')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'No pudimos confirmar que este elemento siga disponible. Actualiza el plan y vuelve a abrirlo.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Actualizar elemento'));
+    await tester.pumpAndSettle();
+    expect(find.text('Seguimiento'), findsNothing);
+    expect(repository.commands, hasLength(1));
   });
   for (final locale in ['es', 'en', 'pt']) {
     testWidgets(

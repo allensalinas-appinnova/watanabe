@@ -2,6 +2,7 @@ import {createHash} from "node:crypto";
 import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {checkedInteger, maximumMinor, validCurrency, validId, validMonth} from "./projection_model";
 import {executeOperationBudgetAssociation} from "./operation_budget_associations";
+import {belongsToDataGeneration} from "./data_generation";
 
 type ItemDraft = {description: string; amountMinor: number; dayOfMonth: number};
 type BudgetIdentity = {categoryId: string; flowType: "income" | "expense"; monthKey: string; currency: string};
@@ -108,7 +109,8 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     `${command.identity.monthKey}_${command.identity.flowType}_${command.identity.categoryId}_${command.identity.currency}` : command.budgetId;
   const budgetRef = root.collection("budgets").doc(budgetId);
   return db.runTransaction(async (transaction) => {
-    const profile = (await transaction.get(root)).data();
+    const profileSnapshot = await transaction.get(root);
+    const profile = profileSnapshot.data();
     if (!profile || profile.resetStatus === "resetting") throw new BudgetCommandError("budget-user-resetting", "failed-precondition");
     const generation = Number.isSafeInteger(profile.dataGeneration) ? profile.dataGeneration as number : 0;
     if (generation !== command.expectedGeneration) throw new BudgetCommandError("budget-stale-generation", "failed-precondition");
@@ -120,6 +122,9 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     const budgetSnapshot = await transaction.get(budgetRef);
     const previous = budgetSnapshot.data();
     if (command.action !== "create" && !previous) throw new BudgetCommandError("budget-not-found", "not-found");
+    if (previous && !belongsToDataGeneration(budgetSnapshot, generation, profile.resetCompletedAt)) {
+      throw new BudgetCommandError("budget-stale-generation", "failed-precondition");
+    }
     const budget = command.action === "create" ? command.identity : identity(previous!);
     const category = await transaction.get(root.collection("categories").doc(budget.categoryId));
     if (command.action !== "reconcile" && (!category.exists || category.data()?.type !== budget.flowType ||
@@ -127,6 +132,9 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
       throw new BudgetCommandError("budget-category-unavailable", "failed-precondition");
     }
     const itemSnapshots = await transaction.get(budgetRef.collection("items"));
+    if (itemSnapshots.docs.some((snapshot) => !belongsToDataGeneration(snapshot, generation, profile.resetCompletedAt))) {
+      throw new BudgetCommandError("budget-stale-generation", "failed-precondition");
+    }
     const items = new Map(itemSnapshots.docs.map((doc) => [doc.id, doc.data() as Data]));
     const writes = new Map<string, Data>();
     let changedItemId: string | undefined;
@@ -190,17 +198,20 @@ export async function executeBudgetCommand(db: Firestore, uid: string | undefine
     if (!count) throw new BudgetCommandError("budget-last-item", "failed-precondition");
     const status = command.action === "archiveBudget" ? "archived" :
       command.action === "reconcile" ? previous!.status : "active";
-    const canonicalBudget = {id: budgetId, ...budget, plannedAmountMinor: total, itemCount: count, status};
+    const canonicalBudget = {id: budgetId, ...budget, plannedAmountMinor: total, itemCount: count, status, dataGeneration: generation};
     const changed = changedItemId ? items.get(changedItemId)! : undefined;
     const result: BudgetCommandResult = {budget: canonicalBudget};
     if (changed) result.item = {
       id: changedItemId!, description: changed.description, amountMinor: changed.amountMinor,
-      dayOfMonth: changed.dayOfMonth, actualAmountMinor: changed.actualAmountMinor ?? 0, status: changed.status ?? "active",
+      dayOfMonth: changed.dayOfMonth, actualAmountMinor: changed.actualAmountMinor ?? 0,
+      status: changed.status ?? "active", dataGeneration: generation,
     };
     // Every read precedes every write, including the query and category validation.
-    for (const [itemId, item] of writes) transaction.set(budgetRef.collection("items").doc(itemId), item);
-    const aggregateChanged = previous?.plannedAmountMinor !== total || previous?.itemCount !== count;
-    const parent = {...budget, plannedAmountMinor: total, itemCount: count, status, updatedAt: FieldValue.serverTimestamp()};
+    for (const [itemId, item] of writes) {
+      transaction.set(budgetRef.collection("items").doc(itemId), {...item, dataGeneration: generation});
+    }
+    const aggregateChanged = previous?.plannedAmountMinor !== total || previous?.itemCount !== count || previous?.dataGeneration !== generation;
+    const parent = {...budget, plannedAmountMinor: total, itemCount: count, status, dataGeneration: generation, updatedAt: FieldValue.serverTimestamp()};
     if (previous) {
       if (command.action !== "reconcile" || aggregateChanged) transaction.update(budgetRef, parent);
     } else {
