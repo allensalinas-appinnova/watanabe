@@ -423,6 +423,7 @@
   ,"budgetNoCategories": "No hay categorías para este tipo. Crea una categoría para continuar."
   ,"budgetValidateItems": "Revisa la descripción, el monto y el día de cada elemento."
   ,"budgetAlreadyExists": "Ya existe un presupuesto para esta categoría y este mes."
+  ,"openExistingBudget": "Abrir"
   ,"budgetSaveFailed": "No pudimos guardar el presupuesto. Tus datos siguen aquí; inténtalo de nuevo."
   ,"budgetSave": "Guardar presupuesto"
   ,"budgetsTitle": "Tus presupuestos"

@@ -2482,6 +2482,12 @@ abstract class AppLocalizations {
   /// **'Ya existe un presupuesto para esta categoría y este mes.'**
   String get budgetAlreadyExists;
 
+  /// No description provided for @openExistingBudget.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir'**
+  String get openExistingBudget;
+
   /// No description provided for @budgetSaveFailed.
   ///
   /// In es, this message translates to:

@@ -1347,6 +1347,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get budgetAlreadyExists => 'Já existe um orçamento para esta categoria e este mês.';
 
   @override
+  String get openExistingBudget => 'Abrir';
+
+  @override
   String get budgetSaveFailed =>
       'Não foi possível salvar o orçamento. Seus dados continuam aqui; tente novamente.';
 

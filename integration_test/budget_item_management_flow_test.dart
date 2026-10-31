@@ -150,6 +150,7 @@ void main() {
       app: FirebaseBootstrap.app,
     ).collection('users').doc(uid).collection('budgets').doc(budgetId);
     await _pumpUntil(tester, find.byKey(ValueKey('budget_card_$budgetId')));
+
     await tester.tap(find.byKey(ValueKey('budget_card_tap_$budgetId')));
     await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
 
@@ -856,6 +857,87 @@ void main() {
         .where('idempotencyKey', whereIn: operationIds)
         .get(const GetOptions(source: Source.server));
     expect(matchingOperations.docs, hasLength(2));
+  });
+
+  testWidgets('duplicate category opens its budget and preserves the creation draft', (
+    tester,
+  ) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await Future<void>.delayed(const Duration(seconds: 1));
+    });
+    if (initializationError != null) {
+      Error.throwWithStackTrace(initializationError!, initializationStack!);
+    }
+    final email = 'budget-duplicate-${DateTime.now().microsecondsSinceEpoch}@example.test';
+    const password = 'ClearBudget-E2E-123';
+    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.tap(find.byKey(const ValueKey('auth_signup_tab')));
+    await tester.enterText(find.byKey(const ValueKey('auth_email_field')), email);
+    await tester.enterText(find.byKey(const ValueKey('auth_password_field')), password);
+    await tester.tap(find.byKey(const ValueKey('auth_submit_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 3));
+    await tester.enterText(find.byKey(const ValueKey('onboarding_account_name')), 'Cuenta QA');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('onboarding_continue')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('global_add_operation')));
+
+    final uid = FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).currentUser!.uid;
+    await tester.tap(find.byKey(const ValueKey('finance_nav_budget')));
+    await tester.pumpAndSettle();
+    await _pumpUntil(tester, find.byKey(const ValueKey('budgets_create_button')));
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')).hitTestable());
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_save')));
+    await _createBudget(tester, items: const [('Mercado existente', '50000')]);
+
+    final monthKey = _currentMonthKey();
+    final budgetId = '${monthKey}_expense_food_COP';
+    final budgetRef = FirebaseFirestore.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).collection('users').doc(uid).collection('budgets').doc(budgetId);
+    await _pumpUntil(tester, find.byKey(ValueKey('budget_card_$budgetId')));
+
+    await tester.tap(find.byKey(const ValueKey('budgets_create_button')).hitTestable());
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_save')));
+    await _revealFormField(tester, find.byKey(const ValueKey('budget_item_description_0')), 300);
+    await tester.enterText(
+      find.byKey(const ValueKey('budget_item_description_0')),
+      'Borrador duplicado QA',
+    );
+    await _revealFormField(tester, find.byKey(const ValueKey('budget_item_amount_0')), 300);
+    await tester.enterText(find.byKey(const ValueKey('budget_item_amount_0')), '10000');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await _revealFormField(
+      tester,
+      find.byKey(const ValueKey('budget_category_selector_expense')),
+      -300,
+    );
+    await tester.tap(find.byKey(const ValueKey('budget_category_selector_tap')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alimentación').last);
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byKey(const ValueKey('budget_save'))));
+    expect(find.text(l10n.budgetAlreadyExists), findsOneWidget);
+    await tester.tap(find.text(l10n.openExistingBudget));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_detail_category')));
+    expect(
+      (await budgetRef.collection('items').get(const GetOptions(source: Source.server))).docs,
+      hasLength(1),
+    );
+    await tester.tap(find.byKey(const ValueKey('budget_detail_back')));
+    await _pumpUntil(tester, find.byKey(const ValueKey('budget_save')));
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('budget_item_description_0')))
+          .controller!
+          .text,
+      'Borrador duplicado QA',
+    );
   });
 }
 

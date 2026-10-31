@@ -116,6 +116,15 @@ GoRouter _buildAppRouter() => GoRouter(
   },
   routes: [
     GoRoute(
+      path: '/budget-detail-overlay/:id',
+      name: 'budget-detail-overlay',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => CanonicalBudgetDetailScreen(
+        budgetId: state.pathParameters['id']!,
+        initialTab: state.uri.queryParameters['tab'] == 'movements' ? 1 : 0,
+      ),
+    ),
+    GoRoute(
       path: '/coach/daily',
       name: 'coach-daily',
       builder: (context, state) => CoachReviewScreen(

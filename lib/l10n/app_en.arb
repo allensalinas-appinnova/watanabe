@@ -423,6 +423,7 @@
   ,"budgetNoCategories": "There are no categories for this type. Create a category to continue."
   ,"budgetValidateItems": "Check the description, amount, and day for each item."
   ,"budgetAlreadyExists": "A budget already exists for this category and month."
+  ,"openExistingBudget": "Open"
   ,"budgetSaveFailed": "We couldn't save the budget. Your details are still here; try again."
   ,"budgetSave": "Save budget"
   ,"budgetsTitle": "Your budgets"

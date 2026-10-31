@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/theme/app_theme.dart';
 import 'package:personal_finance/features/auth/domain/entities/auth_user.dart';
 import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget.dart';
+import 'package:personal_finance/features/finance/domain/entities/budget_command_failure.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget_flow_type.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
@@ -47,48 +49,73 @@ void main() {
   Widget subject({
     Locale locale = const Locale('es'),
     List<FinanceCategory>? categories,
+    List<Budget>? budgets,
+    bool budgetReadError = false,
+    bool budgetLoading = false,
     double textScale = 1,
-  }) => ProviderScope(
-    overrides: [
-      authSessionProvider.overrideWith(
-        (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: false)),
-      ),
-      canonicalUserProfileProvider('user-1').overrideWith(
-        (ref) => Stream.value(
-          const UserProfile(
-            id: 'user-1',
-            locale: 'es',
-            countryCode: 'CO',
-            timeZone: 'America/Bogota',
-            defaultCurrency: 'COP',
-            onboardingStatus: 'complete',
-            categoryCatalogVersion: 1,
+  }) {
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    final router = GoRouter(
+      initialLocation: '/create',
+      routes: [
+        GoRoute(path: '/create', builder: (context, state) => const CanonicalBudgetCreateScreen()),
+        GoRoute(
+          path: '/budget-detail-overlay/:id',
+          builder: (context, state) => Scaffold(
+            body: Text('Existing budget ${state.pathParameters['id']} · existing item'),
           ),
         ),
-      ),
-      canonicalCategoriesProvider('user-1').overrideWith(
-        (ref) => Stream.value(categories ?? _categories),
-      ),
-      canonicalRecentOperationsProvider('user-1').overrideWith((ref) => Stream.value(const [])),
-      canonicalActionsProvider.overrideWithValue(actions),
-    ],
-    child: MaterialApp(
-      theme: AppTheme.light,
-      locale: locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
+    );
+    return ProviderScope(
+      overrides: [
+        authSessionProvider.overrideWith(
+          (ref) => Stream.value(const AuthUser(id: 'user-1', isAnonymous: false)),
+        ),
+        canonicalUserProfileProvider('user-1').overrideWith(
+          (ref) => Stream.value(
+            const UserProfile(
+              id: 'user-1',
+              locale: 'es',
+              countryCode: 'CO',
+              timeZone: 'America/Bogota',
+              defaultCurrency: 'COP',
+              onboardingStatus: 'complete',
+              categoryCatalogVersion: 1,
+            ),
+          ),
+        ),
+        canonicalCategoriesProvider('user-1').overrideWith(
+          (ref) => Stream.value(categories ?? _categories),
+        ),
+        canonicalBudgetsProvider.overrideWith(
+          (ref, input) => budgetReadError
+              ? Stream.error(StateError('budget read failed'))
+              : budgetLoading
+              ? Stream<List<Budget>>.multi((controller) {})
+              : Stream.value(input.monthKey == monthKey ? budgets ?? const [] : const []),
+        ),
+        canonicalRecentOperationsProvider('user-1').overrideWith((ref) => Stream.value(const [])),
+        canonicalActionsProvider.overrideWithValue(actions),
+      ],
+      child: MaterialApp.router(
+        theme: AppTheme.light,
+        locale: locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        routerConfig: router,
       ),
-      home: const CanonicalBudgetCreateScreen(),
-    ),
-  );
+    );
+  }
 
   testWidgets('starts with current budget defaults, one item, and profile currency', (
     tester,
@@ -232,7 +259,164 @@ void main() {
     );
   });
 
-  testWidgets('shows duplicate-specific recovery without losing entered values', (tester) async {
+  testWidgets('offers the active matching budget without losing the draft', (tester) async {
+    _setViewport(tester);
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    await tester.pumpWidget(
+      subject(
+        budgets: [
+          Budget(
+            id: '${monthKey}_expense_food_COP',
+            categoryId: 'food',
+            flowType: BudgetFlowType.expense,
+            monthKey: monthKey,
+            currency: 'COP',
+            plannedAmountMinor: 50000,
+            status: 'active',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enter(tester, 'budget_item_description_0', 'Comida del mes');
+    await _enter(tester, 'budget_item_amount_0', '450');
+    await _tap(tester, 'budget_category_selector_expense');
+    await tester.tap(find.text('Comida').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('budget_item_description_0')))
+          .controller!
+          .text,
+      'Comida del mes',
+    );
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('existing item'), findsOneWidget);
+    GoRouter.of(tester.element(find.textContaining('existing item'))).pop();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('budget_save')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('budget_item_description_0')))
+          .controller!
+          .text,
+      'Comida del mes',
+    );
+    verifyNever(
+      () => actions.createBudget(
+        any(),
+        categoryId: any(named: 'categoryId'),
+        flowType: any(named: 'flowType'),
+        monthKey: any(named: 'monthKey'),
+        currency: any(named: 'currency'),
+        items: any(named: 'items'),
+      ),
+    );
+  });
+
+  testWidgets('does not treat another month as a duplicate', (tester) async {
+    _setViewport(tester);
+    final otherMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
+    final budgetMonth = DateFormat('yyyy-MM').format(otherMonth);
+    await tester.pumpWidget(
+      subject(
+        budgets: [
+          Budget(
+            id: '${budgetMonth}_expense_food_COP',
+            categoryId: 'food',
+            flowType: BudgetFlowType.expense,
+            monthKey: budgetMonth,
+            currency: 'COP',
+            plannedAmountMinor: 50000,
+            status: 'active',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enter(tester, 'budget_item_description_0', 'Mercado');
+    await _enter(tester, 'budget_item_amount_0', '50000');
+    await _tap(tester, 'budget_category_selector_expense');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comida').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsNothing);
+  });
+
+  testWidgets('does not treat another currency as a duplicate', (tester) async {
+    _setViewport(tester);
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    await tester.pumpWidget(
+      subject(
+        budgets: [
+          Budget(
+            id: '${monthKey}_expense_food_USD',
+            categoryId: 'food',
+            flowType: BudgetFlowType.expense,
+            monthKey: monthKey,
+            currency: 'USD',
+            plannedAmountMinor: 50000,
+            status: 'active',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enter(tester, 'budget_item_description_0', 'Mercado');
+    await _enter(tester, 'budget_item_amount_0', '50000');
+    await _tap(tester, 'budget_category_selector_expense');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comida').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsNothing);
+  });
+
+  testWidgets('does not treat a different flow or an archived budget as a duplicate', (
+    tester,
+  ) async {
+    _setViewport(tester);
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    await tester.pumpWidget(
+      subject(
+        budgets: [
+          Budget(
+            id: '${monthKey}_expense_food_COP',
+            categoryId: 'food',
+            flowType: BudgetFlowType.expense,
+            monthKey: monthKey,
+            currency: 'COP',
+            plannedAmountMinor: 50000,
+            status: 'active',
+          ),
+          Budget(
+            id: '${monthKey}_expense_salary_COP',
+            categoryId: 'salary',
+            flowType: BudgetFlowType.income,
+            monthKey: monthKey,
+            currency: 'COP',
+            plannedAmountMinor: 50000,
+            status: 'archived',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _tap(tester, 'budget_type_selector');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ingresos').last);
+    await tester.pumpAndSettle();
+    await _tap(tester, 'budget_category_selector_income');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salario').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsNothing);
+  });
+
+  testWidgets('does not block creation when the duplicate lookup is unavailable', (tester) async {
     _setViewport(tester);
     when(
       () => actions.createBudget(
@@ -243,23 +427,113 @@ void main() {
         currency: any(named: 'currency'),
         items: any(named: 'items'),
       ),
-    ).thenThrow(Exception('budget-already-exists'));
-    await tester.pumpWidget(subject());
+    ).thenThrow(Exception('network unavailable'));
+    await tester.pumpWidget(subject(budgetReadError: true));
     await tester.pumpAndSettle();
-    await _enter(tester, 'budget_item_description_0', 'Comida del mes');
-    await _enter(tester, 'budget_item_amount_0', '450');
+    await _enter(tester, 'budget_item_description_0', 'Mercado');
+    await _enter(tester, 'budget_item_amount_0', '50000');
     await _tap(tester, 'budget_category_selector_expense');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comida').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsNothing);
+    await _tap(tester, 'budget_save');
+    await tester.pumpAndSettle();
+
+    verify(
+      () => actions.createBudget(
+        'user-1',
+        categoryId: 'food',
+        flowType: 'expense',
+        monthKey: any(named: 'monthKey'),
+        currency: 'COP',
+        items: any(named: 'items'),
+      ),
+    ).called(1);
+  });
+
+  testWidgets('allows the server to decide while the duplicate lookup is loading', (tester) async {
+    _setViewport(tester);
+    when(
+      () => actions.createBudget(
+        any(),
+        categoryId: any(named: 'categoryId'),
+        flowType: any(named: 'flowType'),
+        monthKey: any(named: 'monthKey'),
+        currency: any(named: 'currency'),
+        items: any(named: 'items'),
+      ),
+    ).thenThrow(Exception('temporary failure'));
+    await tester.pumpWidget(subject(budgetLoading: true));
+    await tester.pumpAndSettle();
+    await _enter(tester, 'budget_item_description_0', 'Mercado');
+    await _enter(tester, 'budget_item_amount_0', '50000');
+    await _tap(tester, 'budget_category_selector_expense');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comida').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsNothing);
+    await _tap(tester, 'budget_save');
+    await tester.pumpAndSettle();
+
+    verify(
+      () => actions.createBudget(
+        'user-1',
+        categoryId: 'food',
+        flowType: 'expense',
+        monthKey: any(named: 'monthKey'),
+        currency: 'COP',
+        items: any(named: 'items'),
+      ),
+    ).called(1);
+  });
+
+  testWidgets('server duplicate race refreshes and offers the existing budget', (tester) async {
+    _setViewport(tester);
+    final budgets = <Budget>[];
+    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+    when(
+      () => actions.createBudget(
+        any(),
+        categoryId: any(named: 'categoryId'),
+        flowType: any(named: 'flowType'),
+        monthKey: any(named: 'monthKey'),
+        currency: any(named: 'currency'),
+        items: any(named: 'items'),
+      ),
+    ).thenAnswer((_) async {
+      budgets.add(
+        Budget(
+          id: '${monthKey}_expense_food_COP',
+          categoryId: 'food',
+          flowType: BudgetFlowType.expense,
+          monthKey: monthKey,
+          currency: 'COP',
+          plannedAmountMinor: 50000,
+          status: 'active',
+        ),
+      );
+      throw const BudgetCommandException(BudgetCommandIssue.alreadyExists);
+    });
+    await tester.pumpWidget(subject(budgets: budgets));
+    await tester.pumpAndSettle();
+    await _enter(tester, 'budget_item_description_0', 'Mercado');
+    await _enter(tester, 'budget_item_amount_0', '50000');
+    await _tap(tester, 'budget_category_selector_expense');
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Comida').last);
     await tester.pumpAndSettle();
     await _tap(tester, 'budget_save');
+    await tester.pumpAndSettle();
 
     expect(find.text('Ya existe un presupuesto para esta categoría y este mes.'), findsOneWidget);
+    expect(find.text('Abrir'), findsOneWidget);
     expect(
       tester
           .widget<TextFormField>(find.byKey(const ValueKey('budget_item_description_0')))
           .controller!
           .text,
-      'Comida del mes',
+      'Mercado',
     );
   });
 

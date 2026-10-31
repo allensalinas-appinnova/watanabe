@@ -12,6 +12,7 @@ import '../../../../core/utils/money_parser.dart';
 import '../../../../core/widgets/day_of_month_selector.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -42,6 +43,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
   bool _saving = false;
   bool _hasUnsavedChanges = false;
   int _nextItemId = 0;
+  final Set<String> _duplicateNoticeKeys = {};
 
   @override
   void initState() {
@@ -115,6 +117,72 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
         }
         _errorMessage = null;
       });
+      _notifyIfDuplicate(
+        ref.read(canonicalBudgetsProvider(_budgetQuery(userId: _currentUserId))).valueOrNull,
+        repeat: true,
+      );
+    }
+  }
+
+  String get _currentUserId => ref.read(authSessionProvider).valueOrNull?.id ?? '';
+
+  ({String userId, String monthKey}) _budgetQuery({required String userId}) => (
+    userId: userId,
+    monthKey: DateFormat('yyyy-MM').format(_month),
+  );
+
+  Budget? _matchingBudget(Iterable<Budget>? budgets, String currency) {
+    if (_categoryId == null || budgets == null) return null;
+    final monthKey = DateFormat('yyyy-MM').format(_month);
+    for (final budget in budgets) {
+      if (budget.status == 'active' &&
+          budget.categoryId == _categoryId &&
+          budget.flowType.name == _flowType &&
+          budget.monthKey == monthKey &&
+          budget.currency == currency) {
+        return budget;
+      }
+    }
+    return null;
+  }
+
+  void _notifyIfDuplicate(List<Budget>? budgets, {bool repeat = false, String? currency}) {
+    if (!mounted || _saving) return;
+    final profile = ref.read(canonicalUserProfileProvider(_currentUserId)).valueOrNull;
+    final budget = _matchingBudget(budgets, currency ?? profile?.defaultCurrency ?? 'COP');
+    if (budget == null) return;
+    final noticeKey = '${budget.id}|${budget.currency}';
+    if (!repeat && !_duplicateNoticeKeys.add(noticeKey)) return;
+    _duplicateNoticeKeys.add(noticeKey);
+    _showDuplicateBudget(budget);
+  }
+
+  void _showDuplicateBudget(Budget budget) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.budgetAlreadyExists),
+          action: SnackBarAction(
+            label: l10n.openExistingBudget,
+            onPressed: () =>
+                context.push('/budget-detail-overlay/${Uri.encodeComponent(budget.id)}'),
+          ),
+        ),
+      );
+  }
+
+  Future<Budget?> _refreshMatchingBudget(String userId, String currency) async {
+    final query = _budgetQuery(userId: userId);
+    final provider = canonicalBudgetsProvider(query);
+    ref.invalidate(provider);
+    try {
+      final budgets = await ref.read(provider.future).timeout(const Duration(seconds: 8));
+      return _matchingBudget(budgets, currency);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -132,6 +200,16 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     }
     if (_categoryId == null || !matchingCategories.any((item) => item.id == _categoryId)) {
       setState(() => _errorMessage = l10n.budgetSelectCategory);
+      return;
+    }
+
+    final monthKey = DateFormat('yyyy-MM').format(_month);
+    final duplicate = _matchingBudget(
+      ref.read(canonicalBudgetsProvider((userId: userId, monthKey: monthKey))).valueOrNull,
+      currency,
+    );
+    if (duplicate != null) {
+      _showDuplicateBudget(duplicate);
       return;
     }
 
@@ -170,7 +248,6 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
       _errorMessage = null;
     });
     try {
-      final monthKey = DateFormat('yyyy-MM').format(_month);
       final createdBudget = await ref
           .read(canonicalActionsProvider)
           .createBudget(
@@ -188,18 +265,31 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
         await _popAfterSave(createdBudget);
       }
     } on BudgetCommandException catch (error) {
-      if (mounted) setState(() => _errorMessage = budgetCommandMessage(l10n, error.issue));
+      if (error.issue == BudgetCommandIssue.alreadyExists) {
+        final existing = await _refreshMatchingBudget(userId, currency);
+        if (existing != null && mounted) {
+          _showDuplicateBudget(existing);
+        } else if (mounted) {
+          setState(() => _errorMessage = budgetCommandMessage(l10n, error.issue));
+        }
+      } else if (mounted) {
+        setState(() => _errorMessage = budgetCommandMessage(l10n, error.issue));
+      }
     } catch (error) {
       if (!mounted) return;
       final message = error.toString().toLowerCase();
-      setState(() {
-        _errorMessage =
-            message.contains('already exists') ||
-                message.contains('already-exists') ||
-                message.contains('budget-already-exists')
-            ? l10n.budgetAlreadyExists
-            : l10n.budgetSaveFailed;
-      });
+      if (message.contains('already exists') ||
+          message.contains('already-exists') ||
+          message.contains('budget-already-exists')) {
+        final existing = await _refreshMatchingBudget(userId, currency);
+        if (existing != null && mounted) {
+          _showDuplicateBudget(existing);
+        } else if (mounted) {
+          setState(() => _errorMessage = l10n.budgetAlreadyExists);
+        }
+      } else {
+        setState(() => _errorMessage = l10n.budgetSaveFailed);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -218,6 +308,12 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
         const <FinancialOperation>[];
     final profile = ref.watch(canonicalUserProfileProvider(user.id)).valueOrNull;
     final currency = profile?.defaultCurrency ?? 'COP';
+    final monthKey = DateFormat('yyyy-MM').format(_month);
+    final budgetsInput = (userId: user.id, monthKey: monthKey);
+    final budgetsAsync = ref.watch(canonicalBudgetsProvider(budgetsInput));
+    ref.listen(canonicalBudgetsProvider(budgetsInput), (previous, next) {
+      if (next.hasValue) _notifyIfDuplicate(next.valueOrNull, currency: currency);
+    });
     final availableCategories = categories
         .where((category) => category.type.name == _flowType && !category.isArchived)
         .toList();
@@ -266,7 +362,7 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                           IconButton(
                             key: const ValueKey('budget_create_back'),
                             tooltip: l10n.cancel,
-                            onPressed: _saving ? null : () => popOrGo(context, '/budgets'),
+                            onPressed: _saving ? null : _handleBack,
                             icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                           ),
                         ],
@@ -323,12 +419,15 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                           ],
                           onChanged: _saving
                               ? null
-                              : (value) => setState(() {
-                                  _hasUnsavedChanges = true;
-                                  _flowType = value ?? 'expense';
-                                  _categoryId = null;
-                                  _errorMessage = null;
-                                }),
+                              : (value) {
+                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  setState(() {
+                                    _hasUnsavedChanges = true;
+                                    _flowType = value ?? 'expense';
+                                    _categoryId = null;
+                                    _errorMessage = null;
+                                  });
+                                },
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -384,11 +483,18 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
                                 },
                                 onSelected: _saving || availableCategories.isEmpty
                                     ? null
-                                    : (value) => setState(() {
-                                        _hasUnsavedChanges = true;
-                                        _categoryId = value;
-                                        _errorMessage = null;
-                                      }),
+                                    : (value) {
+                                        setState(() {
+                                          _hasUnsavedChanges = true;
+                                          _categoryId = value;
+                                          _errorMessage = null;
+                                        });
+                                        _notifyIfDuplicate(
+                                          budgetsAsync.valueOrNull,
+                                          currency: currency,
+                                          repeat: true,
+                                        );
+                                      },
                                 validator: (value) =>
                                     value == null ? l10n.budgetSelectCategory : null,
                               ),
@@ -549,6 +655,14 @@ class _CanonicalBudgetCreateScreenState extends ConsumerState<CanonicalBudgetCre
     setState(() => _hasUnsavedChanges = false);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) context.pop(result);
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      Navigator.of(context).maybePop();
+    } else {
+      popOrGo(context, '/budgets');
+    }
   }
 
   ButtonStyle _selectorStyle(BuildContext context) => OutlinedButton.styleFrom(
