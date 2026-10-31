@@ -57,6 +57,16 @@ final planningFollowUpsProvider = StreamProvider.family<PlanningFollowUpSnapshot
       Stream.value(const PlanningFollowUpSnapshot()),
 );
 
+final planningFollowUpSheetOpenProvider =
+    NotifierProvider<PlanningFollowUpSheetVisibility, bool>(PlanningFollowUpSheetVisibility.new);
+
+class PlanningFollowUpSheetVisibility extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setOpen(bool isOpen) => state = isOpen;
+}
+
 final planningClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 final planningTickProvider = StreamProvider<DateTime>((ref) async* {
   yield ref.read(planningClockProvider)();

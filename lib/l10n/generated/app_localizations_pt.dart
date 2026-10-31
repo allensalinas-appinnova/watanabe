@@ -3019,4 +3019,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String planningAttentionCount(int count) {
     return '$count itens para revisar';
   }
+
+  @override
+  String planningOpenDetail(String item) {
+    return 'Ver detalhes de $item';
+  }
+
+  @override
+  String planningFollowUpOptions(String item) {
+    return 'Opções de acompanhamento de $item';
+  }
+
+  @override
+  String planningFollowUpFor(String item) {
+    return 'Acompanhamento de $item';
+  }
 }

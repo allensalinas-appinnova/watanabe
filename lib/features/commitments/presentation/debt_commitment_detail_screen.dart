@@ -93,7 +93,11 @@ class DebtCommitmentDetailScreen extends ConsumerWidget {
               if (entry != null)
                 Align(
                   alignment: Alignment.centerRight,
-                  child: PlanningFollowUpButton(userId: uid, entry: entry),
+                  child: PlanningFollowUpButton(
+                    userId: uid,
+                    entry: entry,
+                    itemName: account?.name ?? l10n.debtTitle,
+                  ),
                 ),
               Text(
                 account?.name ?? l10n.debtTitle,

@@ -5049,6 +5049,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{count} elementos por revisar'**
   String planningAttentionCount(int count);
+
+  /// No description provided for @planningOpenDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver detalle de {item}'**
+  String planningOpenDetail(String item);
+
+  /// No description provided for @planningFollowUpOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Opciones de seguimiento de {item}'**
+  String planningFollowUpOptions(String item);
+
+  /// No description provided for @planningFollowUpFor.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguimiento de {item}'**
+  String planningFollowUpFor(String item);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

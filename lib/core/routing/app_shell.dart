@@ -50,6 +50,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         .length;
     final rejected = pendingOperations.any((operation) => operation.status == 'rejected');
     final hasSyncNotice = activePending > 0 || rejected;
+    final planningFollowUpSheetOpen = ref.watch(planningFollowUpSheetOpenProvider);
     final isSectionRoot = const {
       '/home',
       '/activity',
@@ -62,6 +63,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final showRegisterAction =
         (widget.currentLocation == '/home' || widget.currentLocation == '/activity') &&
         !_showingSheet &&
+        !planningFollowUpSheetOpen &&
         !_openingForm;
     return Scaffold(
       body: SafeArea(

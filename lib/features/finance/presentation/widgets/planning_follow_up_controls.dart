@@ -20,32 +20,57 @@ String planningEntryRoute(PlanningAgendaEntry entry) => entry.kind == PlanningEn
     ? '/budgets/debt-payments/${entry.commitmentId}?month=${entry.monthKey}'
     : '/budgets/${entry.budgetId}/items/${entry.itemId}';
 
-class PlanningFollowUpButton extends StatelessWidget {
-  const PlanningFollowUpButton({required this.userId, required this.entry, super.key});
+class PlanningFollowUpButton extends ConsumerWidget {
+  const PlanningFollowUpButton({
+    required this.userId,
+    required this.entry,
+    this.itemName,
+    super.key,
+  });
   final String userId;
   final PlanningAgendaEntry entry;
+  final String? itemName;
   @override
-  Widget build(BuildContext context) => IconButton(
-    key: ValueKey('planning_follow_up_${entry.id}'),
-    tooltip: AppLocalizations.of(context).planningFollowUpText('menu'),
-    icon: const Icon(Icons.more_horiz),
-    onPressed: () => showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => PlanningFollowUpSheet(userId: userId, entry: entry),
-    ),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final subject = itemName ?? entry.title;
+    return IconButton(
+      key: ValueKey('planning_follow_up_${entry.id}'),
+      tooltip: l10n.planningFollowUpOptions(subject),
+      icon: const Icon(Icons.more_horiz),
+      onPressed: () async {
+        final visibility = ref.read(planningFollowUpSheetOpenProvider.notifier)..setOpen(true);
+        try {
+          await showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            useRootNavigator: true,
+            builder: (_) => PlanningFollowUpSheet(
+              userId: userId,
+              entry: entry,
+              itemName: subject,
+            ),
+          );
+        } finally {
+          visibility.setOpen(false);
+        }
+      },
+    );
+  }
 }
 
 class PlanningFollowUpSheet extends ConsumerStatefulWidget {
   const PlanningFollowUpSheet({
     required this.userId,
     required this.entry,
+    this.itemName,
     this.initialAction,
     super.key,
   });
   final String userId;
   final PlanningAgendaEntry entry;
+  final String? itemName;
   final PlanningFollowUpAction? initialAction;
   @override
   ConsumerState<PlanningFollowUpSheet> createState() => _PlanningFollowUpSheetState();
@@ -102,8 +127,15 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                l10n.planningFollowUpText('menu'),
+                l10n.planningFollowUpFor(widget.itemName ?? entry.title),
                 style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${entry.kind == PlanningEntryKind.debt ? l10n.debtTitle : entry.kind == PlanningEntryKind.income ? l10n.income : l10n.expense} · ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(entry.date)}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               if (_saving) const LinearProgressIndicator(),
@@ -318,6 +350,7 @@ class PlanningEntryTile extends StatelessWidget {
         ? accounts.where((account) => account.id == entry.debtAccountId).firstOrNull?.name ??
               l10n.debtTitle
         : entry.title;
+    final detailLabel = l10n.planningOpenDetail(title);
     final status = entry.followUpReason == 'record-changed'
         ? l10n.planningFollowUpText('reopened')
         : entry.followUpState == PlanningFollowUpState.open
@@ -332,7 +365,11 @@ class PlanningEntryTile extends StatelessWidget {
             ListTile(
               key: ValueKey('agenda_entry_${entry.id}'),
               leading: Icon(
-                debt ? Icons.event_note_outlined : Icons.north_east,
+                debt
+                    ? Icons.event_note_outlined
+                    : entry.kind == PlanningEntryKind.income
+                    ? Icons.trending_up
+                    : Icons.payments_outlined,
                 color: Theme.of(context).colorScheme.primary,
               ),
               title: Text(title),
@@ -340,8 +377,19 @@ class PlanningEntryTile extends StatelessWidget {
                 '$label · ${DateFormat.yMMMd(locale).format(entry.date)}${entry.remindOn == null ? '' : '\n${l10n.planningFollowUpText('returnDate')}: ${entry.remindOn}'}${status.isEmpty ? '' : '\n$status'}',
               ),
               trailing: entry.kind == PlanningEntryKind.income
-                  ? const Icon(Icons.chevron_right)
-                  : PlanningFollowUpButton(userId: userId, entry: entry),
+                  ? _PlanningDetailIndicator(label: detailLabel)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PlanningFollowUpButton(
+                          userId: userId,
+                          entry: entry,
+                          itemName: title,
+                        ),
+                        if (canOpen)
+                          _PlanningDetailIndicator(label: detailLabel),
+                      ],
+                    ),
               onTap: canOpen ? () => context.push<void>(planningEntryRoute(entry)) : null,
             ),
             if (!amountsHidden)
@@ -360,6 +408,17 @@ class PlanningEntryTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PlanningDetailIndicator extends StatelessWidget {
+  const _PlanningDetailIndicator({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: label,
+    child: const ExcludeSemantics(child: Icon(Icons.chevron_right)),
+  );
 }
 
 class PlanningFollowUpLauncherSheet extends ConsumerWidget {

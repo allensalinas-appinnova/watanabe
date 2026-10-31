@@ -876,5 +876,11 @@
   "planningFollowUpText": "{key, select, complete{Marcar como concluído} dismiss{Não lembrar neste mês} snooze{Lembrar depois} resume{Retomar acompanhamento} edit{Editar planejamento} menu{Acompanhamento} completed{Concluído por você} dismissed{Retirado do acompanhamento} snoozed{Adiado} reopened{O lançamento mudou. Revise esta despesa.} open{A resolver} saved{Acompanhamento atualizado} error{Não foi possível salvar. Tente novamente com conexão.} conflict{Os dados mudaram. Atualize o item antes de tentar novamente.} sourceUnavailable{Não foi possível confirmar se este item ainda está disponível. Atualize o planejamento e abra-o novamente.} generationChanged{Esta tela está desatualizada. Atualize o item antes de continuar.} refresh{Atualizar item} needsRecord{Associe um lançamento confirmado para concluir esta despesa.} dismissInfo{Retira os lembretes e conserva valores previstos e registros. Não registra pagamento nem reduz a dívida.} finishInfo{Conclui o acompanhamento desta despesa com os lançamentos registrados. O valor previsto é conservado.} paid{Pago} view{Ver agenda} empty{Não há itens a resolver neste período.} partial{Informações incompletas. Pode haver mais itens a revisar.} countPartial{Itens carregados; a contagem é provisória.} why{Por que estou vendo isto?} explanation{Exibido pela data prevista e pelos registros associados. Você pode concluir, retirar ou adiar o acompanhamento. Consulte o extrato para os valores definitivos das parcelas.} returnDate{Mostrar novamente em} finishAfterSave{Concluir acompanhamento} thisOnly{Somente esta parcela} future{Esta e as próximas parcelas} other{Acompanhamento}}",
   "@planningFollowUpText": {"placeholders": {"key": {"type": "String"}}},
   "planningAttentionCount": "{count} itens para revisar",
-  "@planningAttentionCount": {"placeholders": {"count": {"type": "int"}}}
+  "@planningAttentionCount": {"placeholders": {"count": {"type": "int"}}},
+  "planningOpenDetail": "Ver detalhes de {item}",
+  "@planningOpenDetail": {"placeholders": {"item": {"type": "String"}}},
+  "planningFollowUpOptions": "Opções de acompanhamento de {item}",
+  "@planningFollowUpOptions": {"placeholders": {"item": {"type": "String"}}},
+  "planningFollowUpFor": "Acompanhamento de {item}",
+  "@planningFollowUpFor": {"placeholders": {"item": {"type": "String"}}}
 }

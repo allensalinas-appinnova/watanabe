@@ -3025,4 +3025,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String planningAttentionCount(int count) {
     return '$count elementos por revisar';
   }
+
+  @override
+  String planningOpenDetail(String item) {
+    return 'Ver detalle de $item';
+  }
+
+  @override
+  String planningFollowUpOptions(String item) {
+    return 'Opciones de seguimiento de $item';
+  }
+
+  @override
+  String planningFollowUpFor(String item) {
+    return 'Seguimiento de $item';
+  }
 }
