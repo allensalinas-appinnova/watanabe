@@ -92,6 +92,7 @@ class _DebtCommitmentsScreenState extends ConsumerState<DebtCommitmentsScreen> {
                 final links = payments.requireValue;
                 final active =
                     plans
+                        .map((plan) => plan.forMonth(monthKey))
                         .where(
                           (plan) => plan.scheduledDateFor(monthKey) != null,
                         )

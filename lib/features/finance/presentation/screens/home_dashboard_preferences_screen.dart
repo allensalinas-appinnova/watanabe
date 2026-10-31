@@ -93,7 +93,9 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
             ],
             const SizedBox(height: 20),
             _section(context, l10n.homeWidgetsSection),
-            for (final widget in HomeDashboardWidget.values)
+            for (final widget in HomeDashboardWidget.values.where(
+              (item) => item != HomeDashboardWidget.debtCommitments,
+            ))
               SwitchListTile.adaptive(
                 key: ValueKey('home_widget_${widget.id}'),
                 contentPadding: EdgeInsets.zero,
@@ -107,6 +109,13 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
                           visible.add(widget.id);
                         } else {
                           visible.remove(widget.id);
+                        }
+                        if (widget == HomeDashboardWidget.coachNextStep) {
+                          if (value) {
+                            visible.add(HomeDashboardWidget.debtCommitments.id);
+                          } else {
+                            visible.remove(HomeDashboardWidget.debtCommitments.id);
+                          }
                         }
                         _save(user.id, preferences.copyWith(visibleWidgets: visible));
                       },
@@ -174,7 +183,7 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
     HomeDashboardWidget.expenseBudgetRatio => l10n.homeWidgetExpenseBudget,
     HomeDashboardWidget.incomeBudgetRatio => l10n.homeWidgetIncomeBudget,
     HomeDashboardWidget.recentActivity => l10n.homeWidgetRecentActivity,
-    HomeDashboardWidget.coachNextStep => l10n.coachHomeWidget,
+    HomeDashboardWidget.coachNextStep => l10n.planningPendingOnly,
     HomeDashboardWidget.debtCommitments => l10n.debtCommitmentHomeWidget,
   };
 

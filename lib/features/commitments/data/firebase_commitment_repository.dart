@@ -25,37 +25,65 @@ class FirebaseCommitmentRepository implements CommitmentRepository {
       .collection('debtCommitments')
       .where('status', isEqualTo: 'active')
       .snapshots()
-      .map(
-        (snapshot) => snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              return DebtCommitment(
-                id: doc.id,
-                debtAccountId: data['debtAccountId'] as String,
-                currency: data['currency'] as String,
-                amountMinor: (data['amountMinor'] as num).toInt(),
-                firstDueMonth: data['firstDueMonth'] as String,
-                dueDay: (data['dueDay'] as num).toInt(),
-                lastDueMonth: data['lastDueMonth'] as String?,
-                bankAccountId: data['bankAccountId'] as String?,
-                remindersEnabled: data['remindersEnabled'] as bool? ?? false,
-                pausedFromMonth: data['pausedFromMonth'] as String?,
-                skippedMonths:
-                    (data['skippedMonths'] as List?)?.whereType<String>().toSet() ?? const {},
-                pauseRanges:
-                    (data['pauseRanges'] as List?)
-                        ?.whereType<Map<String, dynamic>>()
-                        .map(
-                          (range) => (
-                            fromMonth: range['fromMonth'] as String,
-                            untilMonth: range['untilMonth'] as String?,
-                          ),
-                        )
-                        .toList(growable: false) ??
-                    const [],
-              );
-            })
-            .toList(growable: false),
+      .asyncMap(
+        (snapshot) => Future.wait(
+          snapshot.docs
+              .map((doc) async {
+                final data = doc.data();
+                final versions = await doc.reference.collection('versions').get();
+                final occurrences = await doc.reference.collection('occurrences').get();
+                DebtCommitmentTerms terms(Map<String, dynamic> value, String month) =>
+                    DebtCommitmentTerms(
+                      version: (value['version'] as num? ?? 0).toInt(),
+                      effectiveFromMonth: month,
+                      amountMinor: (value['amountMinor'] as num).toInt(),
+                      dueDay: (value['dueDay'] as num).toInt(),
+                      remindersEnabled: value['remindersEnabled'] as bool? ?? false,
+                      lastDueMonth: value['lastDueMonth'] as String?,
+                      bankAccountId: value['bankAccountId'] as String?,
+                    );
+                return DebtCommitment(
+                  id: doc.id,
+                  debtAccountId: data['debtAccountId'] as String,
+                  currency: data['currency'] as String,
+                  amountMinor: (data['amountMinor'] as num).toInt(),
+                  firstDueMonth: data['firstDueMonth'] as String,
+                  dueDay: (data['dueDay'] as num).toInt(),
+                  lastDueMonth: data['lastDueMonth'] as String?,
+                  bankAccountId: data['bankAccountId'] as String?,
+                  remindersEnabled: data['remindersEnabled'] as bool? ?? false,
+                  versions: versions.docs
+                      .map(
+                        (version) =>
+                            terms(version.data(), version.data()['effectiveFromMonth'] as String),
+                      )
+                      .toList(),
+                  occurrenceOverrides: {
+                    for (final occurrence in occurrences.docs)
+                      if (occurrence.data()['terms'] is Map<String, dynamic>)
+                        occurrence.data()['monthKey'] as String: terms(
+                          occurrence.data()['terms'] as Map<String, dynamic>,
+                          occurrence.data()['monthKey'] as String,
+                        ),
+                  },
+                  pausedFromMonth: data['pausedFromMonth'] as String?,
+                  skippedMonths:
+                      (data['skippedMonths'] as List?)?.whereType<String>().toSet() ?? const {},
+                  pauseRanges:
+                      (data['pauseRanges'] as List?)
+                          ?.whereType<Map<String, dynamic>>()
+                          .map(
+                            (range) => (
+                              fromMonth: range['fromMonth'] as String,
+                              untilMonth: range['untilMonth'] as String?,
+                            ),
+                          )
+                          .toList(growable: false) ??
+                      const [],
+                );
+              })
+              .toList(growable: false),
+        ),
       );
 
   @override

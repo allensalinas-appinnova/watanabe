@@ -25,9 +25,10 @@ import '../widgets/budget_command_message.dart';
 import '../widgets/finance_category_icon.dart';
 
 class CanonicalBudgetDetailScreen extends ConsumerWidget {
-  const CanonicalBudgetDetailScreen({super.key, required this.budgetId});
+  const CanonicalBudgetDetailScreen({super.key, required this.budgetId, this.initialTab = 0});
 
   final String budgetId;
+  final int initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -109,6 +110,7 @@ class CanonicalBudgetDetailScreen extends ConsumerWidget {
                     items: items,
                     summary: summary,
                     userId: user.id,
+                    initialTab: initialTab,
                   ),
                 ),
               );
@@ -126,12 +128,14 @@ class _BudgetDetailContent extends ConsumerWidget {
     required this.items,
     required this.summary,
     required this.userId,
+    required this.initialTab,
   });
 
   final Budget budget;
   final List<BudgetItem> items;
   final MonthlySummary? summary;
   final String userId;
+  final int initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -189,6 +193,7 @@ class _BudgetDetailContent extends ConsumerWidget {
 
     return DefaultTabController(
       length: 2,
+      initialIndex: initialTab,
       child: Column(
         children: [
           TabBar(
@@ -255,6 +260,8 @@ class _BudgetDetailContent extends ConsumerWidget {
                     for (final item in activeItems) ...[
                       _BudgetItemCard(
                         item: item,
+                        userId: userId,
+                        budgetId: budget.id,
                         currency: budget.currency,
                         locale: locale,
                         canRemove: activeItems.length > 1,
@@ -853,11 +860,19 @@ class _BudgetItemCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            item.description,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
+          InkWell(
+            onTap: userId != null && budgetId != null
+                ? () => context.push('/budgets/$budgetId/items/${item.id}')
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                item.description,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
+              ),
+            ),
           ),
           const SizedBox(height: 4),
           Text(

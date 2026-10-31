@@ -157,7 +157,7 @@ export async function executeOperationCorrection(db: Firestore, uid: string | un
     }
     // Validate the operation's complete projection effects and read their current values before writing.
     const nextOperation = parseOperation(updatedRecord);
-    const applyProjection = await prepareProjectionWrites(transaction, root, [{previous, current: nextOperation}]);
+    const applyProjection = await prepareProjectionWrites(transaction, root, [{operationId: command.operationId, previous, current: nextOperation}]);
     const applyLedger = await prepareOperationLedgerWrites(transaction, root, command.operationId, nextOperation);
     const result = {operationId: command.operationId, revision: revision + 1};
     const projectionDigest = operationProjectionDigest(updatedRecord);

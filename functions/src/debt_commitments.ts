@@ -133,6 +133,23 @@ export async function executeDebtCommitmentCommand(db: Firestore, uid: string | 
         pauseRanges[openIndex] = {...pauseRanges[openIndex], untilMonth: fromMonth};
       }
       tx.update(commitmentRef, {pausedFromMonth: input.paused ? fromMonth : null, pauseRanges, updatedAt: now});
+    } else if (action === "editOccurrence") {
+      only(input, ["requestId", "expectedGeneration", "action", "commitmentId", "monthKey", "amountMinor", "dueDay"]);
+      const monthKey = month(input.monthKey);
+      const versions = await tx.get(commitmentRef.collection("versions"));
+      const applicable = versions.docs.map((doc) => doc.data()).filter((data) => String(data.effectiveFromMonth) <= monthKey)
+        .sort((a, b) => Number(b.version) - Number(a.version));
+      const occurrenceRef = commitmentRef.collection("occurrences").doc(`${commitmentId}_${monthKey}`);
+      const occurrence = (await tx.get(occurrenceRef)).data();
+      const plan = (occurrence?.terms as Data | undefined) ?? applicable[0] ?? commitment!;
+      if (monthKey < String(plan.firstDueMonth ?? commitment!.firstDueMonth) || plan.lastDueMonth && monthKey > String(plan.lastDueMonth)) fail("invalid-month");
+      const amountMinor = safeAmount(input.amountMinor, String(commitment!.currency));
+      if (!Number.isSafeInteger(input.dueDay) || Number(input.dueDay) < 1 || Number(input.dueDay) > 31) fail("invalid-plan");
+      const terms = {amountMinor, dueDay: input.dueDay, version: Number(occurrence?.termsVersion ?? 0) + 1,
+        lastDueMonth: plan.lastDueMonth ?? null, bankAccountId: plan.bankAccountId ?? null,
+        remindersEnabled: plan.remindersEnabled ?? false};
+      tx.set(occurrenceRef, {monthKey, terms, termsVersion: terms.version, dataGeneration: generation, updatedAt: now}, {merge: true});
+      tx.update(commitmentRef, {updatedAt: now});
     } else if (action === "skip") {
       only(input, ["requestId", "expectedGeneration", "action", "commitmentId", "monthKey", "skipped"]);
       const monthKey = month(input.monthKey);

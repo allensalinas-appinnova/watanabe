@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../commitments/domain/debt_reminder_plan.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../domain/entities/coach_models.dart';
 import '../../domain/services/coach_notification_service.dart';
@@ -50,7 +51,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
       CoachNotificationType.weekly => '/coach/weekly?date=$date',
       CoachNotificationType.daily => '/coach/daily?date=$date',
       CoachNotificationType.debtBefore ||
-      CoachNotificationType.debtDue => '/budgets/debt-payments?month=$date',
+      CoachNotificationType.debtDue => '/budgets/agenda?month=$date',
     };
     widget.onOpen(location);
   }
@@ -69,7 +70,8 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         ..invalidate(coachCompletionsProvider(uid))
         ..invalidate(coachPreferencesProvider(uid))
         ..invalidate(coachRoutinePreferencesProvider(uid))
-        ..invalidate(coachUnallocatedPaymentsProvider(uid));
+        ..invalidate(coachUnallocatedPaymentsProvider(uid))
+        ..invalidate(planningFollowUpsProvider(uid));
     }
     _signature = null;
     if (!_ready) unawaited(_initialize());
@@ -101,6 +103,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
     final completions = ref.watch(coachCompletionsProvider(uid));
     final commitments = ref.watch(debtCommitmentsProvider(uid));
     final commitmentPayments = ref.watch(debtCommitmentPaymentsProvider(uid));
+    final followUps = ref.watch(planningFollowUpsProvider(uid));
     final device = ref.watch(coachDeviceSettingsProvider(uid));
     final permission = ref.watch(coachPermissionProvider);
     ref.watch(coachTickProvider);
@@ -112,12 +115,17 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         completions.hasValue &&
         commitments.hasValue &&
         commitmentPayments.hasValue &&
+        followUps.hasValue &&
+        !followUps.hasError &&
         device.hasValue &&
         permission.hasValue) {
       final signature = jsonEncode([
         uid,
         revision,
         profile.value!.timeZone,
+        followUps.requireValue.items
+            .map((item) => '${item.entryId}:${item.state.name}:${item.remindOn}:${item.version}')
+            .toList(),
         preferences.requireValue.toMap(),
         routinePreferences.requireValue.toMap(),
         completions.requireValue
@@ -126,7 +134,7 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
         commitments.requireValue
             .map(
               (item) =>
-                  '${item.id}:${item.amountMinor}:${item.remindersEnabled}:${item.pauseRanges}',
+                  '${item.id}:${item.amountMinor}:${item.dueDay}:${item.remindersEnabled}:${item.pauseRanges}:${item.skippedMonths}:${item.versions.map((v) => '${v.version}:${v.effectiveFromMonth}:${v.amountMinor}:${v.dueDay}:${v.remindersEnabled}')}:${item.occurrenceOverrides.map((key, v) => MapEntry(key, '${v.version}:${v.amountMinor}:${v.dueDay}'))}',
             )
             .toList(),
         commitmentPayments.requireValue
@@ -165,32 +173,25 @@ class _CoachLifecycleState extends ConsumerState<CoachLifecycle> with WidgetsBin
               final now = routine.clock.now();
               final start = routine.today(zone);
               final debtByInstant = <DateTime, (CoachNotificationType, String)>{};
-              for (var offset = 0; offset < 29; offset++) {
-                final date = routine.shift(start, zone, offset);
-                final monthKey =
-                    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
-                for (final commitment in commitments.requireValue) {
-                  if (!commitment.remindersEnabled) continue;
-                  final due = commitment.dueDateFor(monthKey);
-                  if (due == null) continue;
-                  final paid = commitmentPayments.requireValue
-                      .where(
-                        (link) => link.commitmentId == commitment.id && link.monthKey == monthKey,
-                      )
-                      .fold<int>(0, (sum, link) => sum + link.amountMinor);
-                  if (paid >= commitment.amountMinor) continue;
-                  for (final candidate in [
-                    (routine.shift(due, zone, -1), CoachNotificationType.debtBefore),
-                    (due, CoachNotificationType.debtDue),
-                  ]) {
-                    final instant = routine.calendar
-                        .at(zone, candidate.$1.year, candidate.$1.month, candidate.$1.day, 9)
-                        .toUtc();
-                    if (instant.isAfter(now) &&
-                        instant.difference(now) <= const Duration(days: 28)) {
-                      debtByInstant.putIfAbsent(instant, () => (candidate.$2, monthKey));
-                    }
-                  }
+              for (final candidate in planDebtReminders(
+                today: start,
+                commitments: commitments.requireValue,
+                payments: commitmentPayments.requireValue,
+                followUps: followUps.requireValue.items,
+              )) {
+                final instant = routine.calendar
+                    .at(zone, candidate.date.year, candidate.date.month, candidate.date.day, 9)
+                    .toUtc();
+                if (instant.isAfter(now) && instant.difference(now) <= const Duration(days: 28)) {
+                  debtByInstant.putIfAbsent(
+                    instant,
+                    () => (
+                      candidate.before
+                          ? CoachNotificationType.debtBefore
+                          : CoachNotificationType.debtDue,
+                      candidate.monthKey,
+                    ),
+                  );
                 }
               }
               final notifications = <CoachNotification>[];

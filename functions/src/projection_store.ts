@@ -1,4 +1,5 @@
 import {FieldValue, type DocumentReference, type Firestore, type Transaction} from "firebase-admin/firestore";
+import {preparePlanningReopen} from "./planning_follow_ups";
 import {calculateProjectionDeltas, checkedInteger, maximumMinor, operationProjectionDigest, parseOperation, ProjectionError, validId, type Operation, type SummaryDelta} from "./projection_model";
 
 export type OperationEvent = {
@@ -13,7 +14,7 @@ export type OperationEvent = {
  * Both the legacy trigger and synchronous debt commands use this calculation.
  */
 export async function prepareProjectionWrites(transaction: Transaction, root: DocumentReference,
-  changes: Array<{previous?: Operation; current?: Operation}>, allowDebt = false,
+  changes: Array<{operationId?: string; previous?: Operation; current?: Operation}>, allowDebt = false,
   newAccounts = new Map<string, Record<string, unknown>>()): Promise<() => void> {
   const accounts = new Map<string, number>();
   const summaries = new Map<string, SummaryDelta>();
@@ -98,7 +99,9 @@ export async function prepareProjectionWrites(transaction: Transaction, root: Do
       byCategory, calculationVersion: 1, updatedAt: FieldValue.serverTimestamp(),
     }] as const;
   });
+  const reopenPlanning = await preparePlanningReopen(transaction, root, changes);
   return () => {
+    reopenPlanning();
     for (const [id, currentBalanceMinor] of balances) {
       // The caller creates a new account with its final balance in this same transaction.
       if (!newAccounts.has(id)) transaction.update(refs.get(`accounts/${id}`)!, {currentBalanceMinor, updatedAt: FieldValue.serverTimestamp()});
@@ -153,7 +156,7 @@ export async function applyOperationEvent(db: Firestore, event: OperationEvent):
       if (receipt?.projectionsApplied === true && receipt.projectionDigest === event.current?.operationProjectionDigest &&
           receipt.revision === event.current?.revision && receipt.status === event.current?.status) return;
     }
-    const write = await prepareProjectionWrites(transaction, root, [{previous, current}]);
+    const write = await prepareProjectionWrites(transaction, root, [{operationId: event.operationId, previous, current}]);
     write();
     if (liveSnapshot.exists && current) {
       const appliedDigest = operationProjectionDigest(live!);

@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/async_value_extensions.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/pinned_action_bar.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/planning_agenda_entry.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/planning_follow_up_controls.dart';
 import '../widgets/planning_section_header.dart';
 
 class PlanningAgendaScreen extends ConsumerStatefulWidget {
@@ -79,7 +79,9 @@ class _PlanningAgendaScreenState extends ConsumerState<PlanningAgendaScreen> {
                         final kindMatches = _kindFilter == 'all' || entry.kind.name == _kindFilter;
                         final currencyMatches =
                             _currencyFilter == 'all' || entry.currency == _currencyFilter;
-                        final pendingMatches = _showAll || entry.pendingMinor > 0;
+                        final pendingMatches =
+                            _showAll ||
+                            entry.needsAttention(ref.read(planningTodayProvider(userId)));
                         return kindMatches && currencyMatches && pendingMatches;
                       })
                       .toList(growable: false);
@@ -152,7 +154,10 @@ class _PlanningAgendaScreenState extends ConsumerState<PlanningAgendaScreen> {
                       if (filtered.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 28),
-                          child: Text(l10n.planningNoPendingEntries, textAlign: TextAlign.center),
+                          child: Text(
+                            l10n.planningFollowUpText('empty'),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       for (var index = 0; index < filtered.length; index++) ...[
                         if (index == 0 ||
@@ -166,10 +171,11 @@ class _PlanningAgendaScreenState extends ConsumerState<PlanningAgendaScreen> {
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                           ),
-                        _AgendaEntryCard(
+                        PlanningEntryTile(
                           entry: filtered[index],
+                          userId: userId,
                           accounts: accounts,
-                          onTap: () => _openEntry(context, filtered[index], monthKey),
+                          amountsHidden: ref.watch(dashboardAmountsHiddenProvider),
                         ),
                       ],
                     ],
@@ -185,14 +191,6 @@ class _PlanningAgendaScreenState extends ConsumerState<PlanningAgendaScreen> {
 
   bool _sameDate(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
-
-  void _openEntry(BuildContext context, PlanningAgendaEntry entry, String monthKey) {
-    if (entry.commitmentId != null) {
-      context.push('/budgets/debt-payments/${entry.commitmentId}?month=$monthKey');
-    } else if (entry.budgetId != null) {
-      context.push('/budgets/${entry.budgetId}');
-    }
-  }
 
   Future<void> _showCreateOptions(BuildContext context, String monthKey) async {
     final l10n = AppLocalizations.of(context);
@@ -221,49 +219,6 @@ class _PlanningAgendaScreenState extends ConsumerState<PlanningAgendaScreen> {
       choice == 'budget'
           ? '/budgets/new?month=$monthKey'
           : '/budgets/debt-payments/new?month=$monthKey',
-    );
-  }
-}
-
-class _AgendaEntryCard extends StatelessWidget {
-  const _AgendaEntryCard({required this.entry, required this.accounts, required this.onTap});
-  final PlanningAgendaEntry entry;
-  final List<FinanceAccount> accounts;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final label = switch (entry.kind) {
-      PlanningEntryKind.income => l10n.income,
-      PlanningEntryKind.expense => l10n.expense,
-      PlanningEntryKind.debt => l10n.debtTitle,
-    };
-    final icon = switch (entry.kind) {
-      PlanningEntryKind.income => Icons.south_west,
-      PlanningEntryKind.expense => Icons.north_east,
-      PlanningEntryKind.debt => Icons.event_note_outlined,
-    };
-    final locale = Localizations.localeOf(context).toString();
-    final title = entry.debtAccountId == null
-        ? entry.title
-        : accounts.where((account) => account.id == entry.debtAccountId).firstOrNull?.name ??
-              l10n.debtTitle;
-    String amount(int value) =>
-        CurrencyFormatter.formatMinor(value, entry.currency, locale: locale);
-    return Card(
-      child: ListTile(
-        key: ValueKey('agenda_entry_${entry.id}'),
-        minTileHeight: 76,
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title),
-        subtitle: Text(
-          '$label · ${l10n.planned(amount(entry.plannedMinor))}\n${l10n.planningRecorded}: ${amount(entry.recordedMinor)} · ${l10n.planningPendingAmount}: ${amount(entry.pendingMinor)}',
-        ),
-        isThreeLine: true,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
     );
   }
 }

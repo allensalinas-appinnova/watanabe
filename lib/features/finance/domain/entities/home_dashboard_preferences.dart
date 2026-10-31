@@ -47,7 +47,10 @@ class HomeDashboardPreferences {
   final Set<String> visibleWidgets;
   final Set<String> hiddenBudgetCategoryIds;
 
-  bool shows(HomeDashboardWidget widget) => visibleWidgets.contains(widget.id);
+  bool shows(HomeDashboardWidget widget) => widget == HomeDashboardWidget.coachNextStep
+      ? visibleWidgets.contains(widget.id) ||
+            visibleWidgets.contains(HomeDashboardWidget.debtCommitments.id)
+      : visibleWidgets.contains(widget.id);
   bool showsBudget(String categoryId) => !hiddenBudgetCategoryIds.contains(categoryId);
 
   HomeDashboardPreferences copyWith({

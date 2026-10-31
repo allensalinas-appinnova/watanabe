@@ -11,8 +11,8 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../finance/domain/entities/finance_account.dart';
 import '../../../finance/domain/entities/finance_category.dart';
-import '../../../finance/domain/entities/planning_agenda_entry.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
+import '../../../finance/presentation/widgets/planning_follow_up_controls.dart';
 import '../../domain/entities/coach_models.dart';
 import '../../domain/usecases/coach_overview.dart';
 import '../../domain/usecases/coach_routine.dart';
@@ -119,15 +119,6 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
     final weeklyKey = coachDateKey(clock.previousWeek(zone));
     final locale = Localizations.localeOf(context).toString();
     final localNow = clock.calendar.local(clock.clock.now(), zone);
-    final currentMonthKey = DateFormat('yyyy-MM').format(today);
-    final nextMonth = DateTime(today.year, today.month + 1);
-    final nextMonthKey = DateFormat('yyyy-MM').format(nextMonth);
-    final currentPlanState = ref.watch(
-      planningAgendaEntriesProvider((userId: uid, monthKey: currentMonthKey)),
-    );
-    final nextPlanState = ref.watch(
-      planningAgendaEntriesProvider((userId: uid, monthKey: nextMonthKey)),
-    );
     String money(int amount, String currency) =>
         CurrencyFormatter.formatMinor(amount, currency, locale: locale);
     String localDate(DateTime date) => DateFormat.yMMMd(locale).format(
@@ -236,7 +227,7 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
                 hidden,
               ),
               const SizedBox(height: 20),
-              _sectionTitle(context, l10n.coachPaymentsSection),
+              _sectionTitle(context, l10n.coachActionUnallocatedTitle),
               const SizedBox(height: 8),
               if (overviewState.error)
                 _Notice(icon: Icons.error_outline, message: l10n.coachReadFailure, warning: true)
@@ -278,36 +269,7 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
                 ],
               ],
               const SizedBox(height: 20),
-              _sectionTitle(context, l10n.coachUpcomingPlan),
-              const SizedBox(height: 8),
-              if (currentPlanState.isLoading || nextPlanState.isLoading)
-                const Card(
-                  child: Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
-                )
-              else if (currentPlanState.hasError || nextPlanState.hasError)
-                _Notice(
-                  icon: Icons.error_outline,
-                  message: l10n.coachSourcesIncomplete,
-                  actionLabel: l10n.retry,
-                  onAction: () => _refresh(uid),
-                  warning: true,
-                )
-              else ...[
-                _upcomingPlanEntries(
-                  context,
-                  l10n,
-                  [
-                    ...currentPlanState.requireValue,
-                    ...nextPlanState.requireValue,
-                  ],
-                  accounts,
-                  today,
-                  clock,
-                  zone,
-                  hidden,
-                  money,
-                ),
-              ],
+              PlanningAttentionCard(userId: uid, amountsHidden: hidden),
               const SizedBox(height: 20),
               _sectionTitle(context, l10n.coachWeeklyUnderstanding),
               const SizedBox(height: 8),
@@ -555,78 +517,6 @@ class _CoachHomeScreenState extends ConsumerState<CoachHomeScreen> {
           }
         },
       ),
-    );
-  }
-
-  Widget _upcomingPlanEntries(
-    BuildContext context,
-    AppLocalizations l10n,
-    List<PlanningAgendaEntry> entries,
-    List<FinanceAccount> accounts,
-    DateTime today,
-    CoachRoutine routine,
-    String zone,
-    bool hidden,
-    String Function(int, String) money,
-  ) {
-    final end = routine.shift(today, zone, 7);
-    final upcoming =
-        entries
-            .where(
-              (entry) =>
-                  (entry.kind == PlanningEntryKind.expense ||
-                      entry.kind == PlanningEntryKind.debt) &&
-                  entry.pendingMinor > 0 &&
-                  !entry.date.isBefore(today) &&
-                  !entry.date.isAfter(end),
-            )
-            .toList()
-          ..sort((a, b) {
-            final date = a.date.compareTo(b.date);
-            return date == 0 ? a.id.compareTo(b.id) : date;
-          });
-    if (upcoming.isEmpty) {
-      return _SurfaceCard(child: Text(l10n.coachNoUpcomingPlan));
-    }
-    return Column(
-      children: [
-        for (final entry in upcoming.take(3))
-          Card(
-            child: ListTile(
-              key: ValueKey('coach_upcoming_plan_${entry.id}'),
-              minTileHeight: 76,
-              leading: Icon(
-                entry.kind == PlanningEntryKind.debt ? Icons.event_note_outlined : Icons.north_east,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              title: Text(
-                entry.kind == PlanningEntryKind.debt
-                    ? accounts
-                              .where((account) => account.id == entry.debtAccountId)
-                              .firstOrNull
-                              ?.name ??
-                          l10n.debtTitle
-                    : entry.title,
-              ),
-              subtitle: Text(
-                '${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(entry.date)} · '
-                '${hidden ? l10n.coachAmountsHidden : money(entry.pendingMinor, entry.currency)} · '
-                '${entry.recordedMinor > 0 ? l10n.planningRecorded : l10n.budgetMovementUnassociated}',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                unawaited(ref.read(firebaseObservabilityProvider)?.logEvent('coach_action_opened'));
-                if (entry.commitmentId != null) {
-                  context.push(
-                    '/budgets/debt-payments/${entry.commitmentId}?month=${entry.monthKey}',
-                  );
-                } else if (entry.budgetId != null) {
-                  context.push('/budgets/${entry.budgetId}');
-                }
-              },
-            ),
-          ),
-      ],
     );
   }
 

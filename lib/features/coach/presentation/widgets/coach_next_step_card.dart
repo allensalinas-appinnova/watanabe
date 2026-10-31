@@ -12,9 +12,15 @@ import '../coach_action_presentation.dart';
 import '../providers/coach_providers.dart';
 
 class CoachNextStepCard extends ConsumerWidget {
-  const CoachNextStepCard({required this.userId, required this.timeZone, super.key});
+  const CoachNextStepCard({
+    required this.userId,
+    required this.timeZone,
+    this.hidePlanningActions = false,
+    super.key,
+  });
   final String userId;
   final String timeZone;
+  final bool hidePlanningActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,6 +30,16 @@ class CoachNextStepCard extends ConsumerWidget {
     final accounts = ref.watch(canonicalAccountsProvider(userId)).valueOrNull ?? const [];
     final colors = Theme.of(context).colorScheme;
     final action = state.overview?.action;
+    if (hidePlanningActions &&
+        (action == null ||
+            {
+              CoachActionKind.dueCommitment,
+              CoachActionKind.upcomingCommitment,
+              CoachActionKind.dueBudgetExpense,
+              CoachActionKind.upcomingBudgetExpense,
+            }.contains(action.kind))) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(

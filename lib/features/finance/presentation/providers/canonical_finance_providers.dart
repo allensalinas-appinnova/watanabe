@@ -31,8 +31,10 @@ import '../../domain/entities/financial_operation.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/entities/operation_page.dart';
 import '../../domain/entities/planning_agenda_entry.dart';
+import '../../domain/entities/planning_follow_up.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/canonical_finance_repository.dart';
+import '../../domain/repositories/planning_follow_up_repository.dart';
 
 final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
   (ref) => getIt<CanonicalFinanceRepository>(),
@@ -43,6 +45,105 @@ final debtCommitmentsProvider = StreamProvider.family<List<DebtCommitment>, Stri
       ? getIt<CommitmentRepository>().watch(userId)
       : Stream.value(const <DebtCommitment>[]),
 );
+
+final planningFollowUpRepositoryProvider = Provider<PlanningFollowUpRepository?>(
+  (ref) =>
+      getIt.isRegistered<PlanningFollowUpRepository>() ? getIt<PlanningFollowUpRepository>() : null,
+);
+
+final planningFollowUpsProvider = StreamProvider.family<PlanningFollowUpSnapshot, String>(
+  (ref, uid) =>
+      ref.watch(planningFollowUpRepositoryProvider)?.watch(uid) ??
+      Stream.value(const PlanningFollowUpSnapshot()),
+);
+
+final planningClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+final planningTickProvider = StreamProvider<DateTime>((ref) async* {
+  yield ref.read(planningClockProvider)();
+  yield* Stream.periodic(const Duration(minutes: 1), (_) => ref.read(planningClockProvider)());
+});
+final planningTodayProvider = Provider.family<DateTime, String>((ref, uid) {
+  final now = ref.watch(planningTickProvider).valueOrNull ?? ref.read(planningClockProvider)();
+  final local = _planningLocalNow(
+    now,
+    ref.watch(canonicalUserProfileProvider(uid)).valueOrNull?.timeZone,
+  );
+  return DateTime(local.year, local.month, local.day);
+});
+
+class PlanningAttention {
+  const PlanningAttention({required this.entries, required this.incomplete, required this.loading});
+  final List<PlanningAgendaEntry> entries;
+  final bool incomplete;
+  final bool loading;
+}
+
+final planningAttentionProvider = Provider.family<PlanningAttention, String>((ref, uid) {
+  final today = ref.watch(planningTodayProvider(uid));
+  final current = DateFormatMonth.key(today);
+  final next = DateFormatMonth.key(DateTime(today.year, today.month + 1));
+  final followUps = ref.watch(planningFollowUpsProvider(uid));
+  final months = {
+    current,
+    next,
+    for (final item in followUps.valueOrNull?.items ?? <PlanningFollowUp>[])
+      if (item.state == PlanningFollowUpState.snoozed &&
+          item.remindOn != null &&
+          item.remindOn!.compareTo(DateFormatMonth.day(today)) <= 0)
+        item.source.monthKey,
+  };
+  final sources = [
+    for (final month in months)
+      ref.watch(planningAgendaEntriesProvider((userId: uid, monthKey: month))),
+  ];
+  final end = DateTime(today.year, today.month, today.day + 7);
+  final entries = <String, PlanningAgendaEntry>{};
+  for (final state in sources) {
+    for (final entry in state.valueOrNull ?? <PlanningAgendaEntry>[]) {
+      if (entry.kind == PlanningEntryKind.income || !entry.needsAttention(today)) continue;
+      final returned =
+          entry.followUpState == PlanningFollowUpState.snoozed &&
+          entry.remindOn != null &&
+          entry.remindOn!.compareTo(DateFormatMonth.day(today)) <= 0;
+      if (entry.monthKey == current ||
+          !entry.date.isBefore(today) && !entry.date.isAfter(end) ||
+          returned) {
+        entries[entry.id] = entry;
+      }
+    }
+  }
+  final sorted = entries.values.toList()
+    ..sort((a, b) {
+      final date = a.date.compareTo(b.date);
+      return date != 0 ? date : a.id.compareTo(b.id);
+    });
+  return PlanningAttention(
+    entries: List.unmodifiable(sorted),
+    incomplete:
+        followUps.isLoading ||
+        followUps.hasError ||
+        followUps.valueOrNull?.fromCache == true ||
+        followUps.valueOrNull?.pendingWrites == true ||
+        sources.any((item) => item.isLoading || item.hasError),
+    loading: sources.every((item) => !item.hasValue && !item.hasError) && !followUps.hasError,
+  );
+});
+
+abstract final class DateFormatMonth {
+  static String key(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+  static String day(DateTime date) => '${key(date)}-${date.day.toString().padLeft(2, '0')}';
+}
+
+void retryPlanning(WidgetRef ref, String uid) {
+  ref
+    ..invalidate(planningFollowUpsProvider(uid))
+    ..invalidate(planningAgendaEntriesProvider)
+    ..invalidate(canonicalBudgetsProvider)
+    ..invalidate(canonicalFinanceRepositoryItemsProvider)
+    ..invalidate(debtCommitmentsProvider(uid))
+    ..invalidate(debtCommitmentPaymentsProvider(uid));
+}
 
 final debtCommitmentPaymentsProvider =
     StreamProvider.family<List<DebtCommitmentPaymentLink>, String>(
@@ -128,7 +229,8 @@ final planningBudgetTotalsProvider = FutureProvider.autoDispose
       final debt = <String, int>{};
       if (getIt.isRegistered<CommitmentRepository>()) {
         final commitments = await getIt<CommitmentRepository>().watch(input.userId).first;
-        for (final commitment in commitments) {
+        for (final original in commitments) {
+          final commitment = original.forMonth(input.monthKey);
           if (commitment.dueDateFor(input.monthKey) == null ||
               commitment.isSkipped(input.monthKey)) {
             continue;
@@ -145,11 +247,13 @@ final planningBudgetTotalsProvider = FutureProvider.autoDispose
 
 final planningAgendaEntriesProvider = FutureProvider.autoDispose
     .family<List<PlanningAgendaEntry>, ({String userId, String monthKey})>((ref, input) async {
-      final repository = ref.watch(canonicalFinanceRepositoryProvider);
-      final budgets = await repository.watchBudgets(input.userId, input.monthKey).first;
+      final budgets = await ref.watch(canonicalBudgetsProvider(input).future);
+      final followUps = await ref.watch(planningFollowUpsProvider(input.userId).future);
+      final followUpsById = {for (final item in followUps.items) item.entryId: item};
       final entries = <PlanningAgendaEntry>[];
       for (final budget in budgets.where((item) => item.status == 'active')) {
-        final items = await repository.watchBudgetItems(input.userId, budget.id).first;
+        final itemsKey = (userId: input.userId, budgetId: budget.id);
+        final items = await ref.watch(canonicalFinanceRepositoryItemsProvider(itemsKey).future);
         for (final item in items.where((item) => item.isActive)) {
           final month = DateTime.parse('${budget.monthKey}-01');
           final lastDay = DateTime(month.year, month.month + 1, 0).day;
@@ -170,14 +274,21 @@ final planningAgendaEntriesProvider = FutureProvider.autoDispose
               monthKey: budget.monthKey,
               budgetId: budget.id,
               itemId: item.id,
+              followUpState:
+                  followUpsById['budget:${budget.id}:${item.id}']?.state ??
+                  PlanningFollowUpState.open,
+              followUpVersion: followUpsById['budget:${budget.id}:${item.id}']?.version ?? 0,
+              remindOn: followUpsById['budget:${budget.id}:${item.id}']?.remindOn,
+              followUpReason: followUpsById['budget:${budget.id}:${item.id}']?.reason,
             ),
           );
         }
       }
       if (getIt.isRegistered<CommitmentRepository>()) {
-        final commitments = await getIt<CommitmentRepository>().watch(input.userId).first;
-        final paymentLinks = await getIt<CommitmentRepository>().watchPayments(input.userId).first;
-        for (final commitment in commitments) {
+        final commitments = await ref.watch(debtCommitmentsProvider(input.userId).future);
+        final paymentLinks = await ref.watch(debtCommitmentPaymentsProvider(input.userId).future);
+        for (final original in commitments) {
+          final commitment = original.forMonth(input.monthKey);
           final due = commitment.dueDateFor(input.monthKey);
           if (due == null || commitment.isSkipped(input.monthKey)) continue;
           final paid = paymentLinks
@@ -199,6 +310,13 @@ final planningAgendaEntriesProvider = FutureProvider.autoDispose
               commitmentId: commitment.id,
               debtAccountId: commitment.debtAccountId,
               bankAccountId: commitment.bankAccountId,
+              followUpState:
+                  followUpsById['debt:${commitment.id}:${input.monthKey}']?.state ??
+                  PlanningFollowUpState.open,
+              followUpVersion:
+                  followUpsById['debt:${commitment.id}:${input.monthKey}']?.version ?? 0,
+              remindOn: followUpsById['debt:${commitment.id}:${input.monthKey}']?.remindOn,
+              followUpReason: followUpsById['debt:${commitment.id}:${input.monthKey}']?.reason,
             ),
           );
         }
@@ -798,11 +916,12 @@ class OperationPagerState {
 final canonicalBudgetsProvider =
     StreamProvider.family<List<Budget>, ({String userId, String monthKey})>(
       (ref, input) =>
-          getIt<CanonicalFinanceRepository>().watchBudgets(input.userId, input.monthKey),
+          ref.watch(canonicalFinanceRepositoryProvider).watchBudgets(input.userId, input.monthKey),
     );
 
 final canonicalBudgetProvider = StreamProvider.family<Budget?, ({String userId, String budgetId})>(
-  (ref, input) => getIt<CanonicalFinanceRepository>().watchBudget(input.userId, input.budgetId),
+  (ref, input) =>
+      ref.watch(canonicalFinanceRepositoryProvider).watchBudget(input.userId, input.budgetId),
 );
 
 final canonicalFinanceRepositoryItemsProvider =

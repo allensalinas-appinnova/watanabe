@@ -56,9 +56,10 @@ String coachActionBody(
     CoachActionKind.dueBudgetExpense => [
       if (action.dueDate != null)
         l10n.planningDueDate(DateFormat.yMMMd(locale).format(action.dueDate!)),
-      if (!amountsHidden && action.remainingMinor != null)
-        l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
-      l10n.coachBudgetExpenseDueBody,
+      if (!amountsHidden && action.paidMinor != null)
+        '${l10n.planningRecorded}: ${money(action.paidMinor!, action.currency ?? 'COP')}',
+      if (!amountsHidden && action.plannedMinor != null)
+        l10n.planned(money(action.plannedMinor!, action.currency ?? 'COP')),
     ].join(' · '),
     CoachActionKind.upcomingCommitment => [
       if (action.dueDate != null)
@@ -69,9 +70,10 @@ String coachActionBody(
     CoachActionKind.upcomingBudgetExpense => [
       if (action.dueDate != null)
         l10n.planningDueDate(DateFormat.yMMMd(locale).format(action.dueDate!)),
-      if (!amountsHidden && action.remainingMinor != null)
-        l10n.coachPaymentRemaining(money(action.remainingMinor!, action.currency ?? 'COP')),
-      l10n.coachBudgetExpenseUpcomingBody,
+      if (!amountsHidden && action.paidMinor != null)
+        '${l10n.planningRecorded}: ${money(action.paidMinor!, action.currency ?? 'COP')}',
+      if (!amountsHidden && action.plannedMinor != null)
+        l10n.planned(money(action.plannedMinor!, action.currency ?? 'COP')),
     ].join(' · '),
     CoachActionKind.budgetReached =>
       amountsHidden || action.plannedMinor == null || action.paidMinor == null
@@ -105,21 +107,14 @@ String coachActionRoute(CoachAction action) {
       return '/activity';
     case CoachActionKind.dueCommitment:
     case CoachActionKind.upcomingCommitment:
-      final query = <String, String>{
-        if (action.commitmentId != null) 'commitmentId': action.commitmentId!,
-        if (action.monthKey != null) 'month': action.monthKey!,
-        if (action.remainingMinor != null) 'amountMinor': '${action.remainingMinor}',
-        if (action.bankAccountId != null) 'bankAccountId': action.bankAccountId!,
-      };
-      return Uri(
-        path: '/debts/${action.debtAccountId}/actions/pay',
-        queryParameters: query,
-      ).toString();
+      return '/budgets/debt-payments/${action.commitmentId}?month=${action.monthKey}';
     case CoachActionKind.dueBudgetExpense:
     case CoachActionKind.upcomingBudgetExpense:
       return action.budgetId == null
           ? '/budgets/agenda?month=${action.monthKey ?? ''}'
-          : '/budgets/${action.budgetId}';
+          : action.budgetItemId == null
+          ? '/budgets/${action.budgetId}'
+          : '/budgets/${action.budgetId}/items/${action.budgetItemId}';
     case CoachActionKind.unallocatedPayment:
       final paymentId = action.operation?.paymentId ?? action.operation?.debtCommandId;
       return Uri(

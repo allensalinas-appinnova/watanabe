@@ -2,6 +2,7 @@ import {createHash} from "node:crypto";
 import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {operationProjectionDigest, parseOperation, validId} from "./projection_model";
 import {BudgetCommandError, type BudgetCommandResult} from "./budget_commands";
+import {preparePlanningReopen} from "./planning_follow_ups";
 
 type Data = Record<string, unknown>;
 type Command = {
@@ -159,6 +160,9 @@ export async function executeOperationBudgetAssociation(
       operationUpdate.budgetItemId = FieldValue.delete();
     }
     const result = {operation: {id: command.operationId, revision: nextRevision, budgetId: command.budgetId, itemId: command.itemId}} as unknown as BudgetCommandResult;
+    const reopenPlanning = await preparePlanningReopen(tx, root, [{operationId: command.operationId,
+      previous: operation, current: parseOperation(nextRecord)}]);
+    reopenPlanning();
     for (const change of actualChanges.values()) {
       const nextActual = change.current + change.delta;
       if (nextActual === change.current) continue;

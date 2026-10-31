@@ -208,6 +208,8 @@ service cloud.firestore {
       match /emailImportSources/{id} { allow read, write: if false; }
       match /emailImportReferences/{id} { allow read, write: if false; }
       match /debtCommitmentCommands/{id} { allow read, write: if false; }
+      match /planningFollowUpCommands/{id} { allow read, write: if false; }
+      match /planningFollowUps/{entryId} { allow read: if owner(uid); allow write: if false; }
       match /debtCommitments/{commitmentId} {
         allow read: if owner(uid);
         allow write: if false;

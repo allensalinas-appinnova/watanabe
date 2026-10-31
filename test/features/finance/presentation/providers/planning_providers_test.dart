@@ -123,6 +123,8 @@ void main() {
       );
       addTearDown(container.dispose);
       const key = (userId: 'qa', monthKey: '2026-10');
+      final agendaSubscription = container.listen(planningAgendaEntriesProvider(key), (_, _) {});
+      addTearDown(agendaSubscription.close);
 
       final totals = await container.read(planningBudgetTotalsProvider(key).future);
       final entries = await container.read(planningAgendaEntriesProvider(key).future);

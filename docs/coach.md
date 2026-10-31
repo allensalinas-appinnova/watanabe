@@ -43,13 +43,18 @@ palette roles and financial semantics.
 `CoachOverviewCalculator` is the shared pure-domain decision engine. Home and
 Coach consume the same `coachOverviewProvider`; the UI localizes typed action
 and insight identifiers rather than constructing financial decisions in
-widgets. Current priority is rejected sync, due current-month commitment,
-unallocated payment, commitment due within seven days, reached positive expense
+widgets. Planned expenses and installments use the same shared attention list.
+Current priority is rejected sync, due current-month expense or installment,
+unallocated payment, expense or installment due within seven days, reached positive expense
 budget, selected weekly review, selected daily review, routine invitation, and
 neutral status. A commitment appears as “no payment recorded” rather than as a
 claim that the bank considers it overdue. Only current and next-month
-occurrences are candidates; older months remain in Plan and never accumulate
-as Coach tasks.
+occurrences are candidates; an older explicitly snoozed entry can return when
+its reminder date arrives, retaining its original period. Other older months
+remain in Plan without accumulating as Coach tasks. See
+[planning follow-up](planning-follow-ups.md) for completion, dismissal,
+resumption and notification behavior. Home shows a single **Por atender** block
+instead of separate planning and debt reminder cards.
 
 Weekly observations are limited to verifiable facts: net top spending
 category per currency (including refunds and reversals), a reached budget, and

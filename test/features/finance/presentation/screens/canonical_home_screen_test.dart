@@ -226,7 +226,7 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    final debtCommitmentsCard = find.byKey(const ValueKey('home_debt_commitments_card'));
+    final debtCommitmentsCard = find.byKey(const ValueKey('planning_attention'));
     final debtAccountShortcuts = find.byKey(const ValueKey('home_credit_cards_shortcut'));
     expect(
       tester.getTopLeft(debtAccountShortcuts).dy - tester.getBottomLeft(debtCommitmentsCard).dy,

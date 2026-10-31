@@ -1,5 +1,24 @@
 enum DebtInstallmentStatus { upcoming, due, partiallyPaid, paid, skipped, paused, missed }
 
+class DebtCommitmentTerms {
+  const DebtCommitmentTerms({
+    required this.version,
+    required this.effectiveFromMonth,
+    required this.amountMinor,
+    required this.dueDay,
+    required this.remindersEnabled,
+    this.lastDueMonth,
+    this.bankAccountId,
+  });
+  final int version;
+  final String effectiveFromMonth;
+  final int amountMinor;
+  final int dueDay;
+  final bool remindersEnabled;
+  final String? lastDueMonth;
+  final String? bankAccountId;
+}
+
 /// A monthly plan is an intention only: it never creates a payment itself.
 class DebtCommitment {
   const DebtCommitment({
@@ -15,6 +34,8 @@ class DebtCommitment {
     this.pausedFromMonth,
     this.skippedMonths = const {},
     this.pauseRanges = const [],
+    this.versions = const [],
+    this.occurrenceOverrides = const {},
   });
 
   final String id;
@@ -29,6 +50,30 @@ class DebtCommitment {
   final String? pausedFromMonth;
   final Set<String> skippedMonths;
   final List<({String fromMonth, String? untilMonth})> pauseRanges;
+  final List<DebtCommitmentTerms> versions;
+  final Map<String, DebtCommitmentTerms> occurrenceOverrides;
+
+  DebtCommitment forMonth(String monthKey) {
+    final candidates =
+        versions.where((item) => item.effectiveFromMonth.compareTo(monthKey) <= 0).toList()
+          ..sort((a, b) => b.version.compareTo(a.version));
+    final terms = occurrenceOverrides[monthKey] ?? candidates.firstOrNull;
+    if (terms == null) return this;
+    return DebtCommitment(
+      id: id,
+      debtAccountId: debtAccountId,
+      currency: currency,
+      amountMinor: terms.amountMinor,
+      dueDay: terms.dueDay,
+      firstDueMonth: firstDueMonth,
+      lastDueMonth: terms.lastDueMonth,
+      bankAccountId: terms.bankAccountId,
+      remindersEnabled: terms.remindersEnabled,
+      pausedFromMonth: pausedFromMonth,
+      skippedMonths: skippedMonths,
+      pauseRanges: pauseRanges,
+    );
+  }
 
   bool isPausedFor(String monthKey) {
     if (pauseRanges.any(
@@ -44,6 +89,13 @@ class DebtCommitment {
   bool isSkipped(String monthKey) => skippedMonths.contains(monthKey);
 
   DateTime? dueDateFor(String monthKey) {
+    if (versions.isNotEmpty || occurrenceOverrides.containsKey(monthKey)) {
+      return forMonth(monthKey)._dueDateFor(monthKey);
+    }
+    return _dueDateFor(monthKey);
+  }
+
+  DateTime? _dueDateFor(String monthKey) {
     if (!_validMonth(monthKey) || monthKey.compareTo(firstDueMonth) < 0) return null;
     if (lastDueMonth != null && monthKey.compareTo(lastDueMonth!) > 0) return null;
     if (isPausedFor(monthKey)) return null;
@@ -51,6 +103,10 @@ class DebtCommitment {
   }
 
   DateTime? scheduledDateFor(String monthKey) {
+    if (versions.isNotEmpty || occurrenceOverrides.containsKey(monthKey)) {
+      final resolved = forMonth(monthKey);
+      if (!identical(resolved, this)) return resolved.scheduledDateFor(monthKey);
+    }
     if (!_validMonth(monthKey) || monthKey.compareTo(firstDueMonth) < 0) return null;
     if (lastDueMonth != null && monthKey.compareTo(lastDueMonth!) > 0) return null;
     final year = int.parse(monthKey.substring(0, 4));

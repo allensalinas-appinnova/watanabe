@@ -1,6 +1,7 @@
 import '../../../commitments/domain/commitment_repository.dart';
 import '../../../commitments/domain/debt_commitment.dart';
 import '../../../finance/domain/entities/financial_operation.dart';
+import '../../../finance/domain/entities/planning_agenda_entry.dart';
 import '../entities/coach_models.dart';
 import 'coach_routine.dart';
 
@@ -204,6 +205,7 @@ class CoachOverviewCalculator {
     required int pendingSyncCount,
     required CoachFreshness paymentFreshness,
     List<CoachPlannedExpense> plannedExpenses = const [],
+    List<PlanningAgendaEntry>? attentionEntries,
     CoachOverviewAvailability availability = const CoachOverviewAvailability(),
   }) {
     final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
@@ -219,7 +221,7 @@ class CoachOverviewCalculator {
         '${nextMonthDate.year.toString().padLeft(4, '0')}-${nextMonthDate.month.toString().padLeft(2, '0')}';
     final dueItems = <CoachPaymentReviewItem>[];
     final upcomingItems = <CoachPaymentReviewItem>[];
-    if (availability.commitmentPayments) {
+    if (availability.commitmentPayments && attentionEntries == null) {
       for (final commitment in commitments) {
         for (final occurrenceMonth in [monthKey, nextMonthKey]) {
           final due = commitment.scheduledDateFor(occurrenceMonth);
@@ -350,6 +352,30 @@ class CoachOverviewCalculator {
         currency: operation.currency,
         remainingMinor: operation.amountMinor,
         operation: operation,
+      );
+    } else if (attentionEntries != null && attentionEntries.isNotEmpty) {
+      final item = attentionEntries.first;
+      action = CoachAction(
+        kind: item.kind == PlanningEntryKind.debt
+            ? (item.date.isAfter(today)
+                  ? CoachActionKind.upcomingCommitment
+                  : CoachActionKind.dueCommitment)
+            : (item.date.isAfter(today)
+                  ? CoachActionKind.upcomingBudgetExpense
+                  : CoachActionKind.dueBudgetExpense),
+        id: item.id,
+        budgetId: item.budgetId,
+        budgetItemId: item.itemId,
+        description: item.title,
+        commitmentId: item.commitmentId,
+        debtAccountId: item.debtAccountId,
+        bankAccountId: item.bankAccountId,
+        monthKey: item.monthKey,
+        currency: item.currency,
+        plannedMinor: item.plannedMinor,
+        paidMinor: item.recordedMinor,
+        remainingMinor: item.pendingMinor,
+        dueDate: item.date,
       );
     } else if (availability.planningEntries && dueExpenses.isNotEmpty) {
       final item = dueExpenses.first;

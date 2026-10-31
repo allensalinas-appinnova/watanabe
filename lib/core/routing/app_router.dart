@@ -12,6 +12,7 @@ import '../../features/coach/presentation/screens/coach_home_screen.dart';
 import '../../features/coach/presentation/screens/coach_review_screen.dart';
 import '../../features/coach/presentation/screens/coach_settings_screen.dart';
 import '../../features/commitments/presentation/debt_commitment_detail_screen.dart';
+import '../../features/commitments/presentation/debt_commitment_edit_screen.dart';
 import '../../features/commitments/presentation/debt_commitments_screen.dart';
 import '../../features/debts/presentation/debt_detail_screen.dart';
 import '../../features/debts/presentation/debt_form_screen.dart';
@@ -24,6 +25,8 @@ import '../../features/finance/domain/entities/financial_operation.dart';
 import '../../features/finance/domain/entities/user_profile.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
 import '../../features/finance/presentation/models/budget_item_movement_preset.dart';
+import '../../features/finance/presentation/providers/canonical_finance_providers.dart'
+    show DateFormatMonth;
 import '../../features/finance/presentation/screens/account_form_screen.dart';
 import '../../features/finance/presentation/screens/activity_filters_screen.dart';
 import '../../features/finance/presentation/screens/appearance_settings_screen.dart';
@@ -44,6 +47,7 @@ import '../../features/finance/presentation/screens/home_dashboard_preferences_s
 import '../../features/finance/presentation/screens/money_account_detail_screen.dart';
 import '../../features/finance/presentation/screens/operation_edit_route_screen.dart';
 import '../../features/finance/presentation/screens/planning_agenda_screen.dart';
+import '../../features/finance/presentation/screens/planning_item_detail_screen.dart';
 import '../../features/finance/presentation/screens/user_data_reset_screen.dart';
 import '../di/injection.dart';
 import '../firebase/firebase_bootstrap.dart';
@@ -251,6 +255,18 @@ GoRouter _buildAppRouter() => GoRouter(
                         commitmentId: state.pathParameters['commitmentId']!,
                         initialMonthKey: state.uri.queryParameters['month'],
                       ),
+                      routes: [
+                        GoRoute(
+                          path: 'edit',
+                          parentNavigatorKey: _rootNavigatorKey,
+                          builder: (context, state) => DebtCommitmentEditScreen(
+                            commitmentId: state.pathParameters['commitmentId']!,
+                            monthKey:
+                                state.uri.queryParameters['month'] ??
+                                DateFormatMonth.key(DateTime.now()),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -272,8 +288,10 @@ GoRouter _buildAppRouter() => GoRouter(
                 GoRoute(
                   path: ':id',
                   name: 'budget-detail',
-                  builder: (context, state) =>
-                      CanonicalBudgetDetailScreen(budgetId: state.pathParameters['id']!),
+                  builder: (context, state) => CanonicalBudgetDetailScreen(
+                    budgetId: state.pathParameters['id']!,
+                    initialTab: state.uri.queryParameters['tab'] == 'movements' ? 1 : 0,
+                  ),
                   routes: [
                     GoRoute(
                       path: 'items/new',
@@ -281,6 +299,14 @@ GoRouter _buildAppRouter() => GoRouter(
                       parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) =>
                           CanonicalBudgetItemEditScreen(budgetId: state.pathParameters['id']!),
+                    ),
+                    GoRoute(
+                      path: 'items/:itemId',
+                      name: 'budget-item-detail',
+                      builder: (context, state) => PlanningItemDetailScreen(
+                        budgetId: state.pathParameters['id']!,
+                        itemId: state.pathParameters['itemId']!,
+                      ),
                     ),
                     GoRoute(
                       path: 'items/:itemId/edit',

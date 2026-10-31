@@ -12,6 +12,7 @@ import '../../../core/utils/request_id.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../finance/presentation/providers/canonical_finance_providers.dart';
+import '../../finance/presentation/widgets/planning_follow_up_controls.dart';
 import '../domain/commitment_repository.dart';
 import '../domain/debt_commitment.dart';
 
@@ -45,7 +46,10 @@ class DebtCommitmentDetailScreen extends ConsumerWidget {
           ),
         ),
         data: (items) {
-          final plan = items.where((item) => item.id == commitmentId).firstOrNull;
+          final plan = items
+              .where((item) => item.id == commitmentId)
+              .firstOrNull
+              ?.forMonth(monthKey);
           if (plan == null) return Center(child: Text(l10n.genericError));
           if (links.isLoading || accounts.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -77,9 +81,20 @@ class DebtCommitmentDetailScreen extends ConsumerWidget {
           String money(int value) =>
               CurrencyFormatter.formatMinor(value, plan.currency, locale: locale);
           final due = plan.scheduledDateFor(monthKey);
+          final agenda = ref.watch(
+            planningAgendaEntriesProvider((userId: uid, monthKey: monthKey)),
+          );
+          final entry = agenda.valueOrNull
+              ?.where((item) => item.commitmentId == commitmentId)
+              .firstOrNull;
           return ListView(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             children: [
+              if (entry != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: PlanningFollowUpButton(userId: uid, entry: entry),
+                ),
               Text(
                 account?.name ?? l10n.debtTitle,
                 style: Theme.of(context).textTheme.headlineSmall,

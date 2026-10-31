@@ -17,6 +17,8 @@ test('reset recursively removes user data, preserves global catalog and Firebase
   await root.collection('coachWeeklyReviews').doc('2026-10-19').set({kind: 'weekly'});
   await root.collection('emailImportCandidates').doc('candidate').collection('nested').doc('evidence').set({private: true});
   await root.collection('budgetCommands').doc('receipt-001').set({private: true});
+  await root.collection('planningFollowUps').doc('follow-up-001').set({state: 'completed'});
+  await root.collection('planningFollowUpCommands').doc('follow-up-receipt-001').set({digest: 'synthetic'});
   await db.doc('categoryCatalog/shared-expense').set({type: 'expense'});
 
   const result = await executeUserDataReset(db, root.id, command());

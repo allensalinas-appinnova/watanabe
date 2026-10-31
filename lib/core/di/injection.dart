@@ -29,7 +29,9 @@ import '../../features/finance/data/datasources/operation_correction_service.dar
 import '../../features/finance/data/datasources/receipt_image_picker.dart';
 import '../../features/finance/data/datasources/user_data_reset_service.dart';
 import '../../features/finance/data/repositories/canonical_finance_repository_impl.dart';
+import '../../features/finance/data/repositories/firebase_planning_follow_up_repository.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
+import '../../features/finance/domain/repositories/planning_follow_up_repository.dart';
 import '../firebase/firebase_bootstrap.dart';
 import '../firebase/firebase_observability.dart';
 import '../offline/pending_operation_queue.dart';
@@ -182,6 +184,15 @@ Future<void> configureDependencies({
   if (!getIt.isRegistered<CanonicalFinanceRepository>()) {
     getIt.registerLazySingleton<CanonicalFinanceRepository>(
       () => CanonicalFinanceRepositoryImpl(remoteDataSource: getIt()),
+    );
+  }
+  if (!getIt.isRegistered<PlanningFollowUpRepository>()) {
+    getIt.registerLazySingleton<PlanningFollowUpRepository>(
+      () => FirebasePlanningFollowUpRepository(
+        firestore: getIt<FirebaseFirestore>(),
+        functions: FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        auth: getIt<FirebaseAuth>(),
+      ),
     );
   }
   if (!getIt.isRegistered<CoachRepository>()) {

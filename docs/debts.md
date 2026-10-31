@@ -146,6 +146,12 @@ bank transfer or creates a payment automatically. The Plan section opens the
 debt-payment list, where the user can inspect a month, create a plan, record a
 payment, pause future occurrences or skip a selected month.
 
+The attention list shares installments with planned expenses. Dismissing or
+snoozing an installment preserves its expected amount and never marks it paid.
+Use [planning follow-up](planning-follow-ups.md) for those controls and reminder
+semantics. Editing one occurrence stores a month-specific override; editing
+that month and following conditions creates a plan version instead.
+
 The two payment dimensions are independent:
 
 | Dimension | States | Meaning |

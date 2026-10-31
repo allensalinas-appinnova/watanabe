@@ -9,7 +9,6 @@ import '../../../../core/offline/pending_operation_queue.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../commitments/domain/commitment_repository.dart';
 import '../../../commitments/domain/debt_commitment.dart';
-import '../../../finance/domain/entities/planning_agenda_entry.dart';
 import '../../../finance/presentation/providers/canonical_finance_providers.dart';
 import '../../data/calendar/zoned_coach_calendar.dart';
 import '../../domain/entities/coach_models.dart';
@@ -255,27 +254,6 @@ final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((r
   final unallocated =
       unallocatedState.valueOrNull ?? const CoachUnallocatedPayments(operations: []);
   final budgets = budgetState.valueOrNull ?? const <CoachBudgetProgress>[];
-  final plannedExpenses =
-      [
-            ...?planningCurrentState.valueOrNull,
-            ...?planningNextState.valueOrNull,
-          ]
-          .where((entry) => entry.kind == PlanningEntryKind.expense)
-          .map(
-            (entry) => CoachPlannedExpense(
-              id: entry.id,
-              budgetId: entry.budgetId!,
-              itemId: entry.itemId!,
-              description: entry.title,
-              monthKey: entry.monthKey,
-              dueDate: entry.date,
-              currency: entry.currency,
-              plannedMinor: entry.plannedMinor,
-              recordedMinor: entry.recordedMinor,
-              pendingMinor: entry.pendingMinor,
-            ),
-          )
-          .toList(growable: false);
   final report =
       reportState.valueOrNull ??
       CoachPeriodReport(
@@ -311,10 +289,12 @@ final coachOverviewProvider = Provider.family<CoachOverviewLoadState, String>((r
     rejectedSyncCount: rejected,
     pendingSyncCount: pending,
     paymentFreshness: unallocated.freshness,
-    plannedExpenses: plannedExpenses,
+    plannedExpenses: const [],
+    attentionEntries: ref.watch(planningAttentionProvider(uid)).entries,
     availability: availability,
   );
   final actionIncomplete =
+      ref.watch(planningAttentionProvider(uid)).incomplete ||
       !availability.actionSources ||
       actionStates.any((value) => value.isLoading || value.hasError || !value.hasValue);
   final paymentsIncomplete =
@@ -354,6 +334,7 @@ void retryCoachOverview(WidgetRef ref, String uid) {
     ..invalidate(coachReportChangesProvider)
     ..invalidate(coachBudgetProgressProvider)
     ..invalidate(planningAgendaEntriesProvider)
+    ..invalidate(planningFollowUpsProvider(uid))
     ..invalidate(coachTickProvider)
     ..invalidate(coachOverviewProvider(uid));
 }

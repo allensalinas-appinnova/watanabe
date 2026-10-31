@@ -308,11 +308,11 @@ void main() {
     await tester.tap(daySelector);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Day 31'),
+      find.text('Day 31').last,
       250,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('Day 31'));
+    await tester.tap(find.text('Day 31').last);
     await tester.pumpAndSettle();
 
     await _tap(tester, 'budget_month_selector');

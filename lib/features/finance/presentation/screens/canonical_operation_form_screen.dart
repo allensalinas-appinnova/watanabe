@@ -28,6 +28,7 @@ import '../widgets/finance_account_option.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
 import '../widgets/finance_popup_selector.dart';
+import '../widgets/planning_follow_up_controls.dart';
 
 class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
   const CanonicalOperationFormScreen({
@@ -444,9 +445,43 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
 
   Future<void> _popAfterSave([Object? result]) async {
     if (!mounted) return;
+    final preset = widget.initialBudgetItemPreset;
+    final uid = ref.read(authSessionProvider).valueOrNull?.id;
+    final rootContext = Navigator.of(context, rootNavigator: true).overlay?.context;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _hasUnsavedChanges = false);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) context.pop(result);
+    if (result is MovementSaveResult &&
+        result.status == MovementSaveStatus.confirmed &&
+        result.type == OperationType.expense &&
+        preset != null &&
+        uid != null &&
+        rootContext != null &&
+        rootContext.mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.expenseRegistered(
+              CurrencyFormatter.formatMinor(result.amountMinor, result.currency),
+            ),
+          ),
+          action: SnackBarAction(
+            label: l10n.planningFollowUpText('finishAfterSave'),
+            onPressed: () => showModalBottomSheet<void>(
+              context: rootContext,
+              isScrollControlled: true,
+              builder: (_) => PlanningFollowUpLauncherSheet(
+                userId: uid,
+                budgetId: preset.budgetId,
+                itemId: preset.itemId,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _save(String userId, List<FinanceAccount> accounts) async {

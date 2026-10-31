@@ -215,7 +215,7 @@ async function cancelOperation(db: Firestore, uid: string, payload: unknown) {
     updated.operationProjectionDigest = projectionDigest;
     updated.appliedProjectionDigest = projectionDigest;
     const current = parseOperation(updated);
-    const writeProjections = await prepareProjectionWrites(transaction, root, [{previous, current}]);
+    const writeProjections = await prepareProjectionWrites(transaction, root, [{operationId, previous, current}]);
     const writeLedger = await prepareOperationLedgerWrites(transaction, root, operationId, current);
     writeProjections();
     writeLedger();

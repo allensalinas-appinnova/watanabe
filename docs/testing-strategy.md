@@ -16,6 +16,15 @@ summary: Local and CI test layers with synthetic Firebase Emulator data and plat
 
 All tests must be deterministic, use synthetic data and avoid production Firebase projects.
 
+The planning follow-up E2E is `integration_test/planning_follow_up_flow_test.dart`.
+It signs up through the app, creates synthetic fixtures through financial
+commands, and exercises completion, dismissal, snooze, resumption and automatic
+reopening through real screens. Financial snapshots before/after follow-up
+commands must remain equal. Run transaction/migration unit suites with only
+Firestore Emulator: enabling automatic Functions triggers can project manually
+prepared legacy fixtures before the migration test finishes preparing them.
+Run callable and mobile E2E suites separately with Functions enabled.
+
 ## Firebase Local Emulator Suite
 
 The checked-in `.firebaserc` selects the reserved `demo-clearbudget` project ID.

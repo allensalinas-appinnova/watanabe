@@ -23,6 +23,7 @@ interpretar el estado de un despliegue como disponibilidad para usuarios.
 - [Localization](docs/localization.md)
 - [Testing strategy](docs/testing-strategy.md)
 - [Coach y recordatorios](docs/coach.md)
+- [Seguimiento de planificación y Por atender](docs/planning-follow-ups.md)
 - [Comandos de presupuesto](docs/budget-commands.md)
 - [Auditoría y reconstrucción de proyecciones](docs/projection-audit.md)
 - [Mutaciones de movimientos e integridad de saldos](docs/operation-commands.md)

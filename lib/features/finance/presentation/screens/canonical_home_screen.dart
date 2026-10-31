@@ -25,6 +25,7 @@ import '../../domain/usecases/calculate_budget_tracking.dart';
 import '../providers/canonical_finance_providers.dart';
 import '../widgets/finance_category_icon.dart';
 import '../widgets/finance_components.dart';
+import '../widgets/planning_follow_up_controls.dart';
 import '../widgets/sync_issue_localization.dart';
 
 class CanonicalHomeScreen extends ConsumerWidget {
@@ -140,12 +141,13 @@ class CanonicalHomeScreen extends ConsumerWidget {
                   ),
                 const SizedBox(height: 16),
                 if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
-                  CoachNextStepCard(userId: user.id, timeZone: profile?.timeZone ?? 'UTC'),
-                if (homePreferences.shows(HomeDashboardWidget.debtCommitments))
-                  _DebtCommitmentsHomeCard(
+                  CoachNextStepCard(
                     userId: user.id,
-                    amountsHidden: amountsHidden,
+                    timeZone: profile?.timeZone ?? 'UTC',
+                    hidePlanningActions: true,
                   ),
+                if (homePreferences.shows(HomeDashboardWidget.coachNextStep))
+                  PlanningAttentionCard(userId: user.id, amountsHidden: amountsHidden),
                 Padding(
                   key: const ValueKey('home_debt_account_shortcuts'),
                   padding: const EdgeInsets.only(top: 12, bottom: 16),
@@ -308,124 +310,6 @@ class CanonicalHomeScreen extends ConsumerWidget {
                         ),
                 ),
               ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DebtCommitmentsHomeCard extends ConsumerWidget {
-  const _DebtCommitmentsHomeCard({required this.userId, required this.amountsHidden});
-
-  final String userId;
-  final bool amountsHidden;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final commitments = ref.watch(debtCommitmentsProvider(userId));
-    final links = ref.watch(debtCommitmentPaymentsProvider(userId));
-    final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
-    return commitments.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.only(top: 12),
-        child: _HomeSkeleton(height: 96, lines: 2),
-      ),
-      error: (_, _) => _ErrorCard(
-        message: l10n.genericError,
-        onRetry: () {
-          ref
-            ..invalidate(debtCommitmentsProvider(userId))
-            ..invalidate(debtCommitmentPaymentsProvider(userId));
-        },
-      ),
-      data: (allPlans) {
-        if (links.hasError) {
-          return _ErrorCard(
-            message: l10n.genericError,
-            onRetry: () => ref.invalidate(debtCommitmentPaymentsProvider(userId)),
-          );
-        }
-        if (links.isLoading) {
-          return const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: _HomeSkeleton(height: 96, lines: 2),
-          );
-        }
-        final plans = allPlans.where((item) => item.dueDateFor(monthKey) != null).toList()
-          ..sort(
-            (left, right) => left.dueDateFor(monthKey)!.compareTo(right.dueDateFor(monthKey)!),
-          );
-        final paymentLinks = links.requireValue;
-        final currencies = plans.map((plan) => plan.currency).toSet().toList()..sort();
-        final nextDue = plans.where((plan) {
-          final paid = paymentLinks
-              .where((link) => link.commitmentId == plan.id && link.monthKey == monthKey)
-              .fold<int>(0, (sum, link) => sum + link.amountMinor);
-          return paid < plan.amountMinor;
-        }).firstOrNull;
-        return Card(
-          key: const ValueKey('home_debt_commitments_card'),
-          margin: const EdgeInsets.only(top: 12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => context.go('/budgets/debt-payments'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.event_note_outlined, color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          l10n.debtCommitmentsTitle,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (plans.isEmpty)
-                    Text(l10n.debtCommitmentsEmpty)
-                  else ...[
-                    for (final currency in currencies)
-                      Builder(
-                        builder: (context) {
-                          final currencyPlans = plans.where((plan) => plan.currency == currency);
-                          final planned = currencyPlans.fold<int>(
-                            0,
-                            (sum, plan) => sum + plan.amountMinor,
-                          );
-                          final paid = currencyPlans.fold<int>(
-                            0,
-                            (sum, plan) =>
-                                sum +
-                                paymentLinks
-                                    .where(
-                                      (link) =>
-                                          link.commitmentId == plan.id && link.monthKey == monthKey,
-                                    )
-                                    .fold<int>(0, (amount, link) => amount + link.amountMinor),
-                          );
-                          return Text(
-                            '$currency · ${l10n.debtCommitmentRemaining}: ${amountsHidden ? '••••' : _money((planned - paid).clamp(0, planned), currency)}',
-                          );
-                        },
-                      ),
-                    if (nextDue != null)
-                      Text(
-                        '${l10n.debtCommitmentNextDue}: ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(nextDue.dueDateFor(monthKey)!)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
-                ],
-              ),
             ),
           ),
         );

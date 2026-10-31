@@ -2965,4 +2965,51 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get accountsSearchEmpty => 'Nenhuma conta corresponde à busca.';
+
+  @override
+  String planningFollowUpText(String key) {
+    String _temp0 = intl.Intl.selectLogic(
+      key,
+      {
+        'complete': 'Marcar como concluído',
+        'dismiss': 'Não lembrar neste mês',
+        'snooze': 'Lembrar depois',
+        'resume': 'Retomar acompanhamento',
+        'edit': 'Editar planejamento',
+        'menu': 'Acompanhamento',
+        'completed': 'Concluído por você',
+        'dismissed': 'Retirado do acompanhamento',
+        'snoozed': 'Adiado',
+        'reopened': 'O lançamento mudou. Revise esta despesa.',
+        'open': 'A resolver',
+        'saved': 'Acompanhamento atualizado',
+        'error': 'Não foi possível salvar. Tente novamente com conexão.',
+        'conflict': 'Os dados mudaram. Feche esta janela e abra o item novamente.',
+        'needsRecord': 'Associe um lançamento confirmado para concluir esta despesa.',
+        'dismissInfo':
+            'Retira os lembretes e conserva valores previstos e registros. Não registra pagamento nem reduz a dívida.',
+        'finishInfo':
+            'Conclui o acompanhamento desta despesa com os lançamentos registrados. O valor previsto é conservado.',
+        'paid': 'Pago',
+        'view': 'Ver agenda',
+        'empty': 'Não há itens a resolver neste período.',
+        'partial': 'Informações incompletas. Pode haver mais itens a revisar.',
+        'countPartial': 'Itens carregados; a contagem é provisória.',
+        'why': 'Por que estou vendo isto?',
+        'explanation':
+            'Exibido pela data prevista e pelos registros associados. Você pode concluir, retirar ou adiar o acompanhamento. Consulte o extrato para os valores definitivos das parcelas.',
+        'returnDate': 'Mostrar novamente em',
+        'finishAfterSave': 'Concluir acompanhamento',
+        'thisOnly': 'Somente esta parcela',
+        'future': 'Esta e as próximas parcelas',
+        'other': 'Acompanhamento',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String planningAttentionCount(int count) {
+    return '$count itens para revisar';
+  }
 }

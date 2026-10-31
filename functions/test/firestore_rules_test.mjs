@@ -696,6 +696,26 @@ test('device registrations are readable only by their owner and are server-write
 });
 
 
+test('planning follow-ups are owner-readable and all mutations and receipts are server-only', async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await context.firestore().doc('users/alice').set(userProfile());
+    await context.firestore().doc('users/alice/planningFollowUps/one').set({state: 'completed'});
+    await context.firestore().doc('users/alice/planningFollowUpCommands/one').set({digest: 'synthetic'});
+  });
+  const owner = environment.authenticatedContext('alice').firestore();
+  await assertSucceeds(owner.collection('users/alice/planningFollowUps').get());
+  for (const client of [owner, environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    for (const collection of ['planningFollowUps', 'planningFollowUpCommands']) {
+      const ref = client.doc(`users/alice/${collection}/one`);
+      await assertFails(ref.set({state: 'open'})); await assertFails(ref.update({state: 'open'})); await assertFails(ref.delete());
+    }
+    await assertFails(client.doc('users/alice/planningFollowUpCommands/one').get());
+  }
+  for (const client of [environment.authenticatedContext('bob').firestore(), environment.unauthenticatedContext().firestore()]) {
+    await assertFails(client.collection('users/alice/planningFollowUps').get());
+  }
+});
+
 test('diagnostic records and valuation history are owner-readable and callable-write-only', async () => {
   await environment.withSecurityRulesDisabled(async context => {
     const db = context.firestore();

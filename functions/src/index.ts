@@ -14,6 +14,7 @@ import {DebtCommitmentError, executeDebtCommitmentCommand} from "./debt_commitme
 import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_registry";
 import {executeOperationCommand, OperationCommandError} from "./operation_commands";
 import {ensureOperationProjectionVersion, OperationProjectionMigrationError} from "./operation_projection_migration";
+import {mutatePlanningFollowUp as executePlanningFollowUp, PlanningFollowUpError} from "./planning_follow_ups";
 export {adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
 
 initializeApp();
@@ -66,6 +67,15 @@ export const mutateDebtCommitment = onCall({region: "us-central1", timeoutSecond
   } catch (error) {
     if (error instanceof DebtCommitmentError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     throw new HttpsError("internal", "commitment-command-failed", {issue: "commitment-command-failed"});
+  }
+});
+
+export const mutatePlanningFollowUp = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+  try {
+    return await executePlanningFollowUp(getFirestore(), request.auth?.uid, request.data);
+  } catch (error) {
+    if (error instanceof PlanningFollowUpError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
+    throw new HttpsError("internal", "planning-follow-up-failed", {issue: "planning-follow-up-failed"});
   }
 });
 

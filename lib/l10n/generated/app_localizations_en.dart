@@ -2948,4 +2948,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountsSearchEmpty => 'No accounts match your search.';
+
+  @override
+  String planningFollowUpText(String key) {
+    String _temp0 = intl.Intl.selectLogic(
+      key,
+      {
+        'complete': 'Mark as finished',
+        'dismiss': 'Stop reminding me this month',
+        'snooze': 'Remind me later',
+        'resume': 'Resume follow-up',
+        'edit': 'Edit plan',
+        'menu': 'Follow-up',
+        'completed': 'Finished by you',
+        'dismissed': 'Removed from follow-up',
+        'snoozed': 'Snoozed',
+        'reopened': 'The transaction changed. Review this expense.',
+        'open': 'To address',
+        'saved': 'Follow-up updated',
+        'error': 'Could not save the follow-up. Retry with a connection.',
+        'conflict': 'The data changed. Close this window and reopen the item.',
+        'needsRecord': 'Link a confirmed transaction to finish this expense.',
+        'dismissInfo':
+            'Removes reminders while preserving planned amounts and records. This does not record a payment or reduce debt.',
+        'finishInfo':
+            'Finish following up on this expense with the transactions already recorded. The planned amount is preserved.',
+        'paid': 'Paid',
+        'view': 'View agenda',
+        'empty': 'No items to address in this period.',
+        'partial': 'Information is incomplete. More items may need review.',
+        'countPartial': 'Loaded items; the count is provisional.',
+        'why': 'Why am I seeing this?',
+        'explanation':
+            'Shown based on its planned date and linked records. You can finish following up on an expense, remove it or snooze it. Check your statement for final installment amounts.',
+        'returnDate': 'Show again on',
+        'finishAfterSave': 'Finish follow-up',
+        'thisOnly': 'Only this installment',
+        'future': 'This and following installments',
+        'other': 'Follow-up',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String planningAttentionCount(int count) {
+    return '$count items to review';
+  }
 }

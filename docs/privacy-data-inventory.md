@@ -16,6 +16,18 @@ Users can remove an installation record in Settings → My devices. This removes
 - Registry writes are server-only; users can read their own device records.
 - Registration failure does not block sign-in or financial functionality.
 
+## Planning follow-up choices
+
+User-owned `planningFollowUps` records retain the planned source references,
+original month, completion/dismissal/snooze state, optional reminder date,
+version, data generation and timestamp. Command receipts preserve retry
+identity and the normalized result. These records support the user's planning
+controls; they are not analytics events and contain no account credentials.
+Only the owner can read follow-up states; server commands control writes and
+receipt access. Data reset recursively removes both collections. A snoozed
+notification is scheduled locally after synchronization; no expense push
+messages or new notification permissions are introduced.
+
 ## Internal administration portal
 
 The private Firebase Hosting portal is restricted by server-verified Google
