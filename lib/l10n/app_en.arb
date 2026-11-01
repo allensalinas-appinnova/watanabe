@@ -897,5 +897,116 @@
   ,"homeSectionBudgets": "Budgets"
   ,"homeSectionRecentActivity": "Recent activity"
   ,"moveUp": "Move up"
-  ,"moveDown": "Move down"
+  ,"moveDown": "Move down",
+  "accountIdentityTitle": "Identification and payment methods",
+  "accountIdentityOptional": "Optional. Helps recognize your account on receipts.",
+  "accountInstitution": "Institution",
+  "accountInstitutionCountry": "Institution country (two-letter code)",
+  "accountNumberEnding": "Last four digits of the account",
+  "identityInvalid": "Check this value.",
+  "paymentInstruments": "Payment methods",
+  "instrumentName": "Name to identify it",
+  "instrumentAdd": "Add debit card",
+  "instrumentExplanation": "Linked debit cards use this account’s balance; they do not create an additional balance.",
+  "instrumentEmpty": "No payment methods linked yet.",
+  "instrumentLastFour": "Last four digits of the card",
+  "instrumentSaveFailed": "Could not save. Your selection is preserved; check your connection and retry.",
+  "instrumentRemove": "Remove payment method",
+  "instrumentRemoveExplanation": "It will no longer be suggested for receipts. The account and transactions are preserved.",
+  "documentImportTitle": "From photo or file",
+  "documentImportExplanation": "Upload a single receipt to prepare an expense or card purchase. Review the details before saving; the document will be attached.",
+  "documentRegisteredOnly": "Save your account to analyze receipts and view your usage.",
+  "documentCamera": "Take photo",
+  "documentGallery": "Choose image",
+  "documentFile": "Choose PDF",
+  "documentPreview": "View receipt",
+  "documentOffline": "You need an internet connection to analyze this document. Your draft is preserved; you can retry when you are connected.",
+  "documentAnalyzing": "Analyzing receipt…",
+  "documentAnalyze": "Analyze document",
+  "documentCloudTitle": "Cloud analysis",
+  "documentCloudConsent": "We will send this document to our cloud AI service to extract its details. Always review suggestions. Each completed analysis, including an unsupported document, counts toward your limit. Saving the expense keeps the receipt as an attachment. Unconfirmed files expire after 24 hours and are removed by periodic cleanup.",
+  "documentUnsupported": "This document cannot prepare a single expense. You can enter it manually.",
+  "documentAlreadyImported": "This receipt is already linked to a transaction.",
+  "documentOpenExisting": "Open existing transaction",
+  "documentReview": "Review expense",
+  "documentDiscard": "Discard document",
+  "documentDiscardExplanation": "The draft will be deleted and the temporary file queued for deletion. No transaction will be created.",
+  "documentManual": "Enter manually",
+  "documentRetryError": "Could not complete the action. Your draft is preserved; check your connection and retry.",
+  "documentFileInvalid": "Unsupported file. Use an image up to 5 MB or a password-free PDF up to 10 MB and three pages.",
+  "documentQuotaExceeded": "You reached your analysis limit. Check the next renewal under Usage and storage.",
+  "documentStorageFull": "There is not enough space to keep this receipt. Manage your attachments or enter the expense manually.",
+  "documentServiceDisabled": "Document analysis is currently unavailable. You can enter the expense manually.",
+  "documentExpired": "This draft expired or belongs to data from before a reset. Upload the document again.",
+  "documentDeviceVerification": "We could not verify this installation. Update the app and try again.",
+  "documentSuggested": "Suggested details. Review amount, currency, date, category and account before saving.",
+  "documentPerformed": "I confirm I already made this expense",
+  "documentNotPaid": "If you have not paid yet, you can plan it without recording money out.",
+  "documentPlanInstead": "Go to Plan",
+  "documentDuplicateTitle": "Possible duplicate",
+  "documentDuplicateBody": "A transaction has similar details. Review Activity before continuing.",
+  "documentSaveAnyway": "Save anyway",
+  "resourceUsageTitle": "Usage and storage",
+  "documentQuotaUsage": "Analyses today: {dailyUsed} of {dailyLimit} · This month: {monthlyUsed} of {monthlyLimit}",
+  "documentQuotaRenews": "Daily limit renews: {date}",
+  "documentMonthlyRenews": "Monthly limit renews: {date}",
+  "documentStorageUsage": "Attachments: {used} of {limit}",
+  "documentTemporaryUsage": "Temporary files: {used}",
+  "documentAttachments": "Saved receipts",
+  "documentAttachmentsEmpty": "No saved receipts.",
+  "documentReceipt": "Attached receipt",
+  "documentDelete": "Delete",
+  "documentDeleteAttachment": "Delete attachment",
+  "documentDeleteExplanation": "Only the file will be deleted. The transaction, amounts and financial effect are preserved. Space is freed when deletion is confirmed.",
+  "documentReadError": "Could not open the receipt. Check your connection and retry.",
+  "@documentQuotaUsage": {
+    "placeholders": {
+      "dailyUsed": {
+        "type": "int"
+      },
+      "dailyLimit": {
+        "type": "int"
+      },
+      "monthlyUsed": {
+        "type": "int"
+      },
+      "monthlyLimit": {
+        "type": "int"
+      }
+    }
+  },
+  "@documentQuotaRenews": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentMonthlyRenews": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentStorageUsage": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentTemporaryUsage": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "documentDraftUnavailable": "We could not save the draft on this device. Check available storage and try again before sending the document.",
+  "documentDateRequired": "The receipt has no clear date. Choose the expense date before saving.",
+  "documentStartAnother": "Analyze another document"
 }

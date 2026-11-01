@@ -8,6 +8,8 @@ import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/environment/app_environment.dart';
+import '../../features/account_identity/data/firebase_payment_instrument_repository.dart';
+import '../../features/account_identity/domain/payment_instrument.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -22,6 +24,9 @@ import '../../features/debts/data/firebase_debt_repository.dart';
 import '../../features/debts/domain/debt_repository.dart';
 import '../../features/devices/data/firebase_device_registry_repository.dart';
 import '../../features/devices/domain/device_registry_repository.dart';
+import '../../features/document_imports/data/document_draft_store.dart';
+import '../../features/document_imports/data/firebase_document_import_repository.dart';
+import '../../features/document_imports/domain/document_import.dart';
 import '../../features/finance/data/datasources/balance_adjustment_service.dart';
 import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
@@ -32,6 +37,7 @@ import '../../features/finance/data/repositories/canonical_finance_repository_im
 import '../../features/finance/data/repositories/firebase_planning_follow_up_repository.dart';
 import '../../features/finance/domain/repositories/canonical_finance_repository.dart';
 import '../../features/finance/domain/repositories/planning_follow_up_repository.dart';
+import '../firebase/client_resource_observations.dart';
 import '../firebase/firebase_bootstrap.dart';
 import '../firebase/firebase_observability.dart';
 import '../offline/pending_operation_queue.dart';
@@ -205,6 +211,34 @@ Future<void> configureDependencies({
   }
   if (!getIt.isRegistered<CoachNotificationService>()) {
     getIt.registerLazySingleton<CoachNotificationService>(LocalCoachNotificationService.new);
+  }
+  if (!getIt.isRegistered<PaymentInstrumentRepository>()) {
+    getIt.registerLazySingleton<PaymentInstrumentRepository>(
+      () => FirebasePaymentInstrumentRepository(
+        getIt<FirebaseFirestore>(),
+        FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<DocumentImportRepository>()) {
+    getIt.registerLazySingleton<DocumentImportRepository>(
+      () => FirebaseDocumentImportRepository(
+        getIt<FirebaseFirestore>(),
+        FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        FirebaseStorage.instanceFor(app: FirebaseBootstrap.app),
+        FirebaseAuth.instanceFor(app: FirebaseBootstrap.app),
+        DocumentDraftStore(),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<ClientResourceObservations>()) {
+    getIt.registerLazySingleton<ClientResourceObservations>(
+      () => ClientResourceObservations(
+        FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        getIt<FirebaseAuth>(),
+      ),
+      dispose: (v) => v.dispose(),
+    );
   }
   if (!getIt.isRegistered<ReceiptImagePicker>()) {
     getIt.registerLazySingleton<ReceiptImagePicker>(

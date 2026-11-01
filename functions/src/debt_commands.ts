@@ -1,3 +1,5 @@
+import {prepareDocumentApproval} from "./document_imports";
+import {accountIdentity} from "./account_identity";
 import {createHash} from "node:crypto";
 import {FieldValue, Timestamp, type Firestore} from "firebase-admin/firestore";
 import {calculateProjectionDeltas, checkedInteger, maximumMinor, parseOperation, validCurrency, validId, type Operation} from "./projection_model";
@@ -93,7 +95,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
     let account: Data;
     let createAccount = false;
     if (creating) {
-      only(input, ["requestId", "expectedGeneration", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "statementClosingDay", "paymentDueDay", "mode", "bankAccountId", "description"]);
+      only(input, ["requestId", "expectedGeneration", "action", "name", "product", "currency", "referenceAt", "principalMinor", "chargesMinor", "debtMinor", "limitMinor", "creditor", "lastFour", "statementClosingDay", "paymentDueDay", "mode", "bankAccountId", "description", "institutionName", "institutionCountryCode", "accountLastFour"]);
       if (existing) fail("account-exists", "already-exists");
       if (!["creditCard", "bankLoan", "personalLoan"].includes(String(input.product))) fail("invalid-product");
       if (!validCurrency(input.currency)) fail("invalid-currency");
@@ -117,6 +119,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         if (!card) fail("invalid-limit");
         account.limitMinor = amount(input.limitMinor, currency);
       }
+      Object.assign(account, accountIdentity(input));
       if (input.creditor !== undefined) account.creditor = text(input.creditor, 120);
       if (input.lastFour !== undefined) {
         if (!card || typeof input.lastFour !== "string" || !/^\d{4}$/.test(input.lastFour)) fail("invalid-last-four");
@@ -202,7 +205,7 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
         {monthKey: data.commitmentMonth, paymentIds: FieldValue.arrayUnion(paymentId), updatedAt: now, dataGeneration: generation}, {merge: true}));
     };
     const build = async (data: Data) => {
-      only(data, ["requestId", "expectedGeneration", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor", "paymentId", "commitmentId", "commitmentMonth"]);
+      only(data, ["requestId", "expectedGeneration", "accountId", "action", "occurredAt", "amountMinor", "bankAccountId", "categoryId", "description", "principalMinor", "previousChargesMinor", "newChargesMinor", "budgetId", "budgetItemId", "originalOperationId", "targetDebtMinor", "targetPrincipalMinor", "targetChargesMinor", "paymentId", "commitmentId", "commitmentMonth", "documentImportId", "documentImportVersion", "confirmedPerformed", "duplicatesReviewed"]);
       const occurredAt = at(data.occurredAt);
       const kind = String(data.action);
       if (["purchase", "charge"].includes(kind)) {
@@ -382,12 +385,20 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
           virtualCharges -= operation.chargesDeltaMinor;
         }
         account = {...account, currentBalanceMinor: virtualBalance, principalMinor: virtualPrincipal, chargesMinor: virtualCharges};
+        const beforeReplacement = operations.length;
         await build(replacement);
+        const receiptAttachment = operations.find(op => typeof (op as unknown as Data).attachmentId === "string") as unknown as Data | undefined;
+        if (receiptAttachment && operations.length === beforeReplacement + 1) {
+          const next = operations[beforeReplacement] as unknown as Data;
+          next.attachmentId = receiptAttachment.attachmentId;
+          next.documentImportId = receiptAttachment.documentImportId;
+        }
         account = cached;
       }
     } else if (!creating && action === "update") {
-      only(input, ["requestId", "expectedGeneration", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard", "statementClosingDay", "paymentDueDay"]);
+      only(input, ["requestId", "expectedGeneration", "action", "accountId", "name", "creditor", "lastFour", "limitMinor", "includeInDashboard", "statementClosingDay", "paymentDueDay", "institutionName", "institutionCountryCode", "accountLastFour"]);
       if (input.name !== undefined) account.name = text(input.name, 80, true);
+      Object.assign(account, accountIdentity(input));
       if (input.creditor !== undefined) account.creditor = text(input.creditor, 120);
       if (input.lastFour !== undefined) {
         if (!card || typeof input.lastFour !== "string" || (input.lastFour !== "" && !/^\d{4}$/.test(input.lastFour))) fail("invalid-last-four");
@@ -424,11 +435,14 @@ export async function executeDebtCommand(db: Firestore, uid: string | undefined,
       charges = checkedInteger(charges + operation.chargesDeltaMinor * (operation.projectionDirection ?? 1));
     }
     if (Math.abs(balance) > maximumMinor(currency) || (!card && (principal < 0 || charges < 0 || balance !== -(principal + charges)))) fail("inconsistent-components", "failed-precondition");
+    if (input.documentImportId !== undefined && (action !== "purchase" || operations.length !== 1)) fail("document-purchase-required");
+    const approveDocument = operations.length === 1 ? await prepareDocumentApproval(tx, root, input, String(operations[0].idempotencyKey), operations[0]) : () => {};
     const writeProjections = await prepareProjectionWrites(tx, root, operations.map((current) => ({current})), true,
       createAccount ? new Map([[accountId, account]]) : new Map());
     const operationIds = operations.map((operation) => operation.idempotencyKey as string);
     const result: DebtResult = {requestId, accountId, operationIds, overLimit: card && typeof account.limitMinor === "number" && -balance > account.limitMinor};
     writeProjections();
+    approveDocument();
     if (createAccount) tx.create(accountRef, {...account, currentBalanceMinor: balance, principalMinor: principal, chargesMinor: charges});
     else {
       const {currentBalanceMinor: _balance, ...metadata} = account;

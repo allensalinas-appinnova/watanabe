@@ -16,6 +16,9 @@ class FinanceAccount {
     this.principalMinor = 0,
     this.chargesMinor = 0,
     this.limitMinor,
+    this.institutionName,
+    this.institutionCountryCode,
+    this.accountLastFour,
     this.creditor,
     this.lastFour,
     this.statementClosingDay,
@@ -38,6 +41,9 @@ class FinanceAccount {
   final int principalMinor;
   final int chargesMinor;
   final int? limitMinor;
+  final String? institutionName;
+  final String? institutionCountryCode;
+  final String? accountLastFour;
   final String? creditor;
   final String? lastFour;
   final int? statementClosingDay;

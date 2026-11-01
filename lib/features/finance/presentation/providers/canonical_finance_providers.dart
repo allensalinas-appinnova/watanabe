@@ -1194,6 +1194,9 @@ class CanonicalFinanceActions {
     required String type,
     required String currency,
     required int openingBalanceMinor,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   }) async {
     final result = await _repository.createAccount(
       userId,
@@ -1202,6 +1205,9 @@ class CanonicalFinanceActions {
       type: type,
       currency: currency,
       openingBalanceMinor: openingBalanceMinor,
+      institutionName: institutionName,
+      institutionCountryCode: institutionCountryCode,
+      accountLastFour: accountLastFour,
     );
     result.match((failure) => throw Exception(failure.message), (_) {
       unawaited(_observability.logEvent('account_created'));
@@ -1213,6 +1219,9 @@ class CanonicalFinanceActions {
     FinanceAccount account, {
     required String name,
     required bool includeInDashboard,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   }) async {
     final result = await _repository.updateAccount(
       userId,
@@ -1224,6 +1233,9 @@ class CanonicalFinanceActions {
         openingBalanceMinor: account.openingBalanceMinor,
         currentBalanceMinor: account.currentBalanceMinor,
         includeInDashboard: includeInDashboard,
+        institutionName: institutionName,
+        institutionCountryCode: institutionCountryCode,
+        accountLastFour: accountLastFour,
         status: account.status,
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,

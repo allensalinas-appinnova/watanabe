@@ -50,6 +50,7 @@ abstract final class FinancialOperationFirestoreMapper {
       paymentId: data['paymentId'] as String?,
       allocationStatus: data['allocationStatus'] as String?,
       revision: (data['revision'] as num? ?? 0).toInt(),
+      attachmentId: data['attachmentId'] as String?,
       createdAt: FirestoreDateMapper.toDateTime(data['createdAt']),
       updatedAt: FirestoreDateMapper.toDateTime(data['updatedAt']),
     );

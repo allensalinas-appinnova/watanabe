@@ -4,168 +4,466 @@
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "accountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "sourceAccountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sourceAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "destinationAccountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "destinationAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "accountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "sourceAccountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sourceAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "destinationAccountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "destinationAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "accountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "sourceAccountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "sourceAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "destinationAccountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "destinationAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "accountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "sourceAccountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "sourceAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "destinationAccountId", "order": "ASCENDING"},
-        {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "destinationAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "operations",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "currency", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "ledgerEntries",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "accountId", "order": "ASCENDING"},
-        {"fieldPath": "occurredAt", "order": "DESCENDING"}
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "categories",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "isArchived", "order": "ASCENDING"},
-        {"fieldPath": "sortOrder", "order": "ASCENDING"}
+        {
+          "fieldPath": "isArchived",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sortOrder",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "monthlySummaries",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "monthKey", "order": "ASCENDING"},
-        {"fieldPath": "currency", "order": "ASCENDING"}
+        {
+          "fieldPath": "monthKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currency",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "amountMinor",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "documentImports",
+      "fieldPath": "expiresAt",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "attachments",
+      "fieldPath": "status",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "events",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "periods",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "analysisReservations",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "objects",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "analysisReservations",
+      "fieldPath": "leaseUntil",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "costs",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "costDays",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "adminAudit",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "adminDailyMetrics",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "devices",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        }
+      ]
+    }
+  ]
 }

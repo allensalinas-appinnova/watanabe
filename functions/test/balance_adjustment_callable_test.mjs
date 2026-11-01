@@ -26,14 +26,14 @@ test('callable requires Auth, scopes mutations to auth UID and rejects reused ID
   const {idToken, localId} = await response.json();
   const user = db.doc(`users/${localId}`);
   await user.set({});
-  await user.collection('accounts').doc('bank').set({currency: 'COP', currentBalanceMinor: 1200, status: 'active'});
+  await user.collection('accounts').doc('bank').set({currency: 'COP', openingBalanceMinor: 1200, currentBalanceMinor: 1200, status: 'active'});
   const forged = {requestId: 'balance-call-1', expectedGeneration: 0, adjustments: [{accountId: 'bank', currency: 'COP', targetBalanceMinor: 0}], userId: 'attacker'};
   const rejectedForgery = await invoke(forged, idToken);
   assert.equal(rejectedForgery.status, 400);
   assert.equal((await user.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 1200);
   const {userId: _ignored, ...command} = forged;
   const first = await invoke(command, idToken);
-  assert.equal(first.status, 200);
+  assert.equal(first.status, 200, JSON.stringify(first.body));
   assert.equal(first.body.result.adjustments[0].previousBalanceMinor, 1200);
   assert.equal((await user.collection('accounts').doc('bank').get()).data().currentBalanceMinor, 0);
   assert.equal((await db.doc('users/attacker/accounts/bank').get()).exists, false);

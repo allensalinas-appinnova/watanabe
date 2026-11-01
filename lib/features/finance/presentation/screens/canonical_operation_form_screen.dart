@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,10 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../debts/domain/debt_command.dart';
 import '../../../debts/presentation/debt_error_message.dart';
 import '../../../debts/presentation/debt_providers.dart';
+import '../../../document_imports/domain/document_import.dart';
+import '../../../document_imports/presentation/document_import_providers.dart';
+import '../../../document_imports/presentation/document_import_screen.dart';
+import '../../../document_imports/presentation/resource_usage_screen.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -39,8 +44,10 @@ class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
     this.initialCategoryId,
     this.initialBudgetItemPreset,
     this.initialOccurredAt,
+    this.documentImport,
   });
 
+  final DocumentImport? documentImport;
   final OperationType initialType;
   final FinancialOperation? initialOperation;
   final String? initialAccountId;
@@ -61,6 +68,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   String? _idempotencyKey;
   String? _editRequestId;
   String? _editRequestSignature;
+  Timer? _reviewSaveTimer;
+  bool _documentSaved = false;
+  bool _confirmedPerformed = false;
+  bool _documentReviewLoaded = false;
+  bool _documentDateConfirmed = false;
+  bool _duplicatesReviewed = false;
   bool _saving = false;
   bool _hasUnsavedChanges = false;
   DateTime _occurredAt = DateTime.now();
@@ -89,12 +102,27 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       if (operation.debtCommandId != null) _idempotencyKey = null;
       _occurredAt = operation.occurredAt.toLocal();
     }
+    final imported = widget.documentImport;
+    if (imported != null) {
+      _idempotencyKey = 'doc_${imported.id}';
+      _documentDateConfirmed = imported.suggestion.date != null;
+      if (imported.suggestion.amountMinor != null && imported.suggestion.currency != null) {
+        _amount.text = _minorAmountInput(
+          imported.suggestion.amountMinor!,
+          imported.suggestion.currency!,
+        );
+      }
+      _description.text = imported.suggestion.description ?? '';
+      _restoreDocumentReview();
+    }
     _amount.addListener(_markChanged);
     _description.addListener(_markChanged);
   }
 
   @override
   void dispose() {
+    _reviewSaveTimer?.cancel();
+    if (widget.documentImport != null && !_documentSaved) unawaited(_persistDocumentReview());
     _amount.dispose();
     _description.dispose();
     super.dispose();
@@ -110,6 +138,13 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     final recentOperations =
         ref.watch(canonicalRecentOperationsProvider(user.id)).valueOrNull ??
         const <FinancialOperation>[];
+    if (widget.documentImport != null &&
+        (!_documentReviewLoaded || accounts.isLoading || categories.isLoading)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.documentReview)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final preset = widget.initialBudgetItemPreset;
     final availableAccounts = (accounts.valueOrNull ?? const <FinanceAccount>[])
         .where((account) => account.status == 'active')
@@ -195,13 +230,41 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (widget.documentImport != null) ...[
+                    Text(l10n.documentSuggested),
+                    if (!_documentDateConfirmed) Text(l10n.documentDateRequired),
+                    CheckboxListTile(
+                      key: const ValueKey('document_performed'),
+                      value: _confirmedPerformed,
+                      title: Text(l10n.documentPerformed),
+                      onChanged: _saving
+                          ? null
+                          : (v) => setState(() => _confirmedPerformed = v ?? false),
+                    ),
+                    Text(l10n.documentNotPaid),
+                    TextButton(
+                      onPressed: _saving ? null : () => context.push('/budgets/agenda'),
+                      child: Text(l10n.documentPlanInstead),
+                    ),
+                  ],
+                  if (widget.initialOperation != null)
+                    AttachmentList(
+                      uid: user.id,
+                      operationId: widget.initialOperation!.attachmentId == null
+                          ? widget.initialOperation!.id
+                          : null,
+                      attachmentId: widget.initialOperation!.attachmentId,
+                    ),
                   FinanceOperationTypeSelector(
                     expenseLabel: l10n.expense,
                     incomeLabel: l10n.income,
                     isIncomeSelected: _type == OperationType.income,
-                    enabled: preset == null && widget.initialOperation == null,
+                    enabled:
+                        preset == null &&
+                        widget.initialOperation == null &&
+                        widget.documentImport == null,
                     onChanged: (isIncome) {
-                      if (widget.initialOperation != null) return;
+                      if (widget.initialOperation != null || widget.documentImport != null) return;
                       setState(() {
                         _hasUnsavedChanges = true;
                         _type = isIncome ? OperationType.income : OperationType.expense;
@@ -373,7 +436,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                   ExpansionTile(
                     key: const ValueKey('operation_more_options'),
                     tilePadding: EdgeInsets.zero,
-                    initiallyExpanded: false,
+                    initiallyExpanded: widget.documentImport != null,
                     title: Text(l10n.moreOptions),
                     childrenPadding: const EdgeInsets.only(bottom: 8),
                     children: [
@@ -425,7 +488,11 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                   const SizedBox(height: 24),
                   FilledButton(
                     key: const ValueKey('operation_save'),
-                    onPressed: _saving || (preset != null && availableAccounts.isEmpty)
+                    onPressed:
+                        _saving ||
+                            (widget.documentImport != null &&
+                                (!_confirmedPerformed || !_documentDateConfirmed)) ||
+                            (preset != null && availableAccounts.isEmpty)
                         ? null
                         : () => _save(user.id, accounts.valueOrNull ?? const []),
                     child: _saving ? const CircularProgressIndicator() : Text(l10n.save),
@@ -440,6 +507,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   }
 
   void _markChanged() {
+    if (widget.documentImport != null) {
+      _reviewSaveTimer?.cancel();
+      _reviewSaveTimer = Timer(const Duration(milliseconds: 400), _persistDocumentReview);
+    }
     if (!_hasUnsavedChanges && mounted) setState(() => _hasUnsavedChanges = true);
   }
 
@@ -503,6 +574,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     }
     setState(() => _saving = true);
     final existing = widget.initialOperation;
+    if (widget.documentImport != null) {
+      await _saveImportedDocument(userId, account, amountMinor);
+      return;
+    }
     if (account.isDebt) {
       final purchase = <String, Object?>{
         'action': 'purchase',
@@ -728,7 +803,11 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     if (_accountId != null) {
       return accounts.any((account) => account.id == _accountId) ? _accountId : null;
     }
-    if (widget.initialAccountId != null || widget.initialOperation != null) return null;
+    if (widget.initialAccountId != null ||
+        widget.initialOperation != null ||
+        widget.documentImport != null) {
+      return null;
+    }
     final preset = widget.initialBudgetItemPreset;
     final activeAccounts = accounts
         .where((account) => account.status == 'active')
@@ -747,6 +826,162 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     return activeAccounts.length == 1 ? activeAccounts.single.id : null;
   }
 
+  Future<void> _persistDocumentReview() async {
+    if (_documentSaved || widget.documentImport == null) return;
+    final source = widget.documentImport!, uid = ref.read(authSessionProvider).valueOrNull?.id;
+    if (uid == null) return;
+    final repository = ref.read(documentImportRepositoryProvider);
+    final review = <String, Object?>{
+      'amount': _amount.text,
+      'description': _description.text,
+      'accountId': _accountId,
+      'categoryId': _categoryId,
+      'date': _occurredAt.toIso8601String(),
+      'dateConfirmed': _documentDateConfirmed,
+      'performed': _confirmedPerformed,
+    };
+    final result = await repository.loadDraft(uid, source.generation);
+    await result.match<Future<void>>((_) async {}, (draft) async {
+      if (draft?.importId == source.id) {
+        await repository.saveDraft(
+          uid,
+          DocumentDraft(
+            file: draft!.file,
+            importId: source.id,
+            generation: source.generation,
+            review: review,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _restoreDocumentReview() async {
+    final source = widget.documentImport;
+    final uid = ref.read(authSessionProvider).valueOrNull?.id;
+    if (source == null || uid == null) return;
+    final result = await ref
+        .read(documentImportRepositoryProvider)
+        .loadDraft(uid, source.generation);
+    if (!mounted) return;
+    _documentReviewLoaded = true;
+    result.match(
+      (_) {
+        setState(() {});
+      },
+      (draft) {
+        if (draft?.importId != source.id) {
+          setState(() {});
+          return;
+        }
+        final r = draft!.review;
+        setState(() {
+          if (r['amount'] is String) _amount.text = r['amount']! as String;
+          if (r['description'] is String) _description.text = r['description']! as String;
+          if (r['accountId'] is String) _accountId = r['accountId']! as String;
+          if (r['categoryId'] is String) _categoryId = r['categoryId']! as String;
+          if (r['date'] is String) {
+            _occurredAt = DateTime.tryParse(r['date']! as String) ?? _occurredAt;
+          }
+          _confirmedPerformed = r['performed'] == true;
+          _documentDateConfirmed = r['dateConfirmed'] == true || source.suggestion.date != null;
+        });
+      },
+    );
+  }
+
+  Future<void> _saveImportedDocument(String uid, FinanceAccount account, int amount) async {
+    final l = AppLocalizations.of(context), source = widget.documentImport!;
+    final repository = ref.read(documentImportRepositoryProvider);
+    final local = await repository.loadDraft(uid, source.generation);
+    await local.match<Future<void>>((_) async {}, (draft) async {
+      if (draft == null) return;
+      await repository.saveDraft(
+        uid,
+        DocumentDraft(
+          file: draft.file,
+          importId: source.id,
+          generation: source.generation,
+          review: {
+            'amount': _amount.text,
+            'description': _description.text,
+            'accountId': account.id,
+            'categoryId': _categoryId,
+            'date': _occurredAt.toIso8601String(),
+            'dateConfirmed': _documentDateConfirmed,
+            'performed': _confirmedPerformed,
+          },
+        ),
+      );
+    });
+    if (!await ref.read(documentConnectionProvider).hasNetwork()) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.documentOffline)));
+      }
+      return;
+    }
+    final result = await repository.approve(
+      DocumentApproval(
+        source: source,
+        accountId: account.id,
+        categoryId: _categoryId!,
+        currency: account.currency,
+        amountMinor: amount,
+        occurredAt: _occurredAt,
+        monthKey: _currentMonthKey(_occurredAt),
+        description: _description.text,
+        creditCard: account.isCreditCard,
+        duplicatesReviewed: _duplicatesReviewed,
+      ),
+    );
+    if (!mounted) return;
+    await result.match<Future<void>>(
+      (failure) async {
+        setState(() => _saving = false);
+        if (failure.message.contains('possible-duplicate')) {
+          final choice = await showDialog<String>(
+            context: context,
+            builder: (c) => AlertDialog(
+              title: Text(l.documentDuplicateTitle),
+              content: Text(l.documentDuplicateBody),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c, 'activity'), child: Text(l.activity)),
+                TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: Text(l.cancel)),
+                FilledButton(
+                  onPressed: () => Navigator.pop(c, 'save'),
+                  child: Text(l.documentSaveAnyway),
+                ),
+              ],
+            ),
+          );
+          if (!mounted) return;
+          if (choice == 'activity') {
+            await context.push('/activity');
+          }
+          if (choice == 'save') {
+            _duplicatesReviewed = true;
+            await _save(uid, [account]);
+          }
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(documentError(l, failure.message))));
+        }
+      },
+      (id) async {
+        _documentSaved = true;
+        _reviewSaveTimer?.cancel();
+        ref
+          ..invalidate(resourceUsageProvider)
+          ..invalidate(canonicalAccountsProvider(uid))
+          ..invalidate(activityReportProvider(uid));
+        invalidateOperationLists(ref, uid);
+        await _popAfterSave();
+      },
+    );
+  }
+
   Future<void> _selectDate() async {
     final selected = await showDatePicker(
       context: context,
@@ -758,6 +993,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       setState(
         () {
           _hasUnsavedChanges = true;
+          _documentDateConfirmed = true;
           _occurredAt = DateTime(
             selected.year,
             selected.month,
@@ -767,6 +1003,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           );
         },
       );
+      _markChanged();
     }
   }
 

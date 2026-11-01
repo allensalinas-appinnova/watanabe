@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/account_identity/presentation/payment_instruments_screen.dart';
 import '../../features/auth/presentation/screens/guest_account_upgrade_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_recovery_screen.dart';
@@ -19,6 +20,8 @@ import '../../features/debts/presentation/debt_form_screen.dart';
 import '../../features/debts/presentation/debt_payment_picker_screen.dart';
 import '../../features/devices/presentation/my_devices_screen.dart';
 import '../../features/diagnostics/presentation/diagnostic_screen.dart';
+import '../../features/document_imports/presentation/document_import_screen.dart';
+import '../../features/document_imports/presentation/resource_usage_screen.dart';
 import '../../features/finance/domain/entities/budget_item.dart';
 import '../../features/finance/domain/entities/finance_account.dart';
 import '../../features/finance/domain/entities/financial_operation.dart';
@@ -408,6 +411,36 @@ GoRouter _buildAppRouter() => GoRouter(
       path: '/more',
       name: 'more',
       redirect: (context, state) => state.uri.replace(path: '/settings').toString(),
+    ),
+    GoRoute(
+      path: '/accounts/:id/instruments',
+      builder: (context, state) => PaymentInstrumentsScreen(accountId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/accounts/:id/instruments/new',
+      builder: (context, state) =>
+          PaymentInstrumentEditScreen(accountId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/accounts/:id/instruments/:instrumentId',
+      builder: (context, state) => PaymentInstrumentEditRoute(
+        accountId: state.pathParameters['id']!,
+        instrumentId: state.pathParameters['instrumentId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/document-imports/new',
+      builder: (context, state) => const DocumentImportScreen(),
+    ),
+    GoRoute(
+      path: '/document-imports/:id/review',
+      builder: (context, state) => DocumentReviewRoute(importId: state.pathParameters['id']!),
+    ),
+    GoRoute(path: '/settings/usage', builder: (context, state) => const ResourceUsageScreen()),
+    GoRoute(
+      path: '/attachments/:id',
+      builder: (context, state) =>
+          AttachmentViewerScreen(attachmentId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/settings',

@@ -42,6 +42,7 @@ class FinancialOperation {
     this.paymentId,
     this.allocationStatus,
     this.revision = 0,
+    this.attachmentId,
   });
 
   final String id;
@@ -75,6 +76,7 @@ class FinancialOperation {
   final String? paymentId;
   final String? allocationStatus;
   final int revision;
+  final String? attachmentId;
 
   int get recognizedIncomeMinor =>
       type == OperationType.income ? amountMinor * projectionDirection : 0;

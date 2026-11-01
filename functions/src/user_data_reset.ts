@@ -1,3 +1,4 @@
+import {deleteUserDocuments} from "./document_storage";
 import {randomUUID} from "node:crypto";
 import {FieldValue, type Firestore} from "firebase-admin/firestore";
 import {validId} from "./projection_model";
@@ -34,6 +35,7 @@ export async function executeUserDataReset(
   db: Firestore,
   uid: string | undefined,
   payload: unknown,
+  options: {deleteDocuments?: typeof deleteUserDocuments} = {},
 ): Promise<ResetResult> {
   if (!uid || !validId(uid)) throw new UserDataResetError("reset-session-expired", "unauthenticated");
   const command = parse(payload);
@@ -101,6 +103,7 @@ export async function executeUserDataReset(
   }, 30_000);
   heartbeat.unref?.();
   try {
+    await (options.deleteDocuments ?? deleteUserDocuments)(db, uid, start.generation);
     const collections = await root.listCollections();
     for (const collection of collections) {
       if (leaseLost) throw new UserDataResetError("reset-lease-lost", "failed-precondition");

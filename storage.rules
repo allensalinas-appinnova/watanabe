@@ -6,11 +6,26 @@ service firebase.storage {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // Server-reserved immutable temporary objects. Permanent reads/deletes are mediated and metered.
+    match /users/{userId}/documentImports/{generation}/{importId}/source {
+      function proposal() {
+        return firestore.get(/databases/(default)/documents/users/$(userId)/documentImports/$(importId)).data;
+      }
+      function profile() {
+        return firestore.get(/databases/(default)/documents/users/$(userId)).data;
+      }
+      allow create: if resource == null && isOwner(userId) && request.auth.token.firebase.sign_in_provider != 'anonymous' &&
+        profile().get('resetStatus', 'ready') == 'ready' && proposal().dataGeneration == profile().get('dataGeneration', 0) &&
+        generation == string(proposal().dataGeneration) && proposal().status == 'prepared' &&
+        proposal().expiresAt > request.time && request.resource.size == proposal().size &&
+        request.resource.size <= 10000000 && request.resource.contentType == proposal().contentType &&
+        request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      allow read, update, delete: if false;
+    }
     match /users/{userId}/receipts/{fileName} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId)
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+      // Legacy paths cannot bypass server reservations and per-user quotas.
+      allow create, update: if false;
     }
   }
 }

@@ -197,6 +197,9 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     required String type,
     required String currency,
     required int openingBalanceMinor,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   }) async {
     try {
       return Right(
@@ -208,6 +211,9 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
             type: type,
             currency: currency,
             openingBalanceMinor: openingBalanceMinor,
+            institutionName: institutionName,
+            institutionCountryCode: institutionCountryCode,
+            accountLastFour: accountLastFour,
           ),
         ),
       );
@@ -611,6 +617,9 @@ class CanonicalFinanceRepositoryImpl implements CanonicalFinanceRepository {
     principalMinor: (data['principalMinor'] as num? ?? 0).toInt(),
     chargesMinor: (data['chargesMinor'] as num? ?? 0).toInt(),
     limitMinor: (data['limitMinor'] as num?)?.toInt(),
+    institutionName: data['institutionName'] as String?,
+    institutionCountryCode: data['institutionCountryCode'] as String?,
+    accountLastFour: data['accountLastFour'] as String?,
     creditor: data['creditor'] as String?,
     lastFour: data['lastFour'] as String?,
     statementClosingDay: (data['statementClosingDay'] as num?)?.toInt(),

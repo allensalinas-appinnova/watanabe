@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../../core/firebase/client_resource_observations.dart';
 import '../../../../core/utils/money_parser.dart';
 import '../../../../core/utils/request_id.dart';
 import '../../domain/entities/appearance_preferences.dart';
@@ -81,6 +83,9 @@ abstract interface class CanonicalFinanceRemoteDataSource {
     required String type,
     required String currency,
     required int openingBalanceMinor,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   });
 
   Future<void> updateAccount(String userId, FinanceAccount account);
@@ -608,6 +613,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     required String type,
     required String currency,
     required int openingBalanceMinor,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   }) async {
     final generation = await _currentGeneration(userId);
     if (name.trim().isEmpty ||
@@ -619,6 +627,11 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
     final ref = _userCollection(userId, 'accounts').doc(accountId);
     final data = {
       'name': name.trim(),
+      if (institutionName != null && institutionName.isNotEmpty)
+        'institutionName': institutionName.trim(),
+      if (institutionCountryCode != null && institutionCountryCode.isNotEmpty)
+        'institutionCountryCode': institutionCountryCode,
+      if (accountLastFour != null && accountLastFour.isNotEmpty) 'accountLastFour': accountLastFour,
       'type': type,
       'nature': 'money',
       'currency': currency,
@@ -647,6 +660,9 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
       _userCollection(userId, 'accounts').doc(account.id).update({
         'name': account.name,
         'includeInDashboard': account.includeInDashboard,
+        'institutionName': account.institutionName,
+        'institutionCountryCode': account.institutionCountryCode,
+        'accountLastFour': account.accountLastFour,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -950,8 +966,17 @@ class FirestoreCanonicalFinanceRemoteDataSource implements CanonicalFinanceRemot
         (snapshot) => snapshot.exists ? {...snapshot.data()!, 'id': snapshot.id} : null,
       );
 
-  List<Map<String, dynamic>> _records(QuerySnapshot<Map<String, dynamic>> snapshot) =>
-      snapshot.docs.map((document) => {...document.data(), 'id': document.id}).toList();
+  List<Map<String, dynamic>> _records(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    if (!snapshot.metadata.isFromCache &&
+        snapshot.docs.isNotEmpty &&
+        getIt.isRegistered<ClientResourceObservations>()) {
+      final path = snapshot.docs.first.reference.path.split('/');
+      if (path.length > 1 && path.first == 'users') {
+        getIt<ClientResourceObservations>().record(path[1], snapshot.docs.length);
+      }
+    }
+    return snapshot.docs.map((document) => {...document.data(), 'id': document.id}).toList();
+  }
 
   Map<String, dynamic> _operationData({
     required OperationType type,

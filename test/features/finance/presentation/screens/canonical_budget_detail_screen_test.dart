@@ -369,7 +369,7 @@ void main() {
     await tester.tap(dayPicker);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Día 28').last,
+      find.text('Día 28'),
       250,
       scrollable: find.byType(Scrollable).last,
     );
@@ -400,7 +400,7 @@ void main() {
     await tester.tap(dayPicker);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Día 29').last,
+      find.text('Día 29'),
       250,
       scrollable: find.byType(Scrollable).last,
     );
@@ -610,6 +610,11 @@ Future<void> _selectDay(WidgetTester tester, int day) async {
   final picker = find.byKey(const ValueKey('budget_item_create_day'));
   await tester.tap(picker);
   await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.text('Día $day'),
+    200,
+    scrollable: find.byType(Scrollable).last,
+  );
   await tester.tap(find.text('Día $day').last);
   await tester.pumpAndSettle();
 }

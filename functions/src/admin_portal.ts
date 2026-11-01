@@ -1,3 +1,4 @@
+import {usageSummary} from "./resource_usage";
 import {getAuth, type UserRecord} from "firebase-admin/auth";
 import {FieldValue, Firestore, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
@@ -312,4 +313,27 @@ export const refreshAdminDailyMetrics = onSchedule({
   maxInstances: 1,
 }, async () => {
   await refreshAdminMetrics(getFirestore());
+});
+
+export const adminResourceUsage = onCall({region: "us-central1", maxInstances: 2}, async request => {
+  try {
+    const db = getFirestore();
+    const operator = await requireAdminOperator(db, request.auth);
+    const uid = request.data?.uid;
+    if (uid !== undefined && (typeof uid !== "string" || !/^[\w-]{1,128}$/.test(uid))) throw new HttpsError("invalid-argument", "usage-user-invalid");
+    if (uid) {
+      const summary = await usageSummary(db, uid);
+      await writeAudit(db, operator, "usage.user.read", uid);
+      return {uid, summary};
+    }
+    const pageSize = 50;
+    let query = db.collection("resourceUsage").orderBy("__name__").limit(pageSize);
+    if (typeof request.data?.cursor === "string") query = query.startAfter(request.data.cursor);
+    const page = await query.get();
+    const billing = await db.doc("resourceBilling/status").get();
+    const billedServices = await db.collection("resourceBilling/daily/services").orderBy("day", "desc").limit(30).get();
+    const users = await Promise.all(page.docs.map(async d => ({uid: d.id, summary: await usageSummary(db, d.id)})));
+    await writeAudit(db, operator, "usage.list");
+    return {users, nextCursor: page.size === pageSize ? page.docs[page.size - 1].id : null, billing: {...(billing.data() ?? {available: false}), services: billedServices.docs.map(d => d.data())}};
+  } catch (error) { if (error instanceof HttpsError) throw error; return onCallableError(error); }
 });

@@ -132,7 +132,11 @@ class _PlanningFollowUpSheetState extends ConsumerState<PlanningFollowUpSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${entry.kind == PlanningEntryKind.debt ? l10n.debtTitle : entry.kind == PlanningEntryKind.income ? l10n.income : l10n.expense} · ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(entry.date)}',
+                '${entry.kind == PlanningEntryKind.debt
+                    ? l10n.debtTitle
+                    : entry.kind == PlanningEntryKind.income
+                    ? l10n.income
+                    : l10n.expense} · ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(entry.date)}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -386,8 +390,7 @@ class PlanningEntryTile extends StatelessWidget {
                           entry: entry,
                           itemName: title,
                         ),
-                        if (canOpen)
-                          _PlanningDetailIndicator(label: detailLabel),
+                        if (canOpen) _PlanningDetailIndicator(label: detailLabel),
                       ],
                     ),
               onTap: canOpen ? () => context.push<void>(planningEntryRoute(entry)) : null,

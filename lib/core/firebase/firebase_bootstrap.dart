@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -62,6 +63,22 @@ abstract final class FirebaseBootstrap {
       return;
     }
 
+    const webSiteKey = String.fromEnvironment('APP_CHECK_WEB_SITE_KEY');
+    try {
+      if (!kIsWeb || webSiteKey.isNotEmpty) {
+        await FirebaseAppCheck.instanceFor(app: app).activate(
+          providerAndroid: kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? const AppleDebugProvider()
+              : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+          providerWeb: kIsWeb ? ReCaptchaV3Provider(webSiteKey) : null,
+        );
+      }
+    } catch (_) {
+      // New protected services report verification failure; manual finance remains available.
+    }
     FirebaseAnalytics.instance;
   }
 }

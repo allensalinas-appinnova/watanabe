@@ -3063,4 +3063,227 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moveDown => 'Move down';
+
+  @override
+  String get accountIdentityTitle => 'Identification and payment methods';
+
+  @override
+  String get accountIdentityOptional => 'Optional. Helps recognize your account on receipts.';
+
+  @override
+  String get accountInstitution => 'Institution';
+
+  @override
+  String get accountInstitutionCountry => 'Institution country (two-letter code)';
+
+  @override
+  String get accountNumberEnding => 'Last four digits of the account';
+
+  @override
+  String get identityInvalid => 'Check this value.';
+
+  @override
+  String get paymentInstruments => 'Payment methods';
+
+  @override
+  String get instrumentName => 'Name to identify it';
+
+  @override
+  String get instrumentAdd => 'Add debit card';
+
+  @override
+  String get instrumentExplanation =>
+      'Linked debit cards use this account’s balance; they do not create an additional balance.';
+
+  @override
+  String get instrumentEmpty => 'No payment methods linked yet.';
+
+  @override
+  String get instrumentLastFour => 'Last four digits of the card';
+
+  @override
+  String get instrumentSaveFailed =>
+      'Could not save. Your selection is preserved; check your connection and retry.';
+
+  @override
+  String get instrumentRemove => 'Remove payment method';
+
+  @override
+  String get instrumentRemoveExplanation =>
+      'It will no longer be suggested for receipts. The account and transactions are preserved.';
+
+  @override
+  String get documentImportTitle => 'From photo or file';
+
+  @override
+  String get documentImportExplanation =>
+      'Upload a single receipt to prepare an expense or card purchase. Review the details before saving; the document will be attached.';
+
+  @override
+  String get documentRegisteredOnly => 'Save your account to analyze receipts and view your usage.';
+
+  @override
+  String get documentCamera => 'Take photo';
+
+  @override
+  String get documentGallery => 'Choose image';
+
+  @override
+  String get documentFile => 'Choose PDF';
+
+  @override
+  String get documentPreview => 'View receipt';
+
+  @override
+  String get documentOffline =>
+      'You need an internet connection to analyze this document. Your draft is preserved; you can retry when you are connected.';
+
+  @override
+  String get documentAnalyzing => 'Analyzing receipt…';
+
+  @override
+  String get documentAnalyze => 'Analyze document';
+
+  @override
+  String get documentCloudTitle => 'Cloud analysis';
+
+  @override
+  String get documentCloudConsent =>
+      'We will send this document to our cloud AI service to extract its details. Always review suggestions. Each completed analysis, including an unsupported document, counts toward your limit. Saving the expense keeps the receipt as an attachment. Unconfirmed files expire after 24 hours and are removed by periodic cleanup.';
+
+  @override
+  String get documentUnsupported =>
+      'This document cannot prepare a single expense. You can enter it manually.';
+
+  @override
+  String get documentAlreadyImported => 'This receipt is already linked to a transaction.';
+
+  @override
+  String get documentOpenExisting => 'Open existing transaction';
+
+  @override
+  String get documentReview => 'Review expense';
+
+  @override
+  String get documentDiscard => 'Discard document';
+
+  @override
+  String get documentDiscardExplanation =>
+      'The draft will be deleted and the temporary file queued for deletion. No transaction will be created.';
+
+  @override
+  String get documentManual => 'Enter manually';
+
+  @override
+  String get documentRetryError =>
+      'Could not complete the action. Your draft is preserved; check your connection and retry.';
+
+  @override
+  String get documentFileInvalid =>
+      'Unsupported file. Use an image up to 5 MB or a password-free PDF up to 10 MB and three pages.';
+
+  @override
+  String get documentQuotaExceeded =>
+      'You reached your analysis limit. Check the next renewal under Usage and storage.';
+
+  @override
+  String get documentStorageFull =>
+      'There is not enough space to keep this receipt. Manage your attachments or enter the expense manually.';
+
+  @override
+  String get documentServiceDisabled =>
+      'Document analysis is currently unavailable. You can enter the expense manually.';
+
+  @override
+  String get documentExpired =>
+      'This draft expired or belongs to data from before a reset. Upload the document again.';
+
+  @override
+  String get documentDeviceVerification =>
+      'We could not verify this installation. Update the app and try again.';
+
+  @override
+  String get documentSuggested =>
+      'Suggested details. Review amount, currency, date, category and account before saving.';
+
+  @override
+  String get documentPerformed => 'I confirm I already made this expense';
+
+  @override
+  String get documentNotPaid =>
+      'If you have not paid yet, you can plan it without recording money out.';
+
+  @override
+  String get documentPlanInstead => 'Go to Plan';
+
+  @override
+  String get documentDuplicateTitle => 'Possible duplicate';
+
+  @override
+  String get documentDuplicateBody =>
+      'A transaction has similar details. Review Activity before continuing.';
+
+  @override
+  String get documentSaveAnyway => 'Save anyway';
+
+  @override
+  String get resourceUsageTitle => 'Usage and storage';
+
+  @override
+  String documentQuotaUsage(int dailyUsed, int dailyLimit, int monthlyUsed, int monthlyLimit) {
+    return 'Analyses today: $dailyUsed of $dailyLimit · This month: $monthlyUsed of $monthlyLimit';
+  }
+
+  @override
+  String documentQuotaRenews(String date) {
+    return 'Daily limit renews: $date';
+  }
+
+  @override
+  String documentMonthlyRenews(String date) {
+    return 'Monthly limit renews: $date';
+  }
+
+  @override
+  String documentStorageUsage(String used, String limit) {
+    return 'Attachments: $used of $limit';
+  }
+
+  @override
+  String documentTemporaryUsage(String used) {
+    return 'Temporary files: $used';
+  }
+
+  @override
+  String get documentAttachments => 'Saved receipts';
+
+  @override
+  String get documentAttachmentsEmpty => 'No saved receipts.';
+
+  @override
+  String get documentReceipt => 'Attached receipt';
+
+  @override
+  String get documentDelete => 'Delete';
+
+  @override
+  String get documentDeleteAttachment => 'Delete attachment';
+
+  @override
+  String get documentDeleteExplanation =>
+      'Only the file will be deleted. The transaction, amounts and financial effect are preserved. Space is freed when deletion is confirmed.';
+
+  @override
+  String get documentReadError => 'Could not open the receipt. Check your connection and retry.';
+
+  @override
+  String get documentDraftUnavailable =>
+      'We could not save the draft on this device. Check available storage and try again before sending the document.';
+
+  @override
+  String get documentDateRequired =>
+      'The receipt has no clear date. Choose the expense date before saving.';
+
+  @override
+  String get documentStartAnother => 'Analyze another document';
 }

@@ -211,6 +211,9 @@ void main() {
         any(),
         name: any(named: 'name'),
         includeInDashboard: any(named: 'includeInDashboard'),
+        institutionName: any(named: 'institutionName'),
+        institutionCountryCode: any(named: 'institutionCountryCode'),
+        accountLastFour: any(named: 'accountLastFour'),
       ),
     ).thenThrow(Exception('simulated failure'));
     await tester.pumpWidget(buildSubject(account: account, actions: actions));
@@ -231,6 +234,9 @@ void main() {
         account,
         name: 'Efectivo',
         includeInDashboard: true,
+        institutionName: '',
+        institutionCountryCode: '',
+        accountLastFour: '',
       ),
     ).called(1);
   });

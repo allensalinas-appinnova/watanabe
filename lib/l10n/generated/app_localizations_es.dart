@@ -3086,4 +3086,229 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get moveDown => 'Mover abajo';
+
+  @override
+  String get accountIdentityTitle => 'Identificación y medios de pago';
+
+  @override
+  String get accountIdentityOptional => 'Opcional. Ayuda a reconocer tu cuenta en comprobantes.';
+
+  @override
+  String get accountInstitution => 'Entidad';
+
+  @override
+  String get accountInstitutionCountry => 'País de la entidad (código de dos letras)';
+
+  @override
+  String get accountNumberEnding => 'Últimos cuatro dígitos de la cuenta';
+
+  @override
+  String get identityInvalid => 'Revisa este dato.';
+
+  @override
+  String get paymentInstruments => 'Medios de pago';
+
+  @override
+  String get instrumentName => 'Nombre para identificarlo';
+
+  @override
+  String get instrumentAdd => 'Agregar tarjeta débito';
+
+  @override
+  String get instrumentExplanation =>
+      'Las tarjetas débito vinculadas usan el saldo de esta cuenta; no crean un saldo adicional.';
+
+  @override
+  String get instrumentEmpty => 'Aún no hay medios de pago vinculados.';
+
+  @override
+  String get instrumentLastFour => 'Últimos cuatro dígitos de la tarjeta';
+
+  @override
+  String get instrumentSaveFailed =>
+      'No se pudo guardar. Tu selección se conserva; revisa la conexión y reintenta.';
+
+  @override
+  String get instrumentRemove => 'Retirar medio de pago';
+
+  @override
+  String get instrumentRemoveExplanation =>
+      'Dejará de sugerirse en comprobantes. La cuenta y sus movimientos se conservan.';
+
+  @override
+  String get documentImportTitle => 'Desde foto o archivo';
+
+  @override
+  String get documentImportExplanation =>
+      'Carga un comprobante individual para preparar un gasto o compra con tarjeta. Revisarás los datos antes de guardar y el documento quedará adjunto.';
+
+  @override
+  String get documentRegisteredOnly =>
+      'Guarda tu cuenta para analizar comprobantes y consultar tu consumo.';
+
+  @override
+  String get documentCamera => 'Tomar foto';
+
+  @override
+  String get documentGallery => 'Elegir imagen';
+
+  @override
+  String get documentFile => 'Elegir PDF';
+
+  @override
+  String get documentPreview => 'Ver comprobante';
+
+  @override
+  String get documentOffline =>
+      'Necesitas conexión a internet para analizar este documento. Tu borrador se conserva; podrás reintentarlo cuando tengas conexión.';
+
+  @override
+  String get documentAnalyzing => 'Analizando comprobante…';
+
+  @override
+  String get documentAnalyze => 'Analizar documento';
+
+  @override
+  String get documentCloudTitle => 'Análisis en la nube';
+
+  @override
+  String get documentCloudConsent =>
+      'Enviaremos este documento a nuestro servicio de IA en la nube para extraer sus datos. Revisa siempre las sugerencias. Cada análisis completado, incluso de un documento no compatible, cuenta para tu límite. Si guardas el gasto, el comprobante se conservará como adjunto. Los archivos sin confirmar vencen a las 24 horas y se eliminan en la limpieza periódica.';
+
+  @override
+  String get documentUnsupported =>
+      'Este documento no permite preparar un gasto individual. Puedes registrarlo manualmente.';
+
+  @override
+  String get documentAlreadyImported => 'Este comprobante ya está asociado a un movimiento.';
+
+  @override
+  String get documentOpenExisting => 'Abrir movimiento existente';
+
+  @override
+  String get documentReview => 'Revisar gasto';
+
+  @override
+  String get documentDiscard => 'Descartar documento';
+
+  @override
+  String get documentDiscardExplanation =>
+      'Se eliminará el borrador y se solicitará borrar el archivo temporal. No se creará un movimiento.';
+
+  @override
+  String get documentManual => 'Registrar manualmente';
+
+  @override
+  String get documentRetryError =>
+      'No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.';
+
+  @override
+  String get documentFileInvalid =>
+      'Archivo no compatible. Usa una imagen de hasta 5 MB o un PDF sin contraseña de hasta 10 MB y tres páginas.';
+
+  @override
+  String get documentQuotaExceeded =>
+      'Alcanzaste el límite de análisis. Consulta la próxima renovación en Uso y almacenamiento.';
+
+  @override
+  String get documentStorageFull =>
+      'No hay espacio suficiente para conservar este comprobante. Puedes administrar tus adjuntos o registrar el gasto manualmente.';
+
+  @override
+  String get documentServiceDisabled =>
+      'El análisis de documentos no está disponible por el momento. Puedes registrar el gasto manualmente.';
+
+  @override
+  String get documentExpired =>
+      'Este borrador venció o pertenece a datos anteriores al reinicio. Vuelve a cargar el documento.';
+
+  @override
+  String get documentDeviceVerification =>
+      'No pudimos verificar esta instalación. Actualiza la app y vuelve a intentarlo.';
+
+  @override
+  String get documentSuggested =>
+      'Datos sugeridos. Revisa importe, moneda, fecha, categoría y cuenta antes de guardar.';
+
+  @override
+  String get documentPerformed => 'Confirmo que ya realicé este gasto';
+
+  @override
+  String get documentNotPaid =>
+      'Si todavía no lo pagaste, puedes planificarlo sin registrar una salida de dinero.';
+
+  @override
+  String get documentPlanInstead => 'Ir a Plan';
+
+  @override
+  String get documentDuplicateTitle => 'Posible duplicado';
+
+  @override
+  String get documentDuplicateBody =>
+      'Hay un movimiento con datos similares. Revisa Actividad antes de continuar.';
+
+  @override
+  String get documentSaveAnyway => 'Guardar de todos modos';
+
+  @override
+  String get resourceUsageTitle => 'Uso y almacenamiento';
+
+  @override
+  String documentQuotaUsage(int dailyUsed, int dailyLimit, int monthlyUsed, int monthlyLimit) {
+    return 'Análisis hoy: $dailyUsed de $dailyLimit · Este mes: $monthlyUsed de $monthlyLimit';
+  }
+
+  @override
+  String documentQuotaRenews(String date) {
+    return 'El límite diario se renueva: $date';
+  }
+
+  @override
+  String documentMonthlyRenews(String date) {
+    return 'El límite mensual se renueva: $date';
+  }
+
+  @override
+  String documentStorageUsage(String used, String limit) {
+    return 'Adjuntos: $used de $limit';
+  }
+
+  @override
+  String documentTemporaryUsage(String used) {
+    return 'Archivos temporales: $used';
+  }
+
+  @override
+  String get documentAttachments => 'Comprobantes guardados';
+
+  @override
+  String get documentAttachmentsEmpty => 'No hay comprobantes guardados.';
+
+  @override
+  String get documentReceipt => 'Comprobante adjunto';
+
+  @override
+  String get documentDelete => 'Eliminar';
+
+  @override
+  String get documentDeleteAttachment => 'Eliminar adjunto';
+
+  @override
+  String get documentDeleteExplanation =>
+      'Se eliminará solo el archivo. El movimiento, sus importes y su efecto financiero se conservan. El espacio se libera al confirmar la eliminación.';
+
+  @override
+  String get documentReadError =>
+      'No se pudo abrir el comprobante. Revisa tu conexión y vuelve a intentarlo.';
+
+  @override
+  String get documentDraftUnavailable =>
+      'No pudimos guardar el borrador en este dispositivo. Revisa el espacio disponible e inténtalo de nuevo antes de enviar el documento.';
+
+  @override
+  String get documentDateRequired =>
+      'El comprobante no tiene una fecha clara. Elige la fecha del gasto antes de guardar.';
+
+  @override
+  String get documentStartAnother => 'Analizar otro documento';
 }

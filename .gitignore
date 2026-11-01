@@ -41,3 +41,6 @@ admin_portal/.env.*.local
 
 # OS files
 .DS_Store
+
+# Local QA screenshots and structured device results
+/artifacts/

@@ -578,11 +578,17 @@ void main() {
     await tester.pumpWidget(subject(locale: const Locale('en')));
     await tester.pumpAndSettle();
 
+    // Choose a known 31-day month regardless of the execution date.
+    await _tap(tester, 'budget_month_selector');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('budget_month_option_1')));
+    await tester.tap(find.byKey(const ValueKey('budget_month_confirm')));
+    await tester.pumpAndSettle();
     final daySelector = find.byKey(const ValueKey('budget_item_day_0'));
     await tester.tap(daySelector);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Day 31').last,
+      find.text('Day 31'),
       250,
       scrollable: find.byType(Scrollable).last,
     );

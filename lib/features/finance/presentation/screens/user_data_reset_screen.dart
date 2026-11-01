@@ -11,6 +11,7 @@ import '../../../../core/utils/request_id.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../features/coach/domain/services/coach_notification_service.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../document_imports/domain/document_import.dart';
 import '../../data/datasources/user_data_reset_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../providers/canonical_finance_providers.dart';
@@ -244,6 +245,9 @@ class _UserDataResetScreenState extends ConsumerState<UserDataResetScreen> {
     _finishing = true;
     try {
       await getIt<PendingOperationDatabase>().clearUserData(userId);
+      if (getIt.isRegistered<DocumentImportRepository>()) {
+        await getIt<DocumentImportRepository>().clearDraft(userId);
+      }
       await getIt<CoachNotificationService>().clearUserData(userId);
       invalidateCachedUserProfile(userId);
       ref.invalidate(canonicalUserProfileProvider(userId));

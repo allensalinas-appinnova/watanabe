@@ -1,3 +1,4 @@
+import {prepareDocumentApproval} from "./document_imports";
 import {createHash} from "node:crypto";
 import {FieldValue, Firestore, Timestamp} from "firebase-admin/firestore";
 import {executeOperationCorrection, OperationCorrectionError} from "./operation_corrections";
@@ -28,7 +29,7 @@ function digest(value: unknown): string {
 function parseCreate(value: unknown) {
   const data = object(value);
   const allowed = ["action", "requestId", "expectedGeneration", "type", "amountMinor", "currency", "accountId", "categoryId",
-    "sourceAccountId", "destinationAccountId", "occurredAt", "monthKey", "description", "idempotencyKey", "budgetId", "budgetItemId"];
+    "sourceAccountId", "destinationAccountId", "occurredAt", "monthKey", "description", "idempotencyKey", "budgetId", "budgetItemId", "documentImportId", "documentImportVersion", "confirmedPerformed", "duplicatesReviewed"];
   if (Object.keys(data).some((key) => !allowed.includes(key)) || data.action !== "create" ||
       typeof data.requestId !== "string" || !/^[A-Za-z0-9_-]{8,128}$/.test(data.requestId) ||
       data.idempotencyKey !== data.requestId || !Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0 ||
@@ -49,6 +50,7 @@ function parseCreate(value: unknown) {
     throw new OperationCommandError("operation-invalid-budget-reference");
   }
   return {
+    ...(data.documentImportId !== undefined ? {documentImportId: data.documentImportId, documentImportVersion: data.documentImportVersion, confirmedPerformed: data.confirmedPerformed, duplicatesReviewed: data.duplicatesReviewed === true} : {}),
     requestId: data.requestId as string,
     expectedGeneration: Number(data.expectedGeneration),
     type: data.type as "income" | "expense" | "transfer",
@@ -87,7 +89,7 @@ function monthInTimeZone(date: Date, timeZone: unknown): string {
 
 async function createOperation(db: Firestore, uid: string, payload: unknown) {
   const command = parseCreate(payload);
-  await ensureOperationProjectionVersion(db, uid);
+  await ensureOperationProjectionVersion(db, uid, {expectedGeneration: command.expectedGeneration});
   const root = db.doc(`users/${uid}`);
   const operationRef = root.collection("operations").doc(command.requestId);
   const receiptRef = root.collection("operationCommands").doc(command.requestId);
@@ -131,7 +133,7 @@ async function createOperation(db: Firestore, uid: string, payload: unknown) {
       const current = existing.data()!;
       const sameCommand = operationProjectionDigest(current) === projectionDigest && current.description === command.description &&
         current.idempotencyKey === command.requestId;
-      if (!sameCommand || current.appliedProjectionDigest !== projectionDigest) {
+      if (!sameCommand || (command.documentImportId !== undefined && current.documentImportId !== command.documentImportId) || current.appliedProjectionDigest !== projectionDigest) {
         throw new OperationCommandError("operation-idempotency-conflict", "already-exists");
       }
       const priorResult = {operationId: operationRef.id, revision: Number(current.revision ?? 0)};
@@ -157,9 +159,11 @@ async function createOperation(db: Firestore, uid: string, payload: unknown) {
         throw new OperationCommandError("operation-budget-reference-invalid", "failed-precondition");
       }
     }
+    const approveDocument = await prepareDocumentApproval(transaction, root, command, operationRef.id, operation);
     const writeProjections = await prepareProjectionWrites(transaction, root, [{current: parsed}]);
     const now = FieldValue.serverTimestamp();
     writeProjections();
+    approveDocument();
     transaction.create(operationRef, operation);
     for (let index = 0; index < entrySpecs.length; index++) {
       const spec = entrySpecs[index];
@@ -182,7 +186,7 @@ async function cancelOperation(db: Firestore, uid: string, payload: unknown) {
       data.action !== "cancel" || !validId(data.operationId) || !Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0) {
     throw new OperationCommandError("operation-cancel-invalid-command");
   }
-  await ensureOperationProjectionVersion(db, uid);
+  await ensureOperationProjectionVersion(db, uid, {expectedGeneration: data.expectedGeneration});
   const operationId = data.operationId as string;
   const expectedGeneration = Number(data.expectedGeneration);
   const requestId = `cancel_${digest({operationId}).slice(0, 48)}`;
@@ -233,7 +237,7 @@ async function archiveAccount(db: Firestore, uid: string, payload: unknown) {
       data.action !== "archiveAccount" || !validId(data.accountId) || !Number.isSafeInteger(data.expectedGeneration) || Number(data.expectedGeneration) < 0) {
     throw new OperationCommandError("account-archive-invalid-command");
   }
-  await ensureOperationProjectionVersion(db, uid);
+  await ensureOperationProjectionVersion(db, uid, {expectedGeneration: data.expectedGeneration});
   const accountId = data.accountId as string;
   const expectedGeneration = Number(data.expectedGeneration);
   const requestId = `archive_${digest({accountId}).slice(0, 48)}`;
@@ -277,7 +281,7 @@ export async function executeOperationCommand(db: Firestore, uid: string | undef
     if (data.action === "cancel") return await cancelOperation(db, uid, payload);
     if (data.action === "archiveAccount") return await archiveAccount(db, uid, payload);
     if (data.action === "correct" || data.action === undefined) {
-      await ensureOperationProjectionVersion(db, uid);
+      await ensureOperationProjectionVersion(db, uid, {expectedGeneration: data.expectedGeneration});
       const correction = {...data};
       delete correction.action;
       return await executeOperationCorrection(db, uid, correction);

@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .spin-icon{animation:spin 1.2s linear infinite}
 .version-count{font-size:10px;font-weight:600;color:#61768d}
+
+.resource-usage .search-form{display:flex;gap:12px;margin:20px 0}.resource-usage .search-form input{flex:1;min-width:0;padding:12px;border:1px solid var(--line);border-radius:10px}.resource-usage .empty-state{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--blue-soft);margin:16px 0;line-height:1.5}.resource-detail{border:1px solid var(--line);border-radius:18px;padding:24px;max-width:680px;width:calc(100% - 32px);max-height:85vh;overflow:auto;color:var(--ink);background:var(--surface)}.resource-detail::backdrop{background:#102b4480}.resource-detail dl>div{padding:8px 0;border-bottom:1px solid var(--line)}.resource-detail dt{font-weight:600}.resource-detail dd{margin:5px 0;overflow-wrap:anywhere}.resource-detail h2{overflow-wrap:anywhere}

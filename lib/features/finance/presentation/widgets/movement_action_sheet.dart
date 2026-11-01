@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-enum MovementEntryAction { income, expense, transfer, debtPayment }
+enum MovementEntryAction { income, expense, transfer, debtPayment, document }
 
 /// The action selected from the shared global movement entry point.
 class MovementActionSheet extends StatelessWidget {
@@ -51,6 +51,13 @@ class MovementActionSheet extends StatelessWidget {
             icon: Icons.credit_score_outlined,
             tint: Theme.of(context).colorScheme.errorContainer,
             ink: context.appColors.expense,
+          ),
+          (
+            type: MovementEntryAction.document,
+            label: l10n.documentImportTitle,
+            icon: Icons.document_scanner_outlined,
+            tint: Theme.of(context).colorScheme.secondaryContainer,
+            ink: Theme.of(context).colorScheme.onSecondaryContainer,
           ),
         ];
 

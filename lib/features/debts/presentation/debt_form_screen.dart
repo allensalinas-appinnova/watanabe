@@ -15,6 +15,7 @@ import '../../finance/domain/entities/financial_operation.dart';
 import '../../finance/domain/entities/operation_page.dart';
 import '../../finance/presentation/models/picker_usage_order.dart';
 import '../../finance/presentation/providers/canonical_finance_providers.dart';
+import '../../finance/presentation/widgets/account_identity_fields.dart';
 import '../../finance/presentation/widgets/finance_account_option.dart';
 import '../../finance/presentation/widgets/finance_category_icon.dart';
 import '../../finance/presentation/widgets/finance_popup_selector.dart';
@@ -259,6 +260,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       _includeInDashboard = account?.includeInDashboard ?? true;
       field('name', account?.name ?? '');
       field('creditor', account?.creditor ?? '');
+      field('institutionName', account?.institutionName ?? account?.creditor ?? '');
+      field('institutionCountryCode', account?.institutionCountryCode ?? '');
       field('lastFour', account?.lastFour ?? '');
       field('statementClosingDay', account?.statementClosingDay?.toString() ?? '');
       field('paymentDueDay', account?.paymentDueDay?.toString() ?? '');
@@ -503,7 +506,14 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                       input('chargesMinor', l.debtCharges, money: true, initial: '0'),
                     ],
                   ],
-                  input('creditor', l.debtCreditor, optional: true),
+                  if (_product == 'personalLoan') input('creditor', l.debtCreditor, optional: true),
+                  AccountIdentityFields(
+                    institution: field('institutionName'),
+                    country: field('institutionCountryCode'),
+                    ending: field('accountLastFour'),
+                    showEnding: false,
+                    enabled: !_saving,
+                  ),
                   if (!_create)
                     SwitchListTile(
                       value: _includeInDashboard,
@@ -781,6 +791,17 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     if (_create || widget.action == 'update') {
       data['name'] = field('name').text;
       if (!_create) data['includeInDashboard'] = _includeInDashboard;
+      for (final key in ['institutionName', 'institutionCountryCode']) {
+        final value = field(key).text.trim();
+        if (!_create || value.isNotEmpty) {
+          data[key] = value.isEmpty
+              ? null
+              : key == 'institutionCountryCode'
+              ? value.toUpperCase()
+              : value;
+        }
+      }
+      if (_product != 'personalLoan') field('creditor').text = field('institutionName').text;
       for (final key in ['creditor', if (_card) 'lastFour']) {
         if (!_create || field(key).text.trim().isNotEmpty) data[key] = field(key).text.trim();
       }

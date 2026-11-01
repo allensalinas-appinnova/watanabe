@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
 import {deleteApp} from 'firebase-admin/app';
+import {ensureOperationProjectionVersion} from '../lib/operation_projection_migration.js';
 import {executeBalanceAdjustment} from '../lib/balance_adjustments.js';
 import {app, db, seedUser, userDump} from './projection_test_support.mjs';
 
@@ -36,6 +37,8 @@ test('rejects unauthenticated, inactive, incompatible and out-of-range commands 
 
 test('same concurrent request commits one adjustment; colliding operation transactions compose', async () => {
   const root = await seedUser('balance-adjustment-concurrency');
+  // Isolate financial contention from the separately tested legacy-migration lock.
+  await ensureOperationProjectionVersion(db, root.id);
   const rows = [{accountId: 'bank', currency: 'COP', targetBalanceMinor: 7000}];
   const results = await Promise.all(Array.from({length: 4}, () => invoke(root.id, 'balance-adjustment-3', rows)));
   assert(results.every((result) => result.adjustments[0].deltaMinor === -3000));

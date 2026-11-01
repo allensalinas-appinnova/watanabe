@@ -1,5 +1,7 @@
+import {resourceOnCall} from "./resource_endpoints";
+export {mutatePaymentInstrument, mutateDocumentImport, getResourceUsage, mutateAttachment, trackDocumentUpload, trackDocumentDelete, cleanupDocumentImports, reconcileResourceUsage, submitUsageObservation} from "./resource_endpoints";
 import {initializeApp} from "firebase-admin/app";
-import {getFirestore} from "firebase-admin/firestore";
+import {meteredFirestore as getFirestore} from "./resource_observation";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {BudgetCommandError, executeBudgetCommand} from "./budget_commands";
@@ -15,22 +17,23 @@ import {DeviceRegistryError, executeDeviceRegistryCommand} from "./device_regist
 import {executeOperationCommand, OperationCommandError} from "./operation_commands";
 import {ensureOperationProjectionVersion, OperationProjectionMigrationError} from "./operation_projection_migration";
 import {mutatePlanningFollowUp as executePlanningFollowUp, PlanningFollowUpError} from "./planning_follow_ups";
-export {adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
+export {adminResourceUsage, adminListAudit, adminListUsers, adminLookupUser, adminOverview, bootstrapAdmin, refreshAdminDailyMetrics} from "./admin_portal";
 
 initializeApp();
 
 // Cloud Run's invoker IAM check is disabled with explicit user approval.
 // Keep the IAM policy private (no allUsers grant); the handler requires Firebase Auth.
-export const mutateDiagnostic = onCall({region: "us-central1", timeoutSeconds: 60, invoker: "private"}, async request =>
+export const mutateDiagnostic = resourceOnCall("mutateDiagnostic", {region: "us-central1", timeoutSeconds: 60, invoker: "private"}, async request =>
   executeDiagnosticCommand(getFirestore(), request.auth?.uid, request.data));
 
-export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, async (request) => {
+export const manageDevice = resourceOnCall("manageDevice", {region: "us-central1", timeoutSeconds: 30}, async (request) => {
   if (request.auth?.token.firebase?.sign_in_provider === "anonymous") {
     throw new HttpsError("permission-denied", "registered-account-required", {issue: "registered-account-required"});
   }
   try {
     return await executeDeviceRegistryCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof DeviceRegistryError) {
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }
@@ -38,10 +41,11 @@ export const manageDevice = onCall({region: "us-central1", timeoutSeconds: 30}, 
   }
 });
 
-export const mutateOperation = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+export const mutateOperation = resourceOnCall("mutateOperation", {region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
     return await executeOperationCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof OperationCommandError || error instanceof OperationProjectionMigrationError) {
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }
@@ -49,11 +53,12 @@ export const mutateOperation = onCall({region: "us-central1", timeoutSeconds: 60
   }
 });
 
-export const mutateDebt = onCall({region: "us-central1", timeoutSeconds: 60, memory: "512MiB"}, async (request) => {
+export const mutateDebt = resourceOnCall("mutateDebt", {region: "us-central1", timeoutSeconds: 60, memory: "512MiB"}, async (request) => {
   try {
-    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid, {expectedGeneration: request.data?.expectedGeneration});
     return await executeDebtCommand(getFirestore(), request.auth?.uid, request.data, {enabled: true});
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof DebtCommandError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     // Never include financial values, names, references, or raw errors in telemetry.
@@ -61,19 +66,21 @@ export const mutateDebt = onCall({region: "us-central1", timeoutSeconds: 60, mem
   }
 });
 
-export const mutateDebtCommitment = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+export const mutateDebtCommitment = resourceOnCall("mutateDebtCommitment", {region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
     return await executeDebtCommitmentCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof DebtCommitmentError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     throw new HttpsError("internal", "commitment-command-failed", {issue: "commitment-command-failed"});
   }
 });
 
-export const mutatePlanningFollowUp = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+export const mutatePlanningFollowUp = resourceOnCall("mutatePlanningFollowUp", {region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
     return await executePlanningFollowUp(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof PlanningFollowUpError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     throw new HttpsError("internal", "planning-follow-up-failed", {issue: "planning-follow-up-failed"});
   }
@@ -96,37 +103,40 @@ function importFailure(error: unknown): never {
   throw new HttpsError("internal", "import-command-failed", {issue: "import-command-failed"});
 }
 
-export const mutateEmailImport = onCall({region: "us-central1", timeoutSeconds: 60, maxInstances: 2}, async (request) => {
+export const mutateEmailImport = resourceOnCall("mutateEmailImport", {region: "us-central1", timeoutSeconds: 60, maxInstances: 2}, async (request) => {
   try {
-    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid, {expectedGeneration: request.data?.expectedGeneration});
     return await executeEmailImportCommand(getFirestore(), request.auth?.uid, request.data, emailImportPolicy());
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     return importFailure(error);
   }
 });
 
-export const listEmailImports = onCall({region: "us-central1", timeoutSeconds: 30, maxInstances: 2}, async (request) => {
+export const listEmailImports = resourceOnCall("listEmailImports", {region: "us-central1", timeoutSeconds: 30, maxInstances: 2}, async (request) => {
   try {
     return await listEmailImportCandidates(getFirestore(), request.auth?.uid, request.data, emailImportPolicy());
   } catch (error) { return importFailure(error); }
 });
 
-export const mutateBudget = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+export const mutateBudget = resourceOnCall("mutateBudget", {region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
-    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid);
+    await ensureOperationProjectionVersion(getFirestore(), request.auth?.uid, {expectedGeneration: request.data?.expectedGeneration});
     return await executeBudgetCommand(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof BudgetCommandError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     if (error instanceof OperationProjectionMigrationError) throw new HttpsError(error.status, error.issue, {issue: error.issue});
     throw new HttpsError("internal", "budget-command-failed", {issue: "budget-command-failed"});
   }
 });
 
-export const adjustAccountBalances = onCall({region: "us-central1", timeoutSeconds: 60}, async (request) => {
+export const adjustAccountBalances = resourceOnCall("adjustAccountBalances", {region: "us-central1", timeoutSeconds: 60}, async (request) => {
   try {
     return await executeBalanceAdjustment(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof BalanceAdjustmentError) {
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }
@@ -149,10 +159,11 @@ export const processOperation = onDocumentWritten(
   },
 );
 
-export const resetUserData = onCall({region: "us-central1", timeoutSeconds: 540, memory: "1GiB"}, async (request) => {
+export const resetUserData = resourceOnCall("resetUserData", {region: "us-central1", timeoutSeconds: 540, memory: "1GiB"}, async (request) => {
   try {
     return await executeUserDataReset(getFirestore(), request.auth?.uid, request.data);
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     if (error instanceof UserDataResetError) {
       throw new HttpsError(error.status, error.issue, {issue: error.issue});
     }

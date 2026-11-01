@@ -897,5 +897,116 @@
   ,"homeSectionBudgets": "Presupuestos"
   ,"homeSectionRecentActivity": "Actividad reciente"
   ,"moveUp": "Mover arriba"
-  ,"moveDown": "Mover abajo"
+  ,"moveDown": "Mover abajo",
+  "accountIdentityTitle": "Identificación y medios de pago",
+  "accountIdentityOptional": "Opcional. Ayuda a reconocer tu cuenta en comprobantes.",
+  "accountInstitution": "Entidad",
+  "accountInstitutionCountry": "País de la entidad (código de dos letras)",
+  "accountNumberEnding": "Últimos cuatro dígitos de la cuenta",
+  "identityInvalid": "Revisa este dato.",
+  "paymentInstruments": "Medios de pago",
+  "instrumentName": "Nombre para identificarlo",
+  "instrumentAdd": "Agregar tarjeta débito",
+  "instrumentExplanation": "Las tarjetas débito vinculadas usan el saldo de esta cuenta; no crean un saldo adicional.",
+  "instrumentEmpty": "Aún no hay medios de pago vinculados.",
+  "instrumentLastFour": "Últimos cuatro dígitos de la tarjeta",
+  "instrumentSaveFailed": "No se pudo guardar. Tu selección se conserva; revisa la conexión y reintenta.",
+  "instrumentRemove": "Retirar medio de pago",
+  "instrumentRemoveExplanation": "Dejará de sugerirse en comprobantes. La cuenta y sus movimientos se conservan.",
+  "documentImportTitle": "Desde foto o archivo",
+  "documentImportExplanation": "Carga un comprobante individual para preparar un gasto o compra con tarjeta. Revisarás los datos antes de guardar y el documento quedará adjunto.",
+  "documentRegisteredOnly": "Guarda tu cuenta para analizar comprobantes y consultar tu consumo.",
+  "documentCamera": "Tomar foto",
+  "documentGallery": "Elegir imagen",
+  "documentFile": "Elegir PDF",
+  "documentPreview": "Ver comprobante",
+  "documentOffline": "Necesitas conexión a internet para analizar este documento. Tu borrador se conserva; podrás reintentarlo cuando tengas conexión.",
+  "documentAnalyzing": "Analizando comprobante…",
+  "documentAnalyze": "Analizar documento",
+  "documentCloudTitle": "Análisis en la nube",
+  "documentCloudConsent": "Enviaremos este documento a nuestro servicio de IA en la nube para extraer sus datos. Revisa siempre las sugerencias. Cada análisis completado, incluso de un documento no compatible, cuenta para tu límite. Si guardas el gasto, el comprobante se conservará como adjunto. Los archivos sin confirmar vencen a las 24 horas y se eliminan en la limpieza periódica.",
+  "documentUnsupported": "Este documento no permite preparar un gasto individual. Puedes registrarlo manualmente.",
+  "documentAlreadyImported": "Este comprobante ya está asociado a un movimiento.",
+  "documentOpenExisting": "Abrir movimiento existente",
+  "documentReview": "Revisar gasto",
+  "documentDiscard": "Descartar documento",
+  "documentDiscardExplanation": "Se eliminará el borrador y se solicitará borrar el archivo temporal. No se creará un movimiento.",
+  "documentManual": "Registrar manualmente",
+  "documentRetryError": "No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.",
+  "documentFileInvalid": "Archivo no compatible. Usa una imagen de hasta 5 MB o un PDF sin contraseña de hasta 10 MB y tres páginas.",
+  "documentQuotaExceeded": "Alcanzaste el límite de análisis. Consulta la próxima renovación en Uso y almacenamiento.",
+  "documentStorageFull": "No hay espacio suficiente para conservar este comprobante. Puedes administrar tus adjuntos o registrar el gasto manualmente.",
+  "documentServiceDisabled": "El análisis de documentos no está disponible por el momento. Puedes registrar el gasto manualmente.",
+  "documentExpired": "Este borrador venció o pertenece a datos anteriores al reinicio. Vuelve a cargar el documento.",
+  "documentDeviceVerification": "No pudimos verificar esta instalación. Actualiza la app y vuelve a intentarlo.",
+  "documentSuggested": "Datos sugeridos. Revisa importe, moneda, fecha, categoría y cuenta antes de guardar.",
+  "documentPerformed": "Confirmo que ya realicé este gasto",
+  "documentNotPaid": "Si todavía no lo pagaste, puedes planificarlo sin registrar una salida de dinero.",
+  "documentPlanInstead": "Ir a Plan",
+  "documentDuplicateTitle": "Posible duplicado",
+  "documentDuplicateBody": "Hay un movimiento con datos similares. Revisa Actividad antes de continuar.",
+  "documentSaveAnyway": "Guardar de todos modos",
+  "resourceUsageTitle": "Uso y almacenamiento",
+  "documentQuotaUsage": "Análisis hoy: {dailyUsed} de {dailyLimit} · Este mes: {monthlyUsed} de {monthlyLimit}",
+  "documentQuotaRenews": "El límite diario se renueva: {date}",
+  "documentMonthlyRenews": "El límite mensual se renueva: {date}",
+  "documentStorageUsage": "Adjuntos: {used} de {limit}",
+  "documentTemporaryUsage": "Archivos temporales: {used}",
+  "documentAttachments": "Comprobantes guardados",
+  "documentAttachmentsEmpty": "No hay comprobantes guardados.",
+  "documentReceipt": "Comprobante adjunto",
+  "documentDelete": "Eliminar",
+  "documentDeleteAttachment": "Eliminar adjunto",
+  "documentDeleteExplanation": "Se eliminará solo el archivo. El movimiento, sus importes y su efecto financiero se conservan. El espacio se libera al confirmar la eliminación.",
+  "documentReadError": "No se pudo abrir el comprobante. Revisa tu conexión y vuelve a intentarlo.",
+  "@documentQuotaUsage": {
+    "placeholders": {
+      "dailyUsed": {
+        "type": "int"
+      },
+      "dailyLimit": {
+        "type": "int"
+      },
+      "monthlyUsed": {
+        "type": "int"
+      },
+      "monthlyLimit": {
+        "type": "int"
+      }
+    }
+  },
+  "@documentQuotaRenews": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentMonthlyRenews": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentStorageUsage": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "@documentTemporaryUsage": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "documentDraftUnavailable": "No pudimos guardar el borrador en este dispositivo. Revisa el espacio disponible e inténtalo de nuevo antes de enviar el documento.",
+  "documentDateRequired": "El comprobante no tiene una fecha clara. Elige la fecha del gasto antes de guardar.",
+  "documentStartAnother": "Analizar otro documento"
 }

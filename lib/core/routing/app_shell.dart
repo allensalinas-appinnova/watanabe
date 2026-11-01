@@ -208,6 +208,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       MovementEntryAction.expense => '/operations/new?type=expense',
       MovementEntryAction.transfer => '/transfers/new',
       MovementEntryAction.debtPayment => '/accounts/pay-debt',
+      MovementEntryAction.document => '/document-imports/new',
     };
     setState(() => _openingForm = true);
     try {

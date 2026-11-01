@@ -5157,6 +5157,390 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Mover abajo'**
   String get moveDown;
+
+  /// No description provided for @accountIdentityTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Identificación y medios de pago'**
+  String get accountIdentityTitle;
+
+  /// No description provided for @accountIdentityOptional.
+  ///
+  /// In es, this message translates to:
+  /// **'Opcional. Ayuda a reconocer tu cuenta en comprobantes.'**
+  String get accountIdentityOptional;
+
+  /// No description provided for @accountInstitution.
+  ///
+  /// In es, this message translates to:
+  /// **'Entidad'**
+  String get accountInstitution;
+
+  /// No description provided for @accountInstitutionCountry.
+  ///
+  /// In es, this message translates to:
+  /// **'País de la entidad (código de dos letras)'**
+  String get accountInstitutionCountry;
+
+  /// No description provided for @accountNumberEnding.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimos cuatro dígitos de la cuenta'**
+  String get accountNumberEnding;
+
+  /// No description provided for @identityInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa este dato.'**
+  String get identityInvalid;
+
+  /// No description provided for @paymentInstruments.
+  ///
+  /// In es, this message translates to:
+  /// **'Medios de pago'**
+  String get paymentInstruments;
+
+  /// No description provided for @instrumentName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre para identificarlo'**
+  String get instrumentName;
+
+  /// No description provided for @instrumentAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar tarjeta débito'**
+  String get instrumentAdd;
+
+  /// No description provided for @instrumentExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Las tarjetas débito vinculadas usan el saldo de esta cuenta; no crean un saldo adicional.'**
+  String get instrumentExplanation;
+
+  /// No description provided for @instrumentEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay medios de pago vinculados.'**
+  String get instrumentEmpty;
+
+  /// No description provided for @instrumentLastFour.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimos cuatro dígitos de la tarjeta'**
+  String get instrumentLastFour;
+
+  /// No description provided for @instrumentSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar. Tu selección se conserva; revisa la conexión y reintenta.'**
+  String get instrumentSaveFailed;
+
+  /// No description provided for @instrumentRemove.
+  ///
+  /// In es, this message translates to:
+  /// **'Retirar medio de pago'**
+  String get instrumentRemove;
+
+  /// No description provided for @instrumentRemoveExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Dejará de sugerirse en comprobantes. La cuenta y sus movimientos se conservan.'**
+  String get instrumentRemoveExplanation;
+
+  /// No description provided for @documentImportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Desde foto o archivo'**
+  String get documentImportTitle;
+
+  /// No description provided for @documentImportExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Carga un comprobante individual para preparar un gasto o compra con tarjeta. Revisarás los datos antes de guardar y el documento quedará adjunto.'**
+  String get documentImportExplanation;
+
+  /// No description provided for @documentRegisteredOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Guarda tu cuenta para analizar comprobantes y consultar tu consumo.'**
+  String get documentRegisteredOnly;
+
+  /// No description provided for @documentCamera.
+  ///
+  /// In es, this message translates to:
+  /// **'Tomar foto'**
+  String get documentCamera;
+
+  /// No description provided for @documentGallery.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir imagen'**
+  String get documentGallery;
+
+  /// No description provided for @documentFile.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir PDF'**
+  String get documentFile;
+
+  /// No description provided for @documentPreview.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver comprobante'**
+  String get documentPreview;
+
+  /// No description provided for @documentOffline.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas conexión a internet para analizar este documento. Tu borrador se conserva; podrás reintentarlo cuando tengas conexión.'**
+  String get documentOffline;
+
+  /// No description provided for @documentAnalyzing.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizando comprobante…'**
+  String get documentAnalyzing;
+
+  /// No description provided for @documentAnalyze.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar documento'**
+  String get documentAnalyze;
+
+  /// No description provided for @documentCloudTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Análisis en la nube'**
+  String get documentCloudTitle;
+
+  /// No description provided for @documentCloudConsent.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviaremos este documento a nuestro servicio de IA en la nube para extraer sus datos. Revisa siempre las sugerencias. Cada análisis completado, incluso de un documento no compatible, cuenta para tu límite. Si guardas el gasto, el comprobante se conservará como adjunto. Los archivos sin confirmar vencen a las 24 horas y se eliminan en la limpieza periódica.'**
+  String get documentCloudConsent;
+
+  /// No description provided for @documentUnsupported.
+  ///
+  /// In es, this message translates to:
+  /// **'Este documento no permite preparar un gasto individual. Puedes registrarlo manualmente.'**
+  String get documentUnsupported;
+
+  /// No description provided for @documentAlreadyImported.
+  ///
+  /// In es, this message translates to:
+  /// **'Este comprobante ya está asociado a un movimiento.'**
+  String get documentAlreadyImported;
+
+  /// No description provided for @documentOpenExisting.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir movimiento existente'**
+  String get documentOpenExisting;
+
+  /// No description provided for @documentReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar gasto'**
+  String get documentReview;
+
+  /// No description provided for @documentDiscard.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartar documento'**
+  String get documentDiscard;
+
+  /// No description provided for @documentDiscardExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Se eliminará el borrador y se solicitará borrar el archivo temporal. No se creará un movimiento.'**
+  String get documentDiscardExplanation;
+
+  /// No description provided for @documentManual.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar manualmente'**
+  String get documentManual;
+
+  /// No description provided for @documentRetryError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.'**
+  String get documentRetryError;
+
+  /// No description provided for @documentFileInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Archivo no compatible. Usa una imagen de hasta 5 MB o un PDF sin contraseña de hasta 10 MB y tres páginas.'**
+  String get documentFileInvalid;
+
+  /// No description provided for @documentQuotaExceeded.
+  ///
+  /// In es, this message translates to:
+  /// **'Alcanzaste el límite de análisis. Consulta la próxima renovación en Uso y almacenamiento.'**
+  String get documentQuotaExceeded;
+
+  /// No description provided for @documentStorageFull.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay espacio suficiente para conservar este comprobante. Puedes administrar tus adjuntos o registrar el gasto manualmente.'**
+  String get documentStorageFull;
+
+  /// No description provided for @documentServiceDisabled.
+  ///
+  /// In es, this message translates to:
+  /// **'El análisis de documentos no está disponible por el momento. Puedes registrar el gasto manualmente.'**
+  String get documentServiceDisabled;
+
+  /// No description provided for @documentExpired.
+  ///
+  /// In es, this message translates to:
+  /// **'Este borrador venció o pertenece a datos anteriores al reinicio. Vuelve a cargar el documento.'**
+  String get documentExpired;
+
+  /// No description provided for @documentDeviceVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos verificar esta instalación. Actualiza la app y vuelve a intentarlo.'**
+  String get documentDeviceVerification;
+
+  /// No description provided for @documentSuggested.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos sugeridos. Revisa importe, moneda, fecha, categoría y cuenta antes de guardar.'**
+  String get documentSuggested;
+
+  /// No description provided for @documentPerformed.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmo que ya realicé este gasto'**
+  String get documentPerformed;
+
+  /// No description provided for @documentNotPaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Si todavía no lo pagaste, puedes planificarlo sin registrar una salida de dinero.'**
+  String get documentNotPaid;
+
+  /// No description provided for @documentPlanInstead.
+  ///
+  /// In es, this message translates to:
+  /// **'Ir a Plan'**
+  String get documentPlanInstead;
+
+  /// No description provided for @documentDuplicateTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Posible duplicado'**
+  String get documentDuplicateTitle;
+
+  /// No description provided for @documentDuplicateBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Hay un movimiento con datos similares. Revisa Actividad antes de continuar.'**
+  String get documentDuplicateBody;
+
+  /// No description provided for @documentSaveAnyway.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar de todos modos'**
+  String get documentSaveAnyway;
+
+  /// No description provided for @resourceUsageTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Uso y almacenamiento'**
+  String get resourceUsageTitle;
+
+  /// No description provided for @documentQuotaUsage.
+  ///
+  /// In es, this message translates to:
+  /// **'Análisis hoy: {dailyUsed} de {dailyLimit} · Este mes: {monthlyUsed} de {monthlyLimit}'**
+  String documentQuotaUsage(int dailyUsed, int dailyLimit, int monthlyUsed, int monthlyLimit);
+
+  /// No description provided for @documentQuotaRenews.
+  ///
+  /// In es, this message translates to:
+  /// **'El límite diario se renueva: {date}'**
+  String documentQuotaRenews(String date);
+
+  /// No description provided for @documentMonthlyRenews.
+  ///
+  /// In es, this message translates to:
+  /// **'El límite mensual se renueva: {date}'**
+  String documentMonthlyRenews(String date);
+
+  /// No description provided for @documentStorageUsage.
+  ///
+  /// In es, this message translates to:
+  /// **'Adjuntos: {used} de {limit}'**
+  String documentStorageUsage(String used, String limit);
+
+  /// No description provided for @documentTemporaryUsage.
+  ///
+  /// In es, this message translates to:
+  /// **'Archivos temporales: {used}'**
+  String documentTemporaryUsage(String used);
+
+  /// No description provided for @documentAttachments.
+  ///
+  /// In es, this message translates to:
+  /// **'Comprobantes guardados'**
+  String get documentAttachments;
+
+  /// No description provided for @documentAttachmentsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay comprobantes guardados.'**
+  String get documentAttachmentsEmpty;
+
+  /// No description provided for @documentReceipt.
+  ///
+  /// In es, this message translates to:
+  /// **'Comprobante adjunto'**
+  String get documentReceipt;
+
+  /// No description provided for @documentDelete.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar'**
+  String get documentDelete;
+
+  /// No description provided for @documentDeleteAttachment.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar adjunto'**
+  String get documentDeleteAttachment;
+
+  /// No description provided for @documentDeleteExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Se eliminará solo el archivo. El movimiento, sus importes y su efecto financiero se conservan. El espacio se libera al confirmar la eliminación.'**
+  String get documentDeleteExplanation;
+
+  /// No description provided for @documentReadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo abrir el comprobante. Revisa tu conexión y vuelve a intentarlo.'**
+  String get documentReadError;
+
+  /// No description provided for @documentDraftUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos guardar el borrador en este dispositivo. Revisa el espacio disponible e inténtalo de nuevo antes de enviar el documento.'**
+  String get documentDraftUnavailable;
+
+  /// No description provided for @documentDateRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'El comprobante no tiene una fecha clara. Elige la fecha del gasto antes de guardar.'**
+  String get documentDateRequired;
+
+  /// No description provided for @documentStartAnother.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar otro documento'**
+  String get documentStartAnother;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

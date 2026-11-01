@@ -65,6 +65,13 @@ class CanonicalMoreScreen extends ConsumerWidget {
             const SizedBox(height: 16),
           ],
           OutlinedButton.icon(
+            key: const ValueKey('settings_resource_usage'),
+            onPressed: () => context.push('/settings/usage'),
+            icon: const Icon(Icons.storage_outlined),
+            label: Text(l10n.resourceUsageTitle),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
             key: const ValueKey('settings_appearance'),
             onPressed: () => context.push('/settings/appearance'),
             icon: const Icon(Icons.palette_outlined),

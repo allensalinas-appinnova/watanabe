@@ -14,6 +14,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../debts/presentation/debt_form_screen.dart';
 import '../../domain/entities/finance_account.dart';
 import '../providers/canonical_finance_providers.dart';
+import '../widgets/account_identity_fields.dart';
 
 const _availableCurrencies = ['COP', 'MXN', 'BRL'];
 
@@ -101,6 +102,11 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   late String _type;
   late String _currency;
   late bool _includeInDashboard;
+  late final _institution = TextEditingController(text: widget.account?.institutionName ?? '');
+  late final _institutionCountry = TextEditingController(
+    text: widget.account?.institutionCountryCode ?? '',
+  );
+  late final _accountEnding = TextEditingController(text: widget.account?.accountLastFour ?? '');
   bool _saving = false;
   bool _hasUnsavedChanges = false;
   String? _error;
@@ -115,6 +121,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     _type = widget.account?.type ?? 'cash';
     _currency = widget.account?.currency ?? widget.defaultCurrency;
     _includeInDashboard = widget.account?.includeInDashboard ?? true;
+    _institution.addListener(_markChanged);
+    _institutionCountry.addListener(_markChanged);
+    _accountEnding.addListener(_markChanged);
     _nameController.addListener(_markChanged);
     _balanceController.addListener(_markChanged);
   }
@@ -123,6 +132,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   void dispose() {
     _nameController.dispose();
     _balanceController.dispose();
+    _institution.dispose();
+    _institutionCountry.dispose();
+    _accountEnding.dispose();
     super.dispose();
   }
 
@@ -329,6 +341,12 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                               validator: (value) => _validateBalance(value, l10n),
                             ),
                           ],
+                          AccountIdentityFields(
+                            institution: _institution,
+                            country: _institutionCountry,
+                            ending: _accountEnding,
+                            enabled: !_saving,
+                          ),
                           if (_error != null) ...[
                             const SizedBox(height: 16),
                             Semantics(
@@ -412,6 +430,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
               widget.account!,
               name: name,
               includeInDashboard: _includeInDashboard,
+              institutionName: _institution.text.trim(),
+              institutionCountryCode: _institutionCountry.text.trim().toUpperCase(),
+              accountLastFour: _accountEnding.text.trim(),
             );
       } else {
         await ref
@@ -422,6 +443,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
               type: _type,
               currency: _currency,
               openingBalanceMinor: _parseBalance(_balanceController.text, _currency),
+              institutionName: _institution.text.trim(),
+              institutionCountryCode: _institutionCountry.text.trim().toUpperCase(),
+              accountLastFour: _accountEnding.text.trim(),
             );
       }
       if (mounted) {

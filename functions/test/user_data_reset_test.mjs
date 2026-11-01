@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
 import {deleteApp} from 'firebase-admin/app';
-import {executeUserDataReset} from '../lib/user_data_reset.js';
+import {executeUserDataReset as executeReset} from '../lib/user_data_reset.js';
+// Isolated Firestore reset suite; document_imports_test covers real Storage cleanup.
+const executeUserDataReset = (db, uid, payload) => executeReset(db, uid, payload, {deleteDocuments: async () => {}});
 import {applyOperationEvent} from '../lib/projection_store.js';
 import {app, db, seedUser, userDump} from './projection_test_support.mjs';
 

@@ -120,6 +120,11 @@ class _MoneyAccountDetailScreenState extends ConsumerState<MoneyAccountDetailScr
                     label: Text(l10n.moveMoney),
                   ),
                   OutlinedButton.icon(
+                    onPressed: () => context.push('/accounts/$accountId/instruments'),
+                    icon: const Icon(Icons.credit_card_outlined),
+                    label: Text(l10n.paymentInstruments),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () => context.pushNamed<void>(
                       'edit-account',
                       pathParameters: {'id': accountId},

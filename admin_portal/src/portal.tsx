@@ -1,10 +1,11 @@
+import {ResourceUsagePage} from './resource_usage';
 import {useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode} from 'react';
 import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User} from 'firebase/auth';
 import {httpsCallable} from 'firebase/functions';
 import {Activity, ArrowDown, BadgeCheck, ChevronRight, CircleAlert, ExternalLink, FileClock, Laptop, LayoutDashboard, LoaderCircle, LogOut, RefreshCw, Search, Shield, Smartphone, Users, X} from 'lucide-react';
 import {auth, configurationReady, functions} from './firebase';
 
-type Page = 'overview' | 'users' | 'versions' | 'audit';
+type Page = 'overview' | 'users' | 'versions' | 'audit' | 'usage';
 type Metrics = {authUserCount: number; profileCount: number; onboardingCompleteCount: number; activeDeviceCount: number; devicesByPlatform: Record<string, number>; devicesByAppVersion: Record<string, number>};
 type UserRow = {uid: string; email: string | null; emailVerified: boolean; disabled: boolean; providers: string[]; createdAt: string | null; lastSignInAt: string | null; hasProfile: boolean; onboardingStatus: string | null; resetStatus: string | null};
 type Installation = {id: string; platform: string; appVersion: string | null; buildNumber: string | null; createdAt: string | null; lastSeenAt: string | null; active: boolean};
@@ -91,6 +92,7 @@ export function AdminPortal() {
     {id: 'overview' as const, label: 'Resumen', icon: LayoutDashboard},
     {id: 'users' as const, label: 'Usuarios e instalaciones', icon: Users},
     {id: 'versions' as const, label: 'Versiones', icon: Smartphone},
+    {id: 'usage' as const, label: 'Consumo y almacenamiento', icon: Activity},
     {id: 'audit' as const, label: 'Auditoría', icon: FileClock},
   ];
 
@@ -106,6 +108,7 @@ export function AdminPortal() {
       <div className="content">
         {error && <div className="error-banner"><CircleAlert size={18}/><span>{error}</span><button onClick={() => setError('')} aria-label="Cerrar"><X size={17}/></button></div>}
         {busy && <div className="busy-line"><LoaderCircle size={16}/> Actualizando datos…</div>}
+        {page === 'usage' && <ResourceUsagePage/>}
         {page === 'overview' && <section>
           <div className="page-heading"><div><p className="eyebrow">PANEL OPERATIVO</p><h1>Resumen</h1><p>Una lectura diaria de la salud operativa de LumioMoney.</p></div><a className="external-link" href="https://console.firebase.google.com/project/lumiomoney/overview" target="_blank" rel="noreferrer">Abrir Firebase <ExternalLink size={15}/></a></div>
           {!overview?.available ? <div className="empty-state"><Activity size={28}/><h2>Métricas en preparación</h2><p>El primer resumen estará disponible después de ejecutarse la actualización diaria. Una lectura no disponible no se muestra como cero.</p><button className="secondary" onClick={() => void loadOverview()}>Reintentar</button></div> : <>

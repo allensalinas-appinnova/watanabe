@@ -51,8 +51,7 @@ class FirebaseOperationCorrectionService {
     // financial data after the user reset their account.
     final generation = (operation['dataGeneration'] as num?)?.toInt() ?? currentGeneration;
     final requestId = operation['idempotencyKey'];
-    final operationPayload = Map<String, Object?>.from(operation)
-      ..remove('dataGeneration');
+    final operationPayload = Map<String, Object?>.from(operation)..remove('dataGeneration');
     await _call({
       ...operationPayload,
       'action': 'create',

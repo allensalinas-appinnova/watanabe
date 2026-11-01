@@ -14,11 +14,14 @@ export class OperationProjectionMigrationError extends Error {
  * Marks legacy operation snapshots as projected only after a full read-only
  * audit confirms that every financial projection agrees with the source ledger.
  */
-export async function ensureOperationProjectionVersion(db: Firestore, uid: string | undefined): Promise<void> {
+export async function ensureOperationProjectionVersion(db: Firestore, uid: string | undefined, generation?: {expectedGeneration: unknown}): Promise<void> {
   if (!uid || !validId(uid)) throw new OperationProjectionMigrationError("authentication-required", "unauthenticated");
   const root = db.doc(`users/${uid}`);
   const first = (await root.get()).data();
   if (!first || first.resetStatus === "resetting") throw new OperationProjectionMigrationError("user-reset-in-progress");
+  if (generation && (!Number.isSafeInteger(generation.expectedGeneration) || (first.dataGeneration ?? 0) !== generation.expectedGeneration)) {
+    throw new OperationProjectionMigrationError("stale-data-generation");
+  }
   if (first.operationProjectionVersion === 1) return;
   const migrationToken = randomUUID();
 
@@ -26,6 +29,7 @@ export async function ensureOperationProjectionVersion(db: Firestore, uid: strin
     const snapshot = await transaction.get(root);
     const profile = snapshot.data();
     if (!profile || profile.resetStatus === "resetting") throw new OperationProjectionMigrationError("user-reset-in-progress");
+    if (generation && (profile.dataGeneration ?? 0) !== generation.expectedGeneration) throw new OperationProjectionMigrationError("stale-data-generation");
     if (profile.operationProjectionVersion === 1) return false;
     if (profile.operationProjectionMigration === "running") {
       const started = profile.operationProjectionMigrationStartedAt;

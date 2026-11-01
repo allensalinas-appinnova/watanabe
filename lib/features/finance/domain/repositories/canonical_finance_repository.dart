@@ -136,6 +136,9 @@ abstract interface class CanonicalFinanceRepository {
     required String type,
     required String currency,
     required int openingBalanceMinor,
+    String? institutionName,
+    String? institutionCountryCode,
+    String? accountLastFour,
   });
 
   Future<Either<Failure, Unit>> updateAccount(String userId, FinanceAccount account);

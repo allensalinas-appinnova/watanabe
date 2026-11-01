@@ -142,6 +142,17 @@ service cloud.firestore {
                 'categoryExpenses', 'budgets', 'recentActivity'
               ]))));
     }
+    // Optional partial references only; never full account/card credentials.
+    function validAccountIdentity(data) {
+      return (!('institutionName' in data) || data.institutionName == null || (data.institutionName is string && data.institutionName.size() <= 120)) &&
+        (!('institutionCountryCode' in data) || data.institutionCountryCode == null || data.institutionCountryCode == '' || (data.institutionCountryCode is string && data.institutionCountryCode.matches('^[A-Z]{2}$'))) &&
+        (!('accountLastFour' in data) || data.accountLastFour == null || data.accountLastFour == '' || (data.accountLastFour is string && data.accountLastFour.matches('^[0-9]{4}$')));
+    }
+    function validAccountMetadata(data) {
+      return data.keys().hasAll(['name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor', 'includeInDashboard', 'status', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 120 && data.includeInDashboard is bool && validAccountIdentity(data);
+    }
+
     function validAppearancePreferences(data) {
       return !('appearancePreferences' in data) ||
         (data.appearancePreferences is map &&
@@ -153,6 +164,10 @@ service cloud.firestore {
 
     // Administrative collections are never directly accessible to app clients.
     // All portal reads go through Functions, which verifies an active operator.
+    match /resourceUsage/{path=**} { allow read, write: if false; }
+    match /resourceBilling/{path=**} { allow read, write: if false; }
+    match /resourceTariffs/{path=**} { allow read, write: if false; }
+    match /servicePolicies/{path=**} { allow read, write: if false; }
     match /adminOperators/{path=**} { allow read, write: if false; }
     match /adminDailyMetrics/{path=**} { allow read, write: if false; }
     match /adminAudit/{path=**} { allow read, write: if false; }
@@ -234,6 +249,11 @@ service cloud.firestore {
         match /occurrences/{occurrenceId} { allow read: if owner(uid); allow write: if false; }
       }
       match /debtPayments/{paymentId} { allow read: if owner(uid); allow write: if false; }
+      match /paymentInstruments/{id} { allow read: if owner(uid); allow write: if false; }
+      match /paymentInstrumentCommands/{id} { allow read, write: if false; }
+      match /documentImports/{id} { allow read: if owner(uid); allow write: if false; }
+      match /documentSources/{id} { allow read, write: if false; }
+      match /attachments/{id} { allow read: if owner(uid); allow write: if false; }
       match /debtPaymentLinks/{paymentId} { allow read: if owner(uid); allow write: if false; }
       // Supplemental diagnostic facts: validated callable writes; owner-only reads.
       match /diagnosticRecords/{recordId} {
@@ -289,8 +309,9 @@ service cloud.firestore {
         allow read: if owner(uid);
         allow create: if generationMatches(uid, request.resource.data) && request.resource.data.keys().hasOnly([
           'name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor',
-          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt', 'nature', 'dataGeneration'
+          'includeInDashboard', 'status', 'createdAt', 'updatedAt', 'archivedAt', 'nature', 'dataGeneration', 'institutionName', 'institutionCountryCode', 'accountLastFour'
         ]) && required(request.resource.data, ['name', 'type', 'currency', 'openingBalanceMinor', 'currentBalanceMinor', 'includeInDashboard', 'status', 'createdAt', 'updatedAt']) &&
+          validAccountMetadata(request.resource.data) &&
           request.resource.data.name is string && request.resource.data.name.size() > 0 &&
           request.resource.data.get('nature', 'money') == 'money' &&
           !(request.resource.data.type in ['creditCard', 'bankLoan', 'personalLoan']) &&
@@ -302,8 +323,8 @@ service cloud.firestore {
           request.resource.data.currentBalanceMinor == request.resource.data.openingBalanceMinor &&
           request.resource.data.status in ['active', 'archived'];
         allow update: if profileWritable(uid) && resource.data.get('nature', 'money') == 'money' && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'includeInDashboard', 'updatedAt'
-        ]) && (!('includeInDashboard' in request.resource.data) ||
+          'name', 'includeInDashboard', 'updatedAt', 'institutionName', 'institutionCountryCode', 'accountLastFour'
+        ]) && validAccountMetadata(request.resource.data) && (!('includeInDashboard' in request.resource.data) ||
           request.resource.data.includeInDashboard is bool);
         allow delete: if false;
       }

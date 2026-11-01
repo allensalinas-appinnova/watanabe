@@ -1,0 +1,510 @@
+{
+  "synthetic": true,
+  "createdAt": "2026-11-01T15:54:55.326Z",
+  "results": [
+    {
+      "case": 1,
+      "locale": "es",
+      "latencyMs": 6750,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 371,
+        "totalTokens": 1352
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 2,
+      "locale": "en",
+      "latencyMs": 4073,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 331,
+        "totalTokens": 1312
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 3,
+      "locale": "pt",
+      "latencyMs": 5875,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 260,
+        "totalTokens": 1241
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 4,
+      "locale": "es",
+      "latencyMs": 4401,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 283,
+        "totalTokens": 1264
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 5,
+      "locale": "en",
+      "latencyMs": 3451,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 150,
+        "totalTokens": 1131
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 6,
+      "locale": "pt",
+      "errorCode": 504,
+      "latencyMs": 87330
+    },
+    {
+      "case": 7,
+      "locale": "es",
+      "latencyMs": 4521,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 318,
+        "totalTokens": 1299
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 8,
+      "locale": "en",
+      "latencyMs": 24263,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 60,
+        "thinkingTokens": 137,
+        "totalTokens": 1118
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 9,
+      "locale": "pt",
+      "latencyMs": 7994,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 64,
+        "thinkingTokens": 314,
+        "totalTokens": 1299
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 10,
+      "locale": "es",
+      "latencyMs": 5976,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 295,
+        "totalTokens": 1277
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 11,
+      "locale": "en",
+      "latencyMs": 4466,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 350,
+        "totalTokens": 1332
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 12,
+      "locale": "pt",
+      "latencyMs": 52073,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 361,
+        "totalTokens": 1343
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 13,
+      "locale": "es",
+      "latencyMs": 26891,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 212,
+        "totalTokens": 1194
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 14,
+      "locale": "en",
+      "latencyMs": 3992,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 183,
+        "totalTokens": 1165
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 15,
+      "locale": "pt",
+      "latencyMs": 63838,
+      "correct": {
+        "supported": true,
+        "amount": false,
+        "currency": false,
+        "date": false
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 25,
+        "thinkingTokens": 304,
+        "totalTokens": 1250
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 16,
+      "locale": "es",
+      "latencyMs": 4653,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 361,
+        "totalTokens": 1343
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 17,
+      "locale": "en",
+      "latencyMs": 39359,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 146,
+        "totalTokens": 1128
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 18,
+      "locale": "pt",
+      "latencyMs": 6017,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 420,
+        "totalTokens": 1402
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 19,
+      "locale": "es",
+      "latencyMs": 6298,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 239,
+        "totalTokens": 1221
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 20,
+      "locale": "en",
+      "latencyMs": 4547,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 210,
+        "totalTokens": 1192
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 21,
+      "locale": "pt",
+      "latencyMs": 16487,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 347,
+        "totalTokens": 1329
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 22,
+      "locale": "es",
+      "errorCode": 504,
+      "latencyMs": 87916
+    },
+    {
+      "case": 23,
+      "locale": "en",
+      "errorCode": 504,
+      "latencyMs": 87212
+    },
+    {
+      "case": 24,
+      "locale": "pt",
+      "latencyMs": 27563,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 253,
+        "totalTokens": 1235
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 25,
+      "locale": "es",
+      "latencyMs": 4775,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 372,
+        "totalTokens": 1354
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 26,
+      "locale": "en",
+      "latencyMs": 4301,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 289,
+        "totalTokens": 1271
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 27,
+      "locale": "pt",
+      "latencyMs": 69620,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 439,
+        "totalTokens": 1421
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 28,
+      "locale": "es",
+      "latencyMs": 77675,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 136,
+        "totalTokens": 1118
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 29,
+      "locale": "en",
+      "latencyMs": 49770,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 273,
+        "totalTokens": 1255
+      },
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "case": 30,
+      "locale": "pt",
+      "latencyMs": 5709,
+      "correct": {
+        "supported": true,
+        "amount": true,
+        "currency": true,
+        "date": true
+      },
+      "usage": {
+        "inputTokens": 921,
+        "outputTokens": 61,
+        "thinkingTokens": 280,
+        "totalTokens": 1262
+      },
+      "model": "gemini-3.8-flash"
+    }
+  ]
+}

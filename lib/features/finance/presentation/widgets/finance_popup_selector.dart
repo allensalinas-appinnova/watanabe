@@ -71,6 +71,17 @@ class FinancePopupSelector<T> extends FormField<T> {
        );
 
   final ValueChanged<T>? onSelected;
+
+  @override
+  FormFieldState<T> createState() => _FinancePopupSelectorState<T>();
+}
+
+class _FinancePopupSelectorState<T> extends FormFieldState<T> {
+  @override
+  void didUpdateWidget(covariant FinancePopupSelector<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) setValue(widget.initialValue);
+  }
 }
 
 class _FinanceSelectionSheet<T> extends StatefulWidget {

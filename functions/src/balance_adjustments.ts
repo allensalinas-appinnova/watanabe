@@ -41,7 +41,7 @@ export async function executeBalanceAdjustment(db: Firestore, uid: string | unde
   if (!uid || !validId(uid)) throw new BalanceAdjustmentError("balance-adjustment-session-expired", "unauthenticated");
   const command = parseCommand(payload);
   try {
-    await ensureOperationProjectionVersion(db, uid);
+    await ensureOperationProjectionVersion(db, uid, {expectedGeneration: command.expectedGeneration});
   } catch (error) {
     if (error instanceof OperationProjectionMigrationError) throw new BalanceAdjustmentError(error.issue, error.status);
     throw error;

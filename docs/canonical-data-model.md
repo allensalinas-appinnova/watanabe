@@ -11,7 +11,7 @@ debt nature keep their legacy money-account meaning.
 - A transfer is one operation with two ledger entries, never an income plus an expense.
 - Budgets are monthly, category-specific, currency-specific and always itemized.
 - Category IDs are stable and independent of localized labels.
-- Every user-owned read and write is scoped below `users/{userId}`.
+- Financial records are scoped below `users/{userId}`. Server-only resource accounting lives outside that financial reset tree; see [resource usage](resource-usage.md).
 
 ## Collections
 
@@ -96,3 +96,7 @@ Supplemental facts live under `users/{uid}/diagnosticRecords`, with private
 change financial operations or ledger projections. See
 [financial diagnosis](financial-diagnosis.md) for the callable contract,
 methodology, data quality, reservations, goals and lifecycle integration.
+
+## Receipt imports and payment identification
+
+Optional account identity fields and debit payment instruments do not carry new balances. `documentImports`, `documentSources`, `attachments` and `paymentInstruments` live below the financial user root. An operation may reference `documentImportId` and `attachmentId`; these metadata do not change projection arithmetic. [Receipt imports](document-imports.md) owns their lifecycle. The resource ledger is deliberately outside the financial root, so resetting data cannot recover analysis quota.
