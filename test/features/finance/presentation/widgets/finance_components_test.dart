@@ -2,11 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/presentation/widgets/finance_components.dart';
 import 'package:personal_finance/features/finance/presentation/widgets/finance_design_assets.dart';
+import 'package:personal_finance/features/finance/presentation/widgets/operation_type_icons.dart';
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
+  test('debt adjustment and debt payment have distinct icons', () {
+    expect(operationTypeIcon(OperationType.debtAdjustment), Icons.balance_outlined);
+    expect(
+      operationTypeIcon(OperationType.unallocatedDebtPayment),
+      Icons.credit_score_outlined,
+    );
+  });
+
   testWidgets('bottom navigation uses the five destinations and approved styles', (
     tester,
   ) async {

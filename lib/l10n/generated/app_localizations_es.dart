@@ -3043,4 +3043,47 @@ class AppLocalizationsEs extends AppLocalizations {
   String planningFollowUpFor(String item) {
     return 'Seguimiento de $item';
   }
+
+  @override
+  String get homeWidgetCategoryExpenses => 'Gastos por categoría';
+
+  @override
+  String get homeCategoryExpensesEmpty => 'Aún no hay gastos confirmados este mes.';
+
+  @override
+  String get homeCategoryExpensesIncomplete =>
+      'Hay movimientos pendientes de sincronización; este resumen puede cambiar.';
+
+  @override
+  String get homeCategoryExpensesOther => 'Otros';
+
+  @override
+  String get homeCategoryExpensesUncategorized => 'Sin categoría';
+
+  @override
+  String get homeWidgetOrder => 'Orden de las tarjetas';
+
+  @override
+  String get homeSectionTotalBalance => 'Saldo total';
+
+  @override
+  String get homeSectionCoachPlanning => 'Coach y Por atender';
+
+  @override
+  String get homeSectionMonthlySummary => 'Resumen mensual';
+
+  @override
+  String get homeSectionCategoryExpenses => 'Gastos por categoría';
+
+  @override
+  String get homeSectionBudgets => 'Presupuestos';
+
+  @override
+  String get homeSectionRecentActivity => 'Actividad reciente';
+
+  @override
+  String get moveUp => 'Mover arriba';
+
+  @override
+  String get moveDown => 'Mover abajo';
 }

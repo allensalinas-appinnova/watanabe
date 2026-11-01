@@ -99,12 +99,15 @@ service cloud.firestore {
     function validHomePreferences(data) {
       return !('homePreferences' in data) ||
         (data.homePreferences is map &&
-          data.homePreferences.keys().hasOnly(['widgets', 'hiddenBudgetCategoryIds']) &&
+          data.homePreferences.keys().hasOnly([
+            'widgets', 'hiddenBudgetCategoryIds', 'sectionOrder'
+          ]) &&
           required(data.homePreferences, ['widgets', 'hiddenBudgetCategoryIds']) &&
           data.homePreferences.widgets is map &&
           data.homePreferences.widgets.keys().hasOnly([
             'totalBalance', 'incomeSummary', 'expenseSummary',
-            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity', 'coachNextStep', 'debtCommitments'
+            'expenseBudgetRatio', 'incomeBudgetRatio', 'recentActivity', 'coachNextStep',
+            'debtCommitments', 'categoryExpenses'
           ]) &&
           required(data.homePreferences.widgets, [
             'totalBalance', 'incomeSummary', 'expenseSummary',
@@ -120,10 +123,24 @@ service cloud.firestore {
             data.homePreferences.widgets.coachNextStep is bool) &&
           (!('debtCommitments' in data.homePreferences.widgets) ||
             data.homePreferences.widgets.debtCommitments is bool) &&
+          (!('categoryExpenses' in data.homePreferences.widgets) ||
+            data.homePreferences.widgets.categoryExpenses is bool) &&
           data.homePreferences.hiddenBudgetCategoryIds is list &&
           data.homePreferences.hiddenBudgetCategoryIds.size() <= 100 &&
           data.homePreferences.hiddenBudgetCategoryIds.toSet().size() ==
-            data.homePreferences.hiddenBudgetCategoryIds.size());
+            data.homePreferences.hiddenBudgetCategoryIds.size() &&
+          (!('sectionOrder' in data.homePreferences) ||
+            (data.homePreferences.sectionOrder is list &&
+              data.homePreferences.sectionOrder.size() == 6 &&
+              data.homePreferences.sectionOrder.toSet().size() == 6 &&
+              data.homePreferences.sectionOrder.toSet().hasOnly([
+                'totalBalance', 'coachAndPlanning', 'monthlySummary',
+                'categoryExpenses', 'budgets', 'recentActivity'
+              ]) &&
+              data.homePreferences.sectionOrder.toSet().hasAll([
+                'totalBalance', 'coachAndPlanning', 'monthlySummary',
+                'categoryExpenses', 'budgets', 'recentActivity'
+              ]))));
     }
     function validAppearancePreferences(data) {
       return !('appearancePreferences' in data) ||

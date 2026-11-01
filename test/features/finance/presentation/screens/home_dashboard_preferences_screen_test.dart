@@ -78,6 +78,13 @@ void main() {
     await tester.pumpWidget(subject(repository));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home_widget_incomeSummary')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('home_widget_incomeSummary')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('home_widget_incomeSummary')));
     await tester.pumpAndSettle();
     final captured =
@@ -102,6 +109,10 @@ void main() {
   });
 
   testWidgets('preserves selection after save error and retries it', (tester) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final repository = _MockRepository();
     var calls = 0;
     when(() => repository.updateHomeDashboardPreferences(any(), any())).thenAnswer((_) async {
@@ -113,6 +124,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('home_widget_recentActivity')));
     await tester.pumpAndSettle();
+    expect(calls, 1);
     expect(find.textContaining('Tu selección se conserva'), findsOneWidget);
     expect(
       tester.widget<SwitchListTile>(find.byKey(const ValueKey('home_widget_recentActivity'))).value,
@@ -122,6 +134,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls, 2);
     expect(find.textContaining('Tu selección se conserva'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('reordering sections persists the full order for the signed-in user', (tester) async {
+    final repository = _MockRepository();
+    when(
+      () => repository.updateHomeDashboardPreferences(any(), any()),
+    ).thenAnswer((_) async => const Right(unit));
+    await tester.pumpWidget(subject(repository));
+    await tester.pumpAndSettle();
+
+    final list = find.byKey(const ValueKey('home_section_order_list'));
+    expect(list, findsOneWidget);
+    final firstRow = find.byKey(const ValueKey('home_section_totalBalance'));
+    await tester.tap(
+      find.descendant(of: firstRow, matching: find.byTooltip('Mover abajo')),
+    );
+    await tester.pumpAndSettle();
+
+    final saved =
+        verify(
+              () => repository.updateHomeDashboardPreferences('user-1', captureAny()),
+            ).captured.single
+            as HomeDashboardPreferences;
+    expect(saved.sectionOrder.first, HomeDashboardSection.coachAndPlanning);
+    expect(saved.sectionOrder[1], HomeDashboardSection.totalBalance);
+    expect(saved.sectionOrder.toSet(), HomeDashboardSection.values.toSet());
+    expect(saved.shows(HomeDashboardWidget.categoryExpenses), isTrue);
     expect(tester.takeException(), isNull);
   });
 }

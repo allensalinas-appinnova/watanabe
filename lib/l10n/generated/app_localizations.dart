@@ -5073,6 +5073,90 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Seguimiento de {item}'**
   String planningFollowUpFor(String item);
+
+  /// No description provided for @homeWidgetCategoryExpenses.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastos por categoría'**
+  String get homeWidgetCategoryExpenses;
+
+  /// No description provided for @homeCategoryExpensesEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay gastos confirmados este mes.'**
+  String get homeCategoryExpensesEmpty;
+
+  /// No description provided for @homeCategoryExpensesIncomplete.
+  ///
+  /// In es, this message translates to:
+  /// **'Hay movimientos pendientes de sincronización; este resumen puede cambiar.'**
+  String get homeCategoryExpensesIncomplete;
+
+  /// No description provided for @homeCategoryExpensesOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otros'**
+  String get homeCategoryExpensesOther;
+
+  /// No description provided for @homeCategoryExpensesUncategorized.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin categoría'**
+  String get homeCategoryExpensesUncategorized;
+
+  /// No description provided for @homeWidgetOrder.
+  ///
+  /// In es, this message translates to:
+  /// **'Orden de las tarjetas'**
+  String get homeWidgetOrder;
+
+  /// No description provided for @homeSectionTotalBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo total'**
+  String get homeSectionTotalBalance;
+
+  /// No description provided for @homeSectionCoachPlanning.
+  ///
+  /// In es, this message translates to:
+  /// **'Coach y Por atender'**
+  String get homeSectionCoachPlanning;
+
+  /// No description provided for @homeSectionMonthlySummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen mensual'**
+  String get homeSectionMonthlySummary;
+
+  /// No description provided for @homeSectionCategoryExpenses.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastos por categoría'**
+  String get homeSectionCategoryExpenses;
+
+  /// No description provided for @homeSectionBudgets.
+  ///
+  /// In es, this message translates to:
+  /// **'Presupuestos'**
+  String get homeSectionBudgets;
+
+  /// No description provided for @homeSectionRecentActivity.
+  ///
+  /// In es, this message translates to:
+  /// **'Actividad reciente'**
+  String get homeSectionRecentActivity;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In es, this message translates to:
+  /// **'Mover arriba'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In es, this message translates to:
+  /// **'Mover abajo'**
+  String get moveDown;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

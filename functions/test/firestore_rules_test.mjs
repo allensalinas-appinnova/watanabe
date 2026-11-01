@@ -407,15 +407,24 @@ test('home preferences are owner-updatable, typed, bounded, and cannot add profi
       expenseBudgetRatio: true,
       incomeBudgetRatio: true,
       recentActivity: false,
+      categoryExpenses: true,
     },
     hiddenBudgetCategoryIds: ['food', 'transport'],
+    sectionOrder: [
+      'totalBalance', 'coachAndPlanning', 'monthlySummary',
+      'categoryExpenses', 'budgets', 'recentActivity',
+    ],
   };
+  await assertSucceeds(profile.update({homePreferences: {
+    widgets: validPreferences.widgets,
+    hiddenBudgetCategoryIds: validPreferences.hiddenBudgetCategoryIds,
+  }}));
   await assertSucceeds(profile.update({homePreferences: validPreferences}));
   await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': true}));
   await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': false}));
   await assertFails(profile.update({'homePreferences.widgets.coachNextStep': 'true'}));
   await assertSucceeds(profile.update({'homePreferences.widgets.coachNextStep': deleteField()}));
-  for (const field of Object.keys(validPreferences.widgets)) {
+  for (const field of Object.keys(validPreferences.widgets).filter((field) => field !== 'categoryExpenses')) {
     await assertFails(profile.update({[`homePreferences.widgets.${field}`]: deleteField()}));
   }
   await assertSucceeds(profile.update({homePreferences: deleteField()}));
@@ -428,6 +437,14 @@ test('home preferences are owner-updatable, typed, bounded, and cannot add profi
   }}}));
   await assertFails(profile.update({homePreferences: {
     ...validPreferences, hiddenBudgetCategoryIds: Array(101).fill('category'),
+  }}));
+  await assertFails(profile.update({homePreferences: {
+    ...validPreferences,
+    sectionOrder: ['totalBalance', 'totalBalance', 'monthlySummary', 'categoryExpenses', 'budgets', 'recentActivity'],
+  }}));
+  await assertFails(profile.update({homePreferences: {
+    ...validPreferences,
+    sectionOrder: [...validPreferences.sectionOrder.slice(0, 5), 'unknown'],
   }}));
   await assertFails(profile.update({unauthorizedProfileField: true}));
   await assertFails(bob.doc('users/alice').update({homePreferences: validPreferences}));

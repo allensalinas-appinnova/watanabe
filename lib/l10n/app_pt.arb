@@ -883,5 +883,19 @@
   "planningFollowUpOptions": "Opções de acompanhamento de {item}",
   "@planningFollowUpOptions": {"placeholders": {"item": {"type": "String"}}},
   "planningFollowUpFor": "Acompanhamento de {item}",
-  "@planningFollowUpFor": {"placeholders": {"item": {"type": "String"}}}
+  "@planningFollowUpFor": {"placeholders": {"item": {"type": "String"}}},
+  "homeWidgetCategoryExpenses": "Despesas por categoria",
+  "homeCategoryExpensesEmpty": "Ainda não há despesas confirmadas neste mês.",
+  "homeCategoryExpensesIncomplete": "Há lançamentos aguardando sincronização; este resumo pode mudar.",
+  "homeCategoryExpensesOther": "Outras",
+  "homeCategoryExpensesUncategorized": "Sem categoria"
+  ,"homeWidgetOrder": "Ordem dos cartões"
+  ,"homeSectionTotalBalance": "Saldo total"
+  ,"homeSectionCoachPlanning": "Coach e A resolver"
+  ,"homeSectionMonthlySummary": "Resumo mensal"
+  ,"homeSectionCategoryExpenses": "Despesas por categoria"
+  ,"homeSectionBudgets": "Orçamentos"
+  ,"homeSectionRecentActivity": "Atividade recente"
+  ,"moveUp": "Mover para cima"
+  ,"moveDown": "Mover para baixo"
 }

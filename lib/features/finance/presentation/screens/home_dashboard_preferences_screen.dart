@@ -92,6 +92,51 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
               ),
             ],
             const SizedBox(height: 20),
+            _section(context, l10n.homeWidgetOrder),
+            ReorderableListView.builder(
+              key: const ValueKey('home_section_order_list'),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: preferences.sectionOrder.length,
+              onReorderItem: (oldIndex, newIndex) => _moveSection(
+                user.id,
+                preferences,
+                oldIndex,
+                newIndex,
+              ),
+              itemBuilder: (context, index) {
+                final section = preferences.sectionOrder[index];
+                return ListTile(
+                  key: ValueKey('home_section_${section.id}'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: ReorderableDragStartListener(
+                    index: index,
+                    child: const Icon(Icons.drag_handle),
+                  ),
+                  title: Text(_sectionLabel(l10n, section)),
+                  trailing: Wrap(
+                    children: [
+                      IconButton(
+                        tooltip: l10n.moveUp,
+                        onPressed: _saving || index == 0
+                            ? null
+                            : () => _moveSection(user.id, preferences, index, index - 1),
+                        icon: const Icon(Icons.arrow_upward),
+                      ),
+                      IconButton(
+                        tooltip: l10n.moveDown,
+                        onPressed: _saving || index == preferences.sectionOrder.length - 1
+                            ? null
+                            : () => _moveSection(user.id, preferences, index, index + 1),
+                        icon: const Icon(Icons.arrow_downward),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 28),
             _section(context, l10n.homeWidgetsSection),
             for (final widget in HomeDashboardWidget.values.where(
               (item) => item != HomeDashboardWidget.debtCommitments,
@@ -185,7 +230,30 @@ class _HomeDashboardPreferencesScreenState extends ConsumerState<HomeDashboardPr
     HomeDashboardWidget.recentActivity => l10n.homeWidgetRecentActivity,
     HomeDashboardWidget.coachNextStep => l10n.planningPendingOnly,
     HomeDashboardWidget.debtCommitments => l10n.debtCommitmentHomeWidget,
+    HomeDashboardWidget.categoryExpenses => l10n.homeWidgetCategoryExpenses,
   };
+
+  String _sectionLabel(AppLocalizations l10n, HomeDashboardSection section) => switch (section) {
+    HomeDashboardSection.totalBalance => l10n.homeSectionTotalBalance,
+    HomeDashboardSection.coachAndPlanning => l10n.homeSectionCoachPlanning,
+    HomeDashboardSection.monthlySummary => l10n.homeSectionMonthlySummary,
+    HomeDashboardSection.categoryExpenses => l10n.homeSectionCategoryExpenses,
+    HomeDashboardSection.budgets => l10n.homeSectionBudgets,
+    HomeDashboardSection.recentActivity => l10n.homeSectionRecentActivity,
+  };
+
+  Future<void> _moveSection(
+    String userId,
+    HomeDashboardPreferences preferences,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    if (_saving || oldIndex == newIndex) return;
+    final order = [...preferences.sectionOrder];
+    final section = order.removeAt(oldIndex);
+    order.insert(newIndex, section);
+    await _save(userId, preferences.copyWith(sectionOrder: order));
+  }
 
   String _categoryName(List<FinanceCategory> categories, Budget budget) {
     for (final category in categories) {

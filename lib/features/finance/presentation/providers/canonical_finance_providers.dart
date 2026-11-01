@@ -25,6 +25,7 @@ import '../../domain/entities/balance_adjustment.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/budget_command_failure.dart';
 import '../../domain/entities/budget_item.dart';
+import '../../domain/entities/category_expense_summary.dart';
 import '../../domain/entities/finance_account.dart';
 import '../../domain/entities/finance_category.dart';
 import '../../domain/entities/financial_operation.dart';
@@ -57,8 +58,9 @@ final planningFollowUpsProvider = StreamProvider.family<PlanningFollowUpSnapshot
       Stream.value(const PlanningFollowUpSnapshot()),
 );
 
-final planningFollowUpSheetOpenProvider =
-    NotifierProvider<PlanningFollowUpSheetVisibility, bool>(PlanningFollowUpSheetVisibility.new);
+final planningFollowUpSheetOpenProvider = NotifierProvider<PlanningFollowUpSheetVisibility, bool>(
+  PlanningFollowUpSheetVisibility.new,
+);
 
 class PlanningFollowUpSheetVisibility extends Notifier<bool> {
   @override
@@ -1029,6 +1031,48 @@ final canonicalMonthlySummaryProvider =
         input.currency,
       ),
     );
+
+final homeCategoryExpenseSummaryProvider =
+    FutureProvider.family<CategoryExpenseSummary, ({String userId, String monthKey})>((
+      ref,
+      input,
+    ) async {
+      final repository = ref.watch(canonicalFinanceRepositoryProvider);
+      final totals = <String, Map<String, int>>{};
+      OperationPageCursor? cursor;
+      do {
+        final result = await repository.fetchOperationsPage(
+          input.userId,
+          cursor: cursor,
+          monthKey: input.monthKey,
+          pageSize: 100,
+        );
+        final page = result.match((failure) => throw Exception(failure.message), (value) => value);
+        for (final operation in page.items) {
+          if (operation.status != OperationStatus.confirmed ||
+              (operation.type != OperationType.expense &&
+                  operation.type != OperationType.expenseRefund)) {
+            continue;
+          }
+          final amount = operation.recognizedExpenseMinor;
+          totals
+              .putIfAbsent(operation.currency, () => <String, int>{})
+              .update(
+                operation.categoryId ?? '',
+                (current) => current + amount,
+                ifAbsent: () => amount,
+              );
+        }
+        cursor = page.nextCursor;
+      } while (cursor != null);
+      return CategoryExpenseSummary({
+        for (final currency in totals.keys)
+          currency: Map.unmodifiable({
+            for (final entry in totals[currency]!.entries.where((entry) => entry.value > 0))
+              entry.key: entry.value,
+          }),
+      });
+    });
 
 final homeInitialLoadProvider =
     FutureProvider.family<void, ({String userId, String monthKey, String currency})>((

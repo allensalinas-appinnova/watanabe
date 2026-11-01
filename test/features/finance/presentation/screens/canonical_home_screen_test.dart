@@ -10,9 +10,11 @@ import 'package:personal_finance/features/auth/presentation/providers/auth_provi
 import 'package:personal_finance/features/finance/domain/entities/appearance_preferences.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget.dart';
 import 'package:personal_finance/features/finance/domain/entities/budget_flow_type.dart';
+import 'package:personal_finance/features/finance/domain/entities/category_expense_summary.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_account.dart';
 import 'package:personal_finance/features/finance/domain/entities/finance_category.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
+import 'package:personal_finance/features/finance/domain/entities/home_dashboard_preferences.dart';
 import 'package:personal_finance/features/finance/domain/entities/monthly_summary.dart';
 import 'package:personal_finance/features/finance/domain/entities/operation_page.dart';
 import 'package:personal_finance/features/finance/domain/entities/user_profile.dart';
@@ -21,6 +23,77 @@ import 'package:personal_finance/features/finance/presentation/screens/canonical
 import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
+  testWidgets('renders dashboard sections in the signed-in user preference order', (tester) async {
+    const preferences = HomeDashboardPreferences(
+      visibleWidgets: {'totalBalance', 'recentActivity'},
+      sectionOrder: [
+        HomeDashboardSection.recentActivity,
+        HomeDashboardSection.totalBalance,
+        HomeDashboardSection.coachAndPlanning,
+        HomeDashboardSection.monthlySummary,
+        HomeDashboardSection.categoryExpenses,
+        HomeDashboardSection.budgets,
+      ],
+    );
+    final providers = ProviderScope(
+      overrides: [
+        authSessionProvider.overrideWith(
+          (ref) => Stream.value(const AuthUser(id: 'ordered-user', isAnonymous: false)),
+        ),
+        pendingOperationAutoSyncProvider.overrideWith((ref) {}),
+        pendingOperationsProvider.overrideWith((ref) => Stream.value(const [])),
+        canonicalUserProfileProvider('ordered-user').overrideWith(
+          (ref) => Stream.value(
+            const UserProfile(
+              id: 'ordered-user',
+              locale: 'es',
+              countryCode: 'CO',
+              timeZone: 'UTC',
+              defaultCurrency: 'COP',
+              onboardingStatus: 'complete',
+              categoryCatalogVersion: 1,
+              homeDashboardPreferences: preferences,
+            ),
+          ),
+        ),
+        canonicalAccountsProvider('ordered-user').overrideWith((ref) => Stream.value(const [])),
+        canonicalCategoriesProvider('ordered-user').overrideWith((ref) => Stream.value(const [])),
+        canonicalMonthlySummaryProvider.overrideWith((ref, input) => Stream.value(null)),
+        canonicalBudgetsProvider.overrideWith((ref, input) => Stream.value(const [])),
+        homeCategoryExpenseSummaryProvider.overrideWith(
+          (ref, input) async => const CategoryExpenseSummary({}),
+        ),
+        canonicalOperationsPageProvider.overrideWith(
+          (ref, input) async => const OperationPage(items: []),
+        ),
+        homeInitialLoadProvider.overrideWith((ref, input) async {}),
+      ],
+      child: MaterialApp(
+        locale: const Locale('es'),
+        theme: AppTheme.forAppearance(AppearancePalette.lumio, Brightness.light),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const CanonicalHomeScreen(),
+      ),
+    );
+
+    await tester.pumpWidget(providers);
+    await tester.pumpAndSettle();
+
+    final activitySection = find.byKey(const ValueKey('home_section_recentActivity'));
+    final balanceSection = find.byKey(const ValueKey('home_section_totalBalance'));
+    expect(activitySection, findsOneWidget);
+    expect(balanceSection, findsOneWidget);
+    expect(tester.getTopLeft(activitySection).dy, lessThan(tester.getTopLeft(balanceSection).dy));
+    expect(find.byKey(const ValueKey('home_section_monthlySummary')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders the home dashboard with distinct balance, budget and recent activity', (
     tester,
   ) async {
@@ -168,6 +241,11 @@ void main() {
             ),
           ]),
         ),
+        homeCategoryExpenseSummaryProvider((userId: 'u1', monthKey: monthKey)).overrideWith(
+          (ref) async => const CategoryExpenseSummary({
+            'COP': {'food': 6000, 'housing': 2000},
+          }),
+        ),
         canonicalOperationsPageProvider(operationsInput).overrideWith(
           (ref) async => OperationPage(
             items: [
@@ -304,6 +382,8 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('home_budget_preview_food-budget')));
     expect(find.byKey(const ValueKey('home_budget_preview_food-budget')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_budget_preview_housing-budget')), findsOneWidget);
+    expect(find.text('Gastos por categoría'), findsOneWidget);
+    expect(find.text('Comida'), findsOneWidget);
     expect(find.textContaining('Vivienda ·'), findsOneWidget);
     final exceededLabels = find.byWidgetPredicate(
       (widget) => widget is Text && (widget.data?.startsWith('Excedido') ?? false),

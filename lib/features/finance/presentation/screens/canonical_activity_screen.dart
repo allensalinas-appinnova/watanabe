@@ -1158,6 +1158,15 @@ class _ActivityOperationCard extends StatelessWidget {
                       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                       child: Icon(Icons.swap_horiz, color: Theme.of(context).colorScheme.primary),
                     )
+                  else if (operation.type == OperationType.debtAdjustment ||
+                      operation.type == OperationType.unallocatedDebtPayment)
+                    CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      child: Icon(
+                        operationTypeIcon(operation.type),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
                   else
                     FinanceCategoryIcon(
                       iconId: category?.icon,

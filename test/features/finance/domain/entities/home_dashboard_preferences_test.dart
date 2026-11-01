@@ -7,7 +7,29 @@ void main() {
       final preferences = HomeDashboardPreferences.fromMap(value);
       expect(preferences.visibleWidgets, HomeDashboardWidget.values.map((widget) => widget.id));
       expect(preferences.showsBudget('new-category'), isTrue);
+      expect(preferences.sectionOrder, HomeDashboardSection.defaultOrder);
     }
+  });
+
+  test('persists the chosen section order and fills missing or unknown entries safely', () {
+    final customOrder = [
+      HomeDashboardSection.recentActivity,
+      HomeDashboardSection.budgets,
+      HomeDashboardSection.categoryExpenses,
+      HomeDashboardSection.monthlySummary,
+      HomeDashboardSection.coachAndPlanning,
+      HomeDashboardSection.totalBalance,
+    ];
+    final preferences = const HomeDashboardPreferences().copyWith(sectionOrder: customOrder);
+    final restored = HomeDashboardPreferences.fromMap(preferences.toMap());
+    expect(restored.sectionOrder, customOrder);
+
+    final partial = HomeDashboardPreferences.fromMap({
+      'sectionOrder': ['recentActivity', 'futureSection', 'recentActivity'],
+    });
+    expect(partial.sectionOrder.first, HomeDashboardSection.recentActivity);
+    expect(partial.sectionOrder.toSet(), HomeDashboardSection.values.toSet());
+    expect(partial.sectionOrder.length, HomeDashboardSection.values.length);
   });
 
   test('persists individual widget and category choices and ignores unknown widgets', () {

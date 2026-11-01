@@ -297,4 +297,91 @@ void main() {
     }
     await tester.pump();
   });
+
+  testWidgets('home dashboard section order persists for this user and restores after reopening', (
+    tester,
+  ) async {
+    await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
+    final email = 'home-order-${DateTime.now().microsecondsSinceEpoch}@example.test';
+    final credential = await FirebaseAuth.instanceFor(
+      app: FirebaseBootstrap.app,
+    ).createUserWithEmailAndPassword(email: email, password: 'ClearBudget-E2E-123');
+    final uid = credential.user!.uid;
+    final firestore = FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app);
+    final user = firestore.collection('users').doc(uid);
+    await user.set({
+      'locale': 'es',
+      'countryCode': 'CO',
+      'timeZone': 'America/Bogota',
+      'defaultCurrency': 'COP',
+      'onboardingStatus': 'complete',
+      'categoryCatalogVersion': 1,
+      'dataGeneration': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    final repository = getIt<CanonicalFinanceRepository>();
+    final bootstrap = await repository.ensureDefaultCategories(
+      uid,
+      locale: 'es',
+      countryCode: 'CO',
+    );
+    bootstrap.match(
+      (failure) => fail('Default category bootstrap failed: ${failure.message}'),
+      (_) {},
+    );
+    final accountResult = await repository.createAccount(
+      uid,
+      name: 'Cuenta para orden',
+      type: 'cash',
+      currency: 'COP',
+      openingBalanceMinor: 0,
+    );
+    accountResult.match(
+      (failure) => fail('Synthetic account creation failed: ${failure.message}'),
+      (_) {},
+    );
+
+    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    for (var attempt = 0; attempt < 40; attempt++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      if (find.byKey(const ValueKey('global_settings_action')).evaluate().isNotEmpty) break;
+    }
+    expect(find.byKey(const ValueKey('global_settings_action')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('global_settings_action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('more_customize_home')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home_section_order_list')), findsOneWidget);
+    await tester.tap(find.byTooltip('Move down').first);
+    await tester.pumpAndSettle();
+
+    List<String>? storedOrder;
+    for (var attempt = 0; attempt < 20; attempt++) {
+      final profile = await user.get();
+      final value = profile.data()?['homePreferences'];
+      if (value is Map && value['sectionOrder'] is List) {
+        storedOrder = (value['sectionOrder'] as List).whereType<String>().toList();
+        if (storedOrder.isNotEmpty && storedOrder.first == 'coachAndPlanning') break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    expect(storedOrder, isNotNull);
+    expect(storedOrder!.first, 'coachAndPlanning');
+    expect(storedOrder[1], 'totalBalance');
+    expect(storedOrder, hasLength(6));
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('more_customize_home')));
+    await tester.pumpAndSettle();
+    final restoredCoachLabel = find.text('Coach and To address').first;
+    final restoredBalanceLabel = find.text('Total balance').first;
+    expect(restoredCoachLabel, findsOneWidget);
+    expect(restoredBalanceLabel, findsOneWidget);
+    expect(
+      tester.getTopLeft(restoredCoachLabel).dy,
+      lessThan(tester.getTopLeft(restoredBalanceLabel).dy),
+    );
+  });
 }

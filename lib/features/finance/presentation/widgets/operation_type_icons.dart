@@ -6,6 +6,6 @@ IconData operationTypeIcon(OperationType type) => switch (type) {
   OperationType.income => Icons.south_west,
   OperationType.expense || OperationType.expenseRefund => Icons.north_east,
   OperationType.transfer => Icons.swap_horiz,
-  OperationType.debtAdjustment ||
+  OperationType.debtAdjustment => Icons.balance_outlined,
   OperationType.unallocatedDebtPayment => Icons.credit_score_outlined,
 };
