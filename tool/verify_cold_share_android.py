@@ -65,7 +65,15 @@ for _ in range(45):
     if action is not None:
         x1,y1,x2,y2=map(int,re.findall(r'\d+',action.get('bounds')))
         adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2));continue
-    if any('Analyze document' in text or 'Analizar documento' in text or 'Analisar documento' in text for n,text in nodes):
+    if any(
+        label in text
+        for _, text in nodes
+        for label in (
+            'Prepare expense',
+            'Preparar gasto',
+            'Preparar despesa',
+        )
+    ):
         ready=True;break
     time.sleep(.2)
 if not ready:

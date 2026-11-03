@@ -48,15 +48,18 @@ final documentAttachmentProvider = FutureProvider.autoDispose.family<DocumentFil
 class DocumentImportState {
   const DocumentImportState({
     this.draft,
+    this.replacementCandidate,
     this.session,
     this.busy = false,
+    this.replacing = false,
     this.loaded = false,
     this.error,
     this.offline = false,
   });
   final DocumentDraft? draft;
+  final DocumentDraft? replacementCandidate;
   final DocumentImport? session;
-  final bool busy, loaded, offline;
+  final bool busy, replacing, loaded, offline;
   final Failure? error;
 }
 
@@ -100,6 +103,11 @@ class DocumentImportController extends Notifier<DocumentImportState> {
       state = DocumentImportState(draft: draft, loaded: true);
       if (draft != null) _listen(draft.importId);
     });
+    try {
+      unawaited(_repo.retryPendingCleanup(uid));
+    } catch (_) {
+      // Cleanup is best-effort and must not block access to the active draft.
+    }
   }
 
   Future<void> reload(String uid, int generation) async {
@@ -122,9 +130,11 @@ class DocumentImportController extends Notifier<DocumentImportState> {
             ].contains(session?.phase);
             state = DocumentImportState(
               draft: state.draft,
+              replacementCandidate: state.replacementCandidate,
               session: session,
               loaded: true,
               busy: state.busy,
+              replacing: state.replacing,
               error: resolved ? null : state.error,
               offline: resolved ? false : state.offline,
             );
@@ -132,8 +142,10 @@ class DocumentImportController extends Notifier<DocumentImportState> {
           onError: (Object _) {
             state = DocumentImportState(
               draft: state.draft,
+              replacementCandidate: state.replacementCandidate,
               session: state.session,
               loaded: true,
+              replacing: state.replacing,
               error: const NetworkFailure('document-network'),
             );
           },
@@ -165,6 +177,101 @@ class DocumentImportController extends Notifier<DocumentImportState> {
         error: UnknownFailure('document-file-invalid'),
       );
     }
+  }
+
+  Future<void> prepareReplacement(DocumentFileSource source) async {
+    final current = state.draft;
+    if (state.busy || current == null || _uid == null || _generation == null) return;
+    final epoch = _epoch;
+    state = DocumentImportState(
+      draft: current,
+      session: state.session,
+      busy: true,
+      replacing: true,
+      loaded: true,
+    );
+    try {
+      final file = await ref.read(documentFilePickerProvider).pick(source);
+      if (epoch != _epoch) return;
+      state = DocumentImportState(
+        draft: current,
+        session: state.session,
+        replacementCandidate: file == null
+            ? null
+            : DocumentDraft(file: file, importId: newRequestId(), generation: current.generation),
+        loaded: true,
+        replacing: false,
+      );
+    } catch (_) {
+      if (epoch != _epoch) return;
+      state = DocumentImportState(
+        draft: current,
+        session: state.session,
+        loaded: true,
+        replacing: false,
+        error: const UnknownFailure('document-file-invalid'),
+      );
+    }
+  }
+
+  void cancelReplacement() {
+    final current = state.draft;
+    if (current == null) return;
+    state = DocumentImportState(
+      draft: current,
+      session: state.session,
+      loaded: true,
+      offline: state.offline,
+    );
+  }
+
+  Future<void> confirmReplacement() async {
+    final current = state.draft, candidate = state.replacementCandidate;
+    final uid = _uid, generation = _generation;
+    if (state.busy || current == null || candidate == null || uid == null || generation == null) {
+      return;
+    }
+    final epoch = _epoch, session = state.session;
+    state = DocumentImportState(
+      draft: current,
+      session: session,
+      replacementCandidate: candidate,
+      busy: true,
+      replacing: true,
+      loaded: true,
+    );
+    final terminalPhase =
+        session != null &&
+        [
+          DocumentPhase.approved,
+          DocumentPhase.duplicate,
+          DocumentPhase.discarded,
+          DocumentPhase.expired,
+        ].contains(session.phase);
+    final result = await _repo.replaceDraft(
+      uid,
+      current.importId,
+      candidate,
+      cleanupPreviousImport:
+          !terminalPhase && (session != null || current.review['serverAttempted'] == true),
+      previousGeneration: current.generation,
+    );
+    if (epoch != _epoch || _uid != uid || _generation != generation) return;
+    result.match(
+      (failure) => state = DocumentImportState(
+        draft: current,
+        session: session,
+        replacementCandidate: candidate,
+        loaded: true,
+        replacing: false,
+        error: failure,
+      ),
+      (_) {
+        _subscription?.cancel();
+        state = DocumentImportState(draft: candidate, loaded: true, replacing: false);
+        _listen(candidate.importId);
+      },
+    );
   }
 
   Future<void> analyze() async {

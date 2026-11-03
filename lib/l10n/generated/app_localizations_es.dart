@@ -3136,11 +3136,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'Dejará de sugerirse en comprobantes. La cuenta y sus movimientos se conservan.';
 
   @override
-  String get documentImportTitle => 'Desde foto o archivo';
+  String get documentImportTitle => 'Registrar con comprobante';
 
   @override
   String get documentImportExplanation =>
-      'Carga un comprobante individual para preparar un gasto o compra con tarjeta. Revisarás los datos antes de guardar y el documento quedará adjunto.';
+      'Te ayudamos a completar los datos del gasto. Tú los revisas antes de guardar.';
 
   @override
   String get documentRegisteredOnly =>
@@ -3163,10 +3163,80 @@ class AppLocalizationsEs extends AppLocalizations {
       'Necesitas conexión a internet para analizar este documento. Tu borrador se conserva; podrás reintentarlo cuando tengas conexión.';
 
   @override
-  String get documentAnalyzing => 'Analizando comprobante…';
+  String get documentAnalyzing => 'Leyendo tu comprobante…';
 
   @override
-  String get documentAnalyze => 'Analizar documento';
+  String get documentAnalyze => 'Preparar gasto';
+
+  @override
+  String get documentPrepareExpense => 'Preparar gasto';
+
+  @override
+  String get documentPreparingExpense => 'Preparando tu gasto…';
+
+  @override
+  String get documentChangingReceiptProgress => 'Cambiando comprobante…';
+
+  @override
+  String get documentChangeReceipt => 'Cambiar comprobante';
+
+  @override
+  String get documentMoreOptions => 'Más opciones';
+
+  @override
+  String get documentMoreDetails => 'Más detalles';
+
+  @override
+  String get documentSeeUsage => 'Ver mi uso';
+
+  @override
+  String get documentTypeImage => 'Imagen';
+
+  @override
+  String get documentTypePdf => 'PDF';
+
+  @override
+  String documentFileSize(String size) {
+    return '$size';
+  }
+
+  @override
+  String get documentReplacementTitle => '¿Usar este comprobante?';
+
+  @override
+  String get documentReplacementBody =>
+      'El comprobante actual se conservará hasta que el nuevo quede guardado. Si cancelas o hay un problema, podrás seguir usando el actual.';
+
+  @override
+  String get documentKeepCurrent => 'Conservar el actual';
+
+  @override
+  String get documentUseNew => 'Usar el nuevo';
+
+  @override
+  String documentUsageAvailable(int available) {
+    return 'Te quedan $available análisis';
+  }
+
+  @override
+  String get documentUsageUnavailable => 'No pudimos consultar tu uso ahora.';
+
+  @override
+  String documentQuotaRenewalAt(String date) {
+    return 'Tu cupo se renueva el $date.';
+  }
+
+  @override
+  String get documentCloudSummary =>
+      'Usaremos IA en la nube para leer el comprobante. Revisa los datos antes de guardar; el análisis cuenta para tu cupo.';
+
+  @override
+  String get documentCloudDetails =>
+      'Al guardar, el comprobante quedará adjunto. Los borradores sin confirmar vencen a las 24 horas y se eliminan durante la limpieza periódica.';
+
+  @override
+  String get documentManualDraftNote =>
+      'El comprobante seguirá en este borrador y no se adjuntará al registro manual.';
 
   @override
   String get documentCloudTitle => 'Análisis en la nube';

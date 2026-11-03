@@ -106,6 +106,12 @@ class DocumentDraft {
   final Map<String, Object?> review;
 }
 
+class PendingDocumentCleanup {
+  const PendingDocumentCleanup({required this.importId, required this.generation});
+  final String importId;
+  final int generation;
+}
+
 class UsageSummary {
   const UsageSummary({
     required this.dailyUsed,
@@ -158,5 +164,13 @@ abstract interface class DocumentImportRepository {
   Future<Either<Failure, Unit>> deleteAttachment(DocumentAttachment attachment);
   Future<Either<Failure, DocumentDraft?>> loadDraft(String uid, int generation);
   Future<Either<Failure, Unit>> saveDraft(String uid, DocumentDraft draft);
+  Future<Either<Failure, Unit>> replaceDraft(
+    String uid,
+    String expectedImportId,
+    DocumentDraft draft, {
+    required bool cleanupPreviousImport,
+    required int previousGeneration,
+  });
+  Future<void> retryPendingCleanup(String uid);
   Future<void> clearDraft(String uid);
 }

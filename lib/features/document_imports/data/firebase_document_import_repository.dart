@@ -153,14 +153,14 @@ class FirebaseDocumentImportRepository implements DocumentImportRepository {
           as Map,
     );
     final id = result['operationId'] as String? ?? (result['operationIds'] as List).first as String;
-    await drafts.clear(ownerUid);
+    await drafts.clearIfMatches(ownerUid, a.source.id);
     return id;
   });
   @override
   Future<Either<Failure, Unit>> discard(String importId, int generation) => _run(() async {
     final ownerUid = _uid;
     await _call('discard', {'importId': importId, 'expectedGeneration': generation});
-    await drafts.clear(ownerUid);
+    await drafts.clearIfMatches(ownerUid, importId);
     return unit;
   });
   @override
@@ -227,10 +227,75 @@ class FirebaseDocumentImportRepository implements DocumentImportRepository {
   @override
   Future<Either<Failure, Unit>> saveDraft(String uid, DocumentDraft draft) async {
     try {
+      if (auth.currentUser?.uid != uid) return const Left(AuthFailure('session-expired'));
       await drafts.save(uid, draft);
       return const Right(unit);
+    } on StateError catch (error) {
+      return Left(ConflictFailure(error.message));
     } catch (_) {
       return const Left(UnknownFailure('document-draft-unavailable'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> replaceDraft(
+    String uid,
+    String expectedImportId,
+    DocumentDraft draft, {
+    required bool cleanupPreviousImport,
+    required int previousGeneration,
+  }) async {
+    try {
+      if (auth.currentUser?.uid != uid || draft.generation != previousGeneration) {
+        return const Left(ConflictFailure('document-draft-changed'));
+      }
+      await drafts.replace(
+        uid,
+        expectedImportId,
+        draft,
+        cleanup: cleanupPreviousImport
+            ? PendingDocumentCleanup(importId: expectedImportId, generation: previousGeneration)
+            : null,
+      );
+      if (cleanupPreviousImport) {
+        if (auth.currentUser?.uid != uid) return const Right(unit);
+        try {
+          await _call('discard', {
+            'importId': expectedImportId,
+            'expectedGeneration': previousGeneration,
+          });
+          await drafts.completeCleanup(uid, expectedImportId);
+        } catch (_) {
+          // The new draft is already active. The old remote proposal remains
+          // queued locally for a retry and cannot clear the active draft.
+        }
+      }
+      return const Right(unit);
+    } on StateError catch (error) {
+      return Left(ConflictFailure(error.message));
+    } catch (_) {
+      return const Left(UnknownFailure('document-draft-unavailable'));
+    }
+  }
+
+  @override
+  Future<void> retryPendingCleanup(String uid) async {
+    if (auth.currentUser?.uid != uid) return;
+    try {
+      for (final cleanup in await drafts.pendingCleanup(uid)) {
+        if (auth.currentUser?.uid != uid) return;
+        try {
+          await _call('discard', {
+            'importId': cleanup.importId,
+            'expectedGeneration': cleanup.generation,
+          });
+          await drafts.completeCleanup(uid, cleanup.importId);
+        } catch (_) {
+          // Retain the item for the next app start or draft replacement.
+        }
+      }
+    } catch (_) {
+      // A local store failure must not prevent opening the active draft.
     }
   }
 

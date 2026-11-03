@@ -3113,11 +3113,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'It will no longer be suggested for receipts. The account and transactions are preserved.';
 
   @override
-  String get documentImportTitle => 'From photo or file';
+  String get documentImportTitle => 'Add an expense from a receipt';
 
   @override
   String get documentImportExplanation =>
-      'Upload a single receipt to prepare an expense or card purchase. Review the details before saving; the document will be attached.';
+      'We’ll help fill in the expense details. You’ll review them before saving.';
 
   @override
   String get documentRegisteredOnly => 'Save your account to analyze receipts and view your usage.';
@@ -3139,10 +3139,80 @@ class AppLocalizationsEn extends AppLocalizations {
       'You need an internet connection to analyze this document. Your draft is preserved; you can retry when you are connected.';
 
   @override
-  String get documentAnalyzing => 'Analyzing receipt…';
+  String get documentAnalyzing => 'Reading your receipt…';
 
   @override
-  String get documentAnalyze => 'Analyze document';
+  String get documentAnalyze => 'Prepare expense';
+
+  @override
+  String get documentPrepareExpense => 'Prepare expense';
+
+  @override
+  String get documentPreparingExpense => 'Preparing your expense…';
+
+  @override
+  String get documentChangingReceiptProgress => 'Changing receipt…';
+
+  @override
+  String get documentChangeReceipt => 'Change receipt';
+
+  @override
+  String get documentMoreOptions => 'More options';
+
+  @override
+  String get documentMoreDetails => 'More details';
+
+  @override
+  String get documentSeeUsage => 'View my usage';
+
+  @override
+  String get documentTypeImage => 'Image';
+
+  @override
+  String get documentTypePdf => 'PDF';
+
+  @override
+  String documentFileSize(String size) {
+    return '$size';
+  }
+
+  @override
+  String get documentReplacementTitle => 'Use this receipt instead?';
+
+  @override
+  String get documentReplacementBody =>
+      'Your current receipt stays safe until the new one is saved. If you cancel or something goes wrong, you can keep using the current one.';
+
+  @override
+  String get documentKeepCurrent => 'Keep current';
+
+  @override
+  String get documentUseNew => 'Use new receipt';
+
+  @override
+  String documentUsageAvailable(int available) {
+    return '$available analyses remaining';
+  }
+
+  @override
+  String get documentUsageUnavailable => 'We couldn’t check your usage right now.';
+
+  @override
+  String documentQuotaRenewalAt(String date) {
+    return 'Your allowance renews on $date.';
+  }
+
+  @override
+  String get documentCloudSummary =>
+      'We’ll use cloud AI to read the receipt. Review the details before saving; the analysis counts toward your allowance.';
+
+  @override
+  String get documentCloudDetails =>
+      'When saved, the receipt is attached to the expense. Unconfirmed drafts expire after 24 hours and are removed during periodic cleanup.';
+
+  @override
+  String get documentManualDraftNote =>
+      'The receipt will remain in this draft and won’t be attached to the manual entry.';
 
   @override
   String get documentCloudTitle => 'Cloud analysis';

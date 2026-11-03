@@ -5251,13 +5251,13 @@ abstract class AppLocalizations {
   /// No description provided for @documentImportTitle.
   ///
   /// In es, this message translates to:
-  /// **'Desde foto o archivo'**
+  /// **'Registrar con comprobante'**
   String get documentImportTitle;
 
   /// No description provided for @documentImportExplanation.
   ///
   /// In es, this message translates to:
-  /// **'Carga un comprobante individual para preparar un gasto o compra con tarjeta. Revisarás los datos antes de guardar y el documento quedará adjunto.'**
+  /// **'Te ayudamos a completar los datos del gasto. Tú los revisas antes de guardar.'**
   String get documentImportExplanation;
 
   /// No description provided for @documentRegisteredOnly.
@@ -5299,14 +5299,134 @@ abstract class AppLocalizations {
   /// No description provided for @documentAnalyzing.
   ///
   /// In es, this message translates to:
-  /// **'Analizando comprobante…'**
+  /// **'Leyendo tu comprobante…'**
   String get documentAnalyzing;
 
   /// No description provided for @documentAnalyze.
   ///
   /// In es, this message translates to:
-  /// **'Analizar documento'**
+  /// **'Preparar gasto'**
   String get documentAnalyze;
+
+  /// No description provided for @documentPrepareExpense.
+  ///
+  /// In es, this message translates to:
+  /// **'Preparar gasto'**
+  String get documentPrepareExpense;
+
+  /// No description provided for @documentPreparingExpense.
+  ///
+  /// In es, this message translates to:
+  /// **'Preparando tu gasto…'**
+  String get documentPreparingExpense;
+
+  /// No description provided for @documentChangingReceiptProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiando comprobante…'**
+  String get documentChangingReceiptProgress;
+
+  /// No description provided for @documentChangeReceipt.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar comprobante'**
+  String get documentChangeReceipt;
+
+  /// No description provided for @documentMoreOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Más opciones'**
+  String get documentMoreOptions;
+
+  /// No description provided for @documentMoreDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Más detalles'**
+  String get documentMoreDetails;
+
+  /// No description provided for @documentSeeUsage.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver mi uso'**
+  String get documentSeeUsage;
+
+  /// No description provided for @documentTypeImage.
+  ///
+  /// In es, this message translates to:
+  /// **'Imagen'**
+  String get documentTypeImage;
+
+  /// No description provided for @documentTypePdf.
+  ///
+  /// In es, this message translates to:
+  /// **'PDF'**
+  String get documentTypePdf;
+
+  /// No description provided for @documentFileSize.
+  ///
+  /// In es, this message translates to:
+  /// **'{size}'**
+  String documentFileSize(String size);
+
+  /// No description provided for @documentReplacementTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Usar este comprobante?'**
+  String get documentReplacementTitle;
+
+  /// No description provided for @documentReplacementBody.
+  ///
+  /// In es, this message translates to:
+  /// **'El comprobante actual se conservará hasta que el nuevo quede guardado. Si cancelas o hay un problema, podrás seguir usando el actual.'**
+  String get documentReplacementBody;
+
+  /// No description provided for @documentKeepCurrent.
+  ///
+  /// In es, this message translates to:
+  /// **'Conservar el actual'**
+  String get documentKeepCurrent;
+
+  /// No description provided for @documentUseNew.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar el nuevo'**
+  String get documentUseNew;
+
+  /// No description provided for @documentUsageAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Te quedan {available} análisis'**
+  String documentUsageAvailable(int available);
+
+  /// No description provided for @documentUsageUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos consultar tu uso ahora.'**
+  String get documentUsageUnavailable;
+
+  /// No description provided for @documentQuotaRenewalAt.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cupo se renueva el {date}.'**
+  String documentQuotaRenewalAt(String date);
+
+  /// No description provided for @documentCloudSummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Usaremos IA en la nube para leer el comprobante. Revisa los datos antes de guardar; el análisis cuenta para tu cupo.'**
+  String get documentCloudSummary;
+
+  /// No description provided for @documentCloudDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Al guardar, el comprobante quedará adjunto. Los borradores sin confirmar vencen a las 24 horas y se eliminan durante la limpieza periódica.'**
+  String get documentCloudDetails;
+
+  /// No description provided for @documentManualDraftNote.
+  ///
+  /// In es, this message translates to:
+  /// **'El comprobante seguirá en este borrador y no se adjuntará al registro manual.'**
+  String get documentManualDraftNote;
 
   /// No description provided for @documentCloudTitle.
   ///

@@ -22,6 +22,10 @@ class Connection extends Mock implements DocumentConnection {}
 void main() {
   final file = DocumentFile(bytes: Uint8List.fromList([1, 2, 3]), contentType: 'image/png');
   final draft = DocumentDraft(file: file, importId: 'synthetic-import', generation: 1);
+  final replacementFile = DocumentFile(
+    bytes: Uint8List.fromList([4, 5, 6]),
+    contentType: 'application/pdf',
+  );
   setUpAll(() {
     registerFallbackValue(draft);
     registerFallbackValue(DocumentFileSource.gallery);
@@ -36,6 +40,16 @@ void main() {
     connection = Connection();
     when(() => repo.loadDraft(any(), any())).thenAnswer((_) async => const Right(null));
     when(() => repo.saveDraft(any(), any())).thenAnswer((_) async => const Right(unit));
+    when(
+      () => repo.replaceDraft(
+        any(),
+        any(),
+        any(),
+        cleanupPreviousImport: any(named: 'cleanupPreviousImport'),
+        previousGeneration: any(named: 'previousGeneration'),
+      ),
+    ).thenAnswer((_) async => const Right(unit));
+    when(() => repo.retryPendingCleanup(any())).thenAnswer((_) async {});
     when(() => repo.watch(any(), any())).thenAnswer((_) => const Stream.empty());
     when(() => connection.hasNetwork()).thenAnswer((_) async => false);
     when(() => picker.pick(any())).thenAnswer((_) async => file);
@@ -201,5 +215,80 @@ void main() {
     first.complete(const Right(null));
     await initial;
     expect(container.read(documentImportControllerProvider).draft!.importId, draft.importId);
+  });
+
+  test('canceling or canceling the replacement confirmation keeps the active draft', () async {
+    when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
+    when(() => picker.pick(DocumentFileSource.file)).thenAnswer(
+      (_) async => replacementFile,
+    );
+    final controller = container.read(documentImportControllerProvider.notifier);
+    await controller.initialize('owner', 1);
+    await controller.prepareReplacement(DocumentFileSource.file);
+    expect(container.read(documentImportControllerProvider).replacementCandidate, isNotNull);
+    controller.cancelReplacement();
+    final state = container.read(documentImportControllerProvider);
+    expect(state.draft!.importId, draft.importId);
+    expect(state.draft!.file.bytes, file.bytes);
+    expect(state.replacementCandidate, isNull);
+    verifyNever(
+      () => repo.replaceDraft(
+        any(),
+        any(),
+        any(),
+        cleanupPreviousImport: any(named: 'cleanupPreviousImport'),
+        previousGeneration: any(named: 'previousGeneration'),
+      ),
+    );
+  });
+
+  test(
+    'replacement switches only after repository confirms and keeps the new request identity',
+    () async {
+      when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
+      when(() => picker.pick(DocumentFileSource.file)).thenAnswer((_) async => replacementFile);
+      final controller = container.read(documentImportControllerProvider.notifier);
+      await controller.initialize('owner', 1);
+      await controller.prepareReplacement(DocumentFileSource.file);
+      final candidate = container.read(documentImportControllerProvider).replacementCandidate!;
+      await controller.confirmReplacement();
+      final state = container.read(documentImportControllerProvider);
+      expect(state.draft!.importId, candidate.importId);
+      expect(state.draft!.file.bytes, replacementFile.bytes);
+      expect(state.replacementCandidate, isNull);
+      verify(
+        () => repo.replaceDraft(
+          'owner',
+          draft.importId,
+          candidate,
+          cleanupPreviousImport: false,
+          previousGeneration: 1,
+        ),
+      ).called(1);
+    },
+  );
+
+  test('replacement write failure leaves old draft and candidate available for retry', () async {
+    when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
+    when(() => picker.pick(DocumentFileSource.file)).thenAnswer((_) async => replacementFile);
+    when(
+      () => repo.replaceDraft(
+        any(),
+        any(),
+        any(),
+        cleanupPreviousImport: any(named: 'cleanupPreviousImport'),
+        previousGeneration: any(named: 'previousGeneration'),
+      ),
+    ).thenAnswer((_) async => const Left(UnknownFailure('document-draft-unavailable')));
+    final controller = container.read(documentImportControllerProvider.notifier);
+    await controller.initialize('owner', 1);
+    await controller.prepareReplacement(DocumentFileSource.file);
+    final candidate = container.read(documentImportControllerProvider).replacementCandidate!;
+    await controller.confirmReplacement();
+    final state = container.read(documentImportControllerProvider);
+    expect(state.draft!.importId, draft.importId);
+    expect(state.draft!.file.bytes, file.bytes);
+    expect(state.replacementCandidate!.importId, candidate.importId);
+    expect(state.error!.message, 'document-draft-unavailable');
   });
 }

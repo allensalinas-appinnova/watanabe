@@ -116,10 +116,13 @@ void main() {
     } else {
       await tester.tap(find.byKey(const ValueKey('document_pick_gallery')));
     }
-    await wait(tester, () => find.byKey(const ValueKey('document_analyze')).evaluate().isNotEmpty);
+    await wait(
+      tester,
+      () => find.byKey(const ValueKey('document_prepare_expense')).evaluate().isNotEmpty,
+    );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('document_analyze')));
-    await tester.tap(find.byKey(const ValueKey('document_analyze')));
+    await tester.ensureVisible(find.byKey(const ValueKey('document_prepare_expense')));
+    await tester.tap(find.byKey(const ValueKey('document_prepare_expense')));
     await tester.pump(const Duration(seconds: 1));
     final offline = find.textContaining('internet connection');
     await tester.pump(const Duration(milliseconds: 300));
@@ -131,14 +134,14 @@ void main() {
     expect((await root.collection('documentImports').get()).size, 0);
     await setProviderFailure(true);
     connection.online = true;
-    await tester.tap(find.byKey(const ValueKey('document_analyze')));
+    final feedbackLabels = AppLocalizations.of(tester.element(find.byType(DocumentImportScreen)));
+    await tester.tap(find.byKey(const ValueKey('document_prepare_expense')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byType(AlertDialog).evaluate().isNotEmpty
           ? find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton)).last
-          : find.widgetWithText(FilledButton, 'Analizar documento').last,
+          : find.widgetWithText(FilledButton, feedbackLabels.documentPrepareExpense).last,
     );
-    final feedbackLabels = AppLocalizations.of(tester.element(find.byType(DocumentImportScreen)));
     await wait(tester, () => find.text(feedbackLabels.documentServiceBusy).evaluate().isNotEmpty);
     final failedSource = (await root.collection('documentImports').get()).docs.single;
     expect(failedSource.get('status'), 'failed');
@@ -153,8 +156,8 @@ void main() {
       100000,
     );
     await setProviderFailure(false);
-    await tester.ensureVisible(find.byKey(const ValueKey('document_analyze')));
-    await tester.tap(find.byKey(const ValueKey('document_analyze')));
+    await tester.ensureVisible(find.byKey(const ValueKey('document_prepare_expense')));
+    await tester.tap(find.byKey(const ValueKey('document_prepare_expense')));
     expect((await root.collection('documentImports').get()).docs.single.id, failedSource.id);
     await wait(
       tester,
@@ -236,12 +239,36 @@ void main() {
     if (const bool.fromEnvironment('QA_NATIVE_SHARE')) {
       await nativeShare('pdf');
     } else {
-      await tester.tap(pickPdf);
+      await tester.tap(find.byKey(const ValueKey('document_pick_gallery')));
+      await wait(
+        tester,
+        () => find.byKey(const ValueKey('document_change_receipt')).evaluate().isNotEmpty,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('document_change_receipt')));
+      await tester.tap(find.byKey(const ValueKey('document_change_receipt')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.documentFile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('document_keep_current')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.documentTypeImage), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const ValueKey('document_change_receipt')));
+      await tester.tap(find.byKey(const ValueKey('document_change_receipt')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.documentFile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('document_use_new')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.documentTypePdf), findsOneWidget);
     }
-    await wait(tester, () => find.byKey(const ValueKey('document_analyze')).evaluate().isNotEmpty);
+    await wait(
+      tester,
+      () => find.byKey(const ValueKey('document_prepare_expense')).evaluate().isNotEmpty,
+    );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('document_analyze')));
-    await tester.tap(find.byKey(const ValueKey('document_analyze')));
+    await tester.ensureVisible(find.byKey(const ValueKey('document_prepare_expense')));
+    await tester.tap(find.byKey(const ValueKey('document_prepare_expense')));
     await tester.pump(const Duration(milliseconds: 500));
     if (find.byType(AlertDialog).evaluate().isNotEmpty) {
       await tester.tap(
@@ -338,9 +365,12 @@ void main() {
     await wait(tester, () => pickPdf.evaluate().isNotEmpty);
     await tester.ensureVisible(pickPdf);
     await tester.tap(pickPdf);
-    await wait(tester, () => find.byKey(const ValueKey('document_analyze')).evaluate().isNotEmpty);
-    await tester.ensureVisible(find.byKey(const ValueKey('document_analyze')));
-    await tester.tap(find.byKey(const ValueKey('document_analyze')));
+    await wait(
+      tester,
+      () => find.byKey(const ValueKey('document_prepare_expense')).evaluate().isNotEmpty,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('document_prepare_expense')));
+    await tester.tap(find.byKey(const ValueKey('document_prepare_expense')));
     await tester.pump(const Duration(milliseconds: 500));
     if (find.byType(AlertDialog).evaluate().isNotEmpty) {
       await tester.tap(
