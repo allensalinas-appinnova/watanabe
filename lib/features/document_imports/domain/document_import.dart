@@ -20,6 +20,10 @@ class DocumentFile {
   final String contentType;
 }
 
+enum DocumentReviewField { amount, currency, date, category, account, description }
+
+enum DocumentReviewStatus { suggested, needsReview, userProvided }
+
 class DocumentSuggestion {
   const DocumentSuggestion({
     this.amountMinor,
@@ -28,11 +32,27 @@ class DocumentSuggestion {
     this.description,
     this.categoryId,
     this.accountId,
+    this.reviewFields = const {},
   });
   final int? amountMinor;
   final String? currency, description, categoryId, accountId;
   final DateTime? date;
+  final Set<DocumentReviewField> reviewFields;
+
+  DocumentReviewStatus statusFor(
+    DocumentReviewField field, {
+    required bool available,
+    required bool userEdited,
+  }) {
+    if (!available) return DocumentReviewStatus.needsReview;
+    if (userEdited) return DocumentReviewStatus.userProvided;
+    return reviewFields.contains(field)
+        ? DocumentReviewStatus.needsReview
+        : DocumentReviewStatus.suggested;
+  }
 }
+
+enum DocumentAnalysisIssue { serviceBusy, timedOut, failed }
 
 class DocumentImport {
   const DocumentImport({
@@ -41,10 +61,12 @@ class DocumentImport {
     required this.version,
     required this.phase,
     this.storagePath,
+    this.analysisIssue,
     this.operationId,
     this.suggestion = const DocumentSuggestion(),
   });
   final String id;
+  final DocumentAnalysisIssue? analysisIssue;
   final int generation, version;
   final DocumentPhase phase;
   final String? storagePath, operationId;

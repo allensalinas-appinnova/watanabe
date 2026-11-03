@@ -149,6 +149,13 @@ class _GuestAccountUpgradeScreenState extends ConsumerState<GuestAccountUpgradeS
                 ),
               ),
               const SizedBox(height: 18),
+              if (const bool.fromEnvironment('AUTH_APPLE_ENABLED'))
+                OutlinedButton.icon(
+                  key: const ValueKey('guest_upgrade_apple'),
+                  onPressed: _busy ? null : () => _linkProvider(apple: true),
+                  icon: const Icon(Icons.apple),
+                  label: Text(l10n.authContinueWithApple),
+                ),
               Center(child: Text(l10n.authOrContinueWith)),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -197,12 +204,15 @@ class _GuestAccountUpgradeScreenState extends ConsumerState<GuestAccountUpgradeS
     );
   }
 
-  Future<void> _linkGoogle() async {
+  Future<void> _linkGoogle() => _linkProvider(apple: false);
+
+  Future<void> _linkProvider({required bool apple}) async {
     setState(() {
       _busy = true;
       _errorCode = null;
     });
-    final result = await ref.read(authRepositoryProvider).linkGoogle();
+    final repository = ref.read(authRepositoryProvider);
+    final result = apple ? await repository.linkApple() : await repository.linkGoogle();
     if (!mounted) return;
     result.match(
       (failure) => setState(() {

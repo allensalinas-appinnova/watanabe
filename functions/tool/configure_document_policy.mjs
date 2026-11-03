@@ -1,4 +1,5 @@
 import {initializeApp} from 'firebase-admin/app';
+// Historical bootstrap only. Reviewed cost rates use review_resource_tariffs.mjs (dry-run by default).
 import {getFirestore} from 'firebase-admin/firestore';
 if(process.env.GCLOUD_PROJECT!=='lumiomoney'||process.env.FIRESTORE_EMULATOR_HOST)throw Error('Explicit live target required');
 initializeApp({projectId:'lumiomoney'});const db=getFirestore();

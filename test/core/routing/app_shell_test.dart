@@ -204,6 +204,45 @@ void main() {
     }
   });
 
+  for (final origin in ['/home', '/activity']) {
+    for (final completion in ['save', 'back']) {
+      testWidgets(
+        'Registrar is reusable after document $completion from $origin with router refresh',
+        (tester) async {
+          final router = _router(initialLocation: origin, filteredActivity: true);
+          addTearDown(router.dispose);
+          await tester.pumpWidget(_app(router));
+          await tester.pumpAndSettle();
+          final register = find.byKey(const ValueKey('global_add_operation'));
+          for (var attempt = 0; attempt < 2; attempt++) {
+            expect(register.hitTestable(), findsOneWidget);
+            expect(tester.widget<FilledButton>(register).onPressed, isNotNull);
+            await tester.tap(register);
+            await tester.pumpAndSettle();
+            await tester.ensureVisible(find.byKey(const ValueKey('add_movement_document')));
+            await tester.tap(find.byKey(const ValueKey('add_movement_document')));
+            await tester.pumpAndSettle();
+            expect(find.text('Document import'), findsOneWidget);
+            expect(register.hitTestable(), findsNothing);
+            router.refresh();
+            await tester.pumpAndSettle();
+            await tester.tap(find.byKey(ValueKey('fake_document_$completion')));
+            await tester.pumpAndSettle();
+            expect(router.state.uri.path, origin);
+            expect(register.hitTestable(), findsOneWidget);
+            expect(tester.widget<FilledButton>(register).onPressed, isNotNull);
+            if (origin == '/activity') expect(find.text('filter:expense'), findsOneWidget);
+          }
+          await tester.tap(register);
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('add_movement_expense')));
+          await tester.pumpAndSettle();
+          expect(find.text('operation:expense'), findsOneWidget);
+        },
+      );
+    }
+  }
+
   testWidgets('Settings is available on every section and returns to the originating tab', (
     tester,
   ) async {
@@ -578,6 +617,26 @@ GoRouter _router({
       builder: (_, _) => returnReceipts
           ? _SavingForm(type: OperationType.transfer, pending: pendingReceipts)
           : const _BackForm('transfer route'),
+    ),
+    GoRoute(
+      path: '/document-imports/new',
+      builder: (c, state) => Scaffold(
+        appBar: AppBar(title: const Text('Document import')),
+        body: Column(
+          children: [
+            TextButton(
+              key: const ValueKey('fake_document_save'),
+              onPressed: () => c.go(state.uri.queryParameters['returnTo'] ?? '/home'),
+              child: const Text('Confirm imported expense'),
+            ),
+            TextButton(
+              key: const ValueKey('fake_document_back'),
+              onPressed: () => c.pop(),
+              child: const Text('Back'),
+            ),
+          ],
+        ),
+      ),
     ),
     GoRoute(path: '/settings', builder: (_, _) => const _BackForm('Settings route')),
   ],

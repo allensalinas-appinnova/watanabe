@@ -49,7 +49,7 @@ class CanonicalHomeScreen extends ConsumerWidget {
         final profile = ref.watch(canonicalUserProfileProvider(user.id)).valueOrNull;
         final homePreferences =
             profile?.homeDashboardPreferences ?? const HomeDashboardPreferences();
-        final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
+        final monthKey = DateFormat('yyyy-MM').format(ref.watch(planningTodayProvider(user.id)));
         final operationsInput = (
           userId: user.id,
           cursor: null,

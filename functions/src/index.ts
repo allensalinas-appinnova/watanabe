@@ -1,5 +1,6 @@
+export {requestAccountDeletion, processAccountDeletion, processAccountDeletionTask, retryAccountDeletions} from "./account_deletion";
 import {resourceOnCall} from "./resource_endpoints";
-export {mutatePaymentInstrument, mutateDocumentImport, getResourceUsage, mutateAttachment, trackDocumentUpload, trackDocumentDelete, cleanupDocumentImports, reconcileResourceUsage, submitUsageObservation} from "./resource_endpoints";
+export {mutatePaymentInstrument, mutateDocumentImport, getResourceUsage, mutateAttachment, trackDocumentUpload, trackDocumentDelete, cleanupDocumentImports, reconcileResourceUsage, continueResourceMaintenance, submitUsageObservation} from "./resource_endpoints";
 import {initializeApp} from "firebase-admin/app";
 import {meteredFirestore as getFirestore} from "./resource_observation";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";

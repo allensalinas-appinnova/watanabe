@@ -53,9 +53,16 @@ case "$target_platform" in
     ;;
 esac
 
+if [[ "${E2E_ACCOUNT_DELETION_ENABLED:-false}" == "true" ]]; then
+  app_test_command="$app_test_command --dart-define=ACCOUNT_DELETION_ENABLED=true"
+fi
+
 host_arg="$(printf '%q' "$emulator_host")"
 
-seed_command="npm --prefix functions run seed:catalog"
+# Build before the Functions watcher starts. Rebuilding inside emulators:exec can
+# deregister a newly created Firestore trigger during the first client writes.
+npm --prefix functions run build
+seed_command="node functions/lib/seed_category_catalog.js"
 
 npx -y firebase-tools@latest emulators:exec \
   --project demo-clearbudget \

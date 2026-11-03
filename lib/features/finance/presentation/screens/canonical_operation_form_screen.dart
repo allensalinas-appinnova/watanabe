@@ -18,6 +18,7 @@ import '../../../debts/domain/debt_command.dart';
 import '../../../debts/presentation/debt_error_message.dart';
 import '../../../debts/presentation/debt_providers.dart';
 import '../../../document_imports/domain/document_import.dart';
+import '../../../document_imports/presentation/document_field_review_hint.dart';
 import '../../../document_imports/presentation/document_import_providers.dart';
 import '../../../document_imports/presentation/document_import_screen.dart';
 import '../../../document_imports/presentation/resource_usage_screen.dart';
@@ -45,9 +46,11 @@ class CanonicalOperationFormScreen extends ConsumerStatefulWidget {
     this.initialBudgetItemPreset,
     this.initialOccurredAt,
     this.documentImport,
+    this.onDocumentSaved,
   });
 
   final DocumentImport? documentImport;
+  final Future<void> Function(MovementSaveResult)? onDocumentSaved;
   final OperationType initialType;
   final FinancialOperation? initialOperation;
   final String? initialAccountId;
@@ -72,10 +75,14 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   bool _documentSaved = false;
   bool _confirmedPerformed = false;
   bool _documentReviewLoaded = false;
+  bool _documentReviewLoading = false;
+  DocumentImportRepository? _documentReviewRepository;
+  String? _documentReviewUid;
   bool _documentDateConfirmed = false;
   bool _duplicatesReviewed = false;
   bool _saving = false;
   bool _hasUnsavedChanges = false;
+  final _documentEditedFields = <DocumentReviewField>{};
   DateTime _occurredAt = DateTime.now();
 
   @override
@@ -133,6 +140,9 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     final user = ref.watch(authSessionProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     if (user == null) return Scaffold(body: Center(child: Text(l10n.sessionExpired)));
+    if (widget.documentImport != null && !_documentReviewLoaded && !_documentReviewLoading) {
+      unawaited(_restoreDocumentReview());
+    }
     final accounts = ref.watch(canonicalAccountsProvider(user.id));
     final categories = ref.watch(canonicalCategoriesProvider(user.id));
     final recentOperations =
@@ -190,7 +200,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     for (final account in accounts.valueOrNull ?? const <FinanceAccount>[]) {
       if (account.id == selectedAccountId) selectedCurrency = account.currency;
     }
-    final formCurrency = preset?.currency ?? selectedCurrency;
+    final formCurrency =
+        preset?.currency ?? selectedCurrency ?? widget.documentImport?.suggestion.currency;
     return DiscardChangesScope(
       isDirty: _hasUnsavedChanges,
       child: Scaffold(
@@ -247,14 +258,6 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                       child: Text(l10n.documentPlanInstead),
                     ),
                   ],
-                  if (widget.initialOperation != null)
-                    AttachmentList(
-                      uid: user.id,
-                      operationId: widget.initialOperation!.attachmentId == null
-                          ? widget.initialOperation!.id
-                          : null,
-                      attachmentId: widget.initialOperation!.attachmentId,
-                    ),
                   FinanceOperationTypeSelector(
                     expenseLabel: l10n.expense,
                     incomeLabel: l10n.income,
@@ -272,6 +275,15 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                       });
                     },
                   ),
+                  if (widget.initialOperation != null)
+                    AttachmentList(
+                      uid: user.id,
+                      compact: true,
+                      operationId: widget.initialOperation!.attachmentId == null
+                          ? widget.initialOperation!.id
+                          : null,
+                      attachmentId: widget.initialOperation!.attachmentId,
+                    ),
                   if (preset != null) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -288,6 +300,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                     child: TextFormField(
                       key: const ValueKey('operation_amount'),
                       controller: _amount,
+                      onChanged: (_) => _documentFieldChanged(DocumentReviewField.amount),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         prefixText: formCurrency == null
@@ -299,6 +312,8 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                           : FinanceInputValidators.amount(value, formCurrency, l10n),
                     ),
                   ),
+                  _documentFieldHint(DocumentReviewField.amount, currency: formCurrency),
+                  _documentFieldHint(DocumentReviewField.currency, currency: formCurrency),
                   const SizedBox(height: 12),
                   FinanceLabeledField(
                     label: l10n.account,
@@ -352,12 +367,20 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                               validator: (value) =>
                                   value == null ? l10n.operationAccountRequired : null,
                               // The budget item constrains currency, not account choice.
-                              onSelected: (value) => setState(() {
-                                _accountId = value;
-                                _hasUnsavedChanges = true;
-                              }),
+                              onSelected: (value) {
+                                setState(() {
+                                  _accountId = value;
+                                  _hasUnsavedChanges = true;
+                                });
+                                _documentFieldChanged(DocumentReviewField.account);
+                                _documentFieldChanged(DocumentReviewField.currency);
+                              },
                             ),
                     ),
+                  ),
+                  _documentFieldHint(
+                    DocumentReviewField.account,
+                    available: selectedAccountId != null,
                   ),
                   const SizedBox(height: 12),
                   FinanceLabeledField(
@@ -405,12 +428,19 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                       },
                       validator: (value) => value == null ? l10n.operationCategoryRequired : null,
                       onSelected: preset == null
-                          ? (value) => setState(() {
-                              _categoryId = value;
-                              _hasUnsavedChanges = true;
-                            })
+                          ? (value) {
+                              setState(() {
+                                _categoryId = value;
+                                _hasUnsavedChanges = true;
+                              });
+                              _documentFieldChanged(DocumentReviewField.category);
+                            }
                           : null,
                     ),
+                  ),
+                  _documentFieldHint(
+                    DocumentReviewField.category,
+                    available: selectedCategoryId != null,
                   ),
                   if (preset == null) const SizedBox(height: 8),
                   if (preset == null)
@@ -429,9 +459,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                     child: TextField(
                       key: const ValueKey('operation_description'),
                       controller: _description,
+                      onChanged: (_) => _documentFieldChanged(DocumentReviewField.description),
                       decoration: const InputDecoration(),
                     ),
                   ),
+                  if (_description.text.trim().isNotEmpty)
+                    _documentFieldHint(DocumentReviewField.description, available: true),
                   const SizedBox(height: 8),
                   ExpansionTile(
                     key: const ValueKey('operation_more_options'),
@@ -462,6 +495,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
                             ),
                           ),
                         ),
+                      ),
+                      _documentFieldHint(
+                        DocumentReviewField.date,
+                        available: _documentDateConfirmed,
                       ),
                       const SizedBox(height: 12),
                       FinanceLabeledField(
@@ -514,8 +551,51 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     if (!_hasUnsavedChanges && mounted) setState(() => _hasUnsavedChanges = true);
   }
 
+  void _documentFieldChanged(DocumentReviewField field) {
+    if (widget.documentImport == null || !mounted) return;
+    setState(() => _documentEditedFields.add(field));
+    _markChanged();
+  }
+
+  Widget _documentFieldHint(DocumentReviewField field, {bool? available, String? currency}) {
+    final source = widget.documentImport;
+    if (source == null) return const SizedBox.shrink();
+    var hasValue = available ?? false;
+    if (field == DocumentReviewField.amount) {
+      try {
+        MoneyParser.minorUnits(_amount.text, currency ?? source.suggestion.currency ?? '');
+        hasValue = currency != null || source.suggestion.currency != null;
+      } on FormatException {
+        hasValue = false;
+      }
+    }
+    if (field == DocumentReviewField.currency) hasValue = currency != null;
+    final mismatch =
+        field == DocumentReviewField.currency &&
+        currency != null &&
+        source.suggestion.currency != null &&
+        currency != source.suggestion.currency;
+    return DocumentFieldReviewHint(
+      key: ValueKey('document_field_${field.name}'),
+      field: field,
+      status: mismatch
+          ? DocumentReviewStatus.needsReview
+          : source.suggestion.statusFor(
+              field,
+              available: hasValue,
+              userEdited: _documentEditedFields.contains(field),
+            ),
+      detail: mismatch
+          ? AppLocalizations.of(
+              context,
+            ).documentCurrencyMismatch(currency, source.suggestion.currency!)
+          : null,
+    );
+  }
+
   Future<void> _popAfterSave([Object? result]) async {
     if (!mounted) return;
+    final documentCompletion = widget.documentImport != null ? widget.onDocumentSaved : null;
     final preset = widget.initialBudgetItemPreset;
     final uid = ref.read(authSessionProvider).valueOrNull?.id;
     final rootContext = Navigator.of(context, rootNavigator: true).overlay?.context;
@@ -523,7 +603,30 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
     final l10n = AppLocalizations.of(context);
     setState(() => _hasUnsavedChanges = false);
     await WidgetsBinding.instance.endOfFrame;
-    if (mounted) context.pop(result);
+    // The proposal may become approved during this frame and replace the form.
+    // Its owner still needs the confirmed outcome to close the import flow.
+    if (documentCompletion != null && result is MovementSaveResult) {
+      await documentCompletion(result);
+      return;
+    }
+    if (mounted) {
+      if (widget.documentImport != null && !context.canPop()) {
+        context.go('/home');
+        if (result is MovementSaveResult) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                l10n.expenseRegistered(
+                  CurrencyFormatter.formatMinor(result.amountMinor, result.currency),
+                ),
+              ),
+            ),
+          );
+        }
+      } else {
+        context.pop(result);
+      }
+    }
     if (result is MovementSaveResult &&
         result.status == MovementSaveStatus.confirmed &&
         result.type == OperationType.expense &&
@@ -828,9 +931,9 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
 
   Future<void> _persistDocumentReview() async {
     if (_documentSaved || widget.documentImport == null) return;
-    final source = widget.documentImport!, uid = ref.read(authSessionProvider).valueOrNull?.id;
-    if (uid == null) return;
-    final repository = ref.read(documentImportRepositoryProvider);
+    final source = widget.documentImport!, uid = _documentReviewUid;
+    final repository = _documentReviewRepository;
+    if (uid == null || repository == null) return;
     final review = <String, Object?>{
       'amount': _amount.text,
       'description': _description.text,
@@ -839,6 +942,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
       'date': _occurredAt.toIso8601String(),
       'dateConfirmed': _documentDateConfirmed,
       'performed': _confirmedPerformed,
+      'editedFields': _documentEditedFields.map((field) => field.name).toList(),
     };
     final result = await repository.loadDraft(uid, source.generation);
     await result.match<Future<void>>((_) async {}, (draft) async {
@@ -849,7 +953,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             file: draft!.file,
             importId: source.id,
             generation: source.generation,
-            review: review,
+            review: {...draft.review, ...review},
           ),
         );
       }
@@ -857,14 +961,18 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
   }
 
   Future<void> _restoreDocumentReview() async {
+    if (_documentReviewLoading || _documentReviewLoaded) return;
     final source = widget.documentImport;
     final uid = ref.read(authSessionProvider).valueOrNull?.id;
     if (source == null || uid == null) return;
-    final result = await ref
-        .read(documentImportRepositoryProvider)
-        .loadDraft(uid, source.generation);
+    _documentReviewLoading = true;
+    final repository = ref.read(documentImportRepositoryProvider);
+    _documentReviewRepository = repository;
+    _documentReviewUid = uid;
+    final result = await repository.loadDraft(uid, source.generation);
     if (!mounted) return;
     _documentReviewLoaded = true;
+    _documentReviewLoading = false;
     result.match(
       (_) {
         setState(() {});
@@ -876,15 +984,57 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         }
         final r = draft!.review;
         setState(() {
+          _documentEditedFields.addAll(
+            DocumentReviewField.values.where(
+              (field) =>
+                  r['editedFields'] is List && (r['editedFields'] as List).contains(field.name),
+            ),
+          );
           if (r['amount'] is String) _amount.text = r['amount']! as String;
           if (r['description'] is String) _description.text = r['description']! as String;
           if (r['accountId'] is String) _accountId = r['accountId']! as String;
           if (r['categoryId'] is String) _categoryId = r['categoryId']! as String;
+          var invalidDraftDate = false;
           if (r['date'] is String) {
-            _occurredAt = DateTime.tryParse(r['date']! as String) ?? _occurredAt;
+            final restored = DateTime.tryParse(r['date']! as String);
+            invalidDraftDate = restored == null || restored.year < 2000 || restored.year > 2100;
+            if (!invalidDraftDate) _occurredAt = restored;
           }
           _confirmedPerformed = r['performed'] == true;
-          _documentDateConfirmed = r['dateConfirmed'] == true || source.suggestion.date != null;
+          _documentDateConfirmed =
+              !invalidDraftDate && (r['dateConfirmed'] == true || source.suggestion.date != null);
+          // Older drafts have values but no field-origin markers; preserve their user's choices.
+          if (r['amount'] is String &&
+              r['amount'] !=
+                  (source.suggestion.amountMinor != null && source.suggestion.currency != null
+                      ? _minorAmountInput(
+                          source.suggestion.amountMinor!,
+                          source.suggestion.currency!,
+                        )
+                      : '')) {
+            _documentEditedFields.add(DocumentReviewField.amount);
+          }
+          if (r['description'] is String &&
+              r['description'] != (source.suggestion.description ?? '')) {
+            _documentEditedFields.add(DocumentReviewField.description);
+          }
+          if (r['accountId'] is String && r['accountId'] != source.suggestion.accountId) {
+            _documentEditedFields.addAll([
+              DocumentReviewField.account,
+              DocumentReviewField.currency,
+            ]);
+          }
+          if (r['categoryId'] is String && r['categoryId'] != source.suggestion.categoryId) {
+            _documentEditedFields.add(DocumentReviewField.category);
+          }
+          final suggestedDate = source.suggestion.date;
+          if (_documentDateConfirmed &&
+              (suggestedDate == null ||
+                  _occurredAt.year != suggestedDate.year ||
+                  _occurredAt.month != suggestedDate.month ||
+                  _occurredAt.day != suggestedDate.day)) {
+            _documentEditedFields.add(DocumentReviewField.date);
+          }
         });
       },
     );
@@ -892,6 +1042,17 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
 
   Future<void> _saveImportedDocument(String uid, FinanceAccount account, int amount) async {
     final l = AppLocalizations.of(context), source = widget.documentImport!;
+    final completion = widget.onDocumentSaved;
+    final saved = MovementSaveResult(
+      type: OperationType.expense,
+      status: MovementSaveStatus.confirmed,
+      amountMinor: amount,
+      currency: account.currency,
+      idempotencyKey: 'doc_${source.id}',
+      occurredAt: _occurredAt,
+      description: _description.text.trim(),
+      accountName: account.name,
+    );
     final repository = ref.read(documentImportRepositoryProvider);
     final local = await repository.loadDraft(uid, source.generation);
     await local.match<Future<void>>((_) async {}, (draft) async {
@@ -903,6 +1064,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           importId: source.id,
           generation: source.generation,
           review: {
+            ...draft.review,
             'amount': _amount.text,
             'description': _description.text,
             'accountId': account.id,
@@ -910,6 +1072,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
             'date': _occurredAt.toIso8601String(),
             'dateConfirmed': _documentDateConfirmed,
             'performed': _confirmedPerformed,
+            'editedFields': _documentEditedFields.map((field) => field.name).toList(),
           },
         ),
       );
@@ -935,7 +1098,10 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         duplicatesReviewed: _duplicatesReviewed,
       ),
     );
-    if (!mounted) return;
+    if (!mounted) {
+      if (result.isRight() && completion != null) await completion(saved);
+      return;
+    }
     await result.match<Future<void>>(
       (failure) async {
         setState(() => _saving = false);
@@ -977,7 +1143,12 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
           ..invalidate(canonicalAccountsProvider(uid))
           ..invalidate(activityReportProvider(uid));
         invalidateOperationLists(ref, uid);
-        await _popAfterSave();
+        if (completion != null) {
+          setState(() => _hasUnsavedChanges = false);
+          await completion(saved);
+        } else {
+          await _popAfterSave(saved);
+        }
       },
     );
   }
@@ -1004,6 +1175,7 @@ class _CanonicalOperationFormScreenState extends ConsumerState<CanonicalOperatio
         },
       );
       _markChanged();
+      _documentFieldChanged(DocumentReviewField.date);
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/firebase_failure_mapper.dart';
+import '../../domain/entities/auth_access_method.dart';
 import '../../domain/entities/auth_account_link_result.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -72,11 +73,102 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, AuthUser>> refreshAccessMethods({required String expectedUid}) async {
+    try {
+      final user = await _remoteDataSource.refreshAccessMethods(expectedUid: expectedUid);
+      if (user.id != expectedUid || _remoteDataSource.currentUser?.id != expectedUid) {
+        return const Left(AuthFailure('Session changed', technicalCode: 'user-mismatch'));
+      }
+      await _cacheLinkedUserBestEffort(user);
+      return Right(user.toEntity());
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> reauthenticateForLinking({
+    required String expectedUid,
+    required AuthAccessMethod method,
+    String? password,
+  }) async {
+    try {
+      await _remoteDataSource.reauthenticateForLinking(
+        expectedUid: expectedUid,
+        method: method,
+        password: password,
+      );
+      return const Right(unit);
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AuthAccountLinkResult>> addAccessMethod(
+    LinkAccessMethodCommand command,
+  ) async {
+    try {
+      final user = await _remoteDataSource.addAccessMethod(command);
+      if (user.id != command.expectedUid ||
+          _remoteDataSource.currentUser?.id != command.expectedUid) {
+        return const Left(AuthFailure('Session changed', technicalCode: 'user-mismatch'));
+      }
+      bool? sent;
+      if (command.method == AuthAccessMethod.password && user.emailVerified != true) {
+        sent = false;
+        try {
+          await _remoteDataSource.sendEmailVerification();
+          sent = true;
+        } on Object {
+          /* Link is already committed. */
+        }
+      }
+      await _cacheLinkedUserBestEffort(user);
+      return Right(AuthAccountLinkResult(user: user.toEntity(), emailVerificationSent: sent));
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
   Future<Either<Failure, AuthUser>> signInWithGoogle() async {
     try {
       final user = await _remoteDataSource.signInWithGoogle();
       await _localDataSource.cacheUser(user);
       return Right(user.toEntity());
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AuthUser>> signInWithApple() async {
+    try {
+      final user = await _remoteDataSource.signInWithApple();
+      await _localDataSource.cacheUser(user);
+      return Right(user.toEntity());
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AuthAccountLinkResult>> linkApple() async {
+    try {
+      final user = await _remoteDataSource.linkApple();
+      await _cacheLinkedUserBestEffort(user);
+      return Right(AuthAccountLinkResult(user: user.toEntity()));
+    } catch (error) {
+      return Left(FirebaseFailureMapper.fromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> reauthenticateForDeletion({String? password}) async {
+    try {
+      await _remoteDataSource.reauthenticateForDeletion(password: password);
+      return const Right(unit);
     } catch (error) {
       return Left(FirebaseFailureMapper.fromException(error));
     }

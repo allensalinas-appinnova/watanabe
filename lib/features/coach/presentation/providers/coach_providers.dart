@@ -86,27 +86,29 @@ final coachTickProvider = StreamProvider<DateTime>((ref) async* {
   yield* Stream.periodic(const Duration(minutes: 1), (_) => clock.now());
 });
 
-final coachPreferencesProvider = StreamProvider.family<CoachPreferences, String>(
+final coachPreferencesProvider = StreamProvider.autoDispose.family<CoachPreferences, String>(
   (ref, uid) =>
       ref.watch(coachRepositoryProvider)?.watchPreferences(uid) ??
       Stream.value(const CoachPreferences()),
 );
 
-final coachRoutinePreferencesProvider = StreamProvider.family<CoachRoutinePreferences, String>(
-  (ref, uid) =>
-      ref.watch(coachRepositoryProvider)?.watchRoutinePreferences(uid) ??
-      Stream.value(const CoachRoutinePreferences()),
-);
+final coachRoutinePreferencesProvider = StreamProvider.autoDispose
+    .family<CoachRoutinePreferences, String>(
+      (ref, uid) =>
+          ref.watch(coachRepositoryProvider)?.watchRoutinePreferences(uid) ??
+          Stream.value(const CoachRoutinePreferences()),
+    );
 
-final coachUnallocatedPaymentsProvider = StreamProvider.family<CoachUnallocatedPayments, String>(
-  (ref, uid) =>
-      ref.watch(coachRepositoryProvider)?.watchUnallocatedPayments(uid) ??
-      Stream.value(const CoachUnallocatedPayments(operations: [])),
-);
+final coachUnallocatedPaymentsProvider = StreamProvider.autoDispose
+    .family<CoachUnallocatedPayments, String>(
+      (ref, uid) =>
+          ref.watch(coachRepositoryProvider)?.watchUnallocatedPayments(uid) ??
+          Stream.value(const CoachUnallocatedPayments(operations: [])),
+    );
 
 typedef CoachBudgetProgressRequest = ({String userId, String monthKey});
-final coachBudgetProgressProvider =
-    StreamProvider.family<List<CoachBudgetProgress>, CoachBudgetProgressRequest>(
+final coachBudgetProgressProvider = StreamProvider.autoDispose
+    .family<List<CoachBudgetProgress>, CoachBudgetProgressRequest>(
       (ref, request) =>
           ref
               .watch(coachRepositoryProvider)
@@ -339,7 +341,7 @@ void retryCoachOverview(WidgetRef ref, String uid) {
     ..invalidate(coachOverviewProvider(uid));
 }
 
-final coachWriteFailureProvider = StreamProvider.family<CoachWriteFailure, String>(
+final coachWriteFailureProvider = StreamProvider.autoDispose.family<CoachWriteFailure, String>(
   (ref, uid) => ref.watch(coachRepositoryProvider)?.watchWriteFailures(uid) ?? const Stream.empty(),
 );
 
@@ -353,7 +355,10 @@ final coachSelectedCompletionProvider = StreamProvider.autoDispose
           Stream.value(null),
     );
 
-final coachCompletionsProvider = StreamProvider.family<List<CoachCompletion>, String>((ref, uid) {
+final coachCompletionsProvider = StreamProvider.autoDispose.family<List<CoachCompletion>, String>((
+  ref,
+  uid,
+) {
   ref.watch(coachTickProvider.select((value) => value.value?.day));
   final since = ref.watch(coachClockProvider).now().subtract(const Duration(days: 42));
   return ref.watch(coachRepositoryProvider)?.watchCompletions(uid, since: since) ??
@@ -364,17 +369,18 @@ typedef CoachReportRequest = ({String userId, DateTime startAt, DateTime endAtEx
 final coachReportChangesProvider = StreamProvider.autoDispose.family<int, CoachReportRequest>((
   ref,
   request,
-) async* {
+) {
   final repository = ref.watch(coachRepositoryProvider);
-  if (repository == null) return;
+  if (repository == null) return const Stream.empty();
   var revision = 0;
-  await for (final _ in repository.watchReportChanges(
-    request.userId,
-    startAt: request.startAt,
-    endAtExclusive: request.endAtExclusive,
-  )) {
-    yield ++revision;
-  }
+  // Preserve direct subscription cancellation even before the first report change.
+  return repository
+      .watchReportChanges(
+        request.userId,
+        startAt: request.startAt,
+        endAtExclusive: request.endAtExclusive,
+      )
+      .map((_) => ++revision);
 });
 
 final coachReportProvider = FutureProvider.autoDispose

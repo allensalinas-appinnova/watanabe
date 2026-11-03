@@ -13,8 +13,12 @@ abstract interface class AuthLocalDataSource {
 }
 
 class SharedPreferencesAuthLocalDataSource implements AuthLocalDataSource {
-  const SharedPreferencesAuthLocalDataSource({required SharedPreferences preferences})
-    : _preferences = preferences;
+  const SharedPreferencesAuthLocalDataSource({
+    required SharedPreferences preferences,
+    this.deletionNoticeKey = 'auth.deletion_accepted',
+  }) : _preferences = preferences;
+
+  final String deletionNoticeKey;
 
   static const _userKey = 'auth.cached_user';
 
@@ -31,6 +35,7 @@ class SharedPreferencesAuthLocalDataSource implements AuthLocalDataSource {
 
   @override
   Future<void> cacheUser(AuthUserModel user) async {
+    await _preferences.remove(deletionNoticeKey);
     await _preferences.setString(_userKey, jsonEncode(user.toJson()));
   }
 

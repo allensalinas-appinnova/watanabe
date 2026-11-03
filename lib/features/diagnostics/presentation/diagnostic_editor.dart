@@ -236,7 +236,8 @@ class _DiagnosticRecordEditorState extends ConsumerState<DiagnosticRecordEditor>
     if (ref.watch(authSessionProvider).valueOrNull?.id != widget.uid) {
       return Scaffold(body: Center(child: Text(AppLocalizations.of(context).sessionExpired)));
     }
-    generation ??= ref.watch(canonicalUserProfileProvider(widget.uid)).valueOrNull?.dataGeneration;
+    final profile = ref.watch(canonicalUserProfileProvider(widget.uid));
+    generation ??= profile.valueOrNull?.dataGeneration;
     final categories = ref.watch(canonicalCategoriesProvider(widget.uid)).valueOrNull ?? [];
     return PopScope(
       canPop: !saving,

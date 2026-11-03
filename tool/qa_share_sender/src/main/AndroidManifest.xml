@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="Lumio QA sender" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <activity android:name=".MainActivity" android:exported="true" />
+    <provider android:name=".ReceiptProvider" android:authorities="co.appinnova.lumio.qa.sender.receipts" android:exported="false" android:grantUriPermissions="true" />
+  </application>
+</manifest>

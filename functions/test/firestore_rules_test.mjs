@@ -757,3 +757,19 @@ test('diagnostic records and valuation history are owner-readable and callable-w
     await assertFails(context.doc('users/alice/diagnosticRecords/asset/valuations/one').get());
   }
 });
+
+test('deletion marker blocks cached-token reads, recreation and financial writes',async()=>{
+  await environment.withSecurityRulesDisabled(async c=>{
+    await c.firestore().doc('users/deleting-user').set(userProfile());
+    await c.firestore().doc('users/deleting-user/categories/food').set({name:'Food'});
+    await c.firestore().doc('accountDeletions/deleting-user').set({status:'requested'});
+  });
+  const db=environment.authenticatedContext('deleting-user').firestore();
+  await assertFails(db.doc('users/deleting-user').get());
+  await assertFails(db.collection('users/deleting-user/categories').get());
+  await assertFails(db.doc('users/deleting-user').set(userProfile()));
+  await assertFails(db.doc('accountDeletions/deleting-user').get());
+  await assertFails(db.doc('accountDeletions/deleting-user').delete());
+  await environment.withSecurityRulesDisabled(c=>c.firestore().doc('users/deleting-user').delete());
+  await assertFails(db.doc('users/deleting-user').set(userProfile()));
+});

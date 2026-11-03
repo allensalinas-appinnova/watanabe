@@ -5,6 +5,14 @@ DocumentImport mapDocumentImport(String id, Map<String, dynamic> data) {
       ? Map<String, dynamic>.from(data['extraction'] as Map)
       : <String, dynamic>{};
   return DocumentImport(
+    analysisIssue: data['status'] != 'failed'
+        ? null
+        : switch (data['issue']) {
+            'document-service-busy' => DocumentAnalysisIssue.serviceBusy,
+            'document-analysis-timeout' => DocumentAnalysisIssue.timedOut,
+            'document-analysis-failed' => DocumentAnalysisIssue.failed,
+            _ => null,
+          },
     id: data['importId'] as String? ?? id,
     generation: (data['dataGeneration'] as num? ?? 0).toInt(),
     version: (data['version'] as num? ?? 0).toInt(),
@@ -17,12 +25,39 @@ DocumentImport mapDocumentImport(String id, Map<String, dynamic> data) {
     suggestion: DocumentSuggestion(
       amountMinor: (e['amountMinor'] as num?)?.toInt(),
       currency: e['currency'] as String?,
-      date: DateTime.tryParse(e['date'] as String? ?? ''),
+      date: _reviewDate(e['date']),
       description: e['description'] as String? ?? e['merchant'] as String?,
       categoryId: e['categoryId'] as String?,
       accountId: e['accountId'] as String?,
+      reviewFields: Set.unmodifiable(
+        e['warnings'] is List
+            ? (e['warnings'] as List)
+                  .map((warning) => _reviewFields[warning])
+                  .whereType<DocumentReviewField>()
+            : const <DocumentReviewField>[],
+      ),
     ),
   );
+}
+
+const _reviewFields = {
+  'amount-review': DocumentReviewField.amount,
+  'currency-review': DocumentReviewField.currency,
+  'date-review': DocumentReviewField.date,
+  'category-review': DocumentReviewField.category,
+  'account-review': DocumentReviewField.account,
+};
+
+DateTime? _reviewDate(Object? raw) {
+  if (raw is! String || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(raw)) return null;
+  final date = DateTime.tryParse(raw);
+  if (date == null ||
+      date.year < 2000 ||
+      date.year > 2100 ||
+      !date.toIso8601String().startsWith(raw)) {
+    return null;
+  }
+  return date;
 }
 
 UsageSummary mapUsage(Map<String, dynamic> data) {

@@ -16,7 +16,9 @@ interpretar el estado de un despliegue como disponibilidad para usuarios.
 
 ## Documentación del proyecto
 
+- [Remediación de auditoría y gates de tiendas](docs/store-hardening.md)
 - [Alcance funcional](docs/functional-scope.md)
+- [Identidad de la cuenta en Configuración](docs/account-identity.md)
 - [Arquitectura](docs/architecture.md)
 - [UI/UX guidelines](docs/ui-ux-guidelines.md)
 - [UI standards and theme](docs/ui-standards-and-theme.md)

@@ -11,8 +11,10 @@ import 'package:personal_finance/app.dart';
 import 'package:personal_finance/config/environment/app_environment.dart';
 import 'package:personal_finance/core/di/injection.dart';
 import 'package:personal_finance/core/firebase/firebase_bootstrap.dart';
+import 'package:personal_finance/core/routing/app_router.dart';
 import 'package:personal_finance/features/finance/domain/entities/financial_operation.dart';
 import 'package:personal_finance/features/finance/domain/repositories/canonical_finance_repository.dart';
+import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +44,20 @@ void main() {
   });
 
   testWidgets('fresh user completes localized onboarding in the UI', (tester) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await disposeAppRouter();
+      await tester.pump(const Duration(milliseconds: 100));
+    });
     await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
-    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [planningClockProvider.overrideWithValue(() => DateTime.utc(2026, 10, 15, 17))],
+        child: const PersonalFinanceApp(),
+      ),
+    );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     expect(find.byKey(const ValueKey('auth_guest_button')), findsOneWidget);
@@ -110,6 +124,14 @@ void main() {
   });
 
   testWidgets('canonical income, expense, transfer and itemized budget flow', (tester) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await disposeAppRouter();
+      await tester.pump(const Duration(milliseconds: 100));
+    });
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
     await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     final email = 'canonical-${DateTime.now().microsecondsSinceEpoch}@example.test';
     final credential = await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app)
@@ -236,7 +258,13 @@ void main() {
       },
     );
 
-    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [planningClockProvider.overrideWithValue(() => DateTime.utc(2026, 10, 15, 17))],
+        child: const PersonalFinanceApp(),
+      ),
+    );
     for (var attempt = 0; attempt < 30; attempt++) {
       if (find.byKey(const ValueKey('global_add_operation')).evaluate().isNotEmpty) break;
       await tester.pump(const Duration(milliseconds: 250));
@@ -244,7 +272,14 @@ void main() {
     expect(find.byKey(const ValueKey('global_add_operation')), findsOneWidget);
 
     final expectedActivity = ['Pago', 'Almuerzo', 'Cuenta principal → Ahorros'];
-    var balanceLoaded = false;
+    for (
+      var attempt = 0;
+      attempt < 80 && find.byKey(const ValueKey('home_balance_card')).evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.pump(const Duration(milliseconds: 250));
+    }
+    var balanceLoaded = find.byKey(const ValueKey('home_balance_card')).evaluate().isNotEmpty;
     var activityLoaded = false;
     for (var attempt = 0; attempt < 60; attempt++) {
       await tester.pump(const Duration(milliseconds: 250));
@@ -301,6 +336,13 @@ void main() {
   testWidgets('home dashboard section order persists for this user and restores after reopening', (
     tester,
   ) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await disposeAppRouter();
+    });
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
     await FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).signOut();
     final email = 'home-order-${DateTime.now().microsecondsSinceEpoch}@example.test';
     final credential = await FirebaseAuth.instanceFor(
@@ -342,7 +384,13 @@ void main() {
       (_) {},
     );
 
-    await tester.pumpWidget(const ProviderScope(child: PersonalFinanceApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [planningClockProvider.overrideWithValue(() => DateTime.utc(2026, 10, 15, 17))],
+        child: const PersonalFinanceApp(),
+      ),
+    );
     for (var attempt = 0; attempt < 40; attempt++) {
       await tester.pump(const Duration(milliseconds: 250));
       if (find.byKey(const ValueKey('global_settings_action')).evaluate().isNotEmpty) break;

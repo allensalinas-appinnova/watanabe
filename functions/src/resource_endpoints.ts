@@ -1,3 +1,4 @@
+import {assertAccountActive} from "./account_deletion";
 import {randomUUID} from "node:crypto";
 import {getStorage} from "firebase-admin/storage";
 import {getFirestore as unmeteredFirestore} from "firebase-admin/firestore";
@@ -16,12 +17,19 @@ export function resourceOnCall(name: string, options: CallableOptions, handler: 
   return onCall(options, async request => {
     const started = Date.now(); const attemptId = randomUUID(); let failed = false;
     const stats = newServerObservation();
-    try { return await observeServerResources(stats, () => Promise.resolve(handler(request))); }
+    try {
+      if (request.auth) await assertAccountActive(unmeteredFirestore(), request.auth.uid);
+      return await observeServerResources(stats, () => Promise.resolve(handler(request))); }
     catch (error) { failed = true; throw error; }
     finally {
       if (request.auth) await recordUsage(unmeteredFirestore(), request.auth.uid, `function:${attemptId}`, "functions",
         {calls: 1, durationMs: Date.now() - started, failures: failed ? 1 : 0, transactionAttempts: stats.transactionAttempts,
-          transactionDocumentLookups: stats.documentLookups, transactionQueryResults: stats.queryDocumentResults, committedTransactionWrites: stats.committedWrites}, "estimated", {feature: name})
+          transactionDocumentLookups: stats.documentLookups, transactionQueryResults: stats.queryDocumentResults, transactionQueryReadUnits: stats.queryReadUnits,
+          committedTransactionWrites: stats.committedWrites, committedDocumentWrites: stats.committedDocumentWrites,
+          committedDocumentDeletes: stats.committedDocumentDeletes}, "estimated", {feature: name,
+          ...(process.env.RESOURCE_FIRESTORE_LOCATION ? {firestoreRegion: process.env.RESOURCE_FIRESTORE_LOCATION} : {}),
+          ...(process.env.RESOURCE_FUNCTIONS_BILLING_MODE ? {billingMode: process.env.RESOURCE_FUNCTIONS_BILLING_MODE} : {}),
+          ...(typeof options.region === "string" ? {region: options.region} : {})})
         .catch(() => console.warn(JSON.stringify({issue: "resource-metering-unavailable", feature: name})));
     }
   });
@@ -64,9 +72,9 @@ export const trackDocumentDelete = onObjectDeleted({serviceAccount: jobAccount, 
 export const cleanupDocumentImports = onSchedule({serviceAccount: jobAccount, maxInstances: 1, concurrency: 1, region: "us-central1", schedule: "every 60 minutes", timeoutSeconds: 540}, () => cleanupExpiredDocuments(getFirestore()));
 export const reconcileResourceUsage = onSchedule({serviceAccount: jobAccount, maxInstances: 1, concurrency: 1, region: "us-central1", schedule: "every day 04:00", timeZone: "UTC", timeoutSeconds: 540, memory: "1GiB"}, async () => {
   await inventoryDocumentStorage(getFirestore());
-  await estimateUserCosts(getFirestore());
+  await estimateUserCosts(getFirestore(), undefined, {budgetMs: 120000});
   const prior = new Date(); prior.setUTCDate(1); prior.setUTCMonth(prior.getUTCMonth() - 1);
-  await estimateUserCosts(getFirestore(), prior.toISOString().slice(0,7));
+  await estimateUserCosts(getFirestore(), prior.toISOString().slice(0,7), {budgetMs: 120000});
   await reconcileProjectBilling(getFirestore());
 });
 export const submitUsageObservation = resourceOnCall("clientObservation", secured, async request => {
@@ -77,4 +85,12 @@ export const submitUsageObservation = resourceOnCall("clientObservation", secure
   await recordUsage(getFirestore(), uid, `client:${p.batchId}`, "firestore", {documentResults: p.documentResults}, "estimated",
     {source: "client-advisory-not-billable-reads"});
   return {accepted: true};
+});
+
+/** Resume interrupted jobs without starting a second complete daily scan. */
+export const continueResourceMaintenance = onSchedule({serviceAccount: jobAccount, region: "us-central1", schedule: "every 15 minutes", timeoutSeconds: 540, memory: "1GiB", maxInstances: 1}, async () => {
+  const db = getFirestore();
+  const rows = await db.collection("maintenanceJobs").where("status", "==", "running").limit(100).get();
+  if (rows.docs.some(r => r.id === "storageObjects" || r.id === "storageUsers")) await inventoryDocumentStorage(db);
+  for (const row of rows.docs) if (/^costs_\d{4}-\d{2}$/.test(row.id)) await estimateUserCosts(db, row.id.slice(6), {budgetMs: 120000});
 });

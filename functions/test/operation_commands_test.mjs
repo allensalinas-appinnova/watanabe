@@ -200,3 +200,14 @@ test('currency-specific balance bounds reject overflow without a partial operati
   assert.equal((await root.collection('operations').get()).size, 0);
   assert.equal((await root.collection('ledgerEntries').get()).size, 0);
 });
+
+test('expected owner assertion rejects a changed Auth identity before touching data', async () => {
+  const uid = `owner-assertion-${Date.now()}`;
+  const root = await seed(uid);
+  await assert.rejects(executeOperationCommand(db, uid, create('owner-assertion-request', {expectedOwnerUid:'other-user'})),
+    e => e.code === 'unauthenticated' || e.status === 'unauthenticated');
+  assert.equal((await root.collection('operations').get()).empty, true);
+  assert.equal((await root.collection('accounts').doc('cash').get()).get('currentBalanceMinor'), 10000);
+  await executeOperationCommand(db, uid, create('owner-assertion-request', {expectedOwnerUid:uid}));
+  assert.equal((await root.collection('operations').get()).size, 1);
+});

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../entities/auth_access_method.dart';
 import '../entities/auth_account_link_result.dart';
 import '../entities/auth_user.dart';
 
@@ -21,7 +22,18 @@ abstract interface class AuthRepository {
     required String password,
   });
 
+  Future<Either<Failure, AuthUser>> refreshAccessMethods({required String expectedUid});
+  Future<Either<Failure, Unit>> reauthenticateForLinking({
+    required String expectedUid,
+    required AuthAccessMethod method,
+    String? password,
+  });
+  Future<Either<Failure, AuthAccountLinkResult>> addAccessMethod(LinkAccessMethodCommand command);
+
   Future<Either<Failure, AuthUser>> signInWithGoogle();
+  Future<Either<Failure, AuthUser>> signInWithApple();
+  Future<Either<Failure, AuthAccountLinkResult>> linkApple();
+  Future<Either<Failure, Unit>> reauthenticateForDeletion({String? password});
 
   Future<Either<Failure, AuthAccountLinkResult>> linkEmailPassword({
     required String email,

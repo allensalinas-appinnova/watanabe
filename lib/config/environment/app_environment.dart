@@ -12,6 +12,7 @@ enum AppEnvironment {
   }
 
   void validate({required bool useEmulators, required bool isRelease}) {
+    if (isRelease && this == dev) throw StateError('Release builds require APP_ENV=staging or prod.');
     if (useEmulators && this != dev) {
       throw StateError('Firebase Emulator Suite is only allowed with APP_ENV=dev.');
     }

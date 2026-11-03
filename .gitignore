@@ -44,3 +44,22 @@ admin_portal/.env.*.local
 
 # Local QA screenshots and structured device results
 /artifacts/
+
+/tool/ios_share_setup/.build/
+/tool/ios_share_setup/.swiftpm/
+
+/tool/qa_share_sender/build/
+/tool/qa_share_sender/.gradle/
+
+/tool/__pycache__/
+
+# Private platform release defines and signing material
+config/firebase.prod.*.json
+android/key.properties
+*.jks
+*.keystore
+public_portal/node_modules/
+public_portal/dist/
+public_portal/.env.local
+
+!public_portal/.env.example

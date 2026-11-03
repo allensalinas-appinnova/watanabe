@@ -3176,7 +3176,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documentRetryError =>
-      'Could not complete the action. Your draft is preserved; check your connection and retry.';
+      'We could not complete the action. Your draft is preserved; try again.';
 
   @override
   String get documentFileInvalid =>
@@ -3286,4 +3286,275 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documentStartAnother => 'Analyze another document';
+
+  @override
+  String get documentViewReceipt => 'View receipt';
+
+  @override
+  String get documentReceiptOptions => 'Receipt options';
+
+  @override
+  String get sharedReceiptTitle => 'Shared file';
+
+  @override
+  String get sharedReceiptOneFile => 'Share one image or PDF at a time.';
+
+  @override
+  String get sharedReceiptBusy =>
+      'Finish or discard the current shared file before sending another.';
+
+  @override
+  String get sharedReceiptSignIn =>
+      'To analyze this receipt, sign in or save your guest account. The file stays on this device.';
+
+  @override
+  String sharedReceiptConfirmAccount(String account) {
+    return 'Prepare this expense in account $account?';
+  }
+
+  @override
+  String get sharedReceiptContinue => 'Continue';
+
+  @override
+  String get sharedReceiptConflictTitle => 'You already have a receipt in progress';
+
+  @override
+  String get sharedReceiptConflictBody =>
+      'Keep the current draft or discard it to use the new file. No transaction will be created.';
+
+  @override
+  String get sharedReceiptKeep => 'Keep current';
+
+  @override
+  String get sharedReceiptReplace => 'Use new file';
+
+  @override
+  String get sharedReceiptRetry =>
+      'We could not open the new file. The shared file and available draft are preserved; you can retry.';
+
+  @override
+  String get documentFieldSuggested => 'Suggested from the receipt';
+
+  @override
+  String get documentFieldNeedsReview => 'Review';
+
+  @override
+  String get documentFieldUserProvided => 'Your choice';
+
+  @override
+  String documentCurrencyMismatch(String accountCurrency, String receiptCurrency) {
+    return 'The account uses $accountCurrency; the receipt suggests $receiptCurrency. Check the amount and currency.';
+  }
+
+  @override
+  String get documentServiceBusy =>
+      'The analysis service is busy. Your receipt is preserved; try again in a few minutes.';
+
+  @override
+  String get documentAnalysisTimedOut =>
+      'The analysis took too long. Your receipt is preserved; you can try again.';
+
+  @override
+  String get documentAnalysisFailed =>
+      'We could not analyze the receipt. Your draft is preserved; try again.';
+
+  @override
+  String get documentResponseTimedOut =>
+      'We could not confirm the result. Your draft is preserved. Retrying will check whether the analysis has already finished.';
+
+  @override
+  String get documentAnalysisTakingLonger =>
+      'This is taking longer than usual. Your receipt is saved. Wait for the result; you do not need to send it again.';
+
+  @override
+  String get settingsYourAccount => 'Your account';
+
+  @override
+  String get settingsGuestSession => 'You are using a guest session';
+
+  @override
+  String get settingsEmailUnavailable => 'Email unavailable';
+
+  @override
+  String settingsMemberSince(String date) {
+    return 'With LumioMoney since $date';
+  }
+
+  @override
+  String settingsSignOutAccount(String email) {
+    return 'You are signing out of $email.';
+  }
+
+  @override
+  String get authContinueWithApple => 'Continue with Apple';
+
+  @override
+  String get deletionTitle => 'Delete my account';
+
+  @override
+  String get deletionExplanation =>
+      'Permanently delete your account, financial data, attachments and identifiable usage history. This is different from resetting your data. Pending local records will be discarded after your request is accepted.';
+
+  @override
+  String get deletionConfirmation => 'I understand that this cannot be undone.';
+
+  @override
+  String get deletionSubmit => 'Request permanent deletion';
+
+  @override
+  String get deletionAccepted =>
+      'Your deletion request was accepted. Your account is blocked while deletion finishes.';
+
+  @override
+  String get deletionFailed =>
+      'We could not confirm your request. Your data has not been cleared on this device. Try again.';
+
+  @override
+  String get deletionPassword => 'Confirm your password';
+
+  @override
+  String get quarantineMessage =>
+      'Some older local records have no verifiable owner. They are blocked and will not be sent.';
+
+  @override
+  String get quarantineDiscard => 'Discard blocked local records';
+
+  @override
+  String get quarantineConfirm =>
+      'Discard these unverified local records? This does not change any confirmed movements.';
+
+  @override
+  String get privacyTitle => 'Privacy';
+
+  @override
+  String get supportTitle => 'Support';
+
+  @override
+  String get deletionChanged =>
+      'The account data changed. Reload it before requesting deletion again.';
+
+  @override
+  String get deletionReload => 'Reload account data';
+
+  @override
+  String get accessMethodsTitle => 'Sign-in methods';
+
+  @override
+  String get accessMethodsIntro =>
+      'These are the ways to sign in to this account. Your data belongs to your account, not the sign-in method.';
+
+  @override
+  String get accessPassword => 'Email and password';
+
+  @override
+  String get accessLinked => 'Linked';
+
+  @override
+  String get accessEmailUnverified => 'Email verification pending';
+
+  @override
+  String get accessEmailUnknown => 'Verification status needs refreshing';
+
+  @override
+  String get accessAdd => 'Add sign-in method';
+
+  @override
+  String get accessRefreshError =>
+      'We could not refresh your methods. The displayed information may have changed. Retry before adding another.';
+
+  @override
+  String get accessRetry => 'Retry';
+
+  @override
+  String get accessUnknown => 'Refresh to view your sign-in methods.';
+
+  @override
+  String get accessReauth => 'Confirm your identity';
+
+  @override
+  String get accessReauthMethod => 'Current method to confirm';
+
+  @override
+  String get accessCurrentPassword => 'Current password';
+
+  @override
+  String get accessNewPassword => 'New password';
+
+  @override
+  String get accessRepeatPassword => 'Confirm new password';
+
+  @override
+  String get accessPasswordInvalid => 'Use at least 8 characters and repeat the same password.';
+
+  @override
+  String get accessCurrentRequired => 'Enter your current password.';
+
+  @override
+  String get accessConfirm => 'Confirm and link';
+
+  @override
+  String get accessCancel => 'Cancel';
+
+  @override
+  String get accessConsent =>
+      'I agree to associate my Apple account with this other sign-in method, which may share my real email.';
+
+  @override
+  String get accessConsentRequired => 'Confirm that you agree to this association.';
+
+  @override
+  String get accessPrivateEmail =>
+      'A password requires a personal email. For now, continue with Apple or add Google; changing email will be available later.';
+
+  @override
+  String get accessSuccess => 'Method added. You can now use it to sign in to this account.';
+
+  @override
+  String get accessVerificationFailed =>
+      'The method is linked, but we could not send email verification. You can retry sending it.';
+
+  @override
+  String get accessVerificationSent => 'We sent a verification email. You can keep using the app.';
+
+  @override
+  String get accessSendVerification => 'Send verification';
+
+  @override
+  String get accessConflict =>
+      'This credential belongs to another account. Try another or cancel; your current session is preserved.';
+
+  @override
+  String get accessSessionChanged =>
+      'Your session changed. Close this window and view the current account’s methods again.';
+
+  @override
+  String get accessNetworkError => 'We could not connect. Your entries are preserved; try again.';
+
+  @override
+  String get accessCredentialError =>
+      'We could not confirm your identity with that method. Check your details or choose another linked method.';
+
+  @override
+  String get accessGenericError =>
+      'We could not confirm the link. Retry to check its status before submitting again.';
+
+  @override
+  String get accessLinkIntro =>
+      'You will add another way to sign in to this account. First, confirm your identity with an already linked method.';
+
+  @override
+  String get accessUnverifiedPasswordWarning =>
+      'If your email is not verified, Firebase may replace password access when confirming Google or Apple. You can add a new password afterwards.';
+
+  @override
+  String get accessPasswordReplaced =>
+      'Your previous password is no longer listed as a sign-in method. You can add a new one from this screen.';
+
+  @override
+  String get documentUploadRequired =>
+      'The file was not fully uploaded. Your draft is preserved; retry the upload.';
+
+  @override
+  String get documentSourceUnavailable =>
+      'We could not access the uploaded file. Your draft is preserved; try again.';
 }

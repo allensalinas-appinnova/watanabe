@@ -3,89 +3,103 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_finance/core/offline/pending_operation_queue.dart';
-import 'package:personal_finance/core/offline/sync_state.dart';
 
 void main() {
-  test('reset pending guard is user-scoped and safely blocks legacy unowned queue rows', () async {
-    final database = PendingOperationDatabase(NativeDatabase.memory());
-    await database.enqueue(
-      idempotencyKey: 'user-a-active',
-      operationType: 'operation',
-      payload: const {
-        'ownerUserId': 'user-a',
-        'dataGeneration': 0,
-      },
-    );
-    await database.enqueue(
-      idempotencyKey: 'user-b-active',
-      operationType: 'operation',
-      payload: const {
-        'ownerUserId': 'user-b',
-        'dataGeneration': 0,
-      },
-    );
-    await database.enqueue(
-      idempotencyKey: 'legacy-active',
-      operationType: 'operation',
-      payload: const {
-        'dataGeneration': 0,
-      },
-    );
-    expect(
-      (await database.activeForUser('user-a')).map((row) => row.idempotencyKey),
-      containsAll(['user-a-active', 'legacy-active']),
-    );
-
-    final userA = await database.findByIdempotencyKey('user-a-active');
-    await database.markConfirmed(userA!.id);
-    final legacy = await database.findByIdempotencyKey('legacy-active');
-    await database.markConfirmed(legacy!.id);
-    await database.clearUserData('user-a');
-    expect(await database.findByIdempotencyKey('user-a-active'), isNull);
-    expect(await database.findByIdempotencyKey('legacy-active'), isNull);
-    expect(await database.findByIdempotencyKey('user-b-active'), isNotNull);
-    await database.close();
+  test('owner-scoped selection and reset preserve other users and quarantine', () async {
+    final db = PendingOperationDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    for (final owner in ['a', 'b', '']) {
+      await db.enqueue(
+        idempotencyKey: 'key-$owner',
+        operationType: 'operation',
+        payload: {
+          if (owner.isNotEmpty) 'ownerUserId': owner,
+          'dataGeneration': 0,
+        },
+      );
+    }
+    expect((await db.activeForUser('a')).map((r) => r.idempotencyKey), ['key-a']);
+    expect(await db.findByIdempotencyKey('key-a', userId: 'b'), isNull);
+    expect(await db.watchQuarantineCount().first, 1);
+    await db.clearUserData('a');
+    expect(await db.findByIdempotencyKey('key-a', userId: 'a'), isNull);
+    expect(await db.findByIdempotencyKey('key-b', userId: 'b'), isNotNull);
+    expect(await db.watchQuarantineCount().first, 1);
+    await db.discardQuarantine();
+    expect(await db.watchQuarantineCount().first, 0);
   });
 
-  test('pending operation survives database reopen and reaches confirmed once', () async {
-    final directory = await Directory.systemTemp.createTemp('clearbudget-drift-');
-    final path = '${directory.path}/pending.sqlite';
-    final first = PendingOperationDatabase(NativeDatabase(File(path)));
-    await first.enqueue(
-      idempotencyKey: 'offline-operation-1',
-      operationType: 'transfer',
-      payload: const {
-        'amountMinor': 100,
-        'sourceAccountId': 'source',
-        'destinationAccountId': 'destination',
-      },
-    );
-    await first.close();
+  test(
+    'reopen recovers expired lease with same request; stale callback cannot overwrite',
+    () async {
+      final directory = await Directory.systemTemp.createTemp('lumio-outbox-');
+      addTearDown(() => directory.delete(recursive: true));
+      final file = File('${directory.path}/queue.sqlite');
+      var db = PendingOperationDatabase(NativeDatabase(file));
+      final now = DateTime.utc(2026, 11, 2);
+      await db.enqueue(
+        idempotencyKey: 'stable-key',
+        operationType: 'transfer',
+        payload: {'ownerUserId': 'a', 'dataGeneration': 1},
+      );
+      final row = await db.claim('a', 'attempt-1', now);
+      await db.close();
+      db = PendingOperationDatabase(NativeDatabase(file));
+      addTearDown(db.close);
+      expect(await db.claim('b', 'foreign', now.add(const Duration(seconds: 121))), isNull);
+      expect(await db.claim('a', 'early', now.add(const Duration(seconds: 119))), isNull);
+      final recovered = await db.claim('a', 'attempt-2', now.add(const Duration(seconds: 120)));
+      expect(recovered?.id, row?.id);
+      expect(recovered?.idempotencyKey, 'stable-key');
+      await db.finish(row!.id, 'a', 'attempt-1', 'confirmed');
+      expect((await db.findByIdempotencyKey('stable-key', userId: 'a'))?.status, 'syncing');
+      await db.finish(row.id, 'b', 'attempt-2', 'confirmed');
+      expect((await db.findByIdempotencyKey('stable-key', userId: 'a'))?.status, 'syncing');
+      await db.finish(row.id, 'a', 'attempt-2', 'confirmed');
+      expect((await db.findByIdempotencyKey('stable-key', userId: 'a'))?.status, 'confirmed');
+    },
+  );
 
-    final reopened = PendingOperationDatabase(NativeDatabase(File(path)));
-    final pending = await reopened.pending();
-    expect(pending, hasLength(1));
-    await reopened.markSyncing(pending.single.id);
-    await reopened.markConfirmed(pending.single.id);
-    final confirmed = await reopened.findByIdempotencyKey('offline-operation-1');
-    expect(confirmed?.status, 'confirmed');
-    await reopened.enqueue(
-      idempotencyKey: 'offline-operation-2',
-      operationType: 'operation',
-      payload: const {'amountMinor': 50},
+  test('v1 migration quarantines unknown owners and recovers known interrupted rows', () async {
+    final db = PendingOperationDatabase(
+      NativeDatabase.memory(
+        setup: (sqlite) {
+          sqlite
+            ..execute(
+              'CREATE TABLE pending_operations (id INTEGER PRIMARY KEY AUTOINCREMENT, idempotency_key TEXT NOT NULL UNIQUE, operation_type TEXT NOT NULL, payload TEXT NOT NULL, status TEXT NOT NULL, retry_count INTEGER NOT NULL DEFAULT 0, last_error TEXT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)',
+            )
+            ..execute(
+              "INSERT INTO pending_operations (idempotency_key,operation_type,payload,status,created_at,updated_at) VALUES ('known','operation','{\"ownerUserId\":\"a\",\"dataGeneration\":1}','syncing',1,1), ('unknown','operation','{}','pending',1,1)",
+            )
+            ..execute('PRAGMA user_version = 1');
+        },
+      ),
     );
-    final rejected = await reopened.findByIdempotencyKey('offline-operation-2');
-    await reopened.markSyncing(rejected!.id);
-    await reopened.markRejected(rejected.id, SyncIssueCode.permissionDenied);
-    expect((await reopened.findByIdempotencyKey('offline-operation-2'))?.status, 'rejected');
-    await reopened.retry(rejected.id);
-    expect((await reopened.findByIdempotencyKey('offline-operation-2'))?.status, 'pending');
-    await reopened.markPending(rejected.id, SyncIssueCode.networkUnavailable);
-    final retryable = await reopened.findByIdempotencyKey('offline-operation-2');
-    expect(retryable?.status, 'pending');
-    expect(retryable?.lastError, 'networkUnavailable');
-    expect(retryable?.retryCount, 1);
-    await reopened.close();
-    await directory.delete(recursive: true);
+    addTearDown(db.close);
+    expect((await db.pending(userId: 'a')).single.idempotencyKey, 'known');
+    expect(await db.watchQuarantineCount().first, 1);
+    expect(
+      (await db.findByIdempotencyKey('known', userId: 'a'))?.payload,
+      contains('"dataGeneration":1'),
+    );
+  });
+
+  test('idempotency key cannot replace payload or revive a confirmed operation', () async {
+    final db = PendingOperationDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final payload = {'ownerUserId': 'a', 'amountMinor': 25000};
+    final id = await db.enqueue(
+      idempotencyKey: 'key',
+      operationType: 'operation',
+      payload: payload,
+    );
+    await db.claim('a', 'attempt', DateTime.now().toUtc());
+    await db.finish(id, 'a', 'attempt', 'confirmed');
+    await db.enqueue(idempotencyKey: 'key', operationType: 'operation', payload: payload);
+    expect((await db.findByIdempotencyKey('key', userId: 'a'))?.status, 'confirmed');
+    await expectLater(
+      db.enqueue(idempotencyKey: 'key', operationType: 'operation', payload: {'ownerUserId': 'b'}),
+      throwsStateError,
+    );
   });
 }

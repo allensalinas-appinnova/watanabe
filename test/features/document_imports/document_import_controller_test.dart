@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -93,6 +94,74 @@ void main() {
     verify(() => repo.discard('synthetic-import', 1)).called(1);
     expect(container.read(documentImportControllerProvider).draft, isNull);
   });
+  test(
+    'busy service preserves the draft and identity; only explicit retry analyzes again',
+    () async {
+      when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
+      when(() => connection.hasNetwork()).thenAnswer((_) async => true);
+      final prepared = mapDocumentImport(draft.importId, {
+        'status': 'prepared',
+        'dataGeneration': 1,
+      });
+      final ready = mapDocumentImport(draft.importId, {'status': 'ready', 'dataGeneration': 1});
+      when(() => repo.prepare(any())).thenAnswer((_) async => Right(prepared));
+      final first = Completer<Either<Failure, DocumentImport>>();
+      var calls = 0;
+      when(() => repo.analyze(prepared)).thenAnswer((_) {
+        calls++;
+        return calls == 1 ? first.future : Future.value(Right(ready));
+      });
+      final c = container.read(documentImportControllerProvider.notifier);
+      await c.initialize('owner', 1);
+      final pending = c.analyze();
+      await Future<void>.delayed(Duration.zero);
+      await c.analyze();
+      expect(calls, 1);
+      first.complete(
+        const Left(NetworkFailure('document-service-busy', technicalCode: 'unavailable')),
+      );
+      await pending;
+      final failed = container.read(documentImportControllerProvider);
+      expect(failed.offline, isFalse);
+      expect(failed.busy, isFalse);
+      expect(failed.error!.message, 'document-service-busy');
+      expect(failed.draft!.importId, draft.importId);
+      expect(failed.draft!.generation, 1);
+      expect(failed.draft!.file.bytes, file.bytes);
+      expect(calls, 1);
+      await c.analyze();
+      expect(calls, 2);
+      expect(container.read(documentImportControllerProvider).session!.phase, DocumentPhase.ready);
+      expect(container.read(documentImportControllerProvider).error, isNull);
+      final sent = verify(() => repo.prepare(captureAny())).captured.cast<DocumentDraft>();
+      expect(sent.map((d) => d.importId).toSet(), {draft.importId});
+      expect(sent.every((d) => d.review['serverAttempted'] == true), isTrue);
+    },
+  );
+  test('a completed server snapshot clears the earlier failure without another request', () async {
+    final updates = StreamController<DocumentImport?>();
+    addTearDown(updates.close);
+    when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
+    when(() => repo.watch('owner', draft.importId)).thenAnswer((_) => updates.stream);
+    when(() => connection.hasNetwork()).thenAnswer((_) async => true);
+    final prepared = mapDocumentImport(draft.importId, {'status': 'prepared', 'dataGeneration': 1});
+    when(() => repo.prepare(any())).thenAnswer((_) async => Right(prepared));
+    when(() => repo.analyze(prepared)).thenAnswer(
+      (_) async => const Left(
+        NetworkFailure('document-service-busy', technicalCode: 'unavailable'),
+      ),
+    );
+    final c = container.read(documentImportControllerProvider.notifier);
+    await c.initialize('owner', 1);
+    await c.analyze();
+    expect(container.read(documentImportControllerProvider).error, isNotNull);
+    updates.add(mapDocumentImport(draft.importId, {'status': 'ready', 'dataGeneration': 1}));
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(documentImportControllerProvider).error, isNull);
+    expect(container.read(documentImportControllerProvider).offline, isFalse);
+    expect(container.read(documentImportControllerProvider).draft!.importId, draft.importId);
+    verify(() => repo.analyze(prepared)).called(1);
+  });
   test('switching UID or data generation isolates the previous draft', () async {
     when(() => repo.loadDraft('owner', 1)).thenAnswer((_) async => Right(draft));
     final c = container.read(documentImportControllerProvider.notifier);
@@ -116,5 +185,21 @@ void main() {
     expect(u.monthlyLimit, 20);
     expect(u.attachmentLimit, 100000000);
     expect(u.enabled, isTrue);
+  });
+  test('a stale initial load cannot erase a shared draft loaded by reload', () async {
+    final first = Completer<Either<Failure, DocumentDraft?>>();
+    var reads = 0;
+    when(() => repo.loadDraft('owner', 1)).thenAnswer((_) {
+      reads++;
+      return reads == 1 ? first.future : Future.value(Right(draft));
+    });
+    final controller = container.read(documentImportControllerProvider.notifier);
+    final initial = controller.initialize('owner', 1);
+    await Future<void>.delayed(Duration.zero);
+    await controller.reload('owner', 1);
+    expect(container.read(documentImportControllerProvider).draft!.importId, draft.importId);
+    first.complete(const Right(null));
+    await initial;
+    expect(container.read(documentImportControllerProvider).draft!.importId, draft.importId);
   });
 }

@@ -5,7 +5,7 @@ import {initializeApp,deleteApp} from 'firebase-admin/app';
 import {getFirestore,Timestamp} from 'firebase-admin/firestore';
 import {getStorage} from 'firebase-admin/storage';
 import {prepareDocumentImport,analyzeDocumentImport,trackDocumentObject,suggestDocumentAccount} from '../lib/document_imports.js';
-import {usageSummary,registeredUid} from '../lib/resource_usage.js';
+import {usageSummary,registeredUid,releaseAnalysis} from '../lib/resource_usage.js';
 import {discardDocument,deleteAttachment,readAttachment} from '../lib/document_storage.js';
 import {executeOperationCommand} from '../lib/operation_commands.js';
 import {executeDebtCommand} from '../lib/debt_commands.js';
@@ -132,6 +132,11 @@ test('invalid extraction fields remain reviewable rather than fabricating dates 
  const x=validateExtraction({supported:true,currency:'COP',amountMinor:25000,date:'2026-99-20',categoryId:'archived',accountId:'invented'},[{id:'archived',type:'expense',isArchived:true}],[],[]);
  assert.equal(x.date,undefined);assert.equal(x.categoryId,undefined);assert.equal(x.accountId,undefined);
  assert.ok(x.warnings.includes('date-review'));
+ for(const date of ['1999-12-31','2101-01-01','2026-02-31']){
+  const invalid=validateExtraction({supported:true,currency:'COP',amountMinor:25000,date},[],[],[]);
+  assert.equal(invalid.date,undefined);assert.ok(invalid.warnings.includes('date-review'));
+ }
+ for(const date of ['2000-01-01','2100-12-31','2024-02-29'])assert.equal(validateExtraction({supported:true,currency:'COP',amountMinor:25000,date},[],[],[]).date,date);
 });
 test('PDF page limits and forged image payloads do not consume analysis quota',async()=>{
  const {PDFDocument}=await import('pdf-lib');
@@ -184,4 +189,72 @@ test('a late deletion event after discard cannot release a reservation twice',as
  await discardDocument(db,uid,s.importId,0);
  await trackDocumentObject(db,{name:s.storagePath,generation:'late-generation',size:png.length},true);
  const u=await usageSummary(db,uid);assert.equal(u.reservedBytes,0);assert.equal(u.temporaryBytes,0);
+});
+
+
+test('merchant-payment PDF requires explicit review and posts one expense with the original source',async()=>{
+  const {PDFDocument,StandardFonts}=await import('pdf-lib');
+  const {uid,root}=await seed();
+  const pdf=await PDFDocument.create();const font=await pdf.embedFont(StandardFonts.Helvetica);
+  pdf.addPage([360,280]).drawText('QA merchant purchase - bank transfer - COP 39,000',{x:20,y:200,size:10,font});
+  const bytes=Buffer.from(await pdf.save()),sha256=createHash('sha256').update(bytes).digest('hex');
+  const input={requestId:randomUUID(),expectedGeneration:0,size:bytes.length,contentType:'application/pdf',sha256};
+  const proposal=await prepareDocumentImport(db,uid,input);
+  await bucket.file(proposal.storagePath).save(bytes,{metadata:{contentType:'application/pdf'}});
+  const ready=await analyze(uid,proposal,async()=>({extraction:{supported:true,amountMinor:39000,currency:'COP',date:'2026-11-01'},usage:{inputTokens:10},model:'synthetic'}));
+  assert.equal(ready.status,'ready');assert.equal(ready.extraction.categoryId,undefined);assert.equal(ready.extraction.accountId,undefined);
+  const command={...purchase(ready),amountMinor:39000,occurredAt:'2026-11-01T15:00:00.000Z',monthKey:'2026-11'};
+  await assert.rejects(executeOperationCommand(db,uid,{...command,confirmedPerformed:false}));
+  assert.equal((await root.collection('operations').get()).size,0);
+  const result=await executeOperationCommand(db,uid,command);
+  assert.deepEqual(await executeOperationCommand(db,uid,command),result);
+  assert.equal((await root.collection('accounts').doc('cash').get()).get('currentBalanceMinor'),461000);
+  assert.equal((await root.collection('operations').get()).size,1);
+  assert.equal((await root.collection('monthlySummaries').doc('2026-11_COP').get()).get('expenseMinor'),39000);
+  const attachments=await root.collection('attachments').get();assert.equal(attachments.size,1);const a=attachments.docs[0];
+  assert.equal(a.get('contentType'),'application/pdf');
+  assert.equal((await readAttachment(db,uid,{attachmentId:a.id})).data,bytes.toString('base64'));
+  const duplicate=await prepareDocumentImport(db,uid,{...input,requestId:randomUUID()});assert.equal(duplicate.status,'duplicate');
+  assert.equal((await usageSummary(db,uid)).dailyUsed,1);
+});
+
+
+test('provider failures keep bounded reasons, refund once and preserve a retryable source',async()=>{
+  for(const [error,issue] of [[{status:429,message:'private provider payload'},'document-service-busy'],[{status:504},'document-analysis-timeout'],[new Error('private text'),'document-analysis-failed']]) {
+    const {uid,root}=await seed(),session=await source(uid);
+    let attempts=0;
+    await assert.rejects(analyze(uid,session,async()=>{attempts++;throw error;}),e=>e.code==='unavailable' && e.message===issue);
+    const row=await root.collection('documentImports').doc(session.importId).get();
+    assert.equal(row.get('issue'),issue);assert.equal(row.get('status'),'failed');
+    assert.equal(attempts,1);
+    await releaseAnalysis(db,uid,session.importId,row.get('attemptId'),issue);
+    const before=await usageSummary(db,uid);
+    assert.equal(before.dailyUsed,0);assert.equal(before.monthlyUsed,0);
+    assert.equal(before.monthly.ai_attempts,1);assert.equal(before.monthly.ai_failures,1);
+    const prepared=await prepareDocumentImport(db,uid,{requestId:session.importId,expectedGeneration:0,size:png.length,sha256:hash,contentType:'image/png'});
+    assert.equal(prepared.issue,issue);
+    const ready=await analyze(uid,session);assert.equal(ready.status,'ready');assert.equal(ready.issue,undefined);
+    assert.equal((await row.ref.get()).get('issue'),undefined);
+    const after=await usageSummary(db,uid);assert.equal(after.dailyUsed,1);assert.equal(after.monthly.ai_attempts,2);
+    assert.equal((await root.collection('operations').get()).size,0);
+    assert.equal((await root.collection('attachments').get()).size,0);
+    assert.equal((await root.collection('accounts').doc('cash').get()).get('currentBalanceMinor'),500000);
+    const failures=await db.collection(`resourceUsage/${uid}/events`).where('service','==','ai').get();
+    assert.ok(failures.docs.some(d=>d.get('failureKind')===issue));
+    assert.ok(!JSON.stringify(failures.docs.map(d=>d.data())).includes('private'));
+  }
+});
+
+test('missing uploaded object returns a retryable upload issue before AI quota reservation',async()=>{
+  const {uid,root}=await seed();
+  const input={requestId:randomUUID(),expectedGeneration:0,size:png.length,sha256:hash,contentType:'image/png'};
+  const prepared=await prepareDocumentImport(db,uid,input);
+  const callsBefore=calls;
+  await assert.rejects(analyze(uid,prepared),error=>error.code==='failed-precondition'&&error.message==='document-upload-required');
+  assert.equal(calls,callsBefore);
+  assert.equal((await root.collection('documentImports').doc(prepared.importId).get()).get('status'),'prepared');
+  assert.equal((await db.collection(`resourceUsage/${uid}/analysisReservations`).get()).size,0);
+  await bucket.file(prepared.storagePath).save(png,{metadata:{contentType:'image/png'}});
+  const ready=await analyze(uid,prepared);
+  assert.equal(ready.status,'ready');
 });

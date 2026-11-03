@@ -3200,7 +3200,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get documentRetryError =>
-      'No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.';
+      'No se pudo completar la acción. Conservamos tu borrador; vuelve a intentarlo.';
 
   @override
   String get documentFileInvalid =>
@@ -3311,4 +3311,277 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get documentStartAnother => 'Analizar otro documento';
+
+  @override
+  String get documentViewReceipt => 'Ver comprobante';
+
+  @override
+  String get documentReceiptOptions => 'Opciones del comprobante';
+
+  @override
+  String get sharedReceiptTitle => 'Archivo compartido';
+
+  @override
+  String get sharedReceiptOneFile => 'Comparte una sola imagen o PDF a la vez.';
+
+  @override
+  String get sharedReceiptBusy =>
+      'Termina o descarta el archivo compartido actual antes de enviar otro.';
+
+  @override
+  String get sharedReceiptSignIn =>
+      'Para analizar este comprobante, inicia sesión o guarda tu cuenta de invitado. El archivo se conserva en este dispositivo.';
+
+  @override
+  String sharedReceiptConfirmAccount(String account) {
+    return '¿Quieres preparar este gasto en la cuenta $account?';
+  }
+
+  @override
+  String get sharedReceiptContinue => 'Continuar';
+
+  @override
+  String get sharedReceiptConflictTitle => 'Ya tienes un comprobante en preparación';
+
+  @override
+  String get sharedReceiptConflictBody =>
+      'Puedes conservar el borrador actual o descartarlo para usar el archivo nuevo. No se registrará ningún movimiento.';
+
+  @override
+  String get sharedReceiptKeep => 'Conservar el actual';
+
+  @override
+  String get sharedReceiptReplace => 'Usar el nuevo';
+
+  @override
+  String get sharedReceiptRetry =>
+      'No pudimos abrir el archivo nuevo. Conservamos el archivo compartido y el borrador disponible; puedes reintentar.';
+
+  @override
+  String get documentFieldSuggested => 'Sugerido por el comprobante';
+
+  @override
+  String get documentFieldNeedsReview => 'Revisar';
+
+  @override
+  String get documentFieldUserProvided => 'Tu elección';
+
+  @override
+  String documentCurrencyMismatch(String accountCurrency, String receiptCurrency) {
+    return 'La cuenta usa $accountCurrency; el comprobante sugiere $receiptCurrency. Comprueba el importe y la moneda.';
+  }
+
+  @override
+  String get documentServiceBusy =>
+      'El servicio de análisis está ocupado. Conservamos tu comprobante; inténtalo de nuevo en unos minutos.';
+
+  @override
+  String get documentAnalysisTimedOut =>
+      'El análisis tardó demasiado. Conservamos tu comprobante; puedes reintentarlo.';
+
+  @override
+  String get documentAnalysisFailed =>
+      'No pudimos analizar el comprobante. Conservamos tu borrador; vuelve a intentarlo.';
+
+  @override
+  String get documentResponseTimedOut =>
+      'No pudimos confirmar el resultado. Tu borrador se conserva. Al reintentar comprobaremos si el análisis ya terminó.';
+
+  @override
+  String get documentAnalysisTakingLonger =>
+      'Está tardando más de lo habitual. Tu comprobante está guardado. Espera el resultado; no hace falta volver a enviarlo.';
+
+  @override
+  String get settingsYourAccount => 'Tu cuenta';
+
+  @override
+  String get settingsGuestSession => 'Estás usando una sesión invitada';
+
+  @override
+  String get settingsEmailUnavailable => 'Correo no disponible';
+
+  @override
+  String settingsMemberSince(String date) {
+    return 'En LumioMoney desde $date';
+  }
+
+  @override
+  String settingsSignOutAccount(String email) {
+    return 'Vas a cerrar la sesión de $email.';
+  }
+
+  @override
+  String get authContinueWithApple => 'Continuar con Apple';
+
+  @override
+  String get deletionTitle => 'Eliminar mi cuenta';
+
+  @override
+  String get deletionExplanation =>
+      'Elimina permanentemente tu acceso, datos financieros, adjuntos e historial de uso identificable. Es distinto de reiniciar tus datos. Los registros locales pendientes se descartarán después de aceptar tu solicitud.';
+
+  @override
+  String get deletionConfirmation => 'Entiendo que esta acción no se puede deshacer.';
+
+  @override
+  String get deletionSubmit => 'Solicitar eliminación permanente';
+
+  @override
+  String get deletionAccepted =>
+      'Tu solicitud de eliminación fue aceptada. La cuenta está bloqueada mientras termina la limpieza.';
+
+  @override
+  String get deletionFailed =>
+      'No pudimos confirmar la solicitud. No se han borrado los datos de este dispositivo. Inténtalo de nuevo.';
+
+  @override
+  String get deletionPassword => 'Confirma tu contraseña';
+
+  @override
+  String get quarantineMessage =>
+      'Hay registros locales antiguos sin propietario verificable. Están bloqueados y no se enviarán.';
+
+  @override
+  String get quarantineDiscard => 'Descartar registros locales bloqueados';
+
+  @override
+  String get quarantineConfirm =>
+      '¿Descartar estos registros locales sin propietario verificable? No cambia movimientos confirmados.';
+
+  @override
+  String get privacyTitle => 'Privacidad';
+
+  @override
+  String get supportTitle => 'Soporte';
+
+  @override
+  String get deletionChanged =>
+      'Los datos de la cuenta cambiaron. Recárgalos antes de volver a solicitar la eliminación.';
+
+  @override
+  String get deletionReload => 'Recargar datos de la cuenta';
+
+  @override
+  String get accessMethodsTitle => 'Métodos de acceso';
+
+  @override
+  String get accessMethodsIntro =>
+      'Estas son las formas de entrar a esta misma cuenta. Tus datos están asociados a tu cuenta, no al método de acceso.';
+
+  @override
+  String get accessPassword => 'Correo y contraseña';
+
+  @override
+  String get accessLinked => 'Vinculado';
+
+  @override
+  String get accessEmailUnverified => 'Correo pendiente de verificar';
+
+  @override
+  String get accessEmailUnknown => 'Verificación pendiente de actualizar';
+
+  @override
+  String get accessAdd => 'Agregar método de acceso';
+
+  @override
+  String get accessRefreshError =>
+      'No pudimos actualizar los métodos. La información mostrada puede haber cambiado. Reintenta antes de agregar otro.';
+
+  @override
+  String get accessRetry => 'Reintentar';
+
+  @override
+  String get accessUnknown => 'Actualiza para consultar tus métodos de acceso.';
+
+  @override
+  String get accessReauth => 'Confirma tu identidad';
+
+  @override
+  String get accessReauthMethod => 'Método actual para confirmar';
+
+  @override
+  String get accessCurrentPassword => 'Contraseña actual';
+
+  @override
+  String get accessNewPassword => 'Nueva contraseña';
+
+  @override
+  String get accessRepeatPassword => 'Confirmar nueva contraseña';
+
+  @override
+  String get accessPasswordInvalid => 'Usa al menos 8 caracteres y repite la misma contraseña.';
+
+  @override
+  String get accessCurrentRequired => 'Escribe tu contraseña actual.';
+
+  @override
+  String get accessConfirm => 'Confirmar y vincular';
+
+  @override
+  String get accessCancel => 'Cancelar';
+
+  @override
+  String get accessConsent =>
+      'Acepto asociar mi cuenta Apple con este otro método de acceso, que puede compartir mi correo real.';
+
+  @override
+  String get accessConsentRequired => 'Confirma que aceptas esta asociación.';
+
+  @override
+  String get accessPrivateEmail =>
+      'Para usar contraseña necesitas un correo personal. Por ahora puedes continuar con Apple o agregar Google; cambiar el correo estará disponible más adelante.';
+
+  @override
+  String get accessSuccess => 'Método añadido. Ya puedes usarlo para entrar a esta misma cuenta.';
+
+  @override
+  String get accessVerificationFailed =>
+      'El método ya está vinculado, pero no pudimos enviar la verificación del correo. Puedes reintentar el envío.';
+
+  @override
+  String get accessVerificationSent =>
+      'Enviamos un correo de verificación. Puedes continuar usando la app.';
+
+  @override
+  String get accessSendVerification => 'Enviar verificación';
+
+  @override
+  String get accessConflict =>
+      'Esta credencial pertenece a otra cuenta. Prueba con otra o cancela; tu sesión actual se conserva.';
+
+  @override
+  String get accessSessionChanged =>
+      'La sesión cambió. Cierra esta ventana y vuelve a consultar los métodos de la cuenta actual.';
+
+  @override
+  String get accessNetworkError =>
+      'No pudimos conectar. Tus campos se conservan; vuelve a intentarlo.';
+
+  @override
+  String get accessCredentialError =>
+      'No pudimos confirmar tu identidad con ese método. Revisa tus datos o selecciona otro método vinculado.';
+
+  @override
+  String get accessGenericError =>
+      'No pudimos confirmar el vínculo. Reintenta para comprobar su estado antes de volver a enviarlo.';
+
+  @override
+  String get accessLinkIntro =>
+      'Añadirás otra forma de entrar a esta misma cuenta. Primero confirma tu identidad con un método que ya tengas vinculado.';
+
+  @override
+  String get accessUnverifiedPasswordWarning =>
+      'Si el correo aún no está verificado, Firebase puede sustituir el acceso con contraseña al confirmar Google o Apple. Después podrás añadir una nueva contraseña.';
+
+  @override
+  String get accessPasswordReplaced =>
+      'La contraseña anterior ya no figura como método de acceso. Puedes añadir una nueva desde esta pantalla.';
+
+  @override
+  String get documentUploadRequired =>
+      'El archivo no terminó de cargarse. Conservamos tu borrador; reintenta la carga.';
+
+  @override
+  String get documentSourceUnavailable =>
+      'No pudimos acceder al archivo cargado. Conservamos tu borrador; vuelve a intentarlo.';
 }

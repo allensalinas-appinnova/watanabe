@@ -40,6 +40,30 @@
         "--dart-define=USE_FIREBASE_EMULATORS=false",
         "--dart-define-from-file=config/firebase.staging.android.json"
       ]
+    },
+    {
+      "name": "LumioMoney · QA Flutter Driver (iOS)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=dev",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.dev.json"
+      ],
+      "program": "test_driver/main_qa.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "LumioMoney · QA Flutter Driver (Android)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=APP_ENV=dev",
+        "--dart-define=USE_FIREBASE_EMULATORS=false",
+        "--dart-define-from-file=config/firebase.dev.android.json"
+      ],
+      "program": "test_driver/main_qa.dart",
+      "flutterMode": "debug"
     }
   ]
 }

@@ -24,7 +24,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function authenticated() { return request.auth != null; }
-    function owner(uid) { return authenticated() && request.auth.uid == uid; }
+    function owner(uid) { return authenticated() && request.auth.uid == uid && !exists(/databases/$(database)/documents/accountDeletions/$(uid)); }
     function profileGeneration(uid) {
       return get(/databases/$(database)/documents/users/$(uid)).data.get('dataGeneration', 0);
     }

@@ -41,7 +41,7 @@ final canonicalFinanceRepositoryProvider = Provider<CanonicalFinanceRepository>(
   (ref) => getIt<CanonicalFinanceRepository>(),
 );
 
-final debtCommitmentsProvider = StreamProvider.family<List<DebtCommitment>, String>(
+final debtCommitmentsProvider = StreamProvider.autoDispose.family<List<DebtCommitment>, String>(
   (ref, userId) => getIt.isRegistered<CommitmentRepository>()
       ? getIt<CommitmentRepository>().watch(userId)
       : Stream.value(const <DebtCommitment>[]),
@@ -52,11 +52,12 @@ final planningFollowUpRepositoryProvider = Provider<PlanningFollowUpRepository?>
       getIt.isRegistered<PlanningFollowUpRepository>() ? getIt<PlanningFollowUpRepository>() : null,
 );
 
-final planningFollowUpsProvider = StreamProvider.family<PlanningFollowUpSnapshot, String>(
-  (ref, uid) =>
-      ref.watch(planningFollowUpRepositoryProvider)?.watch(uid) ??
-      Stream.value(const PlanningFollowUpSnapshot()),
-);
+final planningFollowUpsProvider = StreamProvider.autoDispose
+    .family<PlanningFollowUpSnapshot, String>(
+      (ref, uid) =>
+          ref.watch(planningFollowUpRepositoryProvider)?.watch(uid) ??
+          Stream.value(const PlanningFollowUpSnapshot()),
+    );
 
 final planningFollowUpSheetOpenProvider = NotifierProvider<PlanningFollowUpSheetVisibility, bool>(
   PlanningFollowUpSheetVisibility.new,
@@ -157,8 +158,8 @@ void retryPlanning(WidgetRef ref, String uid) {
     ..invalidate(debtCommitmentPaymentsProvider(uid));
 }
 
-final debtCommitmentPaymentsProvider =
-    StreamProvider.family<List<DebtCommitmentPaymentLink>, String>(
+final debtCommitmentPaymentsProvider = StreamProvider.autoDispose
+    .family<List<DebtCommitmentPaymentLink>, String>(
       (ref, userId) => getIt.isRegistered<CommitmentRepository>()
           ? getIt<CommitmentRepository>().watchPayments(userId)
           : Stream.value(const <DebtCommitmentPaymentLink>[]),
@@ -194,7 +195,7 @@ class PlanningMonthNotifier extends Notifier<DateTime> {
     final profileState = ref.read(profileProvider);
     ref.listen(profileProvider, (previous, next) {
       if (previous?.valueOrNull != null || next.valueOrNull == null) return;
-      final deviceNow = DateTime.now();
+      final deviceNow = ref.read(planningClockProvider)();
       final expectedDeviceMonth = DateTime(deviceNow.year, deviceNow.month);
       if (state.year != expectedDeviceMonth.year || state.month != expectedDeviceMonth.month) {
         return;
@@ -203,14 +204,14 @@ class PlanningMonthNotifier extends Notifier<DateTime> {
       state = DateTime(zonedNow.year, zonedNow.month);
     });
     final profile = profileState.valueOrNull;
-    final now = _planningLocalNow(DateTime.now(), profile?.timeZone);
+    final now = _planningLocalNow(ref.read(planningClockProvider)(), profile?.timeZone);
     return DateTime(now.year, now.month);
   }
 
   void select(DateTime month) => state = DateTime(month.year, month.month);
   void current() {
     final profile = ref.read(canonicalUserProfileProvider(userId)).valueOrNull;
-    final now = _planningLocalNow(DateTime.now(), profile?.timeZone);
+    final now = _planningLocalNow(ref.read(planningClockProvider)(), profile?.timeZone);
     state = DateTime(now.year, now.month);
   }
 }
@@ -364,7 +365,7 @@ class DashboardAmountsHiddenNotifier extends Notifier<bool> {
   }
 }
 
-final canonicalUserProfileProvider = StreamProvider.family<UserProfile?, String>(
+final canonicalUserProfileProvider = StreamProvider.autoDispose.family<UserProfile?, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
 );
 
@@ -465,16 +466,18 @@ class AppearancePreferencesController extends Notifier<AppearancePreferencesSave
   }
 }
 
-final canonicalCategoriesProvider = StreamProvider.family<List<FinanceCategory>, String>(
-  (ref, userId) => getIt<CanonicalFinanceRepository>().watchCategories(userId),
-);
+final canonicalCategoriesProvider = StreamProvider.autoDispose
+    .family<List<FinanceCategory>, String>(
+      (ref, userId) => getIt<CanonicalFinanceRepository>().watchCategories(userId),
+    );
 
 /// A bounded, cross-device activity sample used to prioritize picker options.
-final canonicalRecentOperationsProvider = StreamProvider.family<List<FinancialOperation>, String>(
-  (ref, userId) => getIt<CanonicalFinanceRepository>().watchOperations(userId),
-);
+final canonicalRecentOperationsProvider = StreamProvider.autoDispose
+    .family<List<FinancialOperation>, String>(
+      (ref, userId) => getIt<CanonicalFinanceRepository>().watchOperations(userId),
+    );
 
-final canonicalAccountsProvider = StreamProvider.family<List<FinanceAccount>, String>(
+final canonicalAccountsProvider = StreamProvider.autoDispose.family<List<FinanceAccount>, String>(
   (ref, userId) => getIt<CanonicalFinanceRepository>().watchAccounts(userId).map((items) {
     int group(FinanceAccount account) => account.isCreditCard
         ? 1
@@ -499,12 +502,13 @@ final canonicalOperationByIdProvider =
       },
     );
 
-final balanceAdjustmentsProvider = StreamProvider.family<List<BalanceAdjustmentEvent>, String>(
-  (ref, userId) => getIt<CanonicalFinanceRepository>().watchBalanceAdjustments(userId),
-);
+final balanceAdjustmentsProvider = StreamProvider.autoDispose
+    .family<List<BalanceAdjustmentEvent>, String>(
+      (ref, userId) => getIt<CanonicalFinanceRepository>().watchBalanceAdjustments(userId),
+    );
 
-final canonicalAccountProvider =
-    StreamProvider.family<FinanceAccount?, ({String userId, String accountId})>(
+final canonicalAccountProvider = StreamProvider.autoDispose
+    .family<FinanceAccount?, ({String userId, String accountId})>(
       (ref, key) =>
           ref.watch(canonicalFinanceRepositoryProvider).watchAccount(key.userId, key.accountId),
     );
@@ -762,14 +766,31 @@ class ActivityQueryFilters {
 
 class ActivityQueryFiltersNotifier extends Notifier<ActivityQueryFilters> {
   @override
-  ActivityQueryFilters build() => ActivityQueryFilters(monthKey: _monthKey(DateTime.now()));
+  ActivityQueryFilters build() {
+    final uid = ref.watch(authSessionProvider.select((session) => session.valueOrNull?.id));
+    if (uid != null) {
+      ref.listen(planningTodayProvider(uid), (_, next) {
+        if (!state.hasBeenApplied) state = ActivityQueryFilters(monthKey: _monthKey(next));
+      });
+    }
+    return ActivityQueryFilters(
+      monthKey: _monthKey(
+        uid == null ? ref.read(planningClockProvider)() : ref.read(planningTodayProvider(uid)),
+      ),
+    );
+  }
 
   void apply(ActivityQueryFilters filters) => state = filters;
 
   void reset() => state = ActivityQueryFilters(
-    monthKey: _monthKey(DateTime.now()),
+    monthKey: _monthKey(_today()),
     hasBeenApplied: true,
   );
+
+  DateTime _today() {
+    final uid = ref.read(authSessionProvider).valueOrNull?.id;
+    return uid == null ? ref.read(planningClockProvider)() : ref.read(planningTodayProvider(uid));
+  }
 
   static String _monthKey(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
@@ -925,19 +946,20 @@ class OperationPagerState {
   );
 }
 
-final canonicalBudgetsProvider =
-    StreamProvider.family<List<Budget>, ({String userId, String monthKey})>(
+final canonicalBudgetsProvider = StreamProvider.autoDispose
+    .family<List<Budget>, ({String userId, String monthKey})>(
       (ref, input) =>
           ref.watch(canonicalFinanceRepositoryProvider).watchBudgets(input.userId, input.monthKey),
     );
 
-final canonicalBudgetProvider = StreamProvider.family<Budget?, ({String userId, String budgetId})>(
-  (ref, input) =>
-      ref.watch(canonicalFinanceRepositoryProvider).watchBudget(input.userId, input.budgetId),
-);
+final canonicalBudgetProvider = StreamProvider.autoDispose
+    .family<Budget?, ({String userId, String budgetId})>(
+      (ref, input) =>
+          ref.watch(canonicalFinanceRepositoryProvider).watchBudget(input.userId, input.budgetId),
+    );
 
-final canonicalFinanceRepositoryItemsProvider =
-    StreamProvider.family<List<BudgetItem>, ({String userId, String budgetId})>(
+final canonicalFinanceRepositoryItemsProvider = StreamProvider.autoDispose
+    .family<List<BudgetItem>, ({String userId, String budgetId})>(
       (ref, input) => ref
           .watch(canonicalFinanceRepositoryProvider)
           .watchBudgetItems(input.userId, input.budgetId),
@@ -958,11 +980,8 @@ final canonicalBudgetAggregateReconciliationProvider = FutureProvider.autoDispos
       }
     });
 
-final canonicalBudgetItemOperationsProvider =
-    StreamProvider.family<
-      List<FinancialOperation>,
-      ({String userId, String budgetId, String itemId})
-    >(
+final canonicalBudgetItemOperationsProvider = StreamProvider.autoDispose
+    .family<List<FinancialOperation>, ({String userId, String budgetId, String itemId})>(
       (ref, input) => ref
           .watch(canonicalFinanceRepositoryProvider)
           .watchBudgetItemOperations(
@@ -1023,8 +1042,8 @@ final canonicalBudgetCategoryOperationsProvider = FutureProvider.autoDispose
       },
     );
 
-final canonicalMonthlySummaryProvider =
-    StreamProvider.family<MonthlySummary?, ({String userId, String monthKey, String currency})>(
+final canonicalMonthlySummaryProvider = StreamProvider.autoDispose
+    .family<MonthlySummary?, ({String userId, String monthKey, String currency})>(
       (ref, input) => getIt<CanonicalFinanceRepository>().watchMonthlySummary(
         input.userId,
         input.monthKey,
@@ -1123,15 +1142,23 @@ final bootstrapCategoriesProvider = Provider<BootstrapCategories>(
 );
 
 final pendingOperationsProvider = StreamProvider<List<PendingOperation>>((ref) {
-  return getIt<PendingOperationDatabase>().watchActive();
+  final uid = ref.watch(authSessionProvider).valueOrNull?.id;
+  return uid == null
+      ? Stream.value(<PendingOperation>[])
+      : getIt<PendingOperationDatabase>().watchActive(uid);
 });
 
 final pendingOperationSyncStatusProvider = StreamProvider<SyncStatusSnapshot>((ref) {
-  return getIt<PendingOperationSyncService>().watchStatus();
+  final uid = ref.watch(authSessionProvider).valueOrNull?.id;
+  return uid == null
+      ? Stream.value(const SyncStatusSnapshot(pending: 0, syncing: 0, confirmed: 0, rejected: 0))
+      : getIt<PendingOperationSyncService>().watchStatus(uid);
 });
 
 final pendingOperationAutoSyncProvider = Provider.autoDispose<void>((ref) {
   final user = ref.watch(authSessionProvider).value;
+  final sync = getIt<PendingOperationSyncService>()..setSession(user?.id);
+  ref.onDispose(() => sync.setSession(null));
   if (user == null) return;
   final actions = ref.read(canonicalActionsProvider);
   final subscription = actions.startAutoSync(user.id);
@@ -1250,14 +1277,17 @@ class CanonicalFinanceActions {
     FinancialOperationDraft draft,
   ) async {
     return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
-      final generation = (await _repository.watchUserProfile(userId).first)?.dataGeneration ?? 0;
+      final generation = await _draftGeneration(userId, draft.idempotencyKey, draft.dataGeneration);
       await _sync.enqueue(
         idempotencyKey: draft.idempotencyKey,
         operationType: 'operation',
         payload: {..._operationPayload(draft), 'ownerUserId': userId, 'dataGeneration': generation},
       );
-      await _sync.drain((type, payload) => _send(userId, type, payload));
-      final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+      await _sync.drain(userId, (type, payload) => _send(userId, type, payload));
+      final status = (await _database.findByIdempotencyKey(
+        draft.idempotencyKey,
+        userId: userId,
+      ))?.status;
       if (status == SyncState.confirmed.name) {
         await _observability.logEvent('${draft.type.name}_created');
       }
@@ -1270,20 +1300,33 @@ class CanonicalFinanceActions {
 
   Future<SyncState> createTransfer(String userId, TransferDraft draft) async {
     return _observability.tracePerformance(PerformanceTraceName.operationSave, () async {
-      final generation = (await _repository.watchUserProfile(userId).first)?.dataGeneration ?? 0;
+      final generation = await _draftGeneration(userId, draft.idempotencyKey, draft.dataGeneration);
       await _sync.enqueue(
         idempotencyKey: draft.idempotencyKey,
         operationType: 'transfer',
         payload: {..._transferPayload(draft), 'ownerUserId': userId, 'dataGeneration': generation},
       );
-      await _sync.drain((type, payload) => _send(userId, type, payload));
-      final status = (await _database.findByIdempotencyKey(draft.idempotencyKey))?.status;
+      await _sync.drain(userId, (type, payload) => _send(userId, type, payload));
+      final status = (await _database.findByIdempotencyKey(
+        draft.idempotencyKey,
+        userId: userId,
+      ))?.status;
       if (status == SyncState.confirmed.name) await _observability.logEvent('transfer_created');
       return SyncState.values.firstWhere(
         (value) => value.name == status,
         orElse: () => SyncState.pending,
       );
     });
+  }
+
+  Future<int> _draftGeneration(String userId, String key, int? draftGeneration) async {
+    final existing = await _database.findByIdempotencyKey(key, userId: userId);
+    if (existing != null) {
+      return (jsonDecode(existing.payload) as Map<String, dynamic>)['dataGeneration'] as int? ?? 0;
+    }
+    return draftGeneration ??
+        (await _repository.watchUserProfile(userId).first)?.dataGeneration ??
+        0;
   }
 
   final Map<String, String> _budgetRequestIds = {};
@@ -1446,15 +1489,19 @@ class CanonicalFinanceActions {
 
   Future<void> syncPending(String userId, {bool retryRejected = true}) {
     return _sync.drain(
+      userId,
       (type, payload) => _send(userId, type, payload),
       retryRejected: retryRejected,
     );
   }
 
   StreamSubscription<dynamic> startAutoSync(String userId) =>
-      _sync.listenForReconnect((type, payload) => _send(userId, type, payload));
+      _sync.listenForReconnect(userId, (type, payload) => _send(userId, type, payload));
 
   Future<SyncAttemptResult> _send(String userId, String type, Map<String, dynamic> payload) async {
+    if (payload['ownerUserId'] != userId) {
+      return const SyncAttemptResult.rejected(SyncIssueCode.permissionDenied);
+    }
     if (type == 'transfer') {
       final result = await _repository.createTransfer(
         userId,

@@ -1,0 +1,59 @@
+name: Signed store artefact
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [android, ios]
+        required: true
+      environment:
+        type: choice
+        options: [prod, staging]
+        required: true
+permissions:
+  contents: read
+jobs:
+  signed-build:
+    runs-on: ${{ inputs.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+      - uses: actions/setup-java@v4
+        if: inputs.platform == 'android'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare private configuration and signing
+        env:
+          RELEASE_CONFIG: ${{ secrets.FIREBASE_RELEASE_CONFIG_JSON }}
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROFILES: ${{ secrets.IOS_PROFILES_ZIP_BASE64 }}
+          RELEASE_PLATFORM: ${{ inputs.platform }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+        run: python3 tool/prepare_store_signing.py
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - name: Validate signed artefact
+        run: bash tool/build_store_release.sh '${{ inputs.environment }}' '${{ inputs.platform }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-${{ inputs.platform }}-${{ inputs.environment }}
+          path: |
+            build/app/outputs/bundle/release/*.aab
+            build/ios/archive/*.xcarchive
+            build/ios/ipa/*.ipa
+          if-no-files-found: error
+      - name: Remove temporary signing material
+        if: always()
+        run: python3 tool/prepare_store_signing.py --cleanup

@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_finance/core/error/failure.dart';
 import 'package:personal_finance/core/offline/pending_operation_queue.dart';
-import 'package:personal_finance/core/offline/sync_state.dart';
 import 'package:personal_finance/features/coach/data/repositories/firestore_coach_repository.dart';
 import 'package:personal_finance/features/coach/domain/entities/coach_models.dart';
 import 'package:personal_finance/features/coach/domain/repositories/coach_repository.dart';
@@ -183,8 +182,11 @@ void main() {
     await enqueue('other-owner', 'bob');
     await enqueue('pending-transfer', 'alice', type: 'transfer');
     await enqueue('rejected', 'alice');
-    final rejected = await database.findByIdempotencyKey('rejected');
-    await database.markRejected(rejected!.id, SyncIssueCode.permissionDenied);
+    final rejected = await database.findByIdempotencyKey('rejected', userId: 'alice');
+    await database.customStatement(
+      "UPDATE pending_operations SET status = 'rejected' WHERE id = ?",
+      [rejected!.id],
+    );
     final result = await repository.loadReport(
       'alice',
       startAt: date,
@@ -230,21 +232,33 @@ void main() {
       when(() => query.get()).thenAnswer((_) async => snapshot(1));
       for (final type in ['operation', 'income', 'expense', 'transfer']) {
         await enqueue('syncing-$type', 'alice', type: type);
-        final row = await database.findByIdempotencyKey('syncing-$type');
-        await database.markSyncing(row!.id);
+        final row = await database.findByIdempotencyKey('syncing-$type', userId: 'alice');
+        await database.customStatement(
+          "UPDATE pending_operations SET status = 'syncing' WHERE id = ?",
+          [row!.id],
+        );
       }
       await enqueue('key-0', 'alice');
-      final duplicate = await database.findByIdempotencyKey('key-0');
-      await database.markSyncing(duplicate!.id);
+      final duplicate = await database.findByIdempotencyKey('key-0', userId: 'alice');
+      await database.customStatement(
+        "UPDATE pending_operations SET status = 'syncing' WHERE id = ?",
+        [duplicate!.id],
+      );
       await enqueue('foreign', 'bob');
-      final foreign = await database.findByIdempotencyKey('foreign');
-      await database.markSyncing(foreign!.id);
+      final foreign = await database.findByIdempotencyKey('foreign', userId: 'bob');
+      await database.customStatement(
+        "UPDATE pending_operations SET status = 'syncing' WHERE id = ?",
+        [foreign!.id],
+      );
       await enqueue('before', 'alice', occurredAt: date.subtract(const Duration(microseconds: 1)));
       await enqueue('at-end', 'alice', occurredAt: date.add(const Duration(days: 1)));
       await enqueue('unsupported', 'alice', type: 'balance-adjustment');
       await enqueue('confirmed', 'alice');
-      final confirmed = await database.findByIdempotencyKey('confirmed');
-      await database.markConfirmed(confirmed!.id);
+      final confirmed = await database.findByIdempotencyKey('confirmed', userId: 'alice');
+      await database.customStatement(
+        "UPDATE pending_operations SET status = 'confirmed' WHERE id = ?",
+        [confirmed!.id],
+      );
       final result = await repository.loadReport(
         'alice',
         startAt: date,
@@ -416,7 +430,7 @@ void main() {
     final local = StreamController<List<PendingOperation>>();
     final mockDatabase = MockPendingDatabase();
     when(() => query.snapshots(includeMetadataChanges: true)).thenAnswer((_) => remote.stream);
-    when(mockDatabase.watchActive).thenAnswer((_) => local.stream);
+    when(() => mockDatabase.watchActive('alice')).thenAnswer((_) => local.stream);
     final watched = FirestoreCoachRepository(firestore: firestore, pendingOperations: mockDatabase);
     var events = 0;
     final errors = <Object>[];
@@ -434,16 +448,19 @@ void main() {
     expect(events, 0);
     await enqueue('foreign', 'bob');
     await enqueue('outside', 'alice', occurredAt: date.add(const Duration(days: 1)));
-    local.add(await database.pending());
+    local.add(await database.pending(userId: 'alice'));
     await Future<void>.delayed(Duration.zero);
     expect(events, 0);
     await enqueue('selected', 'alice');
-    local.add(await database.pending());
+    local.add(await database.pending(userId: 'alice'));
     await Future<void>.delayed(Duration.zero);
     expect(events, 1);
-    final selected = await database.findByIdempotencyKey('selected');
-    await database.markSyncing(selected!.id);
-    local.add(await database.watchActive().first);
+    final selected = await database.findByIdempotencyKey('selected', userId: 'alice');
+    await database.customStatement(
+      "UPDATE pending_operations SET status = 'syncing' WHERE id = ?",
+      [selected!.id],
+    );
+    local.add(await database.watchActive('alice').first);
     await Future<void>.delayed(Duration.zero);
     expect(events, 2);
     remote.add(snapshot(1));
@@ -483,34 +500,37 @@ void main() {
     await feed.close();
   });
 
-  test('routine preferences infer legacy reminder choices but respect explicit new choices', () async {
-    final feed = StreamController<DocumentSnapshot<Map<String, dynamic>>>();
-    when(() => user.snapshots(includeMetadataChanges: true)).thenAnswer((_) => feed.stream);
-    final doc = MockDocumentSnapshot();
-    when(() => doc.metadata).thenReturn(metadata);
-    when(doc.data).thenReturn({
-      'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
-    });
-    final values = <CoachRoutinePreferences>[];
-    final subscription = repository.watchRoutinePreferences('alice').listen(values.add);
-    feed.add(doc);
-    await Future<void>.delayed(Duration.zero);
-    expect(values.single.configured, isTrue);
-    expect(values.single.dailyEnabled, isTrue);
-    when(doc.data).thenReturn({
-      'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
-      'coachRoutinePreferences': const CoachRoutinePreferences(
-        configured: true,
-        weeklyEnabled: true,
-      ).toMap(),
-    });
-    feed.add(doc);
-    await Future<void>.delayed(Duration.zero);
-    expect(values.last.dailyEnabled, isFalse);
-    expect(values.last.weeklyEnabled, isTrue);
-    await subscription.cancel();
-    await feed.close();
-  });
+  test(
+    'routine preferences infer legacy reminder choices but respect explicit new choices',
+    () async {
+      final feed = StreamController<DocumentSnapshot<Map<String, dynamic>>>();
+      when(() => user.snapshots(includeMetadataChanges: true)).thenAnswer((_) => feed.stream);
+      final doc = MockDocumentSnapshot();
+      when(() => doc.metadata).thenReturn(metadata);
+      when(doc.data).thenReturn({
+        'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
+      });
+      final values = <CoachRoutinePreferences>[];
+      final subscription = repository.watchRoutinePreferences('alice').listen(values.add);
+      feed.add(doc);
+      await Future<void>.delayed(Duration.zero);
+      expect(values.single.configured, isTrue);
+      expect(values.single.dailyEnabled, isTrue);
+      when(doc.data).thenReturn({
+        'coachPreferences': const CoachPreferences(dailyEnabled: true).toMap(),
+        'coachRoutinePreferences': const CoachRoutinePreferences(
+          configured: true,
+          weeklyEnabled: true,
+        ).toMap(),
+      });
+      feed.add(doc);
+      await Future<void>.delayed(Duration.zero);
+      expect(values.last.dailyEnabled, isFalse);
+      expect(values.last.weeklyEnabled, isTrue);
+      await subscription.cancel();
+      await feed.close();
+    },
+  );
 
   test('unallocated payment watch includes old records and reports cache freshness', () async {
     final payments = MockCollection();

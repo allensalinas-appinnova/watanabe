@@ -34,7 +34,7 @@ class _DeviceRegistryLifecycleState extends ConsumerState<DeviceRegistryLifecycl
   }
 
   Future<void> _registerCurrentUser({bool force = false}) async {
-    if (_registrationInProgress) return;
+    if (!mounted || _registrationInProgress) return;
     final user = ref.read(authSessionProvider).valueOrNull;
     if (user == null || user.isAnonymous) {
       _registeredUid = null;
@@ -51,13 +51,14 @@ class _DeviceRegistryLifecycleState extends ConsumerState<DeviceRegistryLifecycl
       // Best effort: app usage must not be blocked by analytics metadata.
     } finally {
       _registrationInProgress = false;
-      final currentUser = ref.read(authSessionProvider).valueOrNull;
-      if (mounted &&
-          currentUser != null &&
-          !currentUser.isAnonymous &&
-          currentUser.id != _registeredUid &&
-          currentUser.id != _lastAttemptUid) {
-        unawaited(_registerCurrentUser());
+      if (mounted) {
+        final currentUser = ref.read(authSessionProvider).valueOrNull;
+        if (currentUser != null &&
+            !currentUser.isAnonymous &&
+            currentUser.id != _registeredUid &&
+            currentUser.id != _lastAttemptUid) {
+          unawaited(_registerCurrentUser());
+        }
       }
     }
   }

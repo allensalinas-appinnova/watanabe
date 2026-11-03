@@ -11,6 +11,7 @@ import '../../features/finance/presentation/models/movement_save_result.dart';
 import '../../features/finance/presentation/providers/canonical_finance_providers.dart';
 import '../../features/finance/presentation/widgets/finance_components.dart';
 import '../../features/finance/presentation/widgets/movement_action_sheet.dart';
+import '../../features/finance/presentation/widgets/quarantine_notice.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -25,7 +26,15 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _showingSheet = false;
-  bool _openingForm = false;
+  bool _launchingForm = false;
+  Object? _launchToken;
+  VoidCallback? _cancelLaunchWatch;
+
+  @override
+  void dispose() {
+    _cancelLaunchWatch?.call();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,13 +72,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     final showRegisterAction =
         (widget.currentLocation == '/home' || widget.currentLocation == '/activity') &&
         !_showingSheet &&
-        !planningFollowUpSheetOpen &&
-        !_openingForm;
+        !planningFollowUpSheetOpen;
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
+            const QuarantineNotice(),
             if (categoryCatalogSync?.hasError == true)
               Material(
                 color: Theme.of(context).colorScheme.errorContainer,
@@ -176,7 +185,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   child: FilledButton.icon(
                     key: const ValueKey('global_add_operation'),
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                    onPressed: _openMovementActions,
+                    onPressed: _launchingForm ? null : _openMovementActions,
                     icon: const Icon(Icons.add),
                     label: Text(AppLocalizations.of(context).registerMovement),
                   ),
@@ -196,7 +205,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Future<void> _openMovementActions() async {
-    if (_showingSheet || _openingForm || !mounted) return;
+    if (_showingSheet || _launchingForm || !mounted) return;
     setState(() => _showingSheet = true);
     final action = await MovementActionSheet.show(context);
     if (!mounted) return;
@@ -208,17 +217,51 @@ class _AppShellState extends ConsumerState<AppShell> {
       MovementEntryAction.expense => '/operations/new?type=expense',
       MovementEntryAction.transfer => '/transfers/new',
       MovementEntryAction.debtPayment => '/accounts/pay-debt',
-      MovementEntryAction.document => '/document-imports/new',
+      MovementEntryAction.document => Uri(
+        path: '/document-imports/new',
+        queryParameters: {
+          'returnTo': GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString(),
+        },
+      ).toString(),
     };
-    setState(() => _openingForm = true);
+    final router = GoRouter.of(context);
+    final originPage = router.routerDelegate.currentConfiguration.lastOrNull?.pageKey;
+    final launch = Object();
+    setState(() {
+      _launchToken = launch;
+      _launchingForm = true;
+    });
+    late final VoidCallback onNavigation;
+    void stopWatching() => router.routerDelegate.removeListener(onNavigation);
+    void releaseLaunch() {
+      stopWatching();
+      if (!mounted || !identical(_launchToken, launch)) return;
+      _cancelLaunchWatch = null;
+      setState(() {
+        _launchToken = null;
+        _launchingForm = false;
+      });
+    }
+
+    onNavigation = () {
+      if (router.routerDelegate.currentConfiguration.lastOrNull?.pageKey != originPage) {
+        releaseLaunch();
+      }
+    };
+    _cancelLaunchWatch = stopWatching;
+    router.routerDelegate.addListener(onNavigation);
     try {
-      final result = await context.push<MovementSaveResult>(route);
+      final resultFuture = router.push<MovementSaveResult>(route);
+      // Only debounce the initial navigation. A form may finish with go(),
+      // so its push result must never own the availability of Registrar.
+      onNavigation();
+      final result = await resultFuture;
       if (mounted && result != null) {
         if (result.status == MovementSaveStatus.confirmed) _refreshActivityPages();
         _showSaveFeedback(result);
       }
     } finally {
-      if (mounted) setState(() => _openingForm = false);
+      releaseLaunch();
     }
   }
 

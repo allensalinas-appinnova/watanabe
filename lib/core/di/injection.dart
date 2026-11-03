@@ -13,7 +13,9 @@ import '../../features/account_identity/domain/payment_instrument.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/data/repositories/firebase_account_deletion_repository.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/services/account_deletion_repository.dart';
 import '../../features/coach/data/repositories/firestore_coach_repository.dart';
 import '../../features/coach/data/services/local_coach_notification_service.dart';
 import '../../features/coach/domain/repositories/coach_repository.dart';
@@ -26,7 +28,9 @@ import '../../features/devices/data/firebase_device_registry_repository.dart';
 import '../../features/devices/domain/device_registry_repository.dart';
 import '../../features/document_imports/data/document_draft_store.dart';
 import '../../features/document_imports/data/firebase_document_import_repository.dart';
+import '../../features/document_imports/data/shared_receipt_inbox.dart';
 import '../../features/document_imports/domain/document_import.dart';
+import '../../features/document_imports/domain/shared_receipt.dart';
 import '../../features/finance/data/datasources/balance_adjustment_service.dart';
 import '../../features/finance/data/datasources/budget_command_service.dart';
 import '../../features/finance/data/datasources/canonical_finance_remote_data_source.dart';
@@ -50,6 +54,9 @@ Future<void> configureDependencies({
   bool useEmulators = false,
   FirebaseObservability? observability,
 }) async {
+  if (!getIt.isRegistered<SharedReceiptInbox>()) {
+    getIt.registerLazySingleton<SharedReceiptInbox>(NativeSharedReceiptInbox.new);
+  }
   final preferences = await SharedPreferences.getInstance();
 
   if (!getIt.isRegistered<SharedPreferences>()) {
@@ -129,6 +136,14 @@ Future<void> configureDependencies({
       ),
     );
   }
+  if (!getIt.isRegistered<AccountDeletionRepository>()) {
+    getIt.registerLazySingleton<AccountDeletionRepository>(
+      () => FirebaseAccountDeletionRepository(
+        FirebaseFunctions.instanceFor(app: FirebaseBootstrap.app, region: 'us-central1'),
+        getIt<FirebaseAuth>(),
+      ),
+    );
+  }
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
       () => FirebaseAuthRemoteDataSource(firebaseAuth: getIt()),
@@ -136,7 +151,10 @@ Future<void> configureDependencies({
   }
   if (!getIt.isRegistered<AuthLocalDataSource>()) {
     getIt.registerLazySingleton<AuthLocalDataSource>(
-      () => SharedPreferencesAuthLocalDataSource(preferences: getIt()),
+      () => SharedPreferencesAuthLocalDataSource(
+        preferences: getIt(),
+        deletionNoticeKey: FirebaseBootstrap.lifecyclePreferenceKey('deletion_accepted'),
+      ),
     );
   }
   if (!getIt.isRegistered<AuthRepository>()) {
@@ -244,5 +262,18 @@ Future<void> configureDependencies({
     getIt.registerLazySingleton<ReceiptImagePicker>(
       NativeReceiptImagePicker.new,
     );
+  }
+  final deletingUid = preferences.getString(
+    FirebaseBootstrap.lifecyclePreferenceKey('deleting_local_uid'),
+  );
+  if (deletingUid != null) {
+    getIt<PendingOperationSyncService>().setSession(null);
+    await getIt<PendingOperationDatabase>().clearUserData(deletingUid);
+    await getIt<DocumentImportRepository>().clearDraft(deletingUid);
+    await getIt<CoachNotificationService>().clearUserData(deletingUid);
+    if (getIt<FirebaseAuth>().currentUser?.uid == deletingUid) {
+      await getIt<AuthRepository>().signOut();
+    }
+    await preferences.remove(FirebaseBootstrap.lifecyclePreferenceKey('deleting_local_uid'));
   }
 }

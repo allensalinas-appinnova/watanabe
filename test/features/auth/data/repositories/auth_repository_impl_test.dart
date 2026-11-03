@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
@@ -30,6 +31,24 @@ void main() {
       remoteDataSource: remoteDataSource,
       localDataSource: localDataSource,
     );
+  });
+
+  test('Apple sign-in preserves mapped UID and caches only the confirmed session', () async {
+    when(() => remoteDataSource.signInWithApple()).thenAnswer((_) async => user);
+    when(() => localDataSource.cacheUser(user)).thenAnswer((_) async {});
+    final result = await repository.signInWithApple();
+    expect(result.getOrElse((_) => throw StateError('unexpected')).id, user.id);
+    verify(() => localDataSource.cacheUser(user)).called(1);
+  });
+
+  test('Apple conflict leaves the guest session and local data intact', () async {
+    when(
+      () => remoteDataSource.linkApple(),
+    ).thenThrow(FirebaseAuthException(code: 'credential-already-in-use'));
+    final result = await repository.linkApple();
+    expect(result.isLeft(), true);
+    verifyNever(() => remoteDataSource.signOut());
+    verifyNever(() => localDataSource.clearCachedUser());
   });
 
   test('exposes the current Firebase session without using cached state', () {
@@ -79,14 +98,16 @@ void main() {
 
   group('signInWithGoogle', () {
     test('maps the remote model to a domain entity and caches it', () async {
-      when(() => remoteDataSource.signInWithGoogle()).thenAnswer((_) async => user);
-      when(() => localDataSource.cacheUser(user)).thenAnswer((_) async {});
+      final googleUser = user.copyWith(createdAt: DateTime.utc(2020, 4, 15));
+      when(() => remoteDataSource.signInWithGoogle()).thenAnswer((_) async => googleUser);
+      when(() => localDataSource.cacheUser(googleUser)).thenAnswer((_) async {});
 
       final result = await repository.signInWithGoogle();
 
       expect(result.isRight(), isTrue);
       expect(result.getRight().toNullable()?.id, 'user-123');
-      verify(() => localDataSource.cacheUser(user)).called(1);
+      expect(result.getRight().toNullable()?.createdAt, googleUser.createdAt);
+      verify(() => localDataSource.cacheUser(googleUser)).called(1);
     });
 
     test('maps remote errors to a domain failure', () async {

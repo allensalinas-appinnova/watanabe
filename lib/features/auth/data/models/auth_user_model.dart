@@ -12,6 +12,9 @@ sealed class AuthUserModel with _$AuthUserModel {
     required bool isAnonymous,
     String? email,
     String? displayName,
+    DateTime? createdAt,
+    List<String>? providerIds,
+    bool? emailVerified,
   }) = _AuthUserModel;
 
   const AuthUserModel._();
@@ -24,6 +27,9 @@ sealed class AuthUserModel with _$AuthUserModel {
       isAnonymous: isAnonymous,
       email: email,
       displayName: displayName,
+      createdAt: createdAt,
+      providerIds: providerIds,
+      emailVerified: emailVerified,
     );
   }
 }

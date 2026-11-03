@@ -1,9 +1,11 @@
+import {runUserMaintenance} from "./maintenance_jobs";
 import {randomUUID} from "node:crypto";
-import {FieldValue, Timestamp, type Firestore} from "firebase-admin/firestore";
+import {FieldPath, FieldValue, Timestamp, type Firestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {HttpsError} from "firebase-functions/v2/https";
 import {readyProfile, trackDocumentObject} from "./document_imports";
 import {eventId, recordUsage, recordStorageTime, releaseAnalysis, type Data} from "./resource_usage";
+import {observeStorageCapacity} from "./storage_capacity";
 
 /** Claim deletion first: financial approval cannot race a cleanup that already won. */
 export async function discardDocument(db: Firestore, uid: string, importId: string, generation?: number, expired = false) {
@@ -105,39 +107,96 @@ export async function deleteUserDocuments(db: Firestore, uid: string, beforeGene
     updatedAt: FieldValue.serverTimestamp()}, {merge: true});
 }
 
+/** A listing snapshot is not proof of absence: an upload may have committed after listing. */
+export async function reconcileStorageObjectAbsence(db: Firestore, object: Data, bucket = getStorage().bucket()) {
+  const file = bucket.file(object.storagePath, {generation: object.objectGeneration});
+  const [exists] = await file.exists();
+  if (exists) {
+    const [metadata] = await file.getMetadata();
+    await trackDocumentObject(db, metadata, false);
+    return true;
+  }
+  await trackDocumentObject(db, {name: object.storagePath, generation: object.objectGeneration, size: object.bytes}, true);
+  return false;
+}
+
+/** Enumerate provider objects in pages; only publish per-user totals after all object pages. */
 export async function inventoryDocumentStorage(db: Firestore) {
-  const bucket = getStorage().bucket();
-  const [files] = await bucket.getFiles({prefix: "users/"});
-  const present = new Set<string>();
-  for (const file of files) {
-    if (!/^users\/[^/]+\/documentImports\//.test(file.name)) continue;
-    const [m] = await file.getMetadata();
-    present.add(eventId(`${m.name}:${m.generation}`));
-    await trackDocumentObject(db, m, false);
-    const [, uid, , generation, id] = file.name.split("/");
-    const [p, proposal] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`users/${uid}/documentImports/${id}`).get()]);
-    if (!p.exists || !proposal.exists || ["discarded", "expired", "deleting"].includes(proposal.get("status")) || (p.get("dataGeneration") ?? 0) !== Number(generation)) {
-      await file.delete({ifGenerationMatch: m.generation}); await trackDocumentObject(db, m, true);
+  const bucket = getStorage().bucket(), objectsJob = db.doc("maintenanceJobs/storageObjects");
+  if ((await db.doc("maintenanceJobs/storageUsers").get()).get("status") !== "running") {
+    const worker = randomUUID(), deadline = Date.now() + 180000;
+    const state = await db.runTransaction(async tx => {
+      const row = await tx.get(objectsJob), d = row.data() ?? {};
+      if ((d.leaseUntil?.toMillis() ?? 0) > Date.now()) return null;
+      const next = d.status === "running" ? d : {pageToken: null};
+      tx.set(objectsJob, {...next, worker, status: "running", leaseUntil: Timestamp.fromMillis(Date.now() + 540000),
+        expiresAt: Timestamp.fromMillis(Date.now() + 90 * 86400000)});
+      return next;
+    });
+    if (!state) return;
+    let token = state.pageToken as string | null, done = false;
+    try {
+      while (Date.now() < deadline) {
+        const [files, next] = await bucket.getFiles({prefix: "users/", maxResults: 250, autoPaginate: false, ...(token ? {pageToken: token} : {})});
+        for (const file of files) {
+          if (!/^users\/[^/]+\/documentImports\//.test(file.name)) continue;
+          try {
+            const [m] = await file.getMetadata(); await trackDocumentObject(db, m, false);
+            const [, uid, , generation, id] = file.name.split("/");
+            const [p, proposal, deletion] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`users/${uid}/documentImports/${id}`).get(), db.doc(`accountDeletions/${uid}`).get()]);
+            if (deletion.exists || !p.exists || !proposal.exists || ["discarded", "expired", "deleting"].includes(proposal.get("status")) || (p.get("dataGeneration") ?? 0) !== Number(generation)) {
+              await file.delete({ifGenerationMatch: m.generation}); await trackDocumentObject(db, m, true);
+            }
+          } catch (e: any) { if (e?.code !== 404) throw e; }
+        }
+        token = next?.pageToken ?? null;
+        await db.runTransaction(async tx => {
+          const current = await tx.get(objectsJob); if (current.get("worker") !== worker) throw Error("maintenance-lease-lost");
+          tx.update(objectsJob, {pageToken: token, status: token ? "running" : "complete", updatedAt: Timestamp.now()});
+        });
+        if (!token) { done = true; break; }
+      }
+    } finally {
+      await db.runTransaction(async tx => {
+        const current = await tx.get(objectsJob); if (current.get("worker") === worker) tx.update(objectsJob, {leaseUntil: Timestamp.fromMillis(0)});
+      });
     }
+    if (!done) return;
   }
-  const subjects = await db.collection("resourceUsage").get();
-  for (const subject of subjects.docs) {
-    const objects = await subject.ref.collection("objects").get();
-    let attachmentBytes = 0, attachmentFiles = 0, temporaryBytes = 0, temporaryFiles = 0;
-    for (const object of objects.docs) {
-      const d = object.data();
-      if (d.deleted) continue;
-      if (!present.has(object.id)) { await trackDocumentObject(db, {name: d.storagePath, generation: d.objectGeneration, size: d.bytes}, true); continue; }
-      if (d.retained) { attachmentBytes += d.bytes; attachmentFiles++; } else { temporaryBytes += d.bytes; temporaryFiles++; }
+  await runUserMaintenance(db, "storageUsers", async (uid, lease, deadline) => {
+    const subject = db.doc(`resourceUsage/${uid}`), progress = subject.collection("maintenance").doc("storageInventory");
+    const stored = (await progress.get()).data();
+    const state = stored?.runId === lease.runId ? stored : {runId: lease.runId, cursor: null,
+      attachmentBytes: 0, attachmentFiles: 0, temporaryBytes: 0, temporaryFiles: 0};
+    while (Date.now() < deadline) {
+      let query = subject.collection("objects").orderBy(FieldPath.documentId()).limit(250);
+      if (state.cursor) query = query.startAfter(state.cursor);
+      const objects = await query.get();
+      for (const object of objects.docs) {
+        const d = object.data();
+        if (d.deleted) { await observeStorageCapacity(db, uid, object.id, null); continue; }
+        // A missing listing result alone never releases capacity; re-read provider metadata.
+        if (!await reconcileStorageObjectAbsence(db, d, bucket)) continue;
+        if (d.retained) { state.attachmentBytes += d.bytes; state.attachmentFiles++; }
+        else { state.temporaryBytes += d.bytes; state.temporaryFiles++; }
+      }
+      state.cursor = objects.docs.at(-1)?.id ?? state.cursor;
+      const complete = objects.size < 250;
+      if (complete) await recordStorageTime(db, uid);
+      await db.runTransaction(async tx => {
+        await lease.assert(tx);
+        const [deletion, latest] = await Promise.all([tx.get(db.doc(`accountDeletions/${uid}`)), tx.get(subject)]);
+        if (deletion.exists || !latest.exists) return;
+        if (!complete) { tx.set(progress, state); tx.set(subject, {inventoryRefreshStatus: "running"}, {merge: true}); return; }
+        const observed = state.attachmentBytes + state.temporaryBytes;
+        const accounted = (latest.get("attachmentBytes") ?? 0) + (latest.get("temporaryBytes") ?? 0);
+        tx.set(subject, {inventoryAt: Timestamp.now(), inventoryRefreshStatus: "complete", inventoryObservedBytes: observed,
+          inventoryDifferenceBytes: observed - accounted, inventoryQuality: observed === accounted ? "measured" : "pending",
+          inventoryAttachmentFiles: state.attachmentFiles, inventoryTemporaryFiles: state.temporaryFiles}, {merge: true});
+        tx.delete(progress);
+      });
+      if (complete) return true;
     }
-    // Inventory is a reconciliation diagnostic, never a blind overwrite racing uploads.
-    const latest = await subject.ref.get();
-    const observed = attachmentBytes + temporaryBytes;
-    const accounted = (latest.get("attachmentBytes") ?? 0) + (latest.get("temporaryBytes") ?? 0);
-    const now = Date.now();
-    await recordStorageTime(db, subject.id);
-    await subject.ref.set({inventoryAt: Timestamp.fromMillis(now), inventoryObservedBytes: observed,
-      inventoryDifferenceBytes: observed - accounted, inventoryQuality: observed === accounted ? "measured" : "pending",
-      inventoryAttachmentFiles: attachmentFiles, inventoryTemporaryFiles: temporaryFiles}, {merge: true});
-  }
+    return false;
+  }, 180000);
 }

@@ -22,3 +22,13 @@ test('concurrent request scopes do not attribute another request resources',asyn
  observeServerResources(b,()=>meteredFirestore().runTransaction(async tx=>{await tx.get(db.doc('resourceObservationTests/b'));await tx.get(db.doc('resourceObservationTests/c'));}))]);
  assert.equal(a.documentLookups,1);assert.equal(b.documentLookups,2);
 });
+test('empty queries contribute one estimated read and committed deletes are separate from writes',async()=>{
+ const stats=newServerObservation(),observed=observeFirestore(db,stats),ref=db.doc('resourceObservationTests/delete');
+ await ref.set({value:0});
+ await observed.runTransaction(async tx=>{
+  await tx.get(db.collection('resourceObservationTests').where('uniqueNeverMatches','==','synthetic'));
+  tx.delete(ref);tx.set(db.doc('resourceObservationTests/write'),{value:1});
+ });
+ assert.equal(stats.queryDocumentResults,0);assert.equal(stats.queryReadUnits,1);
+ assert.equal(stats.committedDocumentWrites,1);assert.equal(stats.committedDocumentDeletes,1);assert.equal(stats.committedWrites,2);
+});

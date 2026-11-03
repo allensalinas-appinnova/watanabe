@@ -19,21 +19,21 @@ Future<void> main() async {
           operationType: 'operation',
           payload: const {
             'type': 'expense',
+            'ownerUserId': 'web-probe',
             'amountMinor': 125,
             'currency': 'COP',
-            'ownerUserId': 'test-user',
           },
         );
       } else {
-        final row = await database.findByIdempotencyKey(key);
+        final row = await database.findByIdempotencyKey(key, userId: 'web-probe');
         if (row == null || row.status != 'pending' || row.operationType != 'operation') {
           throw StateError('Pending operation did not survive browser restart.');
         }
-        await database.markSyncing(row.id);
-        await database.markConfirmed(row.id);
-        final confirmed = await database.findByIdempotencyKey(key);
+        await database.claim('web-probe', 'attempt', DateTime.now().toUtc());
+        await database.finish(row.id, 'web-probe', 'attempt', 'confirmed');
+        final confirmed = await database.findByIdempotencyKey(key, userId: 'web-probe');
         if (confirmed?.status != 'confirmed') throw StateError('Confirmation failed.');
-        await database.clearConfirmed(key);
+        await database.clearConfirmed(key, 'web-probe');
       }
     } finally {
       await database.close();

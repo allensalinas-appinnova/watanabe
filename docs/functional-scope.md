@@ -20,6 +20,9 @@ orientan la interfaz, pero no prueban que una capacidad esté desplegada.
 - Cinco secciones persistentes: Inicio, Actividad, Cuentas, Plan y Coach.
   Configuración reúne preferencias y gestión global; los enlaces antiguos a
   Más redirigen a Configuración.
+- Configuración identifica la cuenta activa mediante correo y antigüedad de
+  Firebase Auth; los invitados conservan el acceso a Guardar mi cuenta. Véase
+  [Identidad de la cuenta](account-identity.md).
 - Cuentas organiza dinero, tarjetas y préstamos en subsecciones. Coach ofrece
   un centro para cierre diario, revisión semanal e historial, separado de la
   configuración de recordatorios.
@@ -150,10 +153,14 @@ Evidencia: `firestore.rules`, `functions/src/projection_store.ts`,
   gates distintos.
 - Gmail requiere aún OAuth, permisos y recursos de infraestructura; no hay
   importación real habilitada.
-- La función de deuda sigue desactivada hasta validar el cliente actualizado;
-  Cloud Run presenta una revisión lista.
+- Deudas y compromisos están implementados; no debe confundirse su estado de activación documentado con los bloqueos históricos de versiones anteriores.
+- La remediación de cola offline, eliminación de cuenta, Apple y preparación de tiendas se detalla en [cualificación actual](store-hardening.md), con sus funciones desactivadas hasta completar las verificaciones externas.
 
 El estado detallado y las últimas verificaciones se mantienen en
 [backlog](implementation-backlog.md), [cualificación de tiendas](store-readiness-audit.md)
 y las guías enlazadas arriba. Los diseños orientan la interfaz, pero no son
 evidencia de implementación o despliegue.
+
+## Comprobantes, identidad y cualificación actual
+
+La aplicación incluye preparación de gastos desde imágenes/PDF, revisión explícita, adjuntos privados, recepción desde Compartir y medición de consumo. La identificación de cuenta muestra correo y antigüedad en Configuración. Véanse [comprobantes](document-imports.md), [consumo](resource-usage.md), [identidad](account-identity.md) y [remediación de auditoría](store-hardening.md). Las compras/suscripciones y el nombre preferido siguen fuera de esta entrega.

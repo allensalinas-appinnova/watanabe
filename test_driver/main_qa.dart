@@ -35,9 +35,12 @@ Future<void> main() async {
           'appId': firebase.options.appId,
           'email': user?.email,
           'anonymous': user?.isAnonymous,
+          'createdAt': user?.metadata.creationTime?.toUtc().toIso8601String(),
+          'createdAtLocal': user?.metadata.creationTime?.toLocal().toIso8601String(),
         });
       }
-      final staging = message?.startsWith('qa.stageReceipt:') == true;
+      final documentStaging = message?.startsWith('qa.stageDocument:') == true;
+      final staging = message?.startsWith('qa.stageReceipt:') == true || documentStaging;
       if ((!staging && message != 'qa.resourceAccess') ||
           firebase.options.projectId != 'lumiomoney' ||
           user?.email?.toLowerCase() != 'allensalinasjaramillo@gmail.com' ||
@@ -55,17 +58,33 @@ Future<void> main() async {
           if (old.isLeft() || old.getOrElse((_) => null) != null) {
             return jsonEncode({'error': 'qa-existing-draft'});
           }
-          final bytes = base64Decode(message!.substring('qa.stageReceipt:'.length));
-          if (bytes.length > 5000000) return jsonEncode({'error': 'qa-file-too-large'});
+          final payload = documentStaging
+              ? jsonDecode(message!.substring('qa.stageDocument:'.length)) as Map<String, dynamic>
+              : <String, dynamic>{
+                  'contentType': 'image/png',
+                  'data': message!.substring('qa.stageReceipt:'.length),
+                };
+          final mime = payload['contentType'] as String;
+          if (!['image/png', 'image/jpeg', 'application/pdf'].contains(mime)) {
+            return jsonEncode({'error': 'qa-file-type'});
+          }
+          final bytes = base64Decode(payload['data'] as String);
+          if (bytes.length > (mime == 'application/pdf' ? 10000000 : 5000000)) {
+            return jsonEncode({'error': 'qa-file-too-large'});
+          }
           final draft = DocumentDraft(
-            file: DocumentFile(bytes: bytes, contentType: 'image/png'),
+            file: DocumentFile(bytes: bytes, contentType: mime),
             importId: newRequestId(),
             generation: profile.dataGeneration,
           );
           final saved = await repo.saveDraft(user.uid, draft);
           if (saved.isLeft()) return jsonEncode({'error': 'qa-draft-save-failed'});
           final context = appRouter.routerDelegate.navigatorKey.currentContext!;
-          ProviderScope.containerOf(context).invalidate(documentImportControllerProvider);
+          final container = ProviderScope.containerOf(context)
+            ..invalidate(documentImportControllerProvider);
+          await container
+              .read(documentImportControllerProvider.notifier)
+              .initialize(user.uid, profile.dataGeneration);
           unawaited(appRouter.push('/document-imports/new'));
           return jsonEncode({'staged': true, 'importId': draft.importId});
         }

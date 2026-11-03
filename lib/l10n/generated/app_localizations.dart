@@ -5365,7 +5365,7 @@ abstract class AppLocalizations {
   /// No description provided for @documentRetryError.
   ///
   /// In es, this message translates to:
-  /// **'No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.'**
+  /// **'No se pudo completar la acción. Conservamos tu borrador; vuelve a intentarlo.'**
   String get documentRetryError;
 
   /// No description provided for @documentFileInvalid.
@@ -5541,6 +5541,474 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Analizar otro documento'**
   String get documentStartAnother;
+
+  /// No description provided for @documentViewReceipt.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver comprobante'**
+  String get documentViewReceipt;
+
+  /// No description provided for @documentReceiptOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Opciones del comprobante'**
+  String get documentReceiptOptions;
+
+  /// No description provided for @sharedReceiptTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Archivo compartido'**
+  String get sharedReceiptTitle;
+
+  /// No description provided for @sharedReceiptOneFile.
+  ///
+  /// In es, this message translates to:
+  /// **'Comparte una sola imagen o PDF a la vez.'**
+  String get sharedReceiptOneFile;
+
+  /// No description provided for @sharedReceiptBusy.
+  ///
+  /// In es, this message translates to:
+  /// **'Termina o descarta el archivo compartido actual antes de enviar otro.'**
+  String get sharedReceiptBusy;
+
+  /// No description provided for @sharedReceiptSignIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Para analizar este comprobante, inicia sesión o guarda tu cuenta de invitado. El archivo se conserva en este dispositivo.'**
+  String get sharedReceiptSignIn;
+
+  /// No description provided for @sharedReceiptConfirmAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres preparar este gasto en la cuenta {account}?'**
+  String sharedReceiptConfirmAccount(String account);
+
+  /// No description provided for @sharedReceiptContinue.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar'**
+  String get sharedReceiptContinue;
+
+  /// No description provided for @sharedReceiptConflictTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya tienes un comprobante en preparación'**
+  String get sharedReceiptConflictTitle;
+
+  /// No description provided for @sharedReceiptConflictBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes conservar el borrador actual o descartarlo para usar el archivo nuevo. No se registrará ningún movimiento.'**
+  String get sharedReceiptConflictBody;
+
+  /// No description provided for @sharedReceiptKeep.
+  ///
+  /// In es, this message translates to:
+  /// **'Conservar el actual'**
+  String get sharedReceiptKeep;
+
+  /// No description provided for @sharedReceiptReplace.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar el nuevo'**
+  String get sharedReceiptReplace;
+
+  /// No description provided for @sharedReceiptRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos abrir el archivo nuevo. Conservamos el archivo compartido y el borrador disponible; puedes reintentar.'**
+  String get sharedReceiptRetry;
+
+  /// No description provided for @documentFieldSuggested.
+  ///
+  /// In es, this message translates to:
+  /// **'Sugerido por el comprobante'**
+  String get documentFieldSuggested;
+
+  /// No description provided for @documentFieldNeedsReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar'**
+  String get documentFieldNeedsReview;
+
+  /// No description provided for @documentFieldUserProvided.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu elección'**
+  String get documentFieldUserProvided;
+
+  /// No description provided for @documentCurrencyMismatch.
+  ///
+  /// In es, this message translates to:
+  /// **'La cuenta usa {accountCurrency}; el comprobante sugiere {receiptCurrency}. Comprueba el importe y la moneda.'**
+  String documentCurrencyMismatch(String accountCurrency, String receiptCurrency);
+
+  /// No description provided for @documentServiceBusy.
+  ///
+  /// In es, this message translates to:
+  /// **'El servicio de análisis está ocupado. Conservamos tu comprobante; inténtalo de nuevo en unos minutos.'**
+  String get documentServiceBusy;
+
+  /// No description provided for @documentAnalysisTimedOut.
+  ///
+  /// In es, this message translates to:
+  /// **'El análisis tardó demasiado. Conservamos tu comprobante; puedes reintentarlo.'**
+  String get documentAnalysisTimedOut;
+
+  /// No description provided for @documentAnalysisFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos analizar el comprobante. Conservamos tu borrador; vuelve a intentarlo.'**
+  String get documentAnalysisFailed;
+
+  /// No description provided for @documentResponseTimedOut.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos confirmar el resultado. Tu borrador se conserva. Al reintentar comprobaremos si el análisis ya terminó.'**
+  String get documentResponseTimedOut;
+
+  /// No description provided for @documentAnalysisTakingLonger.
+  ///
+  /// In es, this message translates to:
+  /// **'Está tardando más de lo habitual. Tu comprobante está guardado. Espera el resultado; no hace falta volver a enviarlo.'**
+  String get documentAnalysisTakingLonger;
+
+  /// No description provided for @settingsYourAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuenta'**
+  String get settingsYourAccount;
+
+  /// No description provided for @settingsGuestSession.
+  ///
+  /// In es, this message translates to:
+  /// **'Estás usando una sesión invitada'**
+  String get settingsGuestSession;
+
+  /// No description provided for @settingsEmailUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo no disponible'**
+  String get settingsEmailUnavailable;
+
+  /// No description provided for @settingsMemberSince.
+  ///
+  /// In es, this message translates to:
+  /// **'En LumioMoney desde {date}'**
+  String settingsMemberSince(String date);
+
+  /// No description provided for @settingsSignOutAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Vas a cerrar la sesión de {email}.'**
+  String settingsSignOutAccount(String email);
+
+  /// No description provided for @authContinueWithApple.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Apple'**
+  String get authContinueWithApple;
+
+  /// No description provided for @deletionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar mi cuenta'**
+  String get deletionTitle;
+
+  /// No description provided for @deletionExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Elimina permanentemente tu acceso, datos financieros, adjuntos e historial de uso identificable. Es distinto de reiniciar tus datos. Los registros locales pendientes se descartarán después de aceptar tu solicitud.'**
+  String get deletionExplanation;
+
+  /// No description provided for @deletionConfirmation.
+  ///
+  /// In es, this message translates to:
+  /// **'Entiendo que esta acción no se puede deshacer.'**
+  String get deletionConfirmation;
+
+  /// No description provided for @deletionSubmit.
+  ///
+  /// In es, this message translates to:
+  /// **'Solicitar eliminación permanente'**
+  String get deletionSubmit;
+
+  /// No description provided for @deletionAccepted.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu solicitud de eliminación fue aceptada. La cuenta está bloqueada mientras termina la limpieza.'**
+  String get deletionAccepted;
+
+  /// No description provided for @deletionFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos confirmar la solicitud. No se han borrado los datos de este dispositivo. Inténtalo de nuevo.'**
+  String get deletionFailed;
+
+  /// No description provided for @deletionPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirma tu contraseña'**
+  String get deletionPassword;
+
+  /// No description provided for @quarantineMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'Hay registros locales antiguos sin propietario verificable. Están bloqueados y no se enviarán.'**
+  String get quarantineMessage;
+
+  /// No description provided for @quarantineDiscard.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartar registros locales bloqueados'**
+  String get quarantineDiscard;
+
+  /// No description provided for @quarantineConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Descartar estos registros locales sin propietario verificable? No cambia movimientos confirmados.'**
+  String get quarantineConfirm;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Privacidad'**
+  String get privacyTitle;
+
+  /// No description provided for @supportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Soporte'**
+  String get supportTitle;
+
+  /// No description provided for @deletionChanged.
+  ///
+  /// In es, this message translates to:
+  /// **'Los datos de la cuenta cambiaron. Recárgalos antes de volver a solicitar la eliminación.'**
+  String get deletionChanged;
+
+  /// No description provided for @deletionReload.
+  ///
+  /// In es, this message translates to:
+  /// **'Recargar datos de la cuenta'**
+  String get deletionReload;
+
+  /// No description provided for @accessMethodsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Métodos de acceso'**
+  String get accessMethodsTitle;
+
+  /// No description provided for @accessMethodsIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Estas son las formas de entrar a esta misma cuenta. Tus datos están asociados a tu cuenta, no al método de acceso.'**
+  String get accessMethodsIntro;
+
+  /// No description provided for @accessPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo y contraseña'**
+  String get accessPassword;
+
+  /// No description provided for @accessLinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Vinculado'**
+  String get accessLinked;
+
+  /// No description provided for @accessEmailUnverified.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo pendiente de verificar'**
+  String get accessEmailUnverified;
+
+  /// No description provided for @accessEmailUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificación pendiente de actualizar'**
+  String get accessEmailUnknown;
+
+  /// No description provided for @accessAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar método de acceso'**
+  String get accessAdd;
+
+  /// No description provided for @accessRefreshError.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos actualizar los métodos. La información mostrada puede haber cambiado. Reintenta antes de agregar otro.'**
+  String get accessRefreshError;
+
+  /// No description provided for @accessRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'Reintentar'**
+  String get accessRetry;
+
+  /// No description provided for @accessUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Actualiza para consultar tus métodos de acceso.'**
+  String get accessUnknown;
+
+  /// No description provided for @accessReauth.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirma tu identidad'**
+  String get accessReauth;
+
+  /// No description provided for @accessReauthMethod.
+  ///
+  /// In es, this message translates to:
+  /// **'Método actual para confirmar'**
+  String get accessReauthMethod;
+
+  /// No description provided for @accessCurrentPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña actual'**
+  String get accessCurrentPassword;
+
+  /// No description provided for @accessNewPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva contraseña'**
+  String get accessNewPassword;
+
+  /// No description provided for @accessRepeatPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar nueva contraseña'**
+  String get accessRepeatPassword;
+
+  /// No description provided for @accessPasswordInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Usa al menos 8 caracteres y repite la misma contraseña.'**
+  String get accessPasswordInvalid;
+
+  /// No description provided for @accessCurrentRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu contraseña actual.'**
+  String get accessCurrentRequired;
+
+  /// No description provided for @accessConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar y vincular'**
+  String get accessConfirm;
+
+  /// No description provided for @accessCancel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get accessCancel;
+
+  /// No description provided for @accessConsent.
+  ///
+  /// In es, this message translates to:
+  /// **'Acepto asociar mi cuenta Apple con este otro método de acceso, que puede compartir mi correo real.'**
+  String get accessConsent;
+
+  /// No description provided for @accessConsentRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirma que aceptas esta asociación.'**
+  String get accessConsentRequired;
+
+  /// No description provided for @accessPrivateEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Para usar contraseña necesitas un correo personal. Por ahora puedes continuar con Apple o agregar Google; cambiar el correo estará disponible más adelante.'**
+  String get accessPrivateEmail;
+
+  /// No description provided for @accessSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Método añadido. Ya puedes usarlo para entrar a esta misma cuenta.'**
+  String get accessSuccess;
+
+  /// No description provided for @accessVerificationFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'El método ya está vinculado, pero no pudimos enviar la verificación del correo. Puedes reintentar el envío.'**
+  String get accessVerificationFailed;
+
+  /// No description provided for @accessVerificationSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviamos un correo de verificación. Puedes continuar usando la app.'**
+  String get accessVerificationSent;
+
+  /// No description provided for @accessSendVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar verificación'**
+  String get accessSendVerification;
+
+  /// No description provided for @accessConflict.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta credencial pertenece a otra cuenta. Prueba con otra o cancela; tu sesión actual se conserva.'**
+  String get accessConflict;
+
+  /// No description provided for @accessSessionChanged.
+  ///
+  /// In es, this message translates to:
+  /// **'La sesión cambió. Cierra esta ventana y vuelve a consultar los métodos de la cuenta actual.'**
+  String get accessSessionChanged;
+
+  /// No description provided for @accessNetworkError.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos conectar. Tus campos se conservan; vuelve a intentarlo.'**
+  String get accessNetworkError;
+
+  /// No description provided for @accessCredentialError.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos confirmar tu identidad con ese método. Revisa tus datos o selecciona otro método vinculado.'**
+  String get accessCredentialError;
+
+  /// No description provided for @accessGenericError.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos confirmar el vínculo. Reintenta para comprobar su estado antes de volver a enviarlo.'**
+  String get accessGenericError;
+
+  /// No description provided for @accessLinkIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadirás otra forma de entrar a esta misma cuenta. Primero confirma tu identidad con un método que ya tengas vinculado.'**
+  String get accessLinkIntro;
+
+  /// No description provided for @accessUnverifiedPasswordWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Si el correo aún no está verificado, Firebase puede sustituir el acceso con contraseña al confirmar Google o Apple. Después podrás añadir una nueva contraseña.'**
+  String get accessUnverifiedPasswordWarning;
+
+  /// No description provided for @accessPasswordReplaced.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña anterior ya no figura como método de acceso. Puedes añadir una nueva desde esta pantalla.'**
+  String get accessPasswordReplaced;
+
+  /// No description provided for @documentUploadRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'El archivo no terminó de cargarse. Conservamos tu borrador; reintenta la carga.'**
+  String get documentUploadRequired;
+
+  /// No description provided for @documentSourceUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos acceder al archivo cargado. Conservamos tu borrador; vuelve a intentarlo.'**
+  String get documentSourceUnavailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

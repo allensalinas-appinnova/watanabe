@@ -381,7 +381,7 @@ class _CanonicalAccountsScreenState extends ConsumerState<CanonicalAccountsScree
             .where((item) => item.status == 'active' && !item.isDebt)
             .toList(growable: false),
         repository: ref.read(canonicalFinanceRepositoryProvider),
-        loadActiveOperations: () => getIt<PendingOperationDatabase>().watchActive().first,
+        loadActiveOperations: () => getIt<PendingOperationDatabase>().watchActive(userId).first,
       ),
     );
     if (changed == true) ref.invalidate(canonicalAccountsProvider(userId));

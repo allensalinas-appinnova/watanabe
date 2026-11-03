@@ -9,6 +9,22 @@ permissions:
   contents: read
 
 jobs:
+  admin-portal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin_portal/package-lock.json
+      - run: npm ci --prefix admin_portal
+      - run: npm --prefix admin_portal test
+      - run: npm --prefix admin_portal run build
+      - run: npm ci --prefix public_portal
+      - run: npm --prefix public_portal run build
+
   flutter:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -17,6 +33,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.4'
           cache: true
       - uses: actions/setup-node@v4
         with:
@@ -28,6 +45,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: flutter pub get
+      - run: dart run build_runner build
       - run: flutter analyze
       - run: flutter test
       - run: npm ci --prefix functions
@@ -39,6 +57,8 @@ jobs:
       - run: bash ./tool/run_balance_adjustment_tests.sh
       - run: bash ./tool/run_email_import_tests.sh
       - run: bash ./tool/run_debt_tests.sh
+      - run: bash ./tool/run_document_tests.sh
+      - run: bash ./tool/run_account_deletion_tests.sh
 
   budget-e2e:
     needs: flutter
@@ -49,6 +69,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.4'
           cache: true
       - uses: actions/setup-node@v4
         with:
@@ -60,7 +81,10 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: flutter pub get
+      - run: dart run build_runner build
       - run: npm ci --prefix functions
+      - name: Install receipt-sharing compile SDK
+        run: sdkmanager "platforms;android-37.0"
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -79,3 +103,16 @@ jobs:
             E2E_TEST_FILE=integration_test/budget_creation_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
             E2E_TEST_FILE=integration_test/budget_item_management_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
             E2E_TEST_FILE=integration_test/debt_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            E2E_TEST_FILE=integration_test/guest_account_upgrade_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            E2E_TEST_FILE=integration_test/access_methods_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+
+            E2E_TEST_FILE=integration_test/canonical_finance_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            E2E_ACCOUNT_DELETION_ENABLED=true E2E_TEST_FILE=integration_test/account_deletion_flow_test.dart bash tool/run_emulator_e2e.sh emulator-5554
+            bash tool/run_document_e2e.sh
+      - name: Preserve document import E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-import-emulator-results
+          path: artifacts/document-imports/
+          if-no-files-found: ignore

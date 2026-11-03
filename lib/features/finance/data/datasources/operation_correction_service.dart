@@ -55,6 +55,7 @@ class FirebaseOperationCorrectionService {
     await _call({
       ...operationPayload,
       'action': 'create',
+      'expectedOwnerUid': userId,
       'requestId': requestId,
       'expectedGeneration': generation,
     });
@@ -65,6 +66,7 @@ class FirebaseOperationCorrectionService {
     await _call({
       ...command,
       'action': 'correct',
+      'expectedOwnerUid': userId,
       'expectedGeneration': generation,
     });
   }
@@ -73,6 +75,7 @@ class FirebaseOperationCorrectionService {
     final generation = await _generation(userId);
     await _call({
       'action': 'cancel',
+      'expectedOwnerUid': userId,
       'operationId': operationId,
       'expectedGeneration': generation,
     });
@@ -82,6 +85,7 @@ class FirebaseOperationCorrectionService {
     final generation = await _generation(userId);
     await _call({
       'action': 'archiveAccount',
+      'expectedOwnerUid': userId,
       'accountId': accountId,
       'expectedGeneration': generation,
     });

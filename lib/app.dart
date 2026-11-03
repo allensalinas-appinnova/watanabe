@@ -6,6 +6,7 @@ import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/coach/presentation/widgets/coach_lifecycle.dart';
 import 'features/devices/presentation/device_registry_lifecycle.dart';
+import 'features/document_imports/presentation/shared_receipt_lifecycle.dart';
 import 'features/finance/domain/entities/appearance_preferences.dart';
 import 'features/finance/presentation/providers/canonical_finance_providers.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -36,7 +37,7 @@ class PersonalFinanceApp extends ConsumerWidget {
       builder: (context, child) => DeviceRegistryLifecycle(
         child: CoachLifecycle(
           onOpen: (location) => appRouter.push(location),
-          child: child ?? const SizedBox.shrink(),
+          child: SharedReceiptLifecycle(child: child ?? const SizedBox.shrink()),
         ),
       ),
     );

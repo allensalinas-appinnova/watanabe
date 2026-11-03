@@ -2,6 +2,10 @@
 
 This internal inventory describes product data practices and is not a substitute for a published privacy notice or legal review.
 
+## Local account identity display
+
+Settings displays the registered user's email and Firebase Auth identity creation date. The date is added to the existing local auth cache, not to financial profiles, installation records or analytics. It identifies when the Auth identity was created; credential linking and a financial-data reset do not create a new identity. Legacy cache entries without the date remain valid. Signing out clears the existing app auth cache. Guests see the account-protection action instead of email or membership date. See [account identity](account-identity.md).
+
 ## App installation registry
 
 For registered (non-anonymous) accounts, LumioMoney keeps a random, app-generated installation ID in local app preferences. The ID is not derived from hardware, an advertising identifier, an IP address, or the phone model. On a signed-in session, the app sends the ID and broad platform (`android`, `ios`, or `web`) to an authenticated server command. Firebase Auth supplies the user ID; the client cannot select another owner.
@@ -53,4 +57,26 @@ Unconfirmed sources expire after 24 hours and are removed by hourly cleanup. Con
 
 Resource accounting is retained outside the financial reset tree to support abuse prevention, operational diagnosis and future product capacity decisions. It records UID-attributed technical units, occupied bytes, server-observed storage time, failures and versioned cost estimates. Detailed events/reservations expire after 90 days; aggregate usage/cost records expire after 400 days; active object records remain while needed to account for stored files. Financial reset does not reset resource quotas. Google Cloud Billing export is stored in a private BigQuery dataset; reconciliation filters LumioMoney and does not infer that missing per-user cost is zero.
 
+Storage-capacity checkpoints additionally retain object/generation hashes, observed size, bucket location, actual storage class and timestamps. They add no receipt contents or filenames to cost events. Checkpoints remain while needed for a live object and expire 90 days after closing. First observation does not infer historical storage costs; periods with insufficient classification remain pending. See [resource accounting](resource-usage.md) for measurement, access and retention boundaries.
+
 The administrative portal has audited access to usage and storage metadata, not receipt contents or financial details through the resource module. A public privacy notice and store disclosure must reflect this processing before consumer distribution; this technical inventory is not itself that public notice.
+
+## Account lifecycle and public contact — 2026-11-02
+
+Controller confirmed by the product owner: Appinnova SAS, Medellín, Colombia.
+The confirmed public support/privacy alias is lumiomoney@appinnova.co.
+The public site is https://lumiomoney-support.web.app/ and is separate from administration.
+Automated web deletion remains disabled until its Auth/App Check configuration is qualified;
+the public deletion page currently gives the verified support contact and explains identity verification.
+
+Accepted account deletion blocks the UID before cleanup and removes Auth, owned financial
+subcollections, Storage objects, installation records and UID-attributed resource measurement.
+Administrative audit identifiers are redacted. Maintenance cursors referring to the UID are
+invalidated, and a checkpoint cannot reintroduce them after acceptance. Only anonymous known-cost
+subtotals and the minimal 90-day server-only deletion marker remain in application-managed records.
+The expiry field has a Firestore TTL policy; TTL processing is asynchronous.
+The worker and its callable remain gated until their end-to-end acceptance is complete.
+
+Firebase Analytics, Crashlytics and Performance process technical installation/environment data
+in distribution builds. Store disclosures and required-reason APIs must be reviewed against the
+signed artefact; the presence of SDK privacy bundles alone is not that review.

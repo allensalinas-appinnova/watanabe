@@ -79,6 +79,15 @@ class AuthController extends Notifier<AuthActionState> {
     );
   }
 
+  Future<void> signInWithApple() async {
+    state = const AuthActionState.loading();
+    final result = await _repository.signInWithApple();
+    state = result.match(
+      AuthActionState.failure,
+      (_) => const AuthActionState.success(navigateToHome: true),
+    );
+  }
+
   Future<void> createAccount({
     required String email,
     required String password,

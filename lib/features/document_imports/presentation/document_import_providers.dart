@@ -88,17 +88,23 @@ class DocumentImportController extends Notifier<DocumentImportState> {
   DocumentImportRepository get _repo => ref.read(documentImportRepositoryProvider);
   Future<void> initialize(String uid, int generation) async {
     if (_uid == uid && _generation == generation) return;
-    _epoch++;
+    final epoch = ++_epoch;
     await _subscription?.cancel();
+    if (epoch != _epoch) return;
     _uid = uid;
     _generation = generation;
     state = const DocumentImportState(busy: true);
     final result = await _repo.loadDraft(uid, generation);
-    if (_uid != uid || _generation != generation) return;
+    if (epoch != _epoch || _uid != uid || _generation != generation) return;
     result.match((f) => state = DocumentImportState(loaded: true, error: f), (draft) {
       state = DocumentImportState(draft: draft, loaded: true);
       if (draft != null) _listen(draft.importId);
     });
+  }
+
+  Future<void> reload(String uid, int generation) async {
+    _uid = null;
+    await initialize(uid, generation);
   }
 
   void _listen(String id) {
@@ -108,13 +114,19 @@ class DocumentImportController extends Notifier<DocumentImportState> {
         .listen(
           (session) {
             if (state.draft?.importId != id) return;
+            final resolved = [
+              DocumentPhase.ready,
+              DocumentPhase.unsupported,
+              DocumentPhase.approved,
+              DocumentPhase.duplicate,
+            ].contains(session?.phase);
             state = DocumentImportState(
               draft: state.draft,
               session: session,
               loaded: true,
               busy: state.busy,
-              error: state.error,
-              offline: state.offline,
+              error: resolved ? null : state.error,
+              offline: resolved ? false : state.offline,
             );
           },
           onError: (Object _) {

@@ -2,8 +2,11 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function isOwner(userId) {
+    function isAuthenticatedOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
+    }
+    function isOwner(userId) {
+      return isAuthenticatedOwner(userId) && !firestore.exists(/databases/(default)/documents/accountDeletions/$(userId));
     }
 
     // Server-reserved immutable temporary objects. Permanent reads/deletes are mediated and metered.
@@ -14,7 +17,10 @@ service firebase.storage {
       function profile() {
         return firestore.get(/databases/(default)/documents/users/$(userId)).data;
       }
-      allow create: if resource == null && isOwner(userId) && request.auth.token.firebase.sign_in_provider != 'anonymous' &&
+      // Only two Firestore documents may be read per Storage evaluation.
+      // Deletion atomically blocks this profile and advances its generation;
+      // missing profiles after cleanup fail closed as well.
+      allow create: if resource == null && isAuthenticatedOwner(userId) && request.auth.token.firebase.sign_in_provider != 'anonymous' &&
         profile().get('resetStatus', 'ready') == 'ready' && proposal().dataGeneration == profile().get('dataGeneration', 0) &&
         generation == string(proposal().dataGeneration) && proposal().status == 'prepared' &&
         proposal().expiresAt > request.time && request.resource.size == proposal().size &&

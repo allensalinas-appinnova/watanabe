@@ -12,7 +12,7 @@ plugins {
 
 android {
     namespace = "com.appinnova.lumiomoney"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

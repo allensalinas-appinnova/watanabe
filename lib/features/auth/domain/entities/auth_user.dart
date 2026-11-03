@@ -9,5 +9,8 @@ sealed class AuthUser with _$AuthUser {
     required bool isAnonymous,
     String? email,
     String? displayName,
+    DateTime? createdAt,
+    List<String>? providerIds,
+    bool? emailVerified,
   }) = _AuthUser;
 }

@@ -1,3 +1,5 @@
+import {assertAccountActive} from "./account_deletion";
+import {tariffHealth} from "./resource_costs";
 import {usageSummary} from "./resource_usage";
 import {getAuth, type UserRecord} from "firebase-admin/auth";
 import {FieldValue, Firestore, Timestamp, getFirestore} from "firebase-admin/firestore";
@@ -47,6 +49,7 @@ function verifiedGoogleOperator(auth: AuthContext): {uid: string; email: string}
 
 export async function bootstrapAdminOperator(db: Firestore, auth: AuthContext, ownerEmail: string): Promise<{role: string}> {
   const identity = verifiedGoogleOperator(auth);
+  await assertAccountActive(db, identity.uid);
   const ref = db.doc(`adminOperators/${identity.uid}`);
   const current = await ref.get();
   if (current.exists) {
@@ -61,6 +64,7 @@ export async function bootstrapAdminOperator(db: Firestore, auth: AuthContext, o
     throw new AdminPortalError("permission-denied", "not-an-authorized-operator");
   }
   const result = await db.runTransaction(async (transaction) => {
+    if ((await transaction.get(db.doc(`accountDeletions/${identity.uid}`))).exists) throw new AdminPortalError("permission-denied", "account-deletion-requested");
     const existing = await transaction.get(ref);
     if (existing.exists) {
       const data = existing.data();
@@ -77,6 +81,7 @@ export async function bootstrapAdminOperator(db: Firestore, auth: AuthContext, o
 
 export async function requireAdminOperator(db: Firestore, auth: AuthContext): Promise<Operator> {
   const identity = verifiedGoogleOperator(auth);
+  await assertAccountActive(db, identity.uid);
   const snapshot = await db.doc(`adminOperators/${identity.uid}`).get();
   const operator = snapshot.data();
   if (!operator || operator.status !== "active" || operator.email !== identity.email ||
@@ -87,13 +92,14 @@ export async function requireAdminOperator(db: Firestore, auth: AuthContext): Pr
 }
 
 async function writeAudit(db: Firestore, operator: Operator, action: string, targetUid?: string): Promise<void> {
-  await db.collection("adminAudit").add({
-    actorUid: operator.uid,
-    actorRole: operator.role,
-    action,
-    ...(targetUid ? {targetUid} : {}),
-    createdAt: FieldValue.serverTimestamp(),
-    expiresAt: Timestamp.fromMillis(Date.now() + 180 * 24 * 60 * 60 * 1000),
+  await db.runTransaction(async tx => {
+    const actorDeleted = (await tx.get(db.doc(`accountDeletions/${operator.uid}`))).exists;
+    const targetDeleted = targetUid ? (await tx.get(db.doc(`accountDeletions/${targetUid}`))).exists : false;
+    tx.create(db.collection("adminAudit").doc(), {
+      ...(!actorDeleted ? {actorUid: operator.uid} : {}), actorRole: operator.role, action,
+      ...(targetUid && !targetDeleted ? {targetUid} : {}),
+      createdAt: FieldValue.serverTimestamp(), expiresAt: Timestamp.fromMillis(Date.now() + 180 * 86400000),
+    });
   });
 }
 
@@ -321,19 +327,25 @@ export const adminResourceUsage = onCall({region: "us-central1", maxInstances: 2
     const operator = await requireAdminOperator(db, request.auth);
     const uid = request.data?.uid;
     if (uid !== undefined && (typeof uid !== "string" || !/^[\w-]{1,128}$/.test(uid))) throw new HttpsError("invalid-argument", "usage-user-invalid");
+    const tariffs = tariffHealth((await db.collection("resourceTariffs").get()).docs.map(d => ({...d.data(), id: d.id})));
     if (uid) {
       const summary = await usageSummary(db, uid);
       await writeAudit(db, operator, "usage.user.read", uid);
-      return {uid, summary};
+      return {uid, summary, tariffs};
     }
     const pageSize = 50;
     let query = db.collection("resourceUsage").orderBy("__name__").limit(pageSize);
     if (typeof request.data?.cursor === "string") query = query.startAfter(request.data.cursor);
     const page = await query.get();
     const billing = await db.doc("resourceBilling/status").get();
-    const billedServices = await db.collection("resourceBilling/daily/services").orderBy("day", "desc").limit(30).get();
+    const billingRun = billing.get("runId");
+    const billedServices = billing.get("available") === true && typeof billingRun === "string" ?
+      (await db.collection("resourceBilling/daily/services").where("runId", "==", billingRun).get()).docs
+        .map(d => d.data()).sort((a, b) => b.day.localeCompare(a.day) || a.service.localeCompare(b.service)) : [];
     const users = await Promise.all(page.docs.map(async d => ({uid: d.id, summary: await usageSummary(db, d.id)})));
     await writeAudit(db, operator, "usage.list");
-    return {users, nextCursor: page.size === pageSize ? page.docs[page.size - 1].id : null, billing: {...(billing.data() ?? {available: false}), services: billedServices.docs.map(d => d.data())}};
+    return {users, tariffs, nextCursor: page.size === pageSize ? page.docs[page.size - 1].id : null, billing: {...(billing.data() ?? {available: false}),
+      updatedAtIso: billing.get("updatedAt")?.toDate?.().toISOString() ?? null,
+      lastSuccessfulAtIso: billing.get("lastSuccessfulAt")?.toDate?.().toISOString() ?? null, services: billedServices}};
   } catch (error) { if (error instanceof HttpsError) throw error; return onCallableError(error); }
 });

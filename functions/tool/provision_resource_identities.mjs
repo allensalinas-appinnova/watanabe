@@ -8,6 +8,12 @@ for(const id of identities) {
  catch(e){if(e.response?.status!==404)throw e;await client.request({url:'https://iam.googleapis.com/v1/projects/lumiomoney/serviceAccounts',method:'POST',data:{accountId:id,serviceAccount:{displayName:id}}});}
 }
 const {data:policy}=await client.request({url:'https://cloudresourcemanager.googleapis.com/v1/projects/lumiomoney:getIamPolicy',method:'POST',data:{}});
+// Cross-service Storage rules validate the owner and upload reservation in Firestore.
+const crossServiceRole='roles/firebaserules.firestoreServiceAgent';
+const storageAgent='serviceAccount:service-609783556202@gcp-sa-firebasestorage.iam.gserviceaccount.com';
+let crossServiceBinding=policy.bindings.find(b=>b.role===crossServiceRole&&!b.condition);
+if(!crossServiceBinding){crossServiceBinding={role:crossServiceRole,members:[]};policy.bindings.push(crossServiceBinding);}
+if(!crossServiceBinding.members.includes(storageAgent))crossServiceBinding.members.push(storageAgent);
 for(const id of identities)for(const role of ['roles/datastore.user','roles/serviceusage.serviceUsageConsumer',...(id==='lumio-documents'?['roles/aiplatform.user']:['roles/bigquery.jobUser','roles/eventarc.eventReceiver'])]) {
  const member=`serviceAccount:${id}@lumiomoney.iam.gserviceaccount.com`;
  let b=policy.bindings.find(x=>x.role===role&&!x.condition);if(!b){b={role,members:[]};policy.bindings.push(b);}if(!b.members.includes(member))b.members.push(member);

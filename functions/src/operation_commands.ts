@@ -275,7 +275,12 @@ async function archiveAccount(db: Firestore, uid: string, payload: unknown) {
 /** Authenticated single entry point for normal operations and money-account archival. */
 export async function executeOperationCommand(db: Firestore, uid: string | undefined, payload: unknown) {
   if (!uid || !validId(uid)) throw new OperationCommandError("authentication-required", "unauthenticated");
-  const data = object(payload);
+  const data = {...object(payload)};
+  if (data.expectedOwnerUid !== undefined && data.expectedOwnerUid !== uid) {
+    throw new OperationCommandError("operation-owner-mismatch", "unauthenticated");
+  }
+  delete data.expectedOwnerUid;
+  payload = data;
   try {
     if (data.action === "create") return await createOperation(db, uid, payload);
     if (data.action === "cancel") return await cancelOperation(db, uid, payload);

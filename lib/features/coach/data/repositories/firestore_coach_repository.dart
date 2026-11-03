@@ -69,22 +69,33 @@ class FirestoreCoachRepository implements CoachRepository {
     required DateTime startAt,
     required DateTime endAtExclusive,
   }) => Stream.multi((controller) {
+    var cancelled = false;
     final subscriptions = <StreamSubscription<dynamic>>[];
-    void error(Object error, StackTrace stack) => controller.addError(
-      error is Failure ? error : FirebaseFailureMapper.fromException(error),
-      stack,
-    );
+    void error(Object error, StackTrace stack) {
+      if (!cancelled) {
+        controller.addError(
+          error is Failure ? error : FirebaseFailureMapper.fromException(error),
+          stack,
+        );
+      }
+    }
+
+    void changed() {
+      if (!cancelled) controller.add(null);
+    }
+
     subscriptions.add(
-      _reportQuery(uid, startAt, endAtExclusive)
-          .snapshots(includeMetadataChanges: true)
-          .skip(1)
-          .listen((_) => controller.add(null), onError: error),
+      _reportQuery(
+        uid,
+        startAt,
+        endAtExclusive,
+      ).snapshots(includeMetadataChanges: true).skip(1).listen((_) => changed(), onError: error),
     );
     final database = _pendingOperations;
     if (database != null) {
       subscriptions.add(
         database
-            .watchActive()
+            .watchActive(uid)
             .map((rows) {
               final matching = <String>[];
               for (final row in rows) {
@@ -110,10 +121,11 @@ class FirestoreCoachRepository implements CoachRepository {
             })
             .distinct()
             .skip(1)
-            .listen((_) => controller.add(null), onError: error),
+            .listen((_) => changed(), onError: error),
       );
     }
     controller.onCancel = () async {
+      cancelled = true;
       for (final subscription in subscriptions) {
         await subscription.cancel();
       }
@@ -203,6 +215,9 @@ class FirestoreCoachRepository implements CoachRepository {
         var cached = false;
         var epoch = 0;
         var cancelled = false;
+        void error(Object error, StackTrace stack) {
+          if (!cancelled) controller.addError(error, stack);
+        }
 
         void emitIfReady() {
           if (cancelled || !expected.every(progressByBudget.containsKey)) return;
@@ -230,6 +245,7 @@ class FirestoreCoachRepository implements CoachRepository {
             .where('monthKey', isEqualTo: monthKey)
             .snapshots(includeMetadataChanges: true)
             .listen((snapshot) {
+              if (cancelled) return;
               final currentEpoch = ++epoch;
               for (final subscription in subscriptions.values) {
                 unawaited(subscription.cancel());
@@ -262,7 +278,7 @@ class FirestoreCoachRepository implements CoachRepository {
                     .collection('items')
                     .snapshots(includeMetadataChanges: true)
                     .listen((items) {
-                      if (currentEpoch != epoch) return;
+                      if (cancelled || currentEpoch != epoch) return;
                       itemCacheState[budget.id] =
                           items.metadata.isFromCache || items.metadata.hasPendingWrites;
                       cached =
@@ -293,10 +309,10 @@ class FirestoreCoachRepository implements CoachRepository {
                         ),
                       ];
                       emitIfReady();
-                    }, onError: controller.addError);
+                    }, onError: error);
               }
               emitIfReady();
-            }, onError: controller.addError);
+            }, onError: error);
         controller.onCancel = () async {
           cancelled = true;
           await budgetsSub.cancel();
@@ -309,6 +325,11 @@ class FirestoreCoachRepository implements CoachRepository {
   @override
   Stream<List<CoachCompletion>> watchCompletions(String uid, {required DateTime since}) {
     return Stream.multi((controller) {
+      var cancelled = false;
+      void error(Object error, StackTrace stack) {
+        if (!cancelled) controller.addError(error, stack);
+      }
+
       final latest = <CoachReviewKind, List<CoachCompletion>>{};
       final subscriptions = <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
       for (final kind in CoachReviewKind.values) {
@@ -319,6 +340,7 @@ class FirestoreCoachRepository implements CoachRepository {
               .orderBy('periodKey')
               .snapshots(includeMetadataChanges: true)
               .listen((snapshot) {
+                if (cancelled) return;
                 try {
                   latest[kind] = snapshot.docs
                       .map(
@@ -339,10 +361,11 @@ class FirestoreCoachRepository implements CoachRepository {
                 } catch (error, stack) {
                   controller.addError(error, stack);
                 }
-              }, onError: controller.addError),
+              }, onError: error),
         );
       }
       controller.onCancel = () async {
+        cancelled = true;
         for (final subscription in subscriptions) {
           await subscription.cancel();
         }
@@ -477,7 +500,7 @@ class FirestoreCoachRepository implements CoachRepository {
         final last = snapshot.docs.last;
         page = base.startAfter([last.data()['occurredAt'], last.id]);
       }
-      final local = await _pendingOperations?.watchActive().first ?? <PendingOperation>[];
+      final local = await _pendingOperations?.watchActive(uid).first ?? <PendingOperation>[];
       for (final row in local) {
         if (!const {'operation', 'income', 'expense', 'transfer'}.contains(row.operationType)) {
           continue;

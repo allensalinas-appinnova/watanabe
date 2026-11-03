@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/environment/app_environment.dart';
 import 'firebase_options.dart';
@@ -14,6 +15,13 @@ abstract final class FirebaseBootstrap {
   static FirebaseApp? _app;
 
   static FirebaseApp get app => _app ?? Firebase.app();
+
+  static String lifecyclePreferenceKey(String name) {
+    final project =
+        _app?.options.projectId ??
+        (Firebase.apps.isEmpty ? 'uninitialized' : Firebase.app().options.projectId);
+    return 'auth.lifecycle.$project.$name';
+  }
 
   static Future<void> initialize(
     AppEnvironment environment, {
@@ -52,14 +60,39 @@ abstract final class FirebaseBootstrap {
     final firestore = FirebaseFirestore.instanceFor(app: app);
     final storage = FirebaseStorage.instanceFor(app: app);
 
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(lifecyclePreferenceKey('clear_firestore_cache_on_start')) == true) {
+      // Firestore can clear persistence only before its first operation in this process.
+      await firestore.clearPersistence();
+      await preferences.remove(lifecyclePreferenceKey('clear_firestore_cache_on_start'));
+    }
     if (useEmulators) {
-      await auth.useAuthEmulator(emulatorHost, authEmulatorPort);
-      firestore.useFirestoreEmulator(emulatorHost, firestoreEmulatorPort);
-      await storage.useStorageEmulator(emulatorHost, storageEmulatorPort);
+      // An explicitly supplied loopback host can be a physical device using adb reverse.
+      // FlutterFire otherwise rewrites it to 10.0.2.2, which only works inside an AVD.
+      const automaticMapping = String.fromEnvironment('FIREBASE_EMULATOR_HOST') == '';
+      await auth.useAuthEmulator(
+        emulatorHost,
+        authEmulatorPort,
+        automaticHostMapping: automaticMapping,
+      );
+      firestore.useFirestoreEmulator(
+        emulatorHost,
+        firestoreEmulatorPort,
+        automaticHostMapping: automaticMapping,
+      );
+      await storage.useStorageEmulator(
+        emulatorHost,
+        storageEmulatorPort,
+        automaticHostMapping: automaticMapping,
+      );
       FirebaseFunctions.instanceFor(
         app: app,
         region: 'us-central1',
-      ).useFunctionsEmulator(emulatorHost, functionsEmulatorPort);
+      ).useFunctionsEmulator(
+        emulatorHost,
+        functionsEmulatorPort,
+        automaticHostMapping: automaticMapping,
+      );
       return;
     }
 

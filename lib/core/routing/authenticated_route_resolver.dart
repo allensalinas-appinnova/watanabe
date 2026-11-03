@@ -17,6 +17,8 @@ Future<UserProfile?> loadCachedUserProfile(String userId, UserProfileLoader load
       return cached;
     });
 
+void clearCachedUserProfiles() => _profileReads.clear();
+
 void invalidateCachedUserProfile(String userId) => _profileReads.remove(userId);
 
 Future<String?> resolveAuthenticatedRoute({

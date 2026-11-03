@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AuthUserModel {
 
- String get id; bool get isAnonymous; String? get email; String? get displayName;
+ String get id; bool get isAnonymous; String? get email; String? get displayName; DateTime? get createdAt; List<String>? get providerIds; bool? get emailVerified;
 /// Create a copy of AuthUserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AuthUserModelCopyWith<AuthUserModel> get copyWith => _$AuthUserModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other.providerIds, providerIds)&&(identical(other.emailVerified, emailVerified) || other.emailVerified == emailVerified));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,isAnonymous,email,displayName);
+int get hashCode => Object.hash(runtimeType,id,isAnonymous,email,displayName,createdAt,const DeepCollectionEquality().hash(providerIds),emailVerified);
 
 @override
 String toString() {
-  return 'AuthUserModel(id: $id, isAnonymous: $isAnonymous, email: $email, displayName: $displayName)';
+  return 'AuthUserModel(id: $id, isAnonymous: $isAnonymous, email: $email, displayName: $displayName, createdAt: $createdAt, providerIds: $providerIds, emailVerified: $emailVerified)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AuthUserModelCopyWith<$Res>  {
   factory $AuthUserModelCopyWith(AuthUserModel value, $Res Function(AuthUserModel) _then) = _$AuthUserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, bool isAnonymous, String? email, String? displayName
+ String id, bool isAnonymous, String? email, String? displayName, DateTime? createdAt, List<String>? providerIds, bool? emailVerified
 });
 
 
@@ -65,13 +65,16 @@ class _$AuthUserModelCopyWithImpl<$Res>
 
 /// Create a copy of AuthUserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? isAnonymous = null,Object? email = freezed,Object? displayName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? isAnonymous = null,Object? email = freezed,Object? displayName = freezed,Object? createdAt = freezed,Object? providerIds = freezed,Object? emailVerified = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,isAnonymous: null == isAnonymous ? _self.isAnonymous : isAnonymous // ignore: cast_nullable_to_non_nullable
 as bool,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,providerIds: freezed == providerIds ? _self.providerIds : providerIds // ignore: cast_nullable_to_non_nullable
+as List<String>?,emailVerified: freezed == emailVerified ? _self.emailVerified : emailVerified // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
@@ -153,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  bool isAnonymous,  String? email,  String? displayName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  bool isAnonymous,  String? email,  String? displayName,  DateTime? createdAt,  List<String>? providerIds,  bool? emailVerified)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthUserModel() when $default != null:
-return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);case _:
+return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName,_that.createdAt,_that.providerIds,_that.emailVerified);case _:
   return orElse();
 
 }
@@ -174,10 +177,10 @@ return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  bool isAnonymous,  String? email,  String? displayName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  bool isAnonymous,  String? email,  String? displayName,  DateTime? createdAt,  List<String>? providerIds,  bool? emailVerified)  $default,) {final _that = this;
 switch (_that) {
 case _AuthUserModel():
-return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);}
+return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName,_that.createdAt,_that.providerIds,_that.emailVerified);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -191,10 +194,10 @@ return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  bool isAnonymous,  String? email,  String? displayName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  bool isAnonymous,  String? email,  String? displayName,  DateTime? createdAt,  List<String>? providerIds,  bool? emailVerified)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthUserModel() when $default != null:
-return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);case _:
+return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName,_that.createdAt,_that.providerIds,_that.emailVerified);case _:
   return null;
 
 }
@@ -206,13 +209,24 @@ return $default(_that.id,_that.isAnonymous,_that.email,_that.displayName);case _
 @JsonSerializable()
 
 class _AuthUserModel extends AuthUserModel {
-  const _AuthUserModel({required this.id, required this.isAnonymous, this.email, this.displayName}): super._();
+  const _AuthUserModel({required this.id, required this.isAnonymous, this.email, this.displayName, this.createdAt, final  List<String>? providerIds, this.emailVerified}): _providerIds = providerIds,super._();
   factory _AuthUserModel.fromJson(Map<String, dynamic> json) => _$AuthUserModelFromJson(json);
 
 @override final  String id;
 @override final  bool isAnonymous;
 @override final  String? email;
 @override final  String? displayName;
+@override final  DateTime? createdAt;
+ final  List<String>? _providerIds;
+@override List<String>? get providerIds {
+  final value = _providerIds;
+  if (value == null) return null;
+  if (_providerIds is EqualUnmodifiableListView) return _providerIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+@override final  bool? emailVerified;
 
 /// Create a copy of AuthUserModel
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other._providerIds, _providerIds)&&(identical(other.emailVerified, emailVerified) || other.emailVerified == emailVerified));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,isAnonymous,email,displayName);
+int get hashCode => Object.hash(runtimeType,id,isAnonymous,email,displayName,createdAt,const DeepCollectionEquality().hash(_providerIds),emailVerified);
 
 @override
 String toString() {
-  return 'AuthUserModel(id: $id, isAnonymous: $isAnonymous, email: $email, displayName: $displayName)';
+  return 'AuthUserModel(id: $id, isAnonymous: $isAnonymous, email: $email, displayName: $displayName, createdAt: $createdAt, providerIds: $providerIds, emailVerified: $emailVerified)';
 }
 
 
@@ -247,7 +261,7 @@ abstract mixin class _$AuthUserModelCopyWith<$Res> implements $AuthUserModelCopy
   factory _$AuthUserModelCopyWith(_AuthUserModel value, $Res Function(_AuthUserModel) _then) = __$AuthUserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, bool isAnonymous, String? email, String? displayName
+ String id, bool isAnonymous, String? email, String? displayName, DateTime? createdAt, List<String>? providerIds, bool? emailVerified
 });
 
 
@@ -264,13 +278,16 @@ class __$AuthUserModelCopyWithImpl<$Res>
 
 /// Create a copy of AuthUserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? isAnonymous = null,Object? email = freezed,Object? displayName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? isAnonymous = null,Object? email = freezed,Object? displayName = freezed,Object? createdAt = freezed,Object? providerIds = freezed,Object? emailVerified = freezed,}) {
   return _then(_AuthUserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,isAnonymous: null == isAnonymous ? _self.isAnonymous : isAnonymous // ignore: cast_nullable_to_non_nullable
 as bool,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,providerIds: freezed == providerIds ? _self._providerIds : providerIds // ignore: cast_nullable_to_non_nullable
+as List<String>?,emailVerified: freezed == emailVerified ? _self.emailVerified : emailVerified // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/firebase/firebase_bootstrap.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/finance_input_validators.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -71,6 +75,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (getIt.isRegistered<SharedPreferences>() &&
+                        getIt<SharedPreferences>().getBool(
+                              FirebaseBootstrap.lifecyclePreferenceKey('deletion_accepted'),
+                            ) ==
+                            true)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(l10n.deletionAccepted),
+                      ),
                     const _BrandHeader(),
                     const SizedBox(height: 31),
                     _AuthTabs(
@@ -226,6 +239,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
+                    if (const bool.fromEnvironment('PUBLIC_HELP_ENABLED', defaultValue: true))
+                      Wrap(
+                        spacing: 16,
+                        children: [
+                          TextButton(
+                            onPressed: () =>
+                                launchUrl(Uri.parse('https://lumiomoney-support.web.app/privacy')),
+                            child: Text(l10n.privacyTitle),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                launchUrl(Uri.parse('https://lumiomoney-support.web.app/support')),
+                            child: Text(l10n.supportTitle),
+                          ),
+                        ],
+                      ),
+                    if (const bool.fromEnvironment('AUTH_APPLE_ENABLED')) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        key: const ValueKey('auth_apple_button'),
+                        onPressed: isLoading
+                            ? null
+                            : () => ref.read(authControllerProvider.notifier).signInWithApple(),
+                        icon: const Icon(Icons.apple),
+                        label: Text(l10n.authContinueWithApple),
+                      ),
+                    ],
                     TextButton(
                       key: const ValueKey('auth_guest_button'),
                       onPressed: isLoading ? null : _continueAsGuest,

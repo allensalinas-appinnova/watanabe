@@ -14,6 +14,11 @@ import '../domain/document_import.dart';
 import 'document_draft_store.dart';
 import 'document_import_mapper.dart';
 
+class _DocumentImportFailure implements Exception {
+  const _DocumentImportFailure(this.failure);
+  final Failure failure;
+}
+
 class FirebaseDocumentImportRepository implements DocumentImportRepository {
   FirebaseDocumentImportRepository(
     this.firestore,
@@ -31,12 +36,16 @@ class FirebaseDocumentImportRepository implements DocumentImportRepository {
   Future<Either<Failure, T>> _run<T>(Future<T> Function() action) async {
     try {
       return Right(await action());
+    } on _DocumentImportFailure catch (error) {
+      return Left(error.failure);
     } on TimeoutException {
       return const Left(NetworkFailure('document-network', technicalCode: 'unavailable'));
     } on FirebaseFunctionsException catch (e) {
       return Left(
         NetworkFailure(
-          e.code == 'unauthenticated'
+          e.code == 'deadline-exceeded'
+              ? 'document-response-timeout'
+              : e.code == 'unauthenticated'
               ? 'document-app-check'
               : e.details is Map
               ? (e.details as Map)['issue'] as String? ?? e.message ?? e.code
@@ -95,7 +104,9 @@ class FirebaseDocumentImportRepository implements DocumentImportRepository {
       if (e.code != 'unauthorized') rethrow;
       // The server validates existence, bytes and hash before reserving analysis quota.
       // Do not depend on the asynchronous Storage trigger after a lost response.
-      return (await analyze(session)).match((failure) => throw e, (value) => value);
+      return (await analyze(
+        session,
+      )).match((failure) => throw _DocumentImportFailure(failure), (value) => value);
     }
     return session;
   });

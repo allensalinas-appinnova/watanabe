@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/routing/finance_route_header.dart';
 import '../../../../core/utils/async_value_extensions.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
+import '../../../../features/auth/presentation/widgets/account_identity_card.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/canonical_finance_providers.dart';
 
@@ -33,34 +35,21 @@ class CanonicalMoreScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         children: [
-          Text(
-            l10n.moreSubtitle,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          if (isGuest) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.guestAccountHint),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        key: const ValueKey('settings_secure_guest_account'),
-                        onPressed: () => context.push('/settings/secure-account'),
-                        icon: const Icon(Icons.verified_user_outlined),
-                        label: Text(l10n.guestSaveAccount),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          if (const bool.fromEnvironment('PUBLIC_HELP_ENABLED', defaultValue: true)) ...[
+            TextButton(
+              onPressed: () => launchUrl(Uri.parse('https://lumiomoney-support.web.app/privacy')),
+              child: Text(l10n.privacyTitle),
+            ),
+            TextButton(
+              onPressed: () => launchUrl(Uri.parse('https://lumiomoney-support.web.app/support')),
+              child: Text(l10n.supportTitle),
+            ),
+          ],
+          if (user != null) ...[
+            AccountIdentityCard(
+              user: user,
+              onSaveAccount: () => context.push('/settings/secure-account'),
+              onAccessMethods: () => context.push('/settings/access-methods'),
             ),
             const SizedBox(height: 16),
           ],
@@ -129,7 +118,9 @@ class CanonicalMoreScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           OutlinedButton(
             key: const ValueKey('more_sign_out'),
-            onPressed: () => _confirmSignOut(context, ref, pendingCount, isGuest),
+            onPressed: user == null
+                ? null
+                : () => _confirmSignOut(context, ref, pendingCount, isGuest),
             child: Text(l10n.signOut),
           ),
           const SizedBox(height: 32),
@@ -141,6 +132,15 @@ class CanonicalMoreScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+          if (const bool.fromEnvironment('ACCOUNT_DELETION_ENABLED')) ...[
+            OutlinedButton.icon(
+              key: const ValueKey('settings_delete_account'),
+              onPressed: () => context.push('/settings/delete-account'),
+              icon: const Icon(Icons.person_remove_outlined),
+              label: Text(l10n.deletionTitle),
+            ),
+            const SizedBox(height: 12),
+          ],
           OutlinedButton.icon(
             key: const ValueKey('settings_reset_user_data'),
             onPressed: () => context.push('/settings/reset-data'),
@@ -160,13 +160,28 @@ class CanonicalMoreScreen extends ConsumerWidget {
     bool isGuest,
   ) async {
     final l10n = AppLocalizations.of(context);
+    final session = ref.read(authSessionProvider).valueOrNull;
+    if (session == null) return;
     final decision = await showDialog<_SignOutDecision>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.signOutConfirmTitle),
-        content: Text(_signOutMessage(l10n, pendingCount, isGuest)),
+        scrollable: true,
+        content: Consumer(
+          builder: (context, dialogRef, _) {
+            final current = dialogRef.watch(authSessionProvider).valueOrNull;
+            final email = current?.id == session.id && !isGuest ? current?.email?.trim() : null;
+            return Text(
+              [
+                if (email != null && email.isNotEmpty) l10n.settingsSignOutAccount(email),
+                _signOutMessage(l10n, pendingCount, isGuest),
+              ].join('\n\n'),
+            );
+          },
+        ),
         actions: [
           TextButton(
+            key: const ValueKey('settings_sign_out_cancel'),
             onPressed: () => Navigator.pop(dialogContext, _SignOutDecision.cancel),
             child: Text(l10n.cancel),
           ),
@@ -177,6 +192,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
               child: Text(l10n.guestSaveAccount),
             ),
           FilledButton(
+            key: const ValueKey('settings_sign_out_confirm'),
             onPressed: () => Navigator.pop(dialogContext, _SignOutDecision.signOut),
             child: Text(l10n.signOut),
           ),
@@ -184,6 +200,7 @@ class CanonicalMoreScreen extends ConsumerWidget {
       ),
     );
     if (decision == null || decision == _SignOutDecision.cancel || !context.mounted) return;
+    if (ref.read(authSessionProvider).valueOrNull?.id != session.id) return;
     if (decision == _SignOutDecision.secureAccount) {
       unawaited(context.push('/settings/secure-account'));
       return;

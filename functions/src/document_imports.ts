@@ -1,9 +1,11 @@
+import {documentAnalysisIssue, isDocumentAnalysisIssue} from "./document_analysis_failure";
 import {createHash, randomUUID} from "node:crypto";
 import {FieldValue, Timestamp, type Firestore, type Transaction, type DocumentReference} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {HttpsError} from "firebase-functions/v2/https";
 import {documentPolicy, eventId, recordUsage, releaseAnalysis, reserveAnalysis, type Data} from "./resource_usage";
 import {maximumMinor, validCurrency} from "./projection_model";
+import {observeStorageCapacity, storageCapacityScope} from "./storage_capacity";
 
 export type Extraction = {supported: boolean; amountMinor?: number; currency?: string; date?: string;
   merchant?: string; description?: string; categoryId?: string; accountId?: string;
@@ -15,6 +17,7 @@ function issue(name: string): never { throw new HttpsError("failed-precondition"
 function publicImport(id: string, data: Data) {
   return {importId: id, status: data.status, version: data.version, dataGeneration: data.dataGeneration,
     ...(data.storagePath ? {storagePath: data.storagePath} : {}), storageUploaded: data.storageUploaded === true,
+    ...(data.status === "failed" && isDocumentAnalysisIssue(data.issue) ? {issue: data.issue} : {}),
     ...(data.extraction ? {extraction: data.extraction} : {}), ...(data.operationId ? {operationId: data.operationId} : {})};
 }
 export async function readyProfile(tx: Transaction, root: DocumentReference, generation: unknown) {
@@ -45,6 +48,7 @@ export function validateExtraction(value: Extraction, categories: Data[], accoun
     Number(value.amountMinor) <= maximumMinor(result.currency)) result.amountMinor = value.amountMinor;
   else warnings.add("amount-review");
   if (typeof value?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
+    Number(value.date.slice(0, 4)) >= 2000 && Number(value.date.slice(0, 4)) <= 2100 &&
     Number.isFinite(Date.parse(`${value.date}T12:00:00Z`)) &&
     new Date(`${value.date}T12:00:00Z`).toISOString().slice(0, 10) === value.date) result.date = value.date;
   else warnings.add("date-review");
@@ -92,13 +96,14 @@ export async function prepareDocumentImport(db: Firestore, uid: string, p: Data)
   });
 }
 
-export async function trackDocumentObject(db: Firestore, object: {name?: string; bucket?: string; generation?: string | number; size?: string | number}, deleted: boolean) {
+export async function trackDocumentObject(db: Firestore, object: {name?: string; bucket?: string; generation?: string | number; size?: string | number; storageClass?: string}, deleted: boolean) {
   const match = /^users\/([^/]+)\/documentImports\/(\d+)\/([\w-]+)\/source$/.exec(object.name ?? "");
   if (!match || !object.generation) return;
   const [, uid, generation, importId] = match;
   const ref = db.doc(`resourceUsage/${uid}/objects/${eventId(`${object.name}:${object.generation}`)}`);
   const proposalRef = db.doc(`users/${uid}/documentImports/${importId}`);
   await db.runTransaction(async tx => {
+    if ((await tx.get(db.doc(`accountDeletions/${uid}`))).exists) return;
     const usageRef = db.doc(`resourceUsage/${uid}`);
     const [prior, proposal, usage] = await Promise.all([tx.get(ref), tx.get(proposalRef), tx.get(usageRef)]);
     const previous = prior.data();
@@ -127,6 +132,7 @@ export async function trackDocumentObject(db: Firestore, object: {name?: string;
   });
   await recordUsage(db, uid, `storage:${deleted ? "delete" : "upload"}:${object.name}:${object.generation}`, "storage",
     deleted ? {deletions: 1} : {uploads: 1, uploadedBytes: Number(object.size ?? 0)});
+  await observeStorageCapacity(db, uid, ref.id, storageCapacityScope(object));
 }
 
 export async function analyzeDocumentImport(db: Firestore, uid: string, p: Data, analyzer: DocumentAnalyzer) {
@@ -142,7 +148,11 @@ export async function analyzeDocumentImport(db: Firestore, uid: string, p: Data,
     } else return publicImport(ref.id, initial.data()!);
   }
   const source = getStorage().bucket().file(initial.get("storagePath"));
-  const [metadata] = await source.getMetadata();
+  const metadata = await source.getMetadata().then(([value]) => value).catch((error: {code?: unknown}) => {
+    if (Number(error.code) === 404) issue("document-upload-required");
+    if (Number(error.code) === 403) throw new HttpsError("permission-denied", "document-source-unavailable");
+    throw new HttpsError("unavailable", "document-source-unavailable");
+  });
   // Firebase uploads may mint a bearer download token. Revoke it before analysis
   // so retained attachments are only served by the authenticated metered endpoint.
   if (metadata.metadata?.firebaseStorageDownloadTokens) {
@@ -179,7 +189,7 @@ export async function analyzeDocumentImport(db: Firestore, uid: string, p: Data,
     const reservation = await reserveAnalysis(tx, db, uid, policy, new Date(), attemptId, ref.id);
     reservation.write();
     tx.update(ref, {status: "analyzing", attemptId, quotaDay: reservation.day, quotaMonth: reservation.month,
-      leaseUntil: Timestamp.fromMillis(Date.now() + 150000), updatedAt: FieldValue.serverTimestamp(), locale: profile.locale ?? "es"});
+      issue: FieldValue.delete(), leaseUntil: Timestamp.fromMillis(Date.now() + 150000), updatedAt: FieldValue.serverTimestamp(), locale: profile.locale ?? "es"});
     return {locale: profile.locale ?? "es"};
   });
   if (!claim) return publicImport(ref.id, (await ref.get()).data()!);
@@ -200,14 +210,15 @@ export async function analyzeDocumentImport(db: Firestore, uid: string, p: Data,
       const row = await tx.get(ref);
       if (row.get("attemptId") !== attemptId || row.get("status") !== "analyzing") issue("document-analysis-stale");
       tx.update(ref, {status: extraction.supported ? "ready" : "unsupported", extraction,
-        version: FieldValue.increment(1), leaseUntil: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp()});
+        version: FieldValue.increment(1), issue: FieldValue.delete(), leaseUntil: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp()});
       tx.update(db.doc(`resourceUsage/${uid}/analysisReservations/${attemptId}`), {state: "completed", leaseUntil: FieldValue.delete()});
     });
     return publicImport(ref.id, (await ref.get()).data()!);
   } catch (error) {
-    await recordUsage(db, uid, `analysis:${attemptId}`, "ai", {attempts: 1, failures: 1, durationMs: Date.now() - startedAt}, "pending", {outcome: "failure"});
-    await releaseAnalysis(db, uid, ref.id, attemptId);
-    throw new HttpsError("unavailable", "document-analysis-failed");
+    const issue = documentAnalysisIssue(error);
+    await recordUsage(db, uid, `analysis:${attemptId}`, "ai", {attempts: 1, failures: 1, durationMs: Date.now() - startedAt}, "pending", {outcome: "failure", failureKind: issue});
+    await releaseAnalysis(db, uid, ref.id, attemptId, issue);
+    throw new HttpsError("unavailable", issue);
   }
 }
 

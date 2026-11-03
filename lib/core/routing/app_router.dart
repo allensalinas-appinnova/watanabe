@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/account_identity/presentation/payment_instruments_screen.dart';
+import '../../features/auth/presentation/screens/access_methods_screen.dart';
+import '../../features/auth/presentation/screens/account_deletion_screen.dart';
 import '../../features/auth/presentation/screens/guest_account_upgrade_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_recovery_screen.dart';
@@ -68,17 +70,28 @@ class AuthRefreshListenable extends ChangeNotifier {
   final Stream<UserProfile?> Function(String userId) _profileStream;
   late final StreamSubscription<User?> _subscription;
   StreamSubscription<UserProfile?>? _profileSubscription;
+  bool _closed = false;
+
+  Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    await _subscription.cancel();
+    await _profileSubscription?.cancel();
+  }
 
   void _onAuthChanged(User? user) {
+    if (_closed) return;
     _profileSubscription?.cancel();
     _profileSubscription = user == null
         ? null
         : _profileStream(user.uid).listen(
             (_) {
+              if (_closed) return;
               invalidateCachedUserProfile(user.uid);
               notifyListeners();
             },
             onError: (Object _) {
+              if (_closed) return;
               // The route resolver owns recovery UI for profile read failures.
               notifyListeners();
             },
@@ -88,6 +101,7 @@ class AuthRefreshListenable extends ChangeNotifier {
 
   @override
   void dispose() {
+    _closed = true;
     _subscription.cancel();
     _profileSubscription?.cancel();
     super.dispose();
@@ -95,6 +109,19 @@ class AuthRefreshListenable extends ChangeNotifier {
 }
 
 GoRouter? _router;
+AuthRefreshListenable? _routerRefresh;
+
+/// Dispose listeners before switching test application lifetimes or clearing SDK dependencies.
+Future<void> disposeAppRouter() async {
+  final router = _router, refresh = _routerRefresh;
+  _router = null;
+  _routerRefresh = null;
+  await refresh?.close();
+  router?.dispose();
+  refresh?.dispose();
+  clearCachedUserProfiles();
+}
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
 
 GoRouter get appRouter => _router ??= _buildAppRouter();
@@ -102,7 +129,7 @@ GoRouter get appRouter => _router ??= _buildAppRouter();
 GoRouter _buildAppRouter() => GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/login',
-  refreshListenable: AuthRefreshListenable(
+  refreshListenable: _routerRefresh = AuthRefreshListenable(
     FirebaseAuth.instanceFor(app: FirebaseBootstrap.app).userChanges(),
     profileStream: (userId) => getIt<CanonicalFinanceRepository>().watchUserProfile(userId),
   ),
@@ -430,11 +457,19 @@ GoRouter _buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/document-imports/new',
-      builder: (context, state) => const DocumentImportScreen(),
+      builder: (context, state) => DocumentImportScreen(
+        returnHome: state.uri.queryParameters['returnTo'] == 'home',
+        returnLocation: state.uri.queryParameters['returnTo'],
+      ),
     ),
     GoRoute(
       path: '/document-imports/:id/review',
-      builder: (context, state) => DocumentReviewRoute(importId: state.pathParameters['id']!),
+      builder: (context, state) => DocumentReviewRoute(
+        importId: state.pathParameters['id']!,
+        onSaved: state.extra is DocumentReviewNavigation
+            ? (state.extra! as DocumentReviewNavigation).onSaved
+            : null,
+      ),
     ),
     GoRoute(path: '/settings/usage', builder: (context, state) => const ResourceUsageScreen()),
     GoRoute(
@@ -458,9 +493,17 @@ GoRouter _buildAppRouter() => GoRouter(
       builder: (context, state) => const MyDevicesScreen(),
     ),
     GoRoute(
+      path: '/settings/access-methods',
+      builder: (context, state) => const AccessMethodsScreen(),
+    ),
+    GoRoute(
       path: '/settings/secure-account',
       name: 'settings-secure-account',
       builder: (context, state) => const GuestAccountUpgradeScreen(),
+    ),
+    GoRoute(
+      path: '/settings/delete-account',
+      builder: (context, state) => const AccountDeletionScreen(),
     ),
     GoRoute(
       path: '/settings/reset-data',

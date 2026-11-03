@@ -2,16 +2,23 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:personal_finance/config/environment/app_environment.dart';
 import 'package:personal_finance/core/firebase/firebase_bootstrap.dart';
+import 'package:personal_finance/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:personal_finance/features/auth/presentation/providers/auth_providers.dart';
+import 'package:personal_finance/features/finance/presentation/providers/canonical_finance_providers.dart';
+import 'package:personal_finance/features/finance/presentation/screens/canonical_more_screen.dart';
+import 'package:personal_finance/l10n/generated/app_localizations.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
+    if (!const bool.fromEnvironment('USE_FIREBASE_EMULATORS')) throw StateError('Emulator only');
     const host = String.fromEnvironment('FIREBASE_EMULATOR_HOST', defaultValue: '127.0.0.1');
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
     try {
@@ -31,6 +38,10 @@ void main() {
     final firestore = FirebaseFirestore.instanceFor(app: FirebaseBootstrap.app);
     final guest = (await auth.signInAnonymously()).user!;
     final uid = guest.uid;
+    final createdAt = guest.metadata.creationTime;
+    expect(createdAt, isNotNull);
+    final remote = FirebaseAuthRemoteDataSource(firebaseAuth: auth);
+    expect(remote.currentUser!.toEntity().createdAt, createdAt);
     final email = 'guest-upgrade-${DateTime.now().microsecondsSinceEpoch}@example.test';
     final password = 'SecureTestPassword123!';
     final profile = firestore.collection('users').doc(uid);
@@ -64,10 +75,66 @@ void main() {
 
     expect(auth.currentUser?.uid, uid);
     expect(auth.currentUser?.isAnonymous, isFalse);
+    expect(auth.currentUser?.metadata.creationTime, createdAt);
+    expect(remote.currentUser!.toEntity().createdAt, createdAt);
     expect((await profile.get()).exists, isTrue);
     final account = profile.collection('accounts').doc('synthetic-account');
     expect((await account.get()).data()?['currentBalanceMinor'], 1234500);
     debugPrint('GUEST_UPGRADE uidPreserved=true profilePreserved=true provider=email');
+    await auth.signOut();
+    await auth.signInWithEmailAndPassword(email: email, password: password);
+    expect(remote.currentUser!.toEntity().createdAt, createdAt);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authSessionProvider.overrideWith(
+            (ref) => remote.observeSession().map((u) => u?.toEntity()),
+          ),
+          pendingOperationsProvider.overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const MaterialApp(
+          locale: Locale('es'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CanonicalMoreScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(email), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_account_since')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('more_sign_out')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('more_sign_out')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.textContaining(email)),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('settings_sign_out_cancel')));
+    await tester.pumpAndSettle();
+    expect(auth.currentUser?.uid, uid);
+    // Another account replaces the visible identity through the actual Auth stream.
+    final secondEmail = 'settings-second-${DateTime.now().microsecondsSinceEpoch}@example.test';
+    final second = (await auth.createUserWithEmailAndPassword(
+      email: secondEmail,
+      password: password,
+    )).user!;
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings_account_email')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(secondEmail), findsOneWidget);
+    expect(find.text(email), findsNothing);
+    expect(remote.currentUser!.id, second.uid);
+    expect(remote.currentUser!.createdAt, second.metadata.creationTime);
+    await tester.pumpWidget(const SizedBox.shrink());
 
     // Keep this synthetic profile for post-run inspection. Client rules correctly
     // prohibit deleting financial documents, including from this test flow.

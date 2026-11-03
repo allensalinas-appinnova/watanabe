@@ -415,7 +415,7 @@
   ,"budgetSelectMonth": "Choose a month"
   ,"budgetPlannedItems": "Planned items"
   ,"budgetAddItem": "Add item"
-  ,"budgetRemoveItem": "Remove item"
+  ,"budgetRemoveItem": "Remove"
   ,"budgetItemDescription": "Item description"
   ,"budgetDescriptionRequired": "Enter a description."
   ,"budgetAmountPositive": "Enter an amount greater than zero."
@@ -679,7 +679,7 @@
   ,"debtCommitmentsTitle": "Debt payments"
   ,"debtCommitmentsTab": "Debt payments"
   ,"budgetsTab": "Budgets"
-  ,"debtCommitmentReminders": "Remind me before and on the due date"
+  ,"debtCommitmentReminders": "Local reminders"
   ,"debtCommitmentsEmpty": "You haven't planned any debt payments yet."
   ,"debtCommitmentCreate": "Plan a payment"
   ,"debtCommitmentAmount": "Expected monthly amount"
@@ -932,7 +932,7 @@
   "documentDiscard": "Discard document",
   "documentDiscardExplanation": "The draft will be deleted and the temporary file queued for deletion. No transaction will be created.",
   "documentManual": "Enter manually",
-  "documentRetryError": "Could not complete the action. Your draft is preserved; check your connection and retry.",
+  "documentRetryError": "We could not complete the action. Your draft is preserved; try again.",
   "documentFileInvalid": "Unsupported file. Use an image up to 5 MB or a password-free PDF up to 10 MB and three pages.",
   "documentQuotaExceeded": "You reached your analysis limit. Check the next renewal under Usage and storage.",
   "documentStorageFull": "There is not enough space to keep this receipt. Manage your attachments or enter the expense manually.",
@@ -1008,5 +1008,87 @@
   },
   "documentDraftUnavailable": "We could not save the draft on this device. Check available storage and try again before sending the document.",
   "documentDateRequired": "The receipt has no clear date. Choose the expense date before saving.",
-  "documentStartAnother": "Analyze another document"
+  "documentStartAnother": "Analyze another document",
+  "documentViewReceipt": "View receipt",
+  "documentReceiptOptions": "Receipt options",
+  "sharedReceiptTitle": "Shared file",
+  "sharedReceiptOneFile": "Share one image or PDF at a time.",
+  "sharedReceiptBusy": "Finish or discard the current shared file before sending another.",
+  "sharedReceiptSignIn": "To analyze this receipt, sign in or save your guest account. The file stays on this device.",
+  "sharedReceiptConfirmAccount": "Prepare this expense in account {account}?",
+  "sharedReceiptContinue": "Continue",
+  "sharedReceiptConflictTitle": "You already have a receipt in progress",
+  "sharedReceiptConflictBody": "Keep the current draft or discard it to use the new file. No transaction will be created.",
+  "sharedReceiptKeep": "Keep current",
+  "sharedReceiptReplace": "Use new file",
+  "sharedReceiptRetry": "We could not open the new file. The shared file and available draft are preserved; you can retry.",
+  "@sharedReceiptConfirmAccount": {"placeholders": {"account": {"type": "String"}}},
+  "documentFieldSuggested": "Suggested from the receipt",
+  "documentFieldNeedsReview": "Review",
+  "documentFieldUserProvided": "Your choice",
+  "documentCurrencyMismatch": "The account uses {accountCurrency}; the receipt suggests {receiptCurrency}. Check the amount and currency.",
+  "@documentCurrencyMismatch": {"placeholders": {"accountCurrency": {"type": "String"}, "receiptCurrency": {"type": "String"}}},
+  "documentServiceBusy": "The analysis service is busy. Your receipt is preserved; try again in a few minutes.",
+  "documentAnalysisTimedOut": "The analysis took too long. Your receipt is preserved; you can try again.",
+  "documentAnalysisFailed": "We could not analyze the receipt. Your draft is preserved; try again.",
+  "documentResponseTimedOut": "We could not confirm the result. Your draft is preserved. Retrying will check whether the analysis has already finished.",
+  "documentAnalysisTakingLonger": "This is taking longer than usual. Your receipt is saved. Wait for the result; you do not need to send it again.",
+  "settingsYourAccount": "Your account",
+  "settingsGuestSession": "You are using a guest session",
+  "settingsEmailUnavailable": "Email unavailable",
+  "settingsMemberSince": "With LumioMoney since {date}",
+  "settingsSignOutAccount": "You are signing out of {email}.",
+  "@settingsMemberSince": {"placeholders": {"date": {"type": "String"}}},
+  "@settingsSignOutAccount": {"placeholders": {"email": {"type": "String"}}},
+  "authContinueWithApple": "Continue with Apple",
+  "deletionTitle": "Delete my account",
+  "deletionExplanation": "Permanently delete your account, financial data, attachments and identifiable usage history. This is different from resetting your data. Pending local records will be discarded after your request is accepted.",
+  "deletionConfirmation": "I understand that this cannot be undone.",
+  "deletionSubmit": "Request permanent deletion",
+  "deletionAccepted": "Your deletion request was accepted. Your account is blocked while deletion finishes.",
+  "deletionFailed": "We could not confirm your request. Your data has not been cleared on this device. Try again.",
+  "deletionPassword": "Confirm your password",
+  "quarantineMessage": "Some older local records have no verifiable owner. They are blocked and will not be sent.",
+  "quarantineDiscard": "Discard blocked local records",
+  "quarantineConfirm": "Discard these unverified local records? This does not change any confirmed movements.",
+  "privacyTitle": "Privacy",
+  "supportTitle": "Support",
+  "deletionChanged": "The account data changed. Reload it before requesting deletion again.",
+  "deletionReload": "Reload account data",
+  "accessMethodsTitle": "Sign-in methods",
+  "accessMethodsIntro": "These are the ways to sign in to this account. Your data belongs to your account, not the sign-in method.",
+  "accessPassword": "Email and password",
+  "accessLinked": "Linked",
+  "accessEmailUnverified": "Email verification pending",
+  "accessEmailUnknown": "Verification status needs refreshing",
+  "accessAdd": "Add sign-in method",
+  "accessRefreshError": "We could not refresh your methods. The displayed information may have changed. Retry before adding another.",
+  "accessRetry": "Retry",
+  "accessUnknown": "Refresh to view your sign-in methods.",
+  "accessReauth": "Confirm your identity",
+  "accessReauthMethod": "Current method to confirm",
+  "accessCurrentPassword": "Current password",
+  "accessNewPassword": "New password",
+  "accessRepeatPassword": "Confirm new password",
+  "accessPasswordInvalid": "Use at least 8 characters and repeat the same password.",
+  "accessCurrentRequired": "Enter your current password.",
+  "accessConfirm": "Confirm and link",
+  "accessCancel": "Cancel",
+  "accessConsent": "I agree to associate my Apple account with this other sign-in method, which may share my real email.",
+  "accessConsentRequired": "Confirm that you agree to this association.",
+  "accessPrivateEmail": "A password requires a personal email. For now, continue with Apple or add Google; changing email will be available later.",
+  "accessSuccess": "Method added. You can now use it to sign in to this account.",
+  "accessVerificationFailed": "The method is linked, but we could not send email verification. You can retry sending it.",
+  "accessVerificationSent": "We sent a verification email. You can keep using the app.",
+  "accessSendVerification": "Send verification",
+  "accessConflict": "This credential belongs to another account. Try another or cancel; your current session is preserved.",
+  "accessSessionChanged": "Your session changed. Close this window and view the current account’s methods again.",
+  "accessNetworkError": "We could not connect. Your entries are preserved; try again.",
+  "accessCredentialError": "We could not confirm your identity with that method. Check your details or choose another linked method.",
+  "accessGenericError": "We could not confirm the link. Retry to check its status before submitting again.",
+  "accessLinkIntro": "You will add another way to sign in to this account. First, confirm your identity with an already linked method.",
+  "accessUnverifiedPasswordWarning": "If your email is not verified, Firebase may replace password access when confirming Google or Apple. You can add a new password afterwards.",
+  "accessPasswordReplaced": "Your previous password is no longer listed as a sign-in method. You can add a new one from this screen.",
+  "documentUploadRequired": "The file was not fully uploaded. Your draft is preserved; retry the upload.",
+  "documentSourceUnavailable": "We could not access the uploaded file. Your draft is preserved; try again."
 }

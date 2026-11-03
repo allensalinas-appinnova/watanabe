@@ -415,7 +415,7 @@
   ,"budgetSelectMonth": "Elige un mes"
   ,"budgetPlannedItems": "Elementos planeados"
   ,"budgetAddItem": "Agregar elemento"
-  ,"budgetRemoveItem": "Quitar elemento"
+  ,"budgetRemoveItem": "Quitar"
   ,"budgetItemDescription": "Descripción del elemento"
   ,"budgetDescriptionRequired": "Escribe una descripción."
   ,"budgetAmountPositive": "Ingresa un monto mayor que cero."
@@ -679,7 +679,7 @@
   ,"debtCommitmentsTitle": "Pagos de deudas"
   ,"debtCommitmentsTab": "Pagos de deudas"
   ,"budgetsTab": "Presupuestos"
-  ,"debtCommitmentReminders": "Recordarme antes y el día del vencimiento"
+  ,"debtCommitmentReminders": "Recordatorios locales"
   ,"debtCommitmentsEmpty": "Aún no has planificado pagos de deudas."
   ,"debtCommitmentCreate": "Planificar pago"
   ,"debtCommitmentAmount": "Importe mensual previsto"
@@ -932,7 +932,7 @@
   "documentDiscard": "Descartar documento",
   "documentDiscardExplanation": "Se eliminará el borrador y se solicitará borrar el archivo temporal. No se creará un movimiento.",
   "documentManual": "Registrar manualmente",
-  "documentRetryError": "No se pudo completar la acción. Conservamos tu borrador; comprueba tu conexión y reintenta.",
+  "documentRetryError": "No se pudo completar la acción. Conservamos tu borrador; vuelve a intentarlo.",
   "documentFileInvalid": "Archivo no compatible. Usa una imagen de hasta 5 MB o un PDF sin contraseña de hasta 10 MB y tres páginas.",
   "documentQuotaExceeded": "Alcanzaste el límite de análisis. Consulta la próxima renovación en Uso y almacenamiento.",
   "documentStorageFull": "No hay espacio suficiente para conservar este comprobante. Puedes administrar tus adjuntos o registrar el gasto manualmente.",
@@ -1008,5 +1008,87 @@
   },
   "documentDraftUnavailable": "No pudimos guardar el borrador en este dispositivo. Revisa el espacio disponible e inténtalo de nuevo antes de enviar el documento.",
   "documentDateRequired": "El comprobante no tiene una fecha clara. Elige la fecha del gasto antes de guardar.",
-  "documentStartAnother": "Analizar otro documento"
+  "documentStartAnother": "Analizar otro documento",
+  "documentViewReceipt": "Ver comprobante",
+  "documentReceiptOptions": "Opciones del comprobante",
+  "sharedReceiptTitle": "Archivo compartido",
+  "sharedReceiptOneFile": "Comparte una sola imagen o PDF a la vez.",
+  "sharedReceiptBusy": "Termina o descarta el archivo compartido actual antes de enviar otro.",
+  "sharedReceiptSignIn": "Para analizar este comprobante, inicia sesión o guarda tu cuenta de invitado. El archivo se conserva en este dispositivo.",
+  "sharedReceiptConfirmAccount": "¿Quieres preparar este gasto en la cuenta {account}?",
+  "sharedReceiptContinue": "Continuar",
+  "sharedReceiptConflictTitle": "Ya tienes un comprobante en preparación",
+  "sharedReceiptConflictBody": "Puedes conservar el borrador actual o descartarlo para usar el archivo nuevo. No se registrará ningún movimiento.",
+  "sharedReceiptKeep": "Conservar el actual",
+  "sharedReceiptReplace": "Usar el nuevo",
+  "sharedReceiptRetry": "No pudimos abrir el archivo nuevo. Conservamos el archivo compartido y el borrador disponible; puedes reintentar.",
+  "@sharedReceiptConfirmAccount": {"placeholders": {"account": {"type": "String"}}},
+  "documentFieldSuggested": "Sugerido por el comprobante",
+  "documentFieldNeedsReview": "Revisar",
+  "documentFieldUserProvided": "Tu elección",
+  "documentCurrencyMismatch": "La cuenta usa {accountCurrency}; el comprobante sugiere {receiptCurrency}. Comprueba el importe y la moneda.",
+  "@documentCurrencyMismatch": {"placeholders": {"accountCurrency": {"type": "String"}, "receiptCurrency": {"type": "String"}}},
+  "documentServiceBusy": "El servicio de análisis está ocupado. Conservamos tu comprobante; inténtalo de nuevo en unos minutos.",
+  "documentAnalysisTimedOut": "El análisis tardó demasiado. Conservamos tu comprobante; puedes reintentarlo.",
+  "documentAnalysisFailed": "No pudimos analizar el comprobante. Conservamos tu borrador; vuelve a intentarlo.",
+  "documentResponseTimedOut": "No pudimos confirmar el resultado. Tu borrador se conserva. Al reintentar comprobaremos si el análisis ya terminó.",
+  "documentAnalysisTakingLonger": "Está tardando más de lo habitual. Tu comprobante está guardado. Espera el resultado; no hace falta volver a enviarlo.",
+  "settingsYourAccount": "Tu cuenta",
+  "settingsGuestSession": "Estás usando una sesión invitada",
+  "settingsEmailUnavailable": "Correo no disponible",
+  "settingsMemberSince": "En LumioMoney desde {date}",
+  "settingsSignOutAccount": "Vas a cerrar la sesión de {email}.",
+  "@settingsMemberSince": {"placeholders": {"date": {"type": "String"}}},
+  "@settingsSignOutAccount": {"placeholders": {"email": {"type": "String"}}},
+  "authContinueWithApple": "Continuar con Apple",
+  "deletionTitle": "Eliminar mi cuenta",
+  "deletionExplanation": "Elimina permanentemente tu acceso, datos financieros, adjuntos e historial de uso identificable. Es distinto de reiniciar tus datos. Los registros locales pendientes se descartarán después de aceptar tu solicitud.",
+  "deletionConfirmation": "Entiendo que esta acción no se puede deshacer.",
+  "deletionSubmit": "Solicitar eliminación permanente",
+  "deletionAccepted": "Tu solicitud de eliminación fue aceptada. La cuenta está bloqueada mientras termina la limpieza.",
+  "deletionFailed": "No pudimos confirmar la solicitud. No se han borrado los datos de este dispositivo. Inténtalo de nuevo.",
+  "deletionPassword": "Confirma tu contraseña",
+  "quarantineMessage": "Hay registros locales antiguos sin propietario verificable. Están bloqueados y no se enviarán.",
+  "quarantineDiscard": "Descartar registros locales bloqueados",
+  "quarantineConfirm": "¿Descartar estos registros locales sin propietario verificable? No cambia movimientos confirmados.",
+  "privacyTitle": "Privacidad",
+  "supportTitle": "Soporte",
+  "deletionChanged": "Los datos de la cuenta cambiaron. Recárgalos antes de volver a solicitar la eliminación.",
+  "deletionReload": "Recargar datos de la cuenta",
+  "accessMethodsTitle": "Métodos de acceso",
+  "accessMethodsIntro": "Estas son las formas de entrar a esta misma cuenta. Tus datos están asociados a tu cuenta, no al método de acceso.",
+  "accessPassword": "Correo y contraseña",
+  "accessLinked": "Vinculado",
+  "accessEmailUnverified": "Correo pendiente de verificar",
+  "accessEmailUnknown": "Verificación pendiente de actualizar",
+  "accessAdd": "Agregar método de acceso",
+  "accessRefreshError": "No pudimos actualizar los métodos. La información mostrada puede haber cambiado. Reintenta antes de agregar otro.",
+  "accessRetry": "Reintentar",
+  "accessUnknown": "Actualiza para consultar tus métodos de acceso.",
+  "accessReauth": "Confirma tu identidad",
+  "accessReauthMethod": "Método actual para confirmar",
+  "accessCurrentPassword": "Contraseña actual",
+  "accessNewPassword": "Nueva contraseña",
+  "accessRepeatPassword": "Confirmar nueva contraseña",
+  "accessPasswordInvalid": "Usa al menos 8 caracteres y repite la misma contraseña.",
+  "accessCurrentRequired": "Escribe tu contraseña actual.",
+  "accessConfirm": "Confirmar y vincular",
+  "accessCancel": "Cancelar",
+  "accessConsent": "Acepto asociar mi cuenta Apple con este otro método de acceso, que puede compartir mi correo real.",
+  "accessConsentRequired": "Confirma que aceptas esta asociación.",
+  "accessPrivateEmail": "Para usar contraseña necesitas un correo personal. Por ahora puedes continuar con Apple o agregar Google; cambiar el correo estará disponible más adelante.",
+  "accessSuccess": "Método añadido. Ya puedes usarlo para entrar a esta misma cuenta.",
+  "accessVerificationFailed": "El método ya está vinculado, pero no pudimos enviar la verificación del correo. Puedes reintentar el envío.",
+  "accessVerificationSent": "Enviamos un correo de verificación. Puedes continuar usando la app.",
+  "accessSendVerification": "Enviar verificación",
+  "accessConflict": "Esta credencial pertenece a otra cuenta. Prueba con otra o cancela; tu sesión actual se conserva.",
+  "accessSessionChanged": "La sesión cambió. Cierra esta ventana y vuelve a consultar los métodos de la cuenta actual.",
+  "accessNetworkError": "No pudimos conectar. Tus campos se conservan; vuelve a intentarlo.",
+  "accessCredentialError": "No pudimos confirmar tu identidad con ese método. Revisa tus datos o selecciona otro método vinculado.",
+  "accessGenericError": "No pudimos confirmar el vínculo. Reintenta para comprobar su estado antes de volver a enviarlo.",
+  "accessLinkIntro": "Añadirás otra forma de entrar a esta misma cuenta. Primero confirma tu identidad con un método que ya tengas vinculado.",
+  "accessUnverifiedPasswordWarning": "Si el correo aún no está verificado, Firebase puede sustituir el acceso con contraseña al confirmar Google o Apple. Después podrás añadir una nueva contraseña.",
+  "accessPasswordReplaced": "La contraseña anterior ya no figura como método de acceso. Puedes añadir una nueva desde esta pantalla.",
+  "documentUploadRequired": "El archivo no terminó de cargarse. Conservamos tu borrador; reintenta la carga.",
+  "documentSourceUnavailable": "No pudimos acceder al archivo cargado. Conservamos tu borrador; vuelve a intentarlo."
 }

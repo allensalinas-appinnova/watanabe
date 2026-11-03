@@ -8,7 +8,7 @@ const APP_VERSION = /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:[-+][A-Za-z0-9.-]{1,32})?$/;
 const BUILD_NUMBER = /^[A-Za-z0-9.-]{1,32}$/;
 
 export class DeviceRegistryError extends Error {
-  constructor(readonly status: "unauthenticated" | "invalid-argument", readonly issue: string) {
+  constructor(readonly status: "unauthenticated" | "invalid-argument" | "permission-denied", readonly issue: string) {
     super(issue);
   }
 }
@@ -44,6 +44,9 @@ export async function executeDeviceRegistryCommand(
 
   const ref = db.doc(`users/${uid}/devices/${input.installationId}`);
   await db.runTransaction(async (transaction) => {
+    if ((await transaction.get(db.doc(`accountDeletions/${uid}`))).exists) {
+      throw new DeviceRegistryError("permission-denied", "account-deletion-requested");
+    }
     const snapshot = await transaction.get(ref);
     const existing = snapshot.data();
     const lastSeenAt = existing?.lastSeenAt;
